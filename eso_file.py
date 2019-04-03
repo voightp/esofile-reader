@@ -199,19 +199,22 @@ class EsoFile:
     ----------
     file_path : path like object
         A full path of the ESO file
-    exclude_intervals : list of {'TS', 'H', 'D', 'M', 'A', 'RP'}
+    exclude_intervals : list of {TS, H, D, M, A, RP}
         A list of interval identifiers which will be ignored.
+    report_progress : bool, default False
+        Processing progress is reported in terminal when set as 'True'.
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None):
+    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=False):
         self.file_path = file_path
         self.complete = False
 
         content = read_file(
             file_path,
             exclude_intervals=exclude_intervals,
-            monitor=monitor
+            monitor=monitor,
+            report_progress=report_progress,
         )
 
         if not content:

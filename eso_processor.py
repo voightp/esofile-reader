@@ -470,10 +470,10 @@ def process_file(file, monitor, excl=None):
     return timestamp, environments, header_dicts, outputs, tree
 
 
-def read_file(file_path, exclude_intervals=None, monitor=None):
+def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
-        monitor = DefaultMonitor(file_path)
+        monitor = DefaultMonitor(file_path, print_report=report_progress)
 
     # Initially read the file to check if it's ok
     monitor.preprocess()
