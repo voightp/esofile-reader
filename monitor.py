@@ -55,8 +55,6 @@ class DefaultMonitor:
         self.results_lines_counter += 1
         if self.results_lines_counter == self.chunk_size:
             self.progress += 1
-            # self.report_progress(100, ".")
-            sys.stdout.flush()
             self.results_lines_counter = 0
 
     def body_finished(self):
@@ -121,8 +119,10 @@ class DefaultMonitor:
     def calc_time(self, identifier):
         start = self.processing_time_dct[0]
         current = self.processing_time_dct[identifier]
+
         if identifier == 0:
-            return time.strftime(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))), None
+            return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start)), None
+
         elapsed = current - start
         previous = self.processing_time_dct[identifier - 1]
         delta = current - previous

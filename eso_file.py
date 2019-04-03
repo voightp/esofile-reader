@@ -7,7 +7,9 @@ from collections import defaultdict, namedtuple
 import pandas as pd
 import convertor as crv
 import os
+import time
 from random import randint
+
 
 # import pyximport;
 # pyximport.install()
@@ -230,9 +232,10 @@ class EsoFile:
         ) = content
 
     def __repr__(self):
+        human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return "File: {}\n" \
                "Path: {}\n" \
-               "Created: {}".format(self.file_name, self.file_path, self.created)
+               "Created: {}".format(self.file_name, self.file_path, human_time)
 
     @property
     def file_name(self):
