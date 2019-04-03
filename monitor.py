@@ -91,7 +91,7 @@ class DefaultMonitor:
 
             if identifier == 0:
                 print("\n" + "*" * 50 + "\n")
-                print("File: '{}' \n\t>> {} - {}".format(self.name, text, elapsed))
+                print("File: '{}' \n\t0 - {} - {}".format(self.name, text, elapsed))
 
             else:
                 print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
@@ -114,8 +114,9 @@ class DefaultMonitor:
             res_proc = -1
             abs_proc = -1
 
-        print("\n\t>> Results processing speed: {:.0f} lines per s\n"
-              "\t>> Absolute processing speed: {:.0f} lines per s".format(res_proc, abs_proc))
+        if self.print_report:
+            print("\n\t>> Results processing speed: {:.0f} lines per s\n"
+                  "\t>> Absolute processing speed: {:.0f} lines per s".format(res_proc, abs_proc))
 
     def calc_time(self, identifier):
         start = self.processing_time_dct[0]
