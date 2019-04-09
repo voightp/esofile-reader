@@ -32,17 +32,18 @@ class InvalidFileNamePosition(Exception):
     pass
 
 
-def load_eso_file(path, monitor=None):
+def load_eso_file(path, monitor=None, report_progress=True):
     """ A wrapper to safely handle a file. """
-    eso_file = EsoFile(path, monitor=monitor)
+    eso_file = EsoFile(path, monitor=monitor, report_progress=report_progress)
     if eso_file.complete:
         return eso_file
 
 
-def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
-                type="standard", header=True, add_file_name="row", include_interval=False,
-                units_system="SI", energy_rate_dct=DEFAULT_ENERGY_DCT, rate_units="W",
-                energy_units="J", timestamp_format="default", report_progress=True):
+def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
+                header=True, add_file_name="row", include_interval=False, units_system="SI",
+                energy_rate_dct=DEFAULT_ENERGY_DCT, rate_units="W", energy_units="J",
+                timestamp_format="default", report_progress=True, exclude_intervals=None,
+                part_match=False):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -72,7 +73,7 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
          Specify if file name should be added into results df.
      include_interval : bool
          Decide if 'interval' information should be included on
-         the results df.
+         the results df column index.
      units_system : {'SI', 'IP'}
          Selected units type for requested outputs.
      energy_rate_dct : dct
@@ -86,6 +87,11 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
          140 as these need separate date and time column
      report_progress : bool
          Processing progress will be reported in the terminal if set to 'True'.
+     exclude_intervals : list of {TS, H, D, M, A, RP}
+         A list of interval identifiers which will be ignored.
+     part_match : bool
+         Only substring of the part of variable is enough
+         to match when searching for variables if this is True.
 
      Returns
      -------
@@ -104,7 +110,9 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
         "rate_units": rate_units,
         "energy_units": energy_units,
         "timestamp_format": timestamp_format,
-        "report_progress": report_progress
+        "report_progress": report_progress,
+        "exclude_intervals": exclude_intervals,
+        "part_match":part_match
     }
 
     if isinstance(files, list):
@@ -115,12 +123,9 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
 
 def _get_results(file, request, **kwargs):
     """ Load eso file and return requested results. """
-    try:
-        excl = kwargs.pop("exclude_intervals")
-        report_progress = kwargs.pop("report_progress")
-    except KeyError:
-        excl = None
-        report_progress = False
+    excl = kwargs.pop("exclude_intervals")
+    report_progress = kwargs.pop("report_progress")
+    part_match = kwargs.pop("part_match")
 
     if isinstance(file, EsoFile):
         eso_file = file
@@ -129,13 +134,7 @@ def _get_results(file, request, **kwargs):
 
     if not eso_file.complete:
         raise IncompleteFile("Cannot load results!\n"
-                             "File {} is not complete.".format(eso_file.file_name))
-
-    try:
-        part_match = kwargs.pop("part_match")
-
-    except KeyError:
-        part_match = False
+                             "File '{}' is not complete.".format(eso_file.file_name))
 
     ids = eso_file.find_ids(request, part_match=part_match)
 
@@ -155,9 +154,14 @@ def _get_results_multiple_files(file_list, request, **kwargs):
         res = pd.concat(frames, sort=False)
 
     except ValueError:
+        if isinstance(request, list):
+            request_str = ", ".join(request)
+        else:
+            request_str = request
+
         print("Any of requested variables was not found!\n"
               "Requested variables: '{}'\n"
-              "Files: '{}'".format(", ".join(request), ", ".join(file_list)))
+              "Files: '{}'".format(request_str, ", ".join(file_list)))
         return
 
     return res
@@ -207,12 +211,12 @@ class EsoFile:
         A full path of the ESO file
     exclude_intervals : list of {TS, H, D, M, A, RP}
         A list of interval identifiers which will be ignored.
-    report_progress : bool, default False
+    report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=False):
+    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True):
         self.file_path = file_path
         self.complete = False
 
@@ -470,8 +474,8 @@ class EsoFile:
         request_lst : list of Request
             A list of 'Request' named tuples.
         part_match : bool
-            Only substring can when searching for variables
-            if this is True.
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
         """
         ids = []
 
