@@ -155,7 +155,8 @@ def _get_results_multiple_files(file_list, request, **kwargs):
 
     except ValueError:
         if isinstance(request, list):
-            request_str = ", ".join(request)
+            lst = ["'{} - {} {} {}'".format(*tup) for tup in request]
+            request_str = ", ".join(lst)
         else:
             request_str = request
 
