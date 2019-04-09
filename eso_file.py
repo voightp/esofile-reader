@@ -155,9 +155,9 @@ def _get_results_multiple_files(file_list, request, **kwargs):
         res = pd.concat(frames, sort=False)
 
     except ValueError:
-        print("Any of requested variables was not found")
-        print(request)
-        print(file_list)
+        print("Any of requested variables was not found!\n"
+              "Requested variables: '{}'\n"
+              "Files: '{}'".format(", ".join(request), ", ".join(file_list)))
         return
 
     return res
