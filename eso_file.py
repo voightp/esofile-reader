@@ -10,7 +10,6 @@ import os
 import time
 from random import randint
 
-
 # import pyximport;
 # pyximport.install()
 # from eso_processor_c import read_file
@@ -43,7 +42,7 @@ def load_eso_file(path, monitor=None):
 def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
                 type="standard", header=True, add_file_name="row", include_interval=False,
                 units_system="SI", energy_rate_dct=DEFAULT_ENERGY_DCT, rate_units="W",
-                energy_units="J", timestamp_format="default"):
+                energy_units="J", timestamp_format="default", report_progress=True):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -85,6 +84,9 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
      timestamp_format : str
          A format of timestamp for peak results, currently only used for ASHRAE
          140 as these need separate date and time column
+     report_progress : bool
+         Processing progress will be reported in the terminal if set to 'True'.
+
      Returns
      -------
      pandas.DataFrame
@@ -101,7 +103,8 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE,
         "energy_rate_dct": energy_rate_dct,
         "rate_units": rate_units,
         "energy_units": energy_units,
-        "timestamp_format": timestamp_format
+        "timestamp_format": timestamp_format,
+        "report_progress": report_progress
     }
 
     if isinstance(files, list):
@@ -114,14 +117,15 @@ def _get_results(file, request, **kwargs):
     """ Load eso file and return requested results. """
     try:
         excl = kwargs.pop("exclude_intervals")
-
+        report_progress = kwargs.pop("report_progress")
     except KeyError:
         excl = None
+        report_progress = False
 
     if isinstance(file, EsoFile):
         eso_file = file
     else:
-        eso_file = EsoFile(file, exclude_intervals=excl)
+        eso_file = EsoFile(file, exclude_intervals=excl, report_progress=report_progress)
 
     if not eso_file.complete:
         raise IncompleteFile("Cannot load results!\n"
