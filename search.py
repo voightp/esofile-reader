@@ -71,7 +71,7 @@ class Tree:
         """ Create a search tree. """
         for interval, data in header_dct.items():
             for id, tup in data.items():
-                self.add_branch(interval, tup.key, tup.var, tup.units, id)
+                self.add_branch(interval, tup.key, tup.variable, tup.units, id)
 
     def add_branch(self, interval, key, var, units, id):
         """ Append a branch to tree. """
