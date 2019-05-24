@@ -1,7 +1,6 @@
 import sys
 import time
 import os
-from pympler import tracker
 
 
 class DefaultMonitor:
