@@ -15,29 +15,29 @@ from monitor import DefaultMonitor
 import time
 import os
 from functools import partial
-from pympler import tracker, summary, asizeof
-import psutil
-
-
-def memory_usage_psutil():
-    # return the memory usage in MB
-    import psutil
-    process = psutil.Process(os.getpid())
-    mem = process.memory_info()[0] / float(2 ** 20)
-    return mem
-
-
-def decorator(func):
-    def wrapper(*args, **kwargs):
-        print("Function: {}".format(func.__name__))
-        tr = tracker.SummaryTracker()
-        stuff = func(*args, **kwargs)
-        mem = memory_usage_psutil()
-        print("MEMORY: {}".format(mem))
-        tr.print_diff()
-        return stuff
-
-    return wrapper
+# from pympler import tracker, summary, asizeof
+# import psutil
+#
+#
+# def memory_usage_psutil():
+#     # return the memory usage in MB
+#     import psutil
+#     process = psutil.Process(os.getpid())
+#     mem = process.memory_info()[0] / float(2 ** 20)
+#     return mem
+#
+#
+# def decorator(func):
+#     def wrapper(*args, **kwargs):
+#         print("Function: {}".format(func.__name__))
+#         tr = tracker.SummaryTracker()
+#         stuff = func(*args, **kwargs)
+#         mem = memory_usage_psutil()
+#         print("MEMORY: {}".format(mem))
+#         tr.print_diff()
+#         return stuff
+#
+#     return wrapper
 
 
 class InvalidLineSyntax(AttributeError):
