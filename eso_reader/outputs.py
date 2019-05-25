@@ -209,7 +209,7 @@ class Outputs(pd.DataFrame):
             return pd.MultiIndex(
                 levels=[[var_id], [header[0]], [header[1]], [header[2]]],
                 labels=[[0], [0], [0], [0]],
-                names=["id", "key", "variable", "units"]
+                codes=["id", "key", "variable", "units"]
             )
 
 
