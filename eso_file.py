@@ -1,20 +1,11 @@
-from constants import MIN_DATE
-from constants import MAX_DATE
-from constants import DEFAULT_ENERGY_DCT
-from constants import TS, H, D, M, A, RP
-from outputs import TimestepOutputs, HourlyOutputs, DailyOutputs, MonthlyOutputs
-from collections import defaultdict, namedtuple
 import pandas as pd
 import convertor as crv
 import os
 import time
 from random import randint
-
-# import pyximport;
-# pyximport.install()
-# from eso_processor_c import read_file
 from eso_processor import read_file
 from mini_classes import HeaderVariable
+from constants import MIN_DATE, MAX_DATE, DEFAULT_ENERGY_DCT
 
 
 class VariableNotFound(Exception):
@@ -112,7 +103,7 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
         "timestamp_format": timestamp_format,
         "report_progress": report_progress,
         "exclude_intervals": exclude_intervals,
-        "part_match":part_match
+        "part_match": part_match
     }
 
     if isinstance(files, list):
@@ -186,12 +177,12 @@ class EsoFile:
     }
 
     outputs = {
-        TS : outputs.TimestepOutputs,
-        H : outputs.HourlyOutputs,
-        D : outputs.DailyOutputs,
-        M : outputs.MonthlyOutputs,
-        A : outputs.AnnualOutputs,
-        RP : outputs.RunperiodOutputs,
+        TS : outputs.Timestep,
+        H : outputs.Hourly,
+        D : outputs.Daily,
+        M : outputs.Monthly,
+        A : outputs.Annual,
+        RP : outputs.Runperiod,
     }
 
     Attributes
