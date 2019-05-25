@@ -4,8 +4,6 @@ from constants import TS, H, D, M, A, RP
 from constants import YEAR
 
 
-# TODO Set 'Annual' and 'Monthly' start date based on other intervals data
-
 class IntervalNotAvailable(KeyError):
     """ Raise an exception when interval is not included in results. """
     pass
@@ -121,7 +119,8 @@ def find_num_of_days_annual(ann_num_of_days, rp_num_of_days):
     new_ann = []
 
     for an_env, rp_env in zip(ann_num_of_days, rp_num_of_days):
-        days = rp_env[0] // len(an_env)  # calculate annual number of days when runperiod contains multiple years
+        # calculate annual number of days when runperiod contains multiple years
+        days = rp_env[0] // len(an_env)
         new_ann.append([days for _ in an_env])
 
     return new_ann
@@ -189,7 +188,6 @@ def incr_year_envs(previous_env_start, current_env_start):
 
 def incr_year_env(first_step_data, current_step_data, previous_step_data):
     """ Check if year value should be incremented inside environment interval. """
-
     # Only 'Monthly+' intervals can have hour == 0
     if current_step_data.hour == 0:
         if first_step_data == current_step_data:
@@ -208,14 +206,6 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
             return False
     else:
         return False
-
-
-def set_rp_date(rp_envs, ts_to_m_envs):
-    """ Set interval start dates for runperiod interval. """
-    for envs in ts_to_m_envs.values():
-        for r_env, o_env in zip(rp_envs, envs):
-            r_env[0] = o_env[0].replace(hour=0, minute=0)
-        return rp_envs
 
 
 def _to_timestamp(year, tmstmp):
@@ -267,20 +257,32 @@ def convert_to_dt_index(env_dict, year):
 
     If there isn't any data in the interval, set interval value to None.
     """
-
-    # Generate timestamp index
     for key, value in env_dict.items():
         env_dict[key] = _gen_dt(value, year)
 
-    # Attempt to find precise runperiod start date
-    ts_to_m_envs = slice_dict(env_dict, [TS, H, D, M])
-    if RP in env_dict and ts_to_m_envs:
-        # Find 'Runperiod' start date based on other intervals
-        env_dict[RP] = set_rp_date(env_dict[RP], ts_to_m_envs)
-
-    # TODO include code to set first day of annual, monthly interval
-
     return env_dict
+
+
+def _set_start_date(to_be_set_envs, ts_to_m_envs):
+    """ Set interval start dates for given interval. """
+    for envs in ts_to_m_envs.values():
+        for r_env, o_env in zip(to_be_set_envs, envs):
+            r_env[0] = o_env[0].replace(hour=0, minute=0)
+        return to_be_set_envs
+
+
+def update_start_dates(env_dict):
+    """ Set accurate first date for monthly+ intervals. """
+    ts_to_m_envs = slice_dict(env_dict, [TS, H, D, M])
+    if ts_to_m_envs:
+        if M in env_dict:
+            env_dict[M] = _set_start_date(env_dict[M], ts_to_m_envs)
+
+        if A in env_dict:
+            env_dict[A] = _set_start_date(env_dict[A], ts_to_m_envs)
+
+        if RP in env_dict:
+            env_dict[RP] = _set_start_date(env_dict[RP], ts_to_m_envs)
 
 
 def _env_ts_d_h(envs):
@@ -319,7 +321,7 @@ def _env_m(m_act_days, num_of_days):
     ----
     For interval with more than one month, start day of first month and end day of
     last month is calculated and should be accurate. When there is only a one month
-    in interval, start date is set as a first day of month and last day us calculated.
+    in interval, start date is set as a first day of month and last day is calculated.
     """
     environment = []
 
@@ -387,8 +389,10 @@ def find_environment(all_envs_dates, monthly_to_rp_cd):
     elif monthly_rp_envs:
         # find environments using monthly or runperiod interval
         return find_env_m_to_rp(monthly_rp_envs, monthly_to_rp_cd)
+
     else:
-        raise CannotFindEnvironment("Cannot find environment!\nInclude at least one TS, H, D, M, RP output.")
+        raise CannotFindEnvironment("Cannot find environment!\n"
+                                    "Include at least one TS, H, D, M, RP output.")
 
 
 def flat_values(nested_env_dict):
@@ -424,13 +428,17 @@ def interval_processor(all_envs_dict, monitor):
     avail_m_to_rp = set(interval_keys).intersection({M, A, RP})
     m_to_rp_cmlt_d = {}
 
-    # Process 'Monthly+' intervals
+    # process 'Monthly+' intervals
     if any(x in avail_m_to_rp for x in interval_keys):
         # Separate number of days data if any M to RP interval is available
         all_envs_dict, m_to_rp_cmlt_d = get_num_of_days(all_envs_dict, avail_m_to_rp)
 
-    # Transform raw int data into datetime like index
+    # transform raw int data into datetime like index
     all_envs_dates = convert_to_dt_index(all_envs_dict, year)
+
+    # update first day of monthly+ interval based on
+    # shorter interval data
+    update_start_dates(all_envs_dates)
 
     # Find start and end dates for all environments
     all_environment_dates = find_environment(all_envs_dates, m_to_rp_cmlt_d)
