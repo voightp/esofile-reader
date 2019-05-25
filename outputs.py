@@ -3,9 +3,6 @@ import numpy as np
 from interval_processor import parse_result_dt
 
 
-# TODO Simplify, header always passed
-
-
 class Outputs(pd.DataFrame):
     """
     A parent class to define all methods required for extracting
@@ -216,7 +213,7 @@ class Outputs(pd.DataFrame):
             )
 
 
-class HourlyOutputs(Outputs):
+class Hourly(Outputs):
     """
     Pandas.DataFrame like class to hold EnergyPlus results
     for Hourly interval.
@@ -235,7 +232,7 @@ class HourlyOutputs(Outputs):
     """
 
     def __init__(self, data, **kwargs):
-        super(HourlyOutputs, self).__init__(data, **kwargs)
+        super(Hourly, self).__init__(data, **kwargs)
 
     def global_maximum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
         """ Return an interval maximum value and date of occurrence. """
@@ -262,7 +259,7 @@ class HourlyOutputs(Outputs):
         pass
 
 
-class TimestepOutputs(HourlyOutputs):
+class Timestep(Hourly):
     """
     Pandas.DataFrame like class to hold EnergyPlus results
     for Timestep interval.
@@ -280,7 +277,7 @@ class TimestepOutputs(HourlyOutputs):
     """
 
     def __init__(self, data, **kwargs):
-        super(TimestepOutputs, self).__init__(data, **kwargs)
+        super(Timestep, self).__init__(data, **kwargs)
 
     def timestep_minimum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
         """ Timestep minimum value is the same as global minimum for Timestep interval. """
@@ -291,7 +288,7 @@ class TimestepOutputs(HourlyOutputs):
         return self._global_peak(var_id, start_date, end_date, header, val_ix=0, tmstmp_frm=tmstmp_frm)
 
 
-class DailyOutputs(Outputs):
+class Daily(Outputs):
     """
     Pandas.DataFrame like class to hold EnergyPlus results
     for Daily interval.
@@ -319,10 +316,10 @@ class DailyOutputs(Outputs):
     _max_peak = {"val_ix": 4, "hour_ix": 5, "end_min_ix": 6}
 
     def __init__(self, data, **kwargs):
-        super(DailyOutputs, self).__init__(data, **kwargs)
+        super(Daily, self).__init__(data, **kwargs)
 
 
-class MonthlyOutputs(Outputs):
+class Monthly(Outputs):
     """
     Pandas.DataFrame like class to hold EnergyPlus results
     for Monthly interval.
@@ -350,17 +347,17 @@ class MonthlyOutputs(Outputs):
     _max_peak = {"val_ix": 5, "day_ix": 6, "hour_ix": 7, "end_min_ix": 8}
 
     def __init__(self, data, **kwargs):
-        super(MonthlyOutputs, self).__init__(data, **kwargs)
+        super(Monthly, self).__init__(data, **kwargs)
 
 
-class RunperiodOutputs(Outputs):
+class Runperiod(Outputs):
     _min_peak = {"val_ix": 1, "month_ix": 2, "day_ix": 3, "hour_ix": 4, "end_min_ix": 5}
     _max_peak = {"val_ix": 6, "month_ix": 7, "day_ix": 8, "hour_ix": 9, "end_min_ix": 10}
 
     def __init__(self, data, **kwargs):
-        super(RunperiodOutputs, self).__init__(data, **kwargs)
+        super(Runperiod, self).__init__(data, **kwargs)
 
 
-class AnnualOutputs(RunperiodOutputs):
+class Annual(Runperiod):
     def __init__(self, data, **kwargs):
-        super(AnnualOutputs, self).__init__(data, **kwargs)
+        super(Annual, self).__init__(data, **kwargs)

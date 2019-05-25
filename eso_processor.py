@@ -1,43 +1,16 @@
-import sys
-import datetime as dt
 import re
-from outputs import HourlyOutputs, DailyOutputs, MonthlyOutputs, AnnualOutputs, RunperiodOutputs, \
-    TimestepOutputs
+import datetime as dt
+import pandas as pd
+import numpy as np
+
+from outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from interval_processor import interval_processor
 from mini_classes import HeaderVariable, IntervalTuple
-import numpy as np
 from constants import TS, H, D, M, A, RP
-from collections import namedtuple
 from collections import defaultdict
 from search import Tree
-import pandas as pd
 from monitor import DefaultMonitor
-import time
-import os
 from functools import partial
-# from pympler import tracker, summary, asizeof
-# import psutil
-#
-#
-# def memory_usage_psutil():
-#     # return the memory usage in MB
-#     import psutil
-#     process = psutil.Process(os.getpid())
-#     mem = process.memory_info()[0] / float(2 ** 20)
-#     return mem
-#
-#
-# def decorator(func):
-#     def wrapper(*args, **kwargs):
-#         print("Function: {}".format(func.__name__))
-#         tr = tracker.SummaryTracker()
-#         stuff = func(*args, **kwargs)
-#         mem = memory_usage_psutil()
-#         print("MEMORY: {}".format(mem))
-#         tr.print_diff()
-#         return stuff
-#
-#     return wrapper
 
 
 class InvalidLineSyntax(AttributeError):
@@ -376,26 +349,26 @@ def _gen_output(data, index, interval, num_of_days):
     index = pd.Index(index, name="timestamp")
 
     def gen_ts():
-        return TimestepOutputs(data, index=index)
+        return Timestep(data, index=index)
 
     def gen_h():
-        return HourlyOutputs(data, index=index)
+        return Hourly(data, index=index)
 
     def gen_d():
-        return DailyOutputs(data, index=index)
+        return Daily(data, index=index)
 
     def gen_m():
-        out = MonthlyOutputs(data, index=index)
+        out = Monthly(data, index=index)
         out.insert(0, clmn_name, num_of_days)
         return out
 
     def gen_a():
-        out = AnnualOutputs(data, index=index)
+        out = Annual(data, index=index)
         out.insert(0, clmn_name, num_of_days)
         return out
 
     def gen_rp():
-        out = RunperiodOutputs(data, index=index)
+        out = Runperiod(data, index=index)
         out.insert(0, clmn_name, num_of_days)
         return out
 

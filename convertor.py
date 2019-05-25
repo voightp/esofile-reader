@@ -1,4 +1,4 @@
-from outputs import TimestepOutputs, HourlyOutputs, DailyOutputs
+from outputs import Timestep, Hourly, Daily
 
 
 def convert(data, units_system, rate_units, energy_units):
@@ -84,14 +84,14 @@ def energy_to_rate(data, data_set, start_date, end_date):
     units = data.columns.get_level_values("units")
     if units == "J":
         new_units = "W"
-        if isinstance(data_set, TimestepOutputs):
+        if isinstance(data_set, Timestep):
             n_steps = _timestep_multiplier(data_set)
             data = data * n_steps
 
-        elif isinstance(data_set, HourlyOutputs):
+        elif isinstance(data_set, Hourly):
             pass
 
-        elif isinstance(data_set, DailyOutputs):
+        elif isinstance(data_set, Daily):
             denominator = 24
             data = data / denominator  # Convert J to J/h
 
@@ -111,14 +111,14 @@ def rate_to_energy(data, data_set, start_date, end_date):
     if units == "W" or units == "W/m2":
         new_units = "J/m2" if units == "W/m2" else "J"
 
-        if isinstance(data_set, TimestepOutputs):
+        if isinstance(data_set, Timestep):
             n_steps = _timestep_multiplier(data_set)
             data = data / n_steps
 
-        elif isinstance(data_set, HourlyOutputs):
+        elif isinstance(data_set, Hourly):
             pass
 
-        if isinstance(data_set, DailyOutputs):
+        if isinstance(data_set, Daily):
             multiplier = 24
             data = data * multiplier  # Convert W to Wh
 

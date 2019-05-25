@@ -294,7 +294,7 @@ def _env_ts_d_h(envs):
             start_date = env[0]
             end_date = env[-1]
         # For 'TS' and 'Hourly' outputs, the last item
-        # in the list is
+        # in the list is next day
         else:
             start_date = env[0].date()
             end_date = env[-2].date()
@@ -420,12 +420,12 @@ def interval_processor(all_envs_dict, monitor):
     monitor.interval_processing_started()
 
     year = YEAR
-    intvl_keys = all_envs_dict.keys()
-    avail_m_to_rp = set(intvl_keys).intersection({M, A, RP})
+    interval_keys = all_envs_dict.keys()
+    avail_m_to_rp = set(interval_keys).intersection({M, A, RP})
     m_to_rp_cmlt_d = {}
 
     # Process 'Monthly+' intervals
-    if any(x in avail_m_to_rp for x in intvl_keys):
+    if any(x in avail_m_to_rp for x in interval_keys):
         # Separate number of days data if any M to RP interval is available
         all_envs_dict, m_to_rp_cmlt_d = get_num_of_days(all_envs_dict, avail_m_to_rp)
 
