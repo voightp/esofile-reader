@@ -3,14 +3,15 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 
-from outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
-from interval_processor import interval_processor
-from mini_classes import HeaderVariable, IntervalTuple
-from constants import TS, H, D, M, A, RP
-from collections import defaultdict
-from search import Tree
-from monitor import DefaultMonitor
 from functools import partial
+from collections import defaultdict
+
+from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
+from eso_reader.interval_processor import interval_processor
+from eso_reader.mini_classes import HeaderVariable, IntervalTuple
+from eso_reader.constants import TS, H, D, M, A, RP
+from eso_reader.search import Tree
+from eso_reader.monitor import DefaultMonitor
 
 
 class InvalidLineSyntax(AttributeError):

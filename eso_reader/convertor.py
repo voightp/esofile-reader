@@ -1,4 +1,4 @@
-from outputs import Timestep, Hourly, Daily
+from eso_reader.outputs import Timestep, Hourly, Daily
 
 
 def convert(data, units_system, rate_units, energy_units):

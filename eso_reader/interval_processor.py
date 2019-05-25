@@ -1,7 +1,7 @@
 import datetime as dt
 import pandas as pd
-from constants import TS, H, D, M, A, RP
-from constants import YEAR
+from eso_reader.constants import TS, H, D, M, A, RP
+from eso_reader.constants import YEAR
 
 
 class IntervalNotAvailable(KeyError):

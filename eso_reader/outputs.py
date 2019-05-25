@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from interval_processor import parse_result_dt
+from eso_reader.interval_processor import parse_result_dt
 
 
 class Outputs(pd.DataFrame):

@@ -1,11 +1,13 @@
 import pandas as pd
-import convertor as crv
 import os
 import time
+
 from random import randint
-from eso_processor import read_file
-from mini_classes import HeaderVariable
-from constants import MIN_DATE, MAX_DATE, DEFAULT_ENERGY_DCT
+
+from eso_reader.convertor import rate_to_energy, energy_to_rate, convert
+from eso_reader.eso_processor import read_file
+from eso_reader.mini_classes import HeaderVariable
+from eso_reader.constants import MIN_DATE, MAX_DATE, DEFAULT_ENERGY_DCT
 
 
 class VariableNotFound(Exception):
@@ -400,14 +402,14 @@ class EsoFile:
                     is_energy = energy_rate_dct[interval]
                     if is_energy:
                         # 'energy' is requested for current output
-                        data = crv.rate_to_energy(data, data_set, start_date, end_date)
+                        data = rate_to_energy(data, data_set, start_date, end_date)
                     else:
-                        data = crv.energy_to_rate(data, data_set, start_date, end_date)
+                        data = energy_to_rate(data, data_set, start_date, end_date)
 
                 # Convert the data if units system, rate or energy
                 # units are not default
                 if units_system != "SI" or rate_units != "W" or energy_units != "J":
-                    data = crv.convert(data, units_system, rate_units, energy_units)
+                    data = convert(data, units_system, rate_units, energy_units)
 
                 # Remove 'key', 'variable' and 'units' from multi index
                 if not header:
