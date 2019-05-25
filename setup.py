@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="eso_pie",
+    name="eso_reader",
     version="0.0.1",
     author="Vojtech Panek",
     author_email="vojtechpanek@seznam.cz",
