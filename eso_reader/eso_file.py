@@ -204,7 +204,8 @@ class EsoFile:
     file_path : path like object
         A full path of the ESO file
     exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored.
+        A list of interval identifiers which will be ignored. This can
+        be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
 
