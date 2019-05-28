@@ -151,7 +151,7 @@ def convert_rate(rate_units):
     table = {
         "btu/h": 0.2930711,
         "kbtu/h": 293.0711,
-        "mbtu": 293071.1,
+        "mbtu/h": 293071.1,
         "kw": 1000,
         "mw": 1000000,
     }
