@@ -396,34 +396,35 @@ class EsoFile:
 
             # Some types of outputs are not applicable for
             # certain intervals so these will be ignored
-            if data is not None:
+            if data is None:
+                continue
 
-                # convert 'rate' or 'energy' when standard results are requested
-                if type == "standard" and energy_rate_dct:
-                    is_energy = energy_rate_dct[interval]
-                    if is_energy:
-                        # 'energy' is requested for current output
-                        data = rate_to_energy(data, data_set, start_date, end_date)
-                    else:
-                        data = energy_to_rate(data, data_set, start_date, end_date)
-
-                # Convert the data if units system, rate or energy
-                # units are not default
-                if units_system != "SI" or rate_units != "W" or energy_units != "J":
-                    data = convert(data, units_system, rate_units, energy_units)
-
-                # Remove 'key', 'variable' and 'units' from multi index
-                if not header:
-                    data.columns = self.drop_header_levels(data.columns)
-
+            # convert 'rate' or 'energy' when standard results are requested
+            if type == "standard" and energy_rate_dct:
+                is_energy = energy_rate_dct[interval]
+                if is_energy:
+                    # 'energy' is requested for current output
+                    data = rate_to_energy(data, data_set, start_date, end_date)
                 else:
-                    # Drop only variable id (as index is defined using key, var and units).
-                    data.columns = data.columns.droplevel(0)
+                    data = energy_to_rate(data, data_set, start_date, end_date)
 
-                    if include_interval:
-                        data = self.add_interval(data, interval)
+            # Convert the data if units system, rate or energy
+            # units are not default
+            if units_system != "SI" or rate_units != "W" or energy_units != "J":
+                data = convert(data, units_system, rate_units, energy_units)
 
-                frames.append(data)
+            # Remove 'key', 'variable' and 'units' from multi index
+            if not header:
+                data.columns = self.drop_header_levels(data.columns)
+
+            else:
+                # Drop only variable id (as index is defined using key, var and units).
+                data.columns = data.columns.droplevel(0)
+
+                if include_interval:
+                    data = self.add_interval(data, interval)
+
+            frames.append(data)
 
         # Catch empty frames exception
         try:
