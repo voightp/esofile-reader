@@ -257,7 +257,6 @@ def convert_to_ip(orig_units):
     request = orig_units.lower()
     table = {
         "w": ("Btu/h", 0.2930711),
-        "w/m2": ("Btu/h.ft2", 5.678263),
     }
 
     try:
