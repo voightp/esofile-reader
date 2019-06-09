@@ -10,7 +10,7 @@ RP = "runperiod"
 MIN_DATE = dt.datetime(1990, 1, 1)
 MAX_DATE = dt.datetime(2100, 1, 1)
 
-DEFAULT_ENERGY_DCT = {TS: False,
+RATE_TO_ENERGY_DCT = {TS: False,
                       H: False,
                       D: True,
                       M: True,
