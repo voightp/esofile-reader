@@ -449,6 +449,7 @@ def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=F
         monitor = DefaultMonitor(file_path, print_report=report_progress)
 
     # Initially read the file to check if it's ok
+    monitor.processing_started()
     complete = monitor.preprocess(suppress_errors)
 
     if not complete:

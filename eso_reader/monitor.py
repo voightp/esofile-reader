@@ -22,7 +22,6 @@ class DefaultMonitor:
         return os.path.basename(self.path)
 
     def preprocess(self, suppress_errors):
-        self.preprocessing_started()
         pth = self.path
 
         try:
@@ -46,8 +45,8 @@ class DefaultMonitor:
     def processing_failed(self, info):
         self.report_progress(-1, info)
 
-    def preprocessing_started(self):
-        self.report_progress(0, "Pre-processing started!")
+    def processing_started(self):
+        self.report_progress(0, "Processing started!")
 
     def preprocessing_finished(self):
         self.report_progress(1, "Pre-processing finished!")
@@ -87,8 +86,10 @@ class DefaultMonitor:
             else:
                 elapsed, delta = self.calc_time(identifier)
                 if identifier == 0:
-                    print("\n" + "*" * 50 + "\n")
-                    print("File: '{}' \n\t0 - {} - {}".format(self.name, text, elapsed))
+                    print("\n{}\n"
+                          "File: '{}' \n\t0 - {} - {}".format("*" * 50, self.name, text, elapsed))
+                elif identifier == 7:
+                    print("\t{} - {} - {:.6f}s".format(identifier, text, elapsed))
                 else:
                     print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
 
