@@ -126,7 +126,6 @@ def read_header(eso_file, monitor, excl=None):
 
         # Check if the end of data dictionary has been reached
         if "End of Data Dictionary" in line:
-            monitor.header_finished()
             break
 
         # Extract data from a raw line
@@ -143,6 +142,18 @@ def read_header(eso_file, monitor, excl=None):
         outputs[frequency][line_id] = []
 
     return header_dicts, outputs
+
+
+def process_standard_lines(file):
+    """ Process first few standard lines. """
+    version, timestamp = _process_statement(file)
+    last = _last_standard_item_id(version)
+
+    # Skip standard reporting intervals
+    _ = [next(file) for _ in range(last)]
+
+    # Find the last item which defines reporting interval
+    return last, timestamp
 
 
 def _last_standard_item_id(version):
@@ -287,8 +298,6 @@ def read_body(eso_file, highest_interval_id, outputs, monitor):
         A nested list of raw environment information.
 
      """
-    monitor.body_processing_started()
-
     envs = {k: [] for k in outputs.keys()}
     identifier = None
     i = 0
@@ -305,7 +314,6 @@ def read_body(eso_file, highest_interval_id, outputs, monitor):
 
         # Check if the end of data block is reached
         if "End of Data" in line:
-            monitor.body_finished()
             break
 
         line_id, data = _process_raw_line(line)
@@ -385,9 +393,8 @@ def _gen_output(data, index, interval, num_of_days):
     return gen[interval]()
 
 
-def generate_outputs(outputs_dct, envs_dct, num_of_days_dct, monitor):
+def generate_outputs(outputs_dct, envs_dct, num_of_days_dct):
     """ Transform processed output data into DataFrame like classes. """
-    monitor.output_cls_gen_started()
     intervals = envs_dct.keys()
 
     # Transform outputs
@@ -397,62 +404,54 @@ def generate_outputs(outputs_dct, envs_dct, num_of_days_dct, monitor):
                                             envs_dct[interval],
                                             interval,
                                             num_of_days)
-    monitor.output_cls_gen_finished()
     return outputs_dct
 
 
-def create_tree(header_dct, monitor):
+def create_tree(header_dct):
     """ Generate a search tree. """
-    monitor.header_tree_started()
-    tree = Tree(header_dct)
-    monitor.header_tree_finished()
-    return tree
+    return Tree(header_dct)
 
 
 def process_file(file, monitor, excl=None):
     """ Process raw EnergyPlus output file. """
-    monitor.header_processing_started()
-
-    # Read the first line of eso file to extract EnergyPlus version in integer format
-    # and the time of when the file has been generated
-    version, timestamp = _process_statement(file)
-
-    # Find the last item which defines reporting interval
-    last_standard_item_id = _last_standard_item_id(version)
-
-    # Skip standard reporting intervals
-    _ = [next(file) for _ in range(last_standard_item_id)]
+    # process first few standard lines
+    last_standard_item_id, timestamp = process_standard_lines(file)
 
     # Read header to obtain a header dictionary of EnergyPlus outputs
     # and initialize dictionary for output values
     header_dicts, init_outputs = read_header(file, monitor, excl=excl)
+    monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
     # Intervals excluded in header are ignored
     outputs, envs = read_body(file, last_standard_item_id, init_outputs, monitor)
+    monitor.body_finished()
 
     # Sort interval data into relevant dictionaries
-    environments, env_dict, num_of_days_dict = interval_processor(envs, monitor)
+    environments, env_dict, num_of_days_dict = interval_processor(envs)
+    monitor.intervals_finished()
 
     # Transform standard dictionaries into DataFrame like Output classes
-    outputs = generate_outputs(outputs, env_dict, num_of_days_dict, monitor)
+    outputs = generate_outputs(outputs, env_dict, num_of_days_dict)
+    monitor.output_cls_gen_finished()
 
-    # Create a 'search tree' to allow searching for variables using
-    tree = create_tree(header_dicts, monitor)
+    # Create a 'search tree' to allow searching for variables using header data
+    tree = create_tree(header_dicts)
+    monitor.header_tree_finished()
 
     monitor.processing_finished()
     return timestamp, environments, header_dicts, outputs, tree
 
 
-def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False):
+def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False, suppress_errors=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)
 
     # Initially read the file to check if it's ok
-    monitor.preprocess()
+    complete = monitor.preprocess(suppress_errors)
 
-    if not monitor.complete:
+    if not complete:
         # prevent reading the file when incomplete
         return
 

@@ -20,29 +20,16 @@ class NoResults(Exception):
     pass
 
 
-class InvalidFileNamePosition(Exception):
-    """ Exception raised when incorrect file position on results df is requested. """
-    pass
-
-
 class IncompleteFile(Exception):
     """ Exception raised when the file is not complete. """
     pass
 
 
 def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=False):
-    """ A wrapper to safely handle a file. """
-    eso_file = EsoFile(path,
-                       monitor=monitor,
-                       report_progress=report_progress,
-                       suppress_errors=suppress_errors)
-
-    if eso_file.complete:
-        return eso_file
-
-    else:
-        raise IncompleteFile("Unexpected end of the file reached!\n"
-                             "File '{}' is not complete.".format(eso_file.file_name))
+    """ Return EsoFile object. """
+    return EsoFile(path, monitor=monitor,
+                   report_progress=report_progress,
+                   suppress_errors=suppress_errors)
 
 
 def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
@@ -136,7 +123,8 @@ def _get_results(file, request, **kwargs):
     if isinstance(file, EsoFile):
         eso_file = file
     else:
-        eso_file = EsoFile(file, exclude_intervals=excl, report_progress=report_progress)
+        eso_file = EsoFile(file, exclude_intervals=excl,
+                           report_progress=report_progress)
 
     if not eso_file.complete:
         raise NoResults("Cannot load results!\n"
@@ -153,14 +141,12 @@ def _get_results_multiple_files(file_list, request, **kwargs):
     frames = []
     for file in file_list:
         df = _get_results(file, request, **kwargs)
-
         if df is not None:
             frames.append(df)
     try:
         res = pd.concat(frames, sort=False)
 
     except ValueError:
-
         if isinstance(request, list):
             lst = ["'{} - {} {} {}'".format(*tup) for tup in request]
             request_str = ", ".join(lst)
@@ -222,10 +208,17 @@ class EsoFile:
         be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
+    suppress_errors: bool, default False
+        Do not raise IncompleteFile exceptions when processing fails.
+
+    Raises
+    ------
+    IncompleteFile
+
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True):
+    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True, suppress_errors=False):
         self.file_path = file_path
         self._complete = False
 
@@ -237,7 +230,8 @@ class EsoFile:
 
         self.populate_content(exclude_intervals=exclude_intervals,
                               monitor=monitor,
-                              report_progress=report_progress)
+                              report_progress=report_progress,
+                              suppress_errors=suppress_errors)
 
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
@@ -282,13 +276,19 @@ class EsoFile:
         path = self.file_path
         return os.path.getctime(path)
 
-    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True):
+    @property
+    def complete(self):
+        """ Check if the file has been populated and complete. """
+        return self._complete
+
+    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
         content = read_file(
             self.file_path,
             exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
+            suppress_errors=suppress_errors
         )
 
         if content:
@@ -301,19 +301,16 @@ class EsoFile:
                 self.header_tree,
             ) = content
 
+        else:
+            if not suppress_errors:
+                raise IncompleteFile("Unexpected end of the file reached!\n"
+                                     "File '{}' is not complete.".format(self.file_path))
+
     def _search(self, var_id):
         """ Return an interval and data set containing the given variable. """
         for interval, data_set in self.outputs_dct.items():
             if var_id in data_set.columns:
                 return interval, data_set
-        else:
-            VariableNotFound("Eso file does not contain variable id {}!".format(var_id))
-
-    def _search_header(self, var_id):
-        """ Return a data set containing given variable. """
-        for data_set in self.header_dct.values():
-            if var_id in data_set.keys():
-                return data_set[var_id]
         else:
             VariableNotFound("Eso file does not contain variable id {}!".format(var_id))
 
@@ -368,6 +365,28 @@ class EsoFile:
             Results for requested variables.
 
         """
+
+        def standard():
+            return data_set.standard_results(*args)
+
+        def local_maxima():
+            return data_set.local_maxima(*args)
+
+        def global_maximum():
+            return data_set.global_maximum(*args, tmstmp_frm=timestamp_format)
+
+        def timestep_maximum():
+            return data_set.timestep_maximum(*args, tmstmp_frm=timestamp_format)
+
+        def local_minima():
+            return data_set.local_minima(*args)
+
+        def global_minimum():
+            return data_set.global_minimum(*args, tmstmp_frm=timestamp_format)
+
+        def timestep_minimum():
+            return data_set.timestep_minimum(*args, tmstmp_frm=timestamp_format)
+
         frames = []
 
         for var_id in args:
@@ -380,27 +399,6 @@ class EsoFile:
 
             interval, data_set = data_tup
 
-            def standard():
-                return data_set.standard_results(*args)
-
-            def local_maxima():
-                return data_set.local_maxima(*args)
-
-            def global_maximum():
-                return data_set.global_maximum(*args, tmstmp_frm=timestamp_format)
-
-            def timestep_maximum():
-                return data_set.timestep_maximum(*args, tmstmp_frm=timestamp_format)
-
-            def local_minima():
-                return data_set.local_minima(*args)
-
-            def global_minimum():
-                return data_set.global_minimum(*args, tmstmp_frm=timestamp_format)
-
-            def timestep_minimum():
-                return data_set.timestep_minimum(*args, tmstmp_frm=timestamp_format)
-
             res = {
                 "standard": standard,
                 "local_max": local_maxima,
@@ -412,7 +410,7 @@ class EsoFile:
             }
 
             # Find matching header information
-            header_data = self._search_header(var_id)
+            header_data = self.header_dct[interval][var_id]
 
             # Extract specified set of results
             args = var_id, start_date, end_date, header_data
@@ -465,9 +463,11 @@ class EsoFile:
     def add_file_name(self, results, name_position):
         """ Add file name to index. """
         if name_position not in {"row", "column", None}:
-            raise InvalidFileNamePosition("Invalid name position!\n"
-                                          "'add_file_name' kwarg must be one of: "
-                                          "'row', 'column' or None.")
+            name_position = "row"
+            print("Invalid name position!\n"
+                  "'add_file_name' kwarg must be one of: "
+                  "'row', 'column' or None.\n"
+                  "Setting 'row'.")
 
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
@@ -573,19 +573,19 @@ class EsoFile:
         header_dct = self.header_dct[interval]
         # Generate a unique identifier
         # Note that custom ids use '-' sign
-        id = self._id_generator()
+        id_ = self._id_generator()
 
         # Add variable identifiers to the header
         header_variable = self._create_variable(interval, variable)
-        header_dct[id] = header_variable
+        header_dct[id_] = header_variable
 
         # Add variable data to the output df
         outputs = self.outputs_dct[interval]
-        is_valid = outputs.add_output(id, array)
+        is_valid = outputs.add_output(id_, array)
 
         if is_valid:
             # Variable can be added, create a reference in the search tree
-            self.header_tree.add_branch(interval, key, var, units, id)
+            self.header_tree.add_branch(interval, key, var, units, id_)
         else:
             # Revert header dict in its original state
-            self.remove_header_variable(id, header_dct)
+            self.remove_header_variable(id_, header_dct)

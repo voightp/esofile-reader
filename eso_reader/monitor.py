@@ -7,7 +7,6 @@ class DefaultMonitor:
     def __init__(self, path, print_report=False):
         self.path = path
         self.print_report = print_report
-        self.complete = False
         self.processing_time_dct = {}
 
         self.header_lines = -1
@@ -22,15 +21,27 @@ class DefaultMonitor:
     def name(self):
         return os.path.basename(self.path)
 
-    def preprocess(self):
+    def preprocess(self, suppress_errors):
         self.preprocessing_started()
-        (self.header_lines,
-         self.results_lines) = self.count_lines()
+        pth = self.path
 
-        if self.header_lines and self.results_lines:
-            self.complete = True
-            self.calculate_steps()
-            self.preprocessing_finished()
+        try:
+            with open(pth, "r") as f:
+                complete = self.init_read(f)
+                if complete:
+                    self.calculate_steps()
+                    self.preprocessing_finished()
+                    return True
+
+        except FileNotFoundError:
+            self.processing_failed(("File: {} not found.".format(pth)))
+            if not suppress_errors:
+                raise FileNotFoundError
+
+        except IOError:
+            self.processing_failed("IO Error file: {}".format(pth))
+            if not suppress_errors:
+                raise IOError
 
     def processing_failed(self, info):
         self.report_progress(-1, info)
@@ -41,14 +52,8 @@ class DefaultMonitor:
     def preprocessing_finished(self):
         self.report_progress(1, "Pre-processing finished!")
 
-    def header_processing_started(self):
-        self.report_progress(2, "Header processing started!")
-
     def header_finished(self):
-        self.report_progress(3, "Header successfully read!")
-
-    def body_processing_started(self):
-        self.report_progress(4, "Processing variables!")
+        self.report_progress(2, "Header successfully read!")
 
     def update_body_progress(self):
         self.results_lines_counter += 1
@@ -57,41 +62,35 @@ class DefaultMonitor:
             self.results_lines_counter = 0
 
     def body_finished(self):
-        self.report_progress(5, "File successfully read!")
+        self.report_progress(3, "File successfully read!")
 
-    def interval_processing_started(self):
-        self.report_progress(6, "Interval processing started!")
-
-    def interval_processing_finished(self):
-        self.report_progress(7, "Interval processing finished!")
-
-    def output_cls_gen_started(self):
-        self.report_progress(8, "Output cls gen started!")
+    def intervals_finished(self):
+        self.report_progress(4, "Interval processing finished!")
 
     def output_cls_gen_finished(self):
-        self.report_progress(9, "Output cls gen finished!")
-
-    def header_tree_started(self):
-        self.report_progress(10, "Tree gen started!")
+        self.report_progress(5, "Output cls gen finished!")
 
     def header_tree_finished(self):
-        self.report_progress(11, "Tree gen finished!")
+        self.report_progress(6, "Tree gen finished!")
 
     def processing_finished(self):
-        self.report_progress(12, "Processing finished!")
+        self.report_progress(7, "Processing finished!")
         self.report_time()
 
     def report_progress(self, identifier, text):
         self.record_time(identifier)
-        if self.print_report:
-            elapsed, delta = self.calc_time(identifier)
 
-            if identifier == 0:
-                print("\n" + "*" * 50 + "\n")
-                print("File: '{}' \n\t0 - {} - {}".format(self.name, text, elapsed))
+        if self.print_report:
+            if identifier == -1:
+                print("\t{} - {}".format(identifier, text))
 
             else:
-                print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
+                elapsed, delta = self.calc_time(identifier)
+                if identifier == 0:
+                    print("\n" + "*" * 50 + "\n")
+                    print("File: '{}' \n\t0 - {} - {}".format(self.name, text, elapsed))
+                else:
+                    print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
 
     def record_time(self, identifier):
         current_time = time.time()
@@ -103,8 +102,8 @@ class DefaultMonitor:
         abs_num_lines = self.header_lines + res_num_lines
 
         try:
-            res_proc = res_num_lines / (times[5] - times[4])
-            abs_proc = abs_num_lines / (times[10] - times[0])
+            res_proc = res_num_lines / (times[3] - times[2])
+            abs_proc = abs_num_lines / (times[7] - times[0])
 
         except ZeroDivisionError:
             print("Unexpected processing time.")
@@ -133,27 +132,25 @@ class DefaultMonitor:
         self.n_steps = n_steps
         self.chunk_size = chunk_size
 
-    def increment(self, file, break_string):
-        """ Count number of lines in a section of the eso file. """
-        for i, l in enumerate(file):
-            if break_string in l:
-                break
-        else:
-            print("Incomplete file {}".format(self.path))
-            return
+    def init_read(self, eso_file):
+        """ Set a number of lines in eso file header and result sections. """
 
-        num_of_lines = i + 1  # Add one to have standard number
-        return num_of_lines
+        def increment(file, break_string):
+            for i, l in enumerate(file):
+                if break_string in l:
+                    break
+            else:
+                return
 
-    def count_lines(self):
-        """ Return a number of lines in eso file header and result sections. """
-        try:
-            eso_file = open(self.path, "r")
-        except IOError:
-            self.processing_failed("IO Error file: {}".format(self.path))
-            raise
-        else:
-            with eso_file:
-                header_lines = self.increment(eso_file, "End of Data Dictionary")
-                results_lines = self.increment(eso_file, "End of Data")
-                return header_lines, results_lines
+            num_of_lines = i + 1  # Add one to have standard number
+            return num_of_lines
+
+        n_head = increment(eso_file, "End of Data Dictionary")
+        n_res = increment(eso_file, "End of Data")
+        b = n_head and n_res
+
+        if b:
+            self.header_lines = n_head
+            self.results_lines = n_res
+
+        return b
