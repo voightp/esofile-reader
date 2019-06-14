@@ -227,26 +227,17 @@ class EsoFile:
 
     def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True):
         self.file_path = file_path
-        self.complete = False
+        self._complete = False
 
-        content = read_file(
-            file_path,
-            exclude_intervals=exclude_intervals,
-            monitor=monitor,
-            report_progress=report_progress,
-        )
+        self.file_timestamp = None
+        self.environments = None
+        self.header_dct = None
+        self.outputs_dct = None
+        self.header_tree = None
 
-        if not content:
-            return
-
-        self.complete = True
-        (
-            self.file_timestamp,
-            self.environments,
-            self.header_dct,
-            self.outputs_dct,
-            self.header_tree,
-        ) = content
+        self.populate_content(exclude_intervals=exclude_intervals,
+                              monitor=monitor,
+                              report_progress=report_progress)
 
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
@@ -290,6 +281,25 @@ class EsoFile:
         """ Return a timestamp of the file system creation. """
         path = self.file_path
         return os.path.getctime(path)
+
+    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True):
+        """ Process the eso file to populate attributes. """
+        content = read_file(
+            self.file_path,
+            exclude_intervals=exclude_intervals,
+            monitor=monitor,
+            report_progress=report_progress,
+        )
+
+        if content:
+            self._complete = True
+            (
+                self.file_timestamp,
+                self.environments,
+                self.header_dct,
+                self.outputs_dct,
+                self.header_tree,
+            ) = content
 
     def _search(self, var_id):
         """ Return an interval and data set containing the given variable. """
@@ -434,7 +444,7 @@ class EsoFile:
                 data.columns = data.columns.droplevel(0)
 
                 if include_interval:
-                    data = self.add_interval(data, interval)
+                    data = pd.concat([data], axis=1, keys=[interval], names=["interval"])
 
             frames.append(data)
 
@@ -451,9 +461,6 @@ class EsoFile:
             # raise ValueError("Any of requested variables is not included in the Eso file.")
             print("Any of requested variables is not "
                   "included in the Eso file '{}'.".format(self.file_name))
-
-    def add_interval(self, data, interval):
-        return pd.concat([data], axis=1, keys=[interval], names=["interval"])
 
     def add_file_name(self, results, name_position):
         """ Add file name to index. """
