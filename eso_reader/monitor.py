@@ -85,10 +85,10 @@ class DefaultMonitor:
 
             else:
                 elapsed, delta = self.calc_time(identifier)
-                if identifier == 0:
+                if identifier == 1:
                     print("\n{}\n"
                           "File: '{}' \n\t0 - {} - {}".format("*" * 50, self.name, text, elapsed))
-                elif identifier == 7:
+                elif identifier == 8:
                     print("\t{} - {} - {:.6f}s".format(identifier, text, elapsed))
                 else:
                     print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
@@ -116,10 +116,10 @@ class DefaultMonitor:
                   "\t>> Absolute processing speed: {:.0f} lines per s".format(res_proc, abs_proc))
 
     def calc_time(self, identifier):
-        start = self.processing_time_dct[0]
+        start = self.processing_time_dct[1]
         current = self.processing_time_dct[identifier]
 
-        if identifier == 0:
+        if identifier == 1:
             return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start)), None
 
         elapsed = current - start
