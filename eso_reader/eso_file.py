@@ -42,7 +42,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
 
     else:
         raise IncompleteFile("Unexpected end of the file reached!\n"
-                             "File '{}' is not complete.".format(monitor.name))
+                             "File '{}' is not complete.".format(eso_file.file_name))
 
 
 def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
