@@ -46,13 +46,13 @@ class DefaultMonitor:
         self.report_progress(-1, info)
 
     def processing_started(self):
-        self.report_progress(0, "Processing started!")
+        self.report_progress(1, "Processing started!")
 
     def preprocessing_finished(self):
-        self.report_progress(1, "Pre-processing finished!")
+        self.report_progress(2, "Pre-processing finished!")
 
     def header_finished(self):
-        self.report_progress(2, "Header successfully read!")
+        self.report_progress(3, "Header successfully read!")
 
     def update_body_progress(self):
         self.results_lines_counter += 1
@@ -61,19 +61,19 @@ class DefaultMonitor:
             self.results_lines_counter = 0
 
     def body_finished(self):
-        self.report_progress(3, "File successfully read!")
+        self.report_progress(4, "File successfully read!")
 
     def intervals_finished(self):
-        self.report_progress(4, "Interval processing finished!")
+        self.report_progress(5, "Interval processing finished!")
 
     def output_cls_gen_finished(self):
-        self.report_progress(5, "Output cls gen finished!")
+        self.report_progress(6, "Output cls gen finished!")
 
     def header_tree_finished(self):
-        self.report_progress(6, "Tree gen finished!")
+        self.report_progress(7, "Tree gen finished!")
 
     def processing_finished(self):
-        self.report_progress(7, "Processing finished!")
+        self.report_progress(8, "Processing finished!")
         self.report_time()
 
     def report_progress(self, identifier, text):
@@ -103,8 +103,8 @@ class DefaultMonitor:
         abs_num_lines = self.header_lines + res_num_lines
 
         try:
-            res_proc = res_num_lines / (times[3] - times[2])
-            abs_proc = abs_num_lines / (times[7] - times[0])
+            res_proc = res_num_lines / (times[4] - times[3])
+            abs_proc = abs_num_lines / (times[8] - times[1])
 
         except ZeroDivisionError:
             print("Unexpected processing time.")
