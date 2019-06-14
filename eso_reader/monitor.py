@@ -87,7 +87,7 @@ class DefaultMonitor:
                 elapsed, delta = self.calc_time(identifier)
                 if identifier == 1:
                     print("\n{}\n"
-                          "File: '{}' \n\t0 - {} - {}".format("*" * 50, self.name, text, elapsed))
+                          "File: '{}' \n\t{} - {} - {}".format("*" * 50, self.name, identifier, text, elapsed))
                 elif identifier == 8:
                     print("\t{} - {} - {:.6f}s".format(identifier, text, elapsed))
                 else:
