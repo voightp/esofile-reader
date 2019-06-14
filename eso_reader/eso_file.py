@@ -222,11 +222,8 @@ class EsoFile:
         be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
-    suppress_errors : bool, default True
-        Block raising 'IncompleteFile' exception when the file is not
-        complete.
 
-        """
+    """
 
     def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True):
         self.file_path = file_path
