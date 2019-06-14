@@ -15,7 +15,7 @@ class VariableNotFound(Exception):
     pass
 
 
-class IncompleteFile(Exception):
+class NoResults(Exception):
     """ Exception raised when results are requested from an incomplete file. """
     pass
 
@@ -126,8 +126,8 @@ def _get_results(file, request, **kwargs):
         eso_file = EsoFile(file, exclude_intervals=excl, report_progress=report_progress)
 
     if not eso_file.complete:
-        raise IncompleteFile("Cannot load results!\n"
-                             "File '{}' is not complete.".format(eso_file.file_name))
+        raise NoResults("Cannot load results!\n"
+                        "File '{}' is not complete.".format(eso_file.file_name))
 
     ids = eso_file.find_ids(request, part_match=part_match)
 
@@ -147,6 +147,7 @@ def _get_results_multiple_files(file_list, request, **kwargs):
         res = pd.concat(frames, sort=False)
 
     except ValueError:
+
         if isinstance(request, list):
             lst = ["'{} - {} {} {}'".format(*tup) for tup in request]
             request_str = ", ".join(lst)
@@ -208,10 +209,13 @@ class EsoFile:
         be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
+    suppress_errors : bool, default True
+        Block raising 'IncompleteFile' exception when the file is not
+        complete.
 
-    """
+        """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True):
+    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True, suppress_errors=True):
         self.file_path = file_path
         self.complete = False
 
@@ -220,6 +224,7 @@ class EsoFile:
             exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
+            suppress_errors=suppress_errors
         )
 
         if not content:
