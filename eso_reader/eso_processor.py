@@ -24,11 +24,6 @@ class BlankLineError(Exception):
     pass
 
 
-class IncompleteFile(Exception):
-    """ Exception raised when the file is not complete. """
-    pass
-
-
 def _eso_file_version(raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
@@ -449,7 +444,7 @@ def process_file(file, monitor, excl=None):
     return timestamp, environments, header_dicts, outputs, tree
 
 
-def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False, suppress_errors=True):
+def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)
@@ -459,9 +454,6 @@ def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=F
 
     if not monitor.complete:
         # prevent reading the file when incomplete
-        if not suppress_errors:
-            raise IncompleteFile("Unexpected end of the file reached!\n"
-                                 "File '{}' is not complete.".format(monitor.name))
         return
 
     try:

@@ -25,11 +25,24 @@ class InvalidFileNamePosition(Exception):
     pass
 
 
-def load_eso_file(path, monitor=None, report_progress=True):
+class IncompleteFile(Exception):
+    """ Exception raised when the file is not complete. """
+    pass
+
+
+def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=False):
     """ A wrapper to safely handle a file. """
-    eso_file = EsoFile(path, monitor=monitor, report_progress=report_progress)
+    eso_file = EsoFile(path,
+                       monitor=monitor,
+                       report_progress=report_progress,
+                       suppress_errors=suppress_errors)
+
     if eso_file.complete:
         return eso_file
+
+    else:
+        raise IncompleteFile("Unexpected end of the file reached!\n"
+                             "File '{}' is not complete.".format(monitor.name))
 
 
 def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
@@ -224,7 +237,6 @@ class EsoFile:
             exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
-            suppress_errors=suppress_errors
         )
 
         if not content:
