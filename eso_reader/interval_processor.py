@@ -404,7 +404,7 @@ def flat_values(nested_env_dict):
     return nested_env_dict
 
 
-def interval_processor(all_envs_dict, monitor):
+def interval_processor(all_envs_dict):
     """
     Process E+ raw date and time data.
 
@@ -421,7 +421,6 @@ def interval_processor(all_envs_dict, monitor):
     Finally, values containing nested lists are transformed into flat lists
     to be consistent with output data.
     """
-    monitor.interval_processing_started()
 
     year = YEAR
     interval_keys = all_envs_dict.keys()
@@ -442,8 +441,6 @@ def interval_processor(all_envs_dict, monitor):
 
     # Find start and end dates for all environments
     all_environment_dates = find_environment(all_envs_dates, m_to_rp_cmlt_d)
-
-    monitor.interval_processing_finished()
 
     return (
         all_environment_dates,
