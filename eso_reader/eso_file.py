@@ -122,11 +122,13 @@ def _get_results(file, request, **kwargs):
     excl = kwargs.pop("exclude_intervals")
     report_progress = kwargs.pop("report_progress")
     part_match = kwargs.pop("part_match")
+    ignore_peaks = kwargs.pop("ignore_peaks")
 
     if isinstance(file, EsoFile):
         eso_file = file
     else:
         eso_file = EsoFile(file, exclude_intervals=excl,
+                           ignore_peaks=ignore_peaks,
                            report_progress=report_progress)
 
     if not eso_file.complete:
