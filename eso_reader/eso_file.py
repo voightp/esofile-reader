@@ -4,7 +4,7 @@ import time
 
 from random import randint
 
-from eso_reader.convertor import rate_to_energy, energy_to_rate, convert
+from eso_reader.convertor import rate_to_energy, convert
 from eso_reader.eso_processor import read_file
 from eso_reader.mini_classes import HeaderVariable
 from eso_reader.constants import MIN_DATE, MAX_DATE, RATE_TO_ENERGY_DCT
@@ -34,7 +34,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
 
 def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
                 header=True, add_file_name="row", include_interval=False, units_system="SI",
-                energy_rate_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
+                rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
                 part_match=False):
     """
@@ -69,7 +69,7 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
          the results df column index.
      units_system : {'SI', 'IP'}
          Selected units type for requested outputs.
-     energy_rate_dct : dct
+     rate_to_energy_dct : dct
          Defines if 'energy' or 'rate' will be reported for a specified interval
      rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
          Convert default 'Rate' outputs to requested units.
@@ -99,7 +99,7 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
         "add_file_name": add_file_name,
         "include_interval": include_interval,
         "units_system": units_system,
-        "energy_rate_dct": energy_rate_dct,
+        "rate_to_energy_dct": rate_to_energy_dct,
         "rate_units": rate_units,
         "energy_units": energy_units,
         "timestamp_format": timestamp_format,

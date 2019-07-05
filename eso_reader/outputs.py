@@ -197,19 +197,19 @@ class Outputs(pd.DataFrame):
             if tmstmp_frm.lower() == "ashrae":
                 return pd.MultiIndex(
                     levels=[[var_id], [header[0]], [header[1]], [header[2]], ["value", "date", "time"]],
-                    labels=[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 2]],
+                    codes=[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 2]],
                     names=["id", "key", "variable", "units", "data"])
             else:
                 return pd.MultiIndex(
                     levels=[[var_id], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
-                    labels=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
+                    codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
                     names=["id", "key", "variable", "units", "data"]
                 )
         else:
             return pd.MultiIndex(
                 levels=[[var_id], [header[0]], [header[1]], [header[2]]],
-                labels=[[0], [0], [0], [0]],
-                codes=["id", "key", "variable", "units"]
+                codes=[[0], [0], [0], [0]],
+                names=["id", "key", "variable", "units"]
             )
 
 
