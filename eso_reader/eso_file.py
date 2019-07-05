@@ -208,9 +208,10 @@ class EsoFile:
         be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
+    ignore_peaks : bool, default: True
+        Ignore peak values from 'Daily'+ intervals.
     suppress_errors: bool, default False
-        Do not raise IncompleteFile exceptions when processing fails.
-
+        Do not raise IncompleteFile exceptions when processing fails
     Raises
     ------
     IncompleteFile
@@ -218,7 +219,8 @@ class EsoFile:
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True, suppress_errors=False):
+    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True,
+                 ignore_peaks=True, suppress_errors=False):
         self.file_path = file_path
         self._complete = False
 
@@ -231,6 +233,7 @@ class EsoFile:
         self.populate_content(exclude_intervals=exclude_intervals,
                               monitor=monitor,
                               report_progress=report_progress,
+                              ignore_peaks=ignore_peaks,
                               suppress_errors=suppress_errors)
 
     def __repr__(self):
@@ -281,13 +284,15 @@ class EsoFile:
         """ Check if the file has been populated and complete. """
         return self._complete
 
-    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True, suppress_errors=False):
+    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True,
+                         ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
         content = read_file(
             self.file_path,
             exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
+            ignore_peaks=ignore_peaks,
             suppress_errors=suppress_errors
         )
 
