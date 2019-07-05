@@ -486,8 +486,8 @@ class EsoFile:
 
         Parameters
         ----------
-        request_lst : list of Request
-            A list of 'Request' named tuples.
+        request_lst : list of Variable
+            A list of 'Variable' named tuples.
         part_match : bool
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
