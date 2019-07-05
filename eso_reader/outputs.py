@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from eso_reader.interval_processor import parse_result_dt
 
+class PeaksNotIncluded(Exception):
+    """ Exception is raised when EsoFile has been processed without peaks. """
+    pass
+
 
 class Outputs(pd.DataFrame):
     """
@@ -152,6 +156,11 @@ class Outputs(pd.DataFrame):
         peak_dts = []
         for row in var.iteritems():
             index, value = row
+
+            if isinstance(value, float):
+                raise PeaksNotIncluded("Peak values are not included, it's required to "
+                                       "add kwarg 'ignore_peaks=False' when processing the file.")
+
             peak_dts.append(parse_result_dt(index, value, month_ix, day_ix, hour_ix, end_min_ix))
 
         var.index = peak_dts
