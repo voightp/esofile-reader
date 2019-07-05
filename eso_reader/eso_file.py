@@ -36,7 +36,7 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
                 header=True, add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
-                part_match=False):
+                part_match=False, ignore_peaks=True):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -85,6 +85,8 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
      part_match : bool
          Only substring of the part of variable is enough
          to match when searching for variables if this is True.
+     ignore_peaks : bool, default: True
+         Ignore peak values from 'Daily'+ intervals.
 
      Returns
      -------
@@ -105,7 +107,8 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
         "timestamp_format": timestamp_format,
         "report_progress": report_progress,
         "exclude_intervals": exclude_intervals,
-        "part_match": part_match
+        "part_match": part_match,
+        "ignore_peaks": ignore_peaks,
     }
 
     if isinstance(files, list):
