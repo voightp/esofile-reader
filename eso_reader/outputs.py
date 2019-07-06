@@ -35,14 +35,30 @@ class Outputs(pd.DataFrame):
         super(Outputs, self).__init__(data, **kwargs)
 
     @staticmethod
-    def fetch_results(data, index):
+    def fetch_results(df, index):
         """ Extract results column from df. """
-        if data.dtype == object:
+        if all(map(lambda x: x == object, df.dtypes)):
             # The data is stored as a tuple, value needs to be extracted
-            return data.apply(lambda x: x[index] if x is not np.nan else np.nan)
+            return df.apply(lambda x: x[index] if x is not np.nan else np.nan)
 
-        # The data is stored as a single value
-        return data.copy()
+        else:
+            # TODO review cases where some of outputs include extended data and some not
+            if index != 0:
+                raise PeaksNotIncluded("Peak values are not included, it's required to "
+                                       "add kwarg 'ignore_peaks=False' when processing the file.")
+
+        # The data is stored as a single value, need to copy this
+        # as subsequent actions could modify original data
+        return df.copy()
+
+    def get_results_df(self, ids, start_date, end_date):
+        """ Get base output DataFrame. """
+        try:
+            return self.loc[start_date:end_date, ids]
+        except KeyError:
+            # TODO catch specific exceptions
+            print("KEY ERROR")
+            raise Exception("FOO")
 
     def num_of_rows(self):
         return len(self.index)
@@ -72,118 +88,89 @@ class Outputs(pd.DataFrame):
 
         return is_valid
 
-    def standard_results(self, var_id, start_date, end_date, header):
+    def standard_results(self, ids, start_date, end_date):
         """ Find standard result. """
-        data = self[var_id]
-        results = self.fetch_results(data, 0)
-        res = results.values
-        ix = results.index
+        # base output DatafFame
+        df = self.get_results_df(ids, start_date, end_date)
 
-        col_ix = self.gen_column_index(var_id, header)
-        res = pd.DataFrame(res, index=ix, columns=col_ix)
-        return res[start_date:end_date]
+        # copy outputs or extract data from tuple
+        return self.fetch_results(df, 0)
 
-    def local_maxima(self, var_id, start_date, end_date, header):
+    def local_maxima(self, ids, start_date, end_date):
         """ Find local interval maxima. """
-        return self._local_peaks(
-            var_id, start_date, end_date, header, **self._min_peak,
-        )
+        return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_maximum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def global_maximum(self, ids, start_date, end_date):
         val_ix = self._max_peak["val_ix"]
-        return self._global_peak(
-            var_id, start_date, end_date,
-            header, tmstmp_frm=tmstmp_frm,
-            val_ix=val_ix
-        )
+        return self._global_peak(ids, start_date, end_date, val_ix=val_ix)
 
-    def timestep_maximum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
-        return self._timestep_peak(
-            var_id, start_date, end_date,
-            header, tmstmp_frm=tmstmp_frm,
-            **self._max_peak
-        )
+    def timestep_maximum(self, ids, start_date, end_date):
+        return self._timestep_peak(ids, start_date, end_date, **self._max_peak)
 
-    def local_minima(self, var_id, start_date, end_date, header):
-        return self._local_peaks(
-            var_id, start_date, end_date,
-            header, **self._min_peak
-        )
+    def local_minima(self, ids, start_date, end_date):
+        return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_minimum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def global_minimum(self, ids, start_date, end_date):
         val_ix = self._min_peak["val_ix"]
-        return self._global_peak(
-            var_id, start_date, end_date,
-            header, tmstmp_frm=tmstmp_frm,
-            val_ix=val_ix, maximum=False
-        )
+        return self._global_peak(ids, start_date, end_date, val_ix=val_ix, max_=False)
 
-    def timestep_minimum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
-        return self._timestep_peak(
-            var_id, start_date, end_date,
-            header, maximum=False,
-            tmstmp_frm=tmstmp_frm,
-            **self._min_peak,
-        )
+    def timestep_minimum(self, ids, start_date, end_date):
+        return self._timestep_peak(ids, start_date, end_date, maximum=False, **self._min_peak)
 
     @staticmethod
     def _ashrae_peak(timestamp):
         """ Generate peak in format required for ASHRAE 140. """
         return timestamp.strftime("%d-%b %H").split()
 
-    def _global_peak(self, var_id, start_date, end_date, header, val_ix=None, maximum=True, tmstmp_frm="default"):
-        """ Return maximum or minimum value and datetime of occurrence. """
-        data = self[var_id][start_date:end_date]
-        results = self.fetch_results(data, val_ix)
+    def _global_peak(self, ids, start_date, end_date, val_ix=None, max_=True):
+        """ Return max_ or minimum value and datetime of occurrence. """
 
-        timestamp, peak = (results.idxmax(), results.max()) if maximum else (results.idxmin(), results.min())
+        def get_peak(sr):
+            if max_:
+                return sr.max(), sr.idxmax()
+            else:
+                return sr.min(), sr.idxmin()
 
-        col_ix = self.gen_column_index(var_id, header, peak=True, tmstmp_frm=tmstmp_frm)
-        if tmstmp_frm.lower() == "ashrae":
-            date, time = self._ashrae_peak(timestamp)
-            return pd.DataFrame([(peak, date, time)], columns=col_ix)
+        df = self.get_results_df(ids, start_date, end_date)
+        results = self.fetch_results(df, val_ix)
+        out = results.apply(get_peak)
 
-        return pd.DataFrame([(peak, timestamp)], columns=col_ix)
+        print(out)
+
+        # if tmstmp_frm.lower() == "ashrae": #TODO postprocess this elsewhere
+        #     date, time = self._ashrae_peak(timestamp)
+        #     return pd.DataFrame([(peak, date, time)])
+
+        return out
 
     def _local_peaks(
-            self, var_id, start_date, end_date, header, val_ix=None,
+            self, *args, start_date, end_date, val_ix=None,
             month_ix=None, day_ix=None, hour_ix=None, end_min_ix=None,
     ):
         """
         Return value and datetime of occurrence.
         """
-        var = self[var_id][start_date:end_date]
+        df = self.loc[start_date:end_date, args]
 
-        peak_dts = []
-        for row in var.iteritems():
-            index, value = row
+        def pick_up_vals(sr):
+            index = sr.index
+            data = sr.data
+            res = parse_result_dt(index, data, month_ix, day_ix, hour_ix, end_min_ix)
+            return res
 
-            if isinstance(value, float):
-                raise PeaksNotIncluded("Peak values are not included, it's required to "
-                                       "add kwarg 'ignore_peaks=False' when processing the file.")
+        df = df.apply(pick_up_vals)
 
-            peak_dts.append(parse_result_dt(index, value, month_ix, day_ix, hour_ix, end_min_ix))
-
-        var.index = peak_dts
-        results = var.apply(lambda x: x[val_ix])
-
-        res = results.values
-        ix = results.index
-        ix.name = "timestamp"
-
-        col_ix = self.gen_column_index(var_id, header)
-        res = pd.DataFrame(res, index=ix, columns=col_ix)
-        return res[start_date:end_date]
+        return df
 
     def _timestep_peak(
-            self, var_id, start_date, end_date, header, val_ix=None, month_ix=None,
-            day_ix=None, hour_ix=None, end_min_ix=None, maximum=True, tmstmp_frm="default"
+            self, ids, start_date, end_date, val_ix=None, month_ix=None,
+            day_ix=None, hour_ix=None, end_min_ix=None, maximum=True
     ):
         """
         Return maximum or minimum hourly value and datetime of occurrence.
         """
         data = self._local_peaks(
-            var_id, start_date, end_date, header, val_ix=val_ix, hour_ix=hour_ix,
+            ids, start_date, end_date, val_ix=val_ix, hour_ix=hour_ix,
             end_min_ix=end_min_ix, day_ix=day_ix, month_ix=month_ix,
         )
 
@@ -192,35 +179,33 @@ class Outputs(pd.DataFrame):
         peak = peak.iloc[0]
         timestamp = timestamp.iloc[0]
 
-        col_ix = self.gen_column_index(var_id, header, peak=True, tmstmp_frm=tmstmp_frm)
+        # if tmstmp_frm.lower() == "ashrae": # TODO postprocess this elsewhere
+        #     date, time = self._ashrae_peak(timestamp)
+        #     return pd.DataFrame([(peak, date, time)])
 
-        if tmstmp_frm.lower() == "ashrae":
-            date, time = self._ashrae_peak(timestamp)
-            return pd.DataFrame([(peak, date, time)], columns=col_ix)
+        return pd.DataFrame([(peak, timestamp)])
 
-        return pd.DataFrame([(peak, timestamp)], columns=col_ix)
-
-    @staticmethod
-    def gen_column_index(var_id, header, peak=False, tmstmp_frm="default"):
-        """ Generate column multi index. """
-        if peak:
-            if tmstmp_frm.lower() == "ashrae":
-                return pd.MultiIndex(
-                    levels=[[var_id], [header[0]], [header[1]], [header[2]], ["value", "date", "time"]],
-                    codes=[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 2]],
-                    names=["id", "key", "variable", "units", "data"])
-            else:
-                return pd.MultiIndex(
-                    levels=[[var_id], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
-                    codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
-                    names=["id", "key", "variable", "units", "data"]
-                )
-        else:
-            return pd.MultiIndex(
-                levels=[[var_id], [header[0]], [header[1]], [header[2]]],
-                codes=[[0], [0], [0], [0]],
-                names=["id", "key", "variable", "units"]
-            )
+    # @staticmethod
+    # def gen_column_index(ids, peak=False, tmstmp_frm="default"):
+    #     """ Generate column multi index. """
+    #     if peak:
+    #         if tmstmp_frm.lower() == "ashrae":
+    #             return pd.MultiIndex(
+    #                 levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "date", "time"]],
+    #                 codes=[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 2]],
+    #                 names=["id", "key", "variable", "units", "data"])
+    #         else:
+    #             return pd.MultiIndex(
+    #                 levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
+    #                 codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
+    #                 names=["id", "key", "variable", "units", "data"]
+    #             )
+    #     else:
+    #         return pd.MultiIndex(
+    #             levels=[[ids], [header[0]], [header[1]], [header[2]]],
+    #             codes=[[0], [0], [0], [0]],
+    #             names=["id", "key", "variable", "units"]
+    #         )
 
 
 class Hourly(Outputs):
@@ -244,13 +229,13 @@ class Hourly(Outputs):
     def __init__(self, data, **kwargs):
         super(Hourly, self).__init__(data, **kwargs)
 
-    def global_maximum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def global_maximum(self, ids, start_date, end_date):
         """ Return an interval maximum value and date of occurrence. """
-        return self._global_peak(var_id, start_date, end_date, header, val_ix=0, tmstmp_frm=tmstmp_frm)
+        return self._global_peak(ids, start_date, end_date, val_ix=0)
 
-    def global_minimum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def global_minimum(self, ids, start_date, end_date):
         """ Return an interval minimum value and date of occurrence. """
-        return self._global_peak(var_id, start_date, end_date, header, val_ix=0, maximum=False, tmstmp_frm=tmstmp_frm)
+        return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
 
     def local_maxima(self, *args, **kwargs):
         """ Local maximum values are not applicable for Hourly interval. """
@@ -289,13 +274,13 @@ class Timestep(Hourly):
     def __init__(self, data, **kwargs):
         super(Timestep, self).__init__(data, **kwargs)
 
-    def timestep_minimum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def timestep_minimum(self, ids, start_date, end_date):
         """ Timestep minimum value is the same as global minimum for Timestep interval. """
-        return self._global_peak(var_id, start_date, end_date, header, val_ix=0, maximum=False, tmstmp_frm=tmstmp_frm)
+        return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
 
-    def timestep_maximum(self, var_id, start_date, end_date, header, tmstmp_frm="default"):
+    def timestep_maximum(self, ids, start_date, end_date):
         """ Timestep maximum value is the same as global maximum for Timestep interval. """
-        return self._global_peak(var_id, start_date, end_date, header, val_ix=0, tmstmp_frm=tmstmp_frm)
+        return self._global_peak(ids, start_date, end_date, val_ix=0)
 
 
 class Daily(Outputs):

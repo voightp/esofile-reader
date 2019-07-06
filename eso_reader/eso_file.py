@@ -3,6 +3,7 @@ import os
 import time
 
 from random import randint
+from collections import defaultdict
 
 from eso_reader.convertor import rate_to_energy, convert
 from eso_reader.eso_processor import read_file
@@ -316,13 +317,22 @@ class EsoFile:
                 raise IncompleteFile("Unexpected end of the file reached!\n"
                                      "File '{}' is not complete.".format(self.file_path))
 
-    def _search(self, var_id):
-        """ Return an interval and data set containing the given variable. """
+    def find_interval(self, var_id):
+        """ Return an interval for given id. """
         for interval, data_set in self.outputs_dct.items():
             if var_id in data_set.columns:
-                return interval, data_set
+                return interval
         else:
             VariableNotFound("Eso file does not contain variable id {}!".format(var_id))
+
+    def categorize_ids(self, *args):
+        """ Group ids based on interval. """
+        groups = defaultdict(list)
+        for var_id in args:
+            interval = self.find_interval(var_id)
+            if interval:
+                groups[interval].append(var_id)
+        return groups
 
     def results_df(
             self, *args, start_date=MIN_DATE, end_date=MAX_DATE,
@@ -377,84 +387,73 @@ class EsoFile:
         """
 
         def standard():
-            return data_set.standard_results(*args)
+            return data_set.standard_results(*f_args)
 
         def local_maxima():
-            return data_set.local_maxima(*args)
+            return data_set.local_maxima(*f_args)
 
         def global_maximum():
-            return data_set.global_maximum(*args, tmstmp_frm=timestamp_format)
+            return data_set.global_maximum(*f_args)
 
         def timestep_maximum():
-            return data_set.timestep_maximum(*args, tmstmp_frm=timestamp_format)
+            return data_set.timestep_maximum(*f_args)
 
         def local_minima():
-            return data_set.local_minima(*args)
+            return data_set.local_minima(*f_args)
 
         def global_minimum():
-            return data_set.global_minimum(*args, tmstmp_frm=timestamp_format)
+            return data_set.global_minimum(*f_args)
 
         def timestep_minimum():
-            return data_set.timestep_minimum(*args, tmstmp_frm=timestamp_format)
+            return data_set.timestep_minimum(*f_args)
+
+        res = {
+            "standard": standard,
+            "local_max": local_maxima,
+            "global_max": global_maximum,
+            "timestep_max": timestep_maximum,
+            "local_min": local_minima,
+            "global_min": global_minimum,
+            "timestep_min": timestep_minimum,
+        }
 
         frames = []
+        groups = self.categorize_ids(*args)
 
-        for var_id in args:
-
-            data_tup = self._search(var_id)
-
-            if not data_tup:
-                # Given 'id' was not found in the file
-                continue
-
-            interval, data_set = data_tup
-
-            res = {
-                "standard": standard,
-                "local_max": local_maxima,
-                "global_max": global_maximum,
-                "timestep_max": timestep_maximum,
-                "local_min": local_minima,
-                "global_min": global_minimum,
-                "timestep_min": timestep_minimum,
-            }
-
-            # Find matching header information
-            header_data = self.header_dct[interval][var_id]
+        for interval, ids in groups.items():
+            data_set = self.outputs_dct[interval]
 
             # Extract specified set of results
-            args = var_id, start_date, end_date, header_data
+            f_args = (ids, start_date, end_date)
             data = res[type]()
 
-            # Some types of outputs are not applicable for
-            # certain intervals so these will be ignored
-            if data is None:
-                continue
-
-            # convert 'rate' or 'energy' when standard results are requested
-            if type == "standard" and rate_to_energy_dct:
-                is_energy = rate_to_energy_dct[interval]
-                if is_energy:
-                    # 'energy' is requested for current output
-                    data = rate_to_energy(data, data_set, start_date, end_date)
-
-            # Convert the data if units system, rate or energy
-            # units are not default
-            if units_system != "SI" or rate_units != "W" or energy_units != "J":
-                data = convert(data, units_system, rate_units, energy_units)
-
-            # Remove 'key', 'variable' and 'units' from multi index
-            if not header:
-                data.columns = self.drop_header_levels(data.columns)
-
-            else:
-                # Drop only variable id (as index is defined using key, var and units).
-                data.columns = data.columns.droplevel(0)
-
-                if include_interval:
-                    data = pd.concat([data], axis=1, keys=[interval], names=["interval"])
+            # # Find matching header information TODO set column index
+            # header_data = self.header_dct[interval][var_id]
 
             frames.append(data)
+
+            # # convert 'rate' or 'energy' when standard results are requested
+            # if type == "standard" and rate_to_energy_dct:
+            #     is_energy = rate_to_energy_dct[interval]
+            #     if is_energy:
+            #         # 'energy' is requested for current output
+            #         data = rate_to_energy(data, data_set, start_date, end_date)
+            #
+            # # Convert the data if units system, rate or energy
+            # # units are not default
+            # if units_system != "SI" or rate_units != "W" or energy_units != "J":
+            #     data = convert(data, units_system, rate_units, energy_units)
+            #
+            # # Remove 'key', 'variable' and 'units' from multi index
+            # if not header:
+            #     data.columns = self.drop_header_levels(data.columns)
+            #
+            # else:
+            #     # Drop only variable id (as index is defined using key, var and units).
+            #     data.columns = data.columns.droplevel(0)
+            #
+            #     if include_interval:
+            #         data = pd.concat([data], axis=1, keys=[interval], names=["interval"])
 
         # Catch empty frames exception
         try:
