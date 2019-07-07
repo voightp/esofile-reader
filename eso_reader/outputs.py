@@ -35,30 +35,51 @@ class Outputs(pd.DataFrame):
         super(Outputs, self).__init__(data, **kwargs)
 
     @staticmethod
-    def fetch_results(df, index):
+    def fetch_outputs(df, index):
         """ Extract results column from df. """
-        if all(map(lambda x: x == object, df.dtypes)):
+
+        frames = []
+        tuples = list(map(lambda x: x == object, df.dtypes))
+
+        df_a = df.loc[:, tuples]
+        df_b = df.loc[:, [not t for t in tuples]]
+
+        if index != 0 and df_a.empty:
+            raise PeaksNotIncluded("Peak values are not included, it's required to "
+                                   "add kwarg 'ignore_peaks=False' when processing the file.")
+        if not df_a.empty:
             # The data is stored as a tuple, value needs to be extracted
-            return df.apply(lambda x: x[index] if x is not np.nan else np.nan)
+            df_a = df_a.applymap(lambda x: x[index] if x is not np.nan else np.nan)
+            frames.append(df_a)
 
-        else:
-            # TODO review cases where some of outputs include extended data and some not
-            if index != 0:
-                raise PeaksNotIncluded("Peak values are not included, it's required to "
-                                       "add kwarg 'ignore_peaks=False' when processing the file.")
+        if not df_b.empty:
+            # The data is stored as a single value, need to copy this
+            # as subsequent actions could modify original data
+            frames.append(df_b.copy())
 
-        # The data is stored as a single value, need to copy this
-        # as subsequent actions could modify original data
-        return df.copy()
+        return pd.concat(frames, sort=False)
 
     def get_results_df(self, ids, start_date, end_date):
         """ Get base output DataFrame. """
         try:
-            return self.loc[start_date:end_date, ids]
+            if start_date and end_date:
+                df = self.loc[start_date:end_date, ids]
+            elif start_date:
+                df = self.loc[start_date:, ids]
+            elif end_date:
+                df = self.loc[:end_date, ids]
+            else:
+                df = self.loc[:, ids]
+
         except KeyError:
             # TODO catch specific exceptions
             print("KEY ERROR")
             raise Exception("FOO")
+
+        if isinstance(df, pd.Series):
+            df = pd.DataFrame(df)
+
+        return df
 
     def num_of_rows(self):
         return len(self.index)
@@ -94,7 +115,7 @@ class Outputs(pd.DataFrame):
         df = self.get_results_df(ids, start_date, end_date)
 
         # copy outputs or extract data from tuple
-        return self.fetch_results(df, 0)
+        return self.fetch_outputs(df, 0)
 
     def local_maxima(self, ids, start_date, end_date):
         """ Find local interval maxima. """
@@ -132,10 +153,11 @@ class Outputs(pd.DataFrame):
                 return sr.min(), sr.idxmin()
 
         df = self.get_results_df(ids, start_date, end_date)
-        results = self.fetch_results(df, val_ix)
-        out = results.apply(get_peak)
+        results = self.fetch_outputs(df, val_ix)
 
-        print(out)
+        print(results.head()) #TODO crete dataframe
+        out = results.apply(get_peak)
+        print(out.head())
 
         # if tmstmp_frm.lower() == "ashrae": #TODO postprocess this elsewhere
         #     date, time = self._ashrae_peak(timestamp)
