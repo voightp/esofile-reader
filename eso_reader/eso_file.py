@@ -389,32 +389,32 @@ class EsoFile:
         def standard():
             return data_set.standard_results(*f_args)
 
-        def local_maxima():
-            return data_set.local_maxima(*f_args)
+        def local_maxs():
+            return data_set.local_maxs(*f_args)
 
-        def global_maximum():
-            return data_set.global_maximum(*f_args)
+        def global_max():
+            return data_set.global_max(*f_args)
 
-        def timestep_maximum():
-            return data_set.timestep_maximum(*f_args)
+        def timestep_max():
+            return data_set.timestep_max(*f_args)
 
-        def local_minima():
-            return data_set.local_minima(*f_args)
+        def local_mins():
+            return data_set.local_mins(*f_args)
 
-        def global_minimum():
-            return data_set.global_minimum(*f_args)
+        def global_min():
+            return data_set.global_min(*f_args)
 
-        def timestep_minimum():
-            return data_set.timestep_minimum(*f_args)
+        def timestep_min():
+            return data_set.timestep_min(*f_args)
 
         res = {
             "standard": standard,
-            "local_max": local_maxima,
-            "global_max": global_maximum,
-            "timestep_max": timestep_maximum,
-            "local_min": local_minima,
-            "global_min": global_minimum,
-            "timestep_min": timestep_minimum,
+            "local_max": local_maxs,
+            "global_max": global_max,
+            "timestep_max": timestep_max,
+            "local_min": local_mins,
+            "global_min": global_min,
+            "timestep_min": timestep_min,
         }
 
         frames = []
