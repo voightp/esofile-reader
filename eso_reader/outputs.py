@@ -17,7 +17,7 @@ class Outputs(pd.DataFrame):
     Maximum and minimum methods are in place to avoid non implementing
     all the required results for all subclasses.
 
-    Local, global and hourly peak methods are base methods to
+    Local, global and timestep peak methods are base methods to
     pick up requested values from the lowest level result tuple.
 
     Parameters
@@ -38,15 +38,20 @@ class Outputs(pd.DataFrame):
     def fetch_outputs(df, index):
         """ Extract results column from df. """
 
+        if index == -1:
+            # return a copy without any modification
+            return df.copy()
+
         frames = []
         tuples = list(map(lambda x: x == object, df.dtypes))
 
         df_a = df.loc[:, tuples]
         df_b = df.loc[:, [not t for t in tuples]]
 
-        if index != 0 and df_a.empty:
+        if (index != 0 or index == -1) and df_a.empty:
             raise PeaksNotIncluded("Peak values are not included, it's required to "
                                    "add kwarg 'ignore_peaks=False' when processing the file.")
+
         if not df_a.empty:
             # The data is stored as a tuple, value needs to be extracted
             df_a = df_a.applymap(lambda x: x[index] if x is not np.nan else np.nan)
@@ -59,7 +64,7 @@ class Outputs(pd.DataFrame):
 
         return pd.concat(frames, sort=False)
 
-    def get_results_df(self, ids, start_date, end_date):
+    def get_results_df(self, ids, index, start_date, end_date):
         """ Get base output DataFrame. """
         try:
             if start_date and end_date:
@@ -78,6 +83,8 @@ class Outputs(pd.DataFrame):
 
         if isinstance(df, pd.Series):
             df = pd.DataFrame(df)
+
+        df = self.fetch_outputs(df, index)
 
         return df
 
@@ -111,31 +118,29 @@ class Outputs(pd.DataFrame):
 
     def standard_results(self, ids, start_date, end_date):
         """ Find standard result. """
-        # base output DatafFame
-        df = self.get_results_df(ids, start_date, end_date)
+        index = 0
+        df = self.get_results_df(ids, index, start_date, end_date)
+        return df
 
-        # copy outputs or extract data from tuple
-        return self.fetch_outputs(df, 0)
-
-    def local_maxima(self, ids, start_date, end_date):
+    def local_maxs(self, ids, start_date, end_date):
         """ Find local interval maxima. """
         return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_maximum(self, ids, start_date, end_date):
+    def global_max(self, ids, start_date, end_date):
         val_ix = self._max_peak["val_ix"]
         return self._global_peak(ids, start_date, end_date, val_ix=val_ix)
 
-    def timestep_maximum(self, ids, start_date, end_date):
+    def timestep_max(self, ids, start_date, end_date):
         return self._timestep_peak(ids, start_date, end_date, **self._max_peak)
 
-    def local_minima(self, ids, start_date, end_date):
+    def local_mins(self, ids, start_date, end_date):
         return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_minimum(self, ids, start_date, end_date):
+    def global_min(self, ids, start_date, end_date):
         val_ix = self._min_peak["val_ix"]
         return self._global_peak(ids, start_date, end_date, val_ix=val_ix, max_=False)
 
-    def timestep_minimum(self, ids, start_date, end_date):
+    def timestep_min(self, ids, start_date, end_date):
         return self._timestep_peak(ids, start_date, end_date, maximum=False, **self._min_peak)
 
     @staticmethod
@@ -144,45 +149,55 @@ class Outputs(pd.DataFrame):
         return timestamp.strftime("%d-%b %H").split()
 
     def _global_peak(self, ids, start_date, end_date, val_ix=None, max_=True):
-        """ Return max_ or minimum value and datetime of occurrence. """
+        """ Return maximum or minimum value and datetime of occurrence. """
 
-        def get_peak(sr):
-            if max_:
-                return sr.max(), sr.idxmax()
-            else:
-                return sr.min(), sr.idxmin()
+        df = self.get_results_df(ids, val_ix, start_date, end_date)
 
-        df = self.get_results_df(ids, start_date, end_date)
-        results = self.fetch_outputs(df, val_ix)
+        vals = df.max() if max_ else df.min()
+        ixs = df.idxmax() if max_ else df.idxmin()
 
-        print(results.head()) #TODO crete dataframe
-        out = results.apply(get_peak)
-        print(out.head())
+        out = pd.concat([vals, ixs], keys=["value", "timestamp"], names=["data", "id"])
+        out = pd.DataFrame(out)
+
+        out.reset_index(inplace=True)
+        out.sort_values(by="id", inplace=True)
+        out.set_index(["id", "data"], inplace=True)
 
         # if tmstmp_frm.lower() == "ashrae": #TODO postprocess this elsewhere
         #     date, time = self._ashrae_peak(timestamp)
         #     return pd.DataFrame([(peak, date, time)])
 
-        return out
+        return out.T
 
     def _local_peaks(
-            self, *args, start_date, end_date, val_ix=None,
+            self, ids, start_date, end_date, val_ix=None,
             month_ix=None, day_ix=None, hour_ix=None, end_min_ix=None,
     ):
         """
         Return value and datetime of occurrence.
         """
-        df = self.loc[start_date:end_date, args]
+        index = -1  # this makes sure that the original df is requested
+        df = self.get_results_df(ids, index, start_date, end_date)
 
-        def pick_up_vals(sr):
-            index = sr.index
-            data = sr.data
-            res = parse_result_dt(index, data, month_ix, day_ix, hour_ix, end_min_ix)
-            return res
+        def get_timestamps(sr):
+            def parse_vals(val):
+                ts = parse_result_dt(date, val, month_ix, day_ix, hour_ix, end_min_ix)
+                return ts
 
-        df = df.apply(pick_up_vals)
+            date = sr.name
+            sr = sr.apply(parse_vals)
 
-        return df
+            return sr
+
+        timestamps = df.apply(get_timestamps, axis=1)
+        results = df.applymap(lambda x: x[val_ix])
+
+        out = pd.concat([results.T, timestamps.T], keys=["value", "timestamp"], names=["data", "id"])
+        out.reset_index(inplace=True)
+        out.sort_values(by="id", inplace=True)
+        out.set_index(["id", "data"], inplace=True)
+
+        return out.T
 
     def _timestep_peak(
             self, ids, start_date, end_date, val_ix=None, month_ix=None,
@@ -191,7 +206,7 @@ class Outputs(pd.DataFrame):
         """
         Return maximum or minimum hourly value and datetime of occurrence.
         """
-        data = self._local_peaks(
+        df = self._local_peaks(
             ids, start_date, end_date, val_ix=val_ix, hour_ix=hour_ix,
             end_min_ix=end_min_ix, day_ix=day_ix, month_ix=month_ix,
         )
@@ -251,27 +266,27 @@ class Hourly(Outputs):
     def __init__(self, data, **kwargs):
         super(Hourly, self).__init__(data, **kwargs)
 
-    def global_maximum(self, ids, start_date, end_date):
+    def global_max(self, ids, start_date, end_date):
         """ Return an interval maximum value and date of occurrence. """
         return self._global_peak(ids, start_date, end_date, val_ix=0)
 
-    def global_minimum(self, ids, start_date, end_date):
+    def global_min(self, ids, start_date, end_date):
         """ Return an interval minimum value and date of occurrence. """
         return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
 
-    def local_maxima(self, *args, **kwargs):
+    def local_maxs(self, *args, **kwargs):
         """ Local maximum values are not applicable for Hourly interval. """
         pass
 
-    def local_minima(self, *args, **kwargs):
+    def local_mins(self, *args, **kwargs):
         """ Local minimum values are not applicable for Hourly interval. """
         pass
 
-    def timestep_minimum(self, *args, **kwargs):
+    def timestep_min(self, *args, **kwargs):
         """ Timestep maximum value is not applicable for Hourly interval. """
         pass
 
-    def timestep_maximum(self, *args, **kwargs):
+    def timestep_max(self, *args, **kwargs):
         """ Timestep maximum value is not applicable for Hourly interval. """
         pass
 
@@ -296,11 +311,11 @@ class Timestep(Hourly):
     def __init__(self, data, **kwargs):
         super(Timestep, self).__init__(data, **kwargs)
 
-    def timestep_minimum(self, ids, start_date, end_date):
+    def timestep_min(self, ids, start_date, end_date):
         """ Timestep minimum value is the same as global minimum for Timestep interval. """
         return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
 
-    def timestep_maximum(self, ids, start_date, end_date):
+    def timestep_max(self, ids, start_date, end_date):
         """ Timestep maximum value is the same as global maximum for Timestep interval. """
         return self._global_peak(ids, start_date, end_date, val_ix=0)
 
@@ -309,7 +324,6 @@ class Daily(Outputs):
     """
     Pandas.DataFrame like class to hold EnergyPlus results
     for Daily interval.
-
 
     Parameters
     ----------
