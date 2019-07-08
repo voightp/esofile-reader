@@ -358,28 +358,29 @@ def _gen_output(data, index, interval, num_of_days):
     """ Handle class assignment for output data. """
     clmn_name = "Number of days"  # Additional column to store 'Number of days'
     index = pd.Index(index, name="timestamp")
+    columns = pd.Index(data.keys(), name="id")
 
     def gen_ts():
-        return Timestep(data, index=index)
+        return Timestep(data, index=index, columns=columns)
 
     def gen_h():
-        return Hourly(data, index=index)
+        return Hourly(data, index=index, columns=columns)
 
     def gen_d():
-        return Daily(data, index=index)
+        return Daily(data, index=index, columns=columns)
 
     def gen_m():
-        out = Monthly(data, index=index)
+        out = Monthly(data, index=index, columns=columns)
         out.insert(0, clmn_name, num_of_days)
         return out
 
     def gen_a():
-        out = Annual(data, index=index)
+        out = Annual(data, index=index, columns=columns)
         out.insert(0, clmn_name, num_of_days)
         return out
 
     def gen_rp():
-        out = Runperiod(data, index=index)
+        out = Runperiod(data, index=index, columns=columns)
         out.insert(0, clmn_name, num_of_days)
         return out
 
