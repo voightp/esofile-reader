@@ -7,9 +7,6 @@ M = "monthly"
 A = "annual"
 RP = "runperiod"
 
-MIN_DATE = dt.datetime(1990, 1, 1)
-MAX_DATE = dt.datetime(2100, 1, 1)
-
 RATE_TO_ENERGY_DCT = {TS: False,
                       H: False,
                       D: True,

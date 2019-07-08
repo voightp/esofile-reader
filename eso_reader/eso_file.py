@@ -33,7 +33,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
                    suppress_errors=suppress_errors)
 
 
-def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="standard",
+def get_results(files, request, start_date=None, end_date=None, type="standard",
                 header=True, add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
@@ -54,9 +54,9 @@ def get_results(files, request, start_date=MIN_DATE, end_date=MAX_DATE, type="st
      request : Variable or list of (Variable)
         Requested output variable or variables. A mini class  'Variable' needs
         to be used to find results.
-     start_date : datetime like object, default 'MIN_DATE' constant
+     start_date : datetime like object, default None
          A start date for requested results.
-     end_date : datetime like object, default 'MAX_DATE' constant
+     end_date : datetime like object, default None
          An end date for requested results.
      type : {'standard', 'local_max',' global_max', 'timestep_max',
              'local_min', 'global_min', 'timestep_min'}
