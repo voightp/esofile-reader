@@ -197,11 +197,13 @@ class Outputs(pd.DataFrame):
         out.sort_values(by="id", inplace=True)
         out.set_index(["id", "data"], inplace=True)
 
+        out = out.T
+        #TODO get original dtype
         return out.T
 
     def _timestep_peak(
             self, ids, start_date, end_date, val_ix=None, month_ix=None,
-            day_ix=None, hour_ix=None, end_min_ix=None, maximum=True
+            day_ix=None, hour_ix=None, end_min_ix=None, max_=True
     ):
         """
         Return maximum or minimum hourly value and datetime of occurrence.
@@ -210,17 +212,35 @@ class Outputs(pd.DataFrame):
             ids, start_date, end_date, val_ix=val_ix, hour_ix=hour_ix,
             end_min_ix=end_min_ix, day_ix=day_ix, month_ix=month_ix,
         )
+        print(df.dtypes)
 
-        timestamp, peak = (data.idxmax(), data.max()) if maximum else (data.idxmin(), data.min())
+        df_vals = df.loc[:, df.columns.get_level_values(1) == "value"]
+        df_vals = df_vals.droplevel(1, axis=1)
+        df_ixs = df.loc[:, df.columns.get_level_values(1) == "timestamp"]
 
-        peak = peak.iloc[0]
-        timestamp = timestamp.iloc[0]
+        group = df.groupby(axis=1, level=0)
+
+        for n, a in group:
+            gr = a.iloc[:, 0]
+            # print(a.dtypes)
+            # print(a)
+            # ix = gr.idxmax() if max_ else gr.idxmin()
+            # print(n, ix)
+
+        vals = df_vals.max() if max_ else df_vals.min()
+
+        # out = pd.concat([vals, ixs], keys=["value", "timestamp"], names=["data", "id"])
+        # out = pd.DataFrame(out)
+        #
+        # out.reset_index(inplace=True)
+        # out.sort_values(by="id", inplace=True)
+        # out.set_index(["id", "data"], inplace=True)
 
         # if tmstmp_frm.lower() == "ashrae": # TODO postprocess this elsewhere
         #     date, time = self._ashrae_peak(timestamp)
         #     return pd.DataFrame([(peak, date, time)])
 
-        return pd.DataFrame([(peak, timestamp)])
+        return
 
     # @staticmethod
     # def gen_column_index(ids, peak=False, tmstmp_frm="default"):
