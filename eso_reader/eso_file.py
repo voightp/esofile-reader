@@ -8,7 +8,7 @@ from collections import defaultdict
 from eso_reader.convertor import rate_to_energy, convert
 from eso_reader.eso_processor import read_file
 from eso_reader.mini_classes import HeaderVariable
-from eso_reader.constants import MIN_DATE, MAX_DATE, RATE_TO_ENERGY_DCT
+from eso_reader.constants import RATE_TO_ENERGY_DCT
 
 
 class VariableNotFound(Exception):
@@ -335,7 +335,7 @@ class EsoFile:
         return groups
 
     def results_df(
-            self, *args, start_date=MIN_DATE, end_date=MAX_DATE,
+            self, *args, start_date=None, end_date=None,
             type="standard", header=True, add_file_name="row", include_interval=False,
             units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
