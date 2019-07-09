@@ -140,11 +140,6 @@ class Outputs(pd.DataFrame):
     def timestep_min(self, ids, start_date, end_date):
         return self._timestep_peak(ids, start_date, end_date, max_=False, **self._min_peak)
 
-    @staticmethod
-    def _ashrae_peak(timestamp):
-        """ Generate peak in format required for ASHRAE 140. """
-        return timestamp.strftime("%d-%b %H").split()
-
     def _global_peak(self, ids, start_date, end_date, val_ix=None, max_=True):
         """ Return maximum or minimum value and datetime of occurrence. """
 
@@ -166,10 +161,6 @@ class Outputs(pd.DataFrame):
 
         mi = pd.MultiIndex.from_arrays([ids, data], names=["id", "data"])
         out.columns = mi
-
-        # if tmstmp_frm.lower() == "ashrae": #TODO postprocess this elsewhere
-        #     date, time = self._ashrae_peak(timestamp)
-        #     return pd.DataFrame([(peak, date, time)])
 
         return out
 
@@ -230,33 +221,7 @@ class Outputs(pd.DataFrame):
 
         grouped = grouped.iloc[[0]]  # report only first occurrence
 
-        # if tmstmp_frm.lower() == "ashrae": # TODO postprocess this elsewhere
-        #     date, time = self._ashrae_peak(timestamp)
-        #     return pd.DataFrame([(peak, date, time)])
-
         return grouped
-
-    # @staticmethod
-    # def gen_column_index(ids, peak=False, tmstmp_frm="default"):
-    #     """ Generate column multi index. """
-    #     if peak:
-    #         if tmstmp_frm.lower() == "ashrae":
-    #             return pd.MultiIndex(
-    #                 levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "date", "time"]],
-    #                 codes=[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 2]],
-    #                 names=["id", "key", "variable", "units", "data"])
-    #         else:
-    #             return pd.MultiIndex(
-    #                 levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
-    #                 codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
-    #                 names=["id", "key", "variable", "units", "data"]
-    #             )
-    #     else:
-    #         return pd.MultiIndex(
-    #             levels=[[ids], [header[0]], [header[1]], [header[2]]],
-    #             codes=[[0], [0], [0], [0]],
-    #             names=["id", "key", "variable", "units"]
-    #         )
 
 
 class Hourly(Outputs):

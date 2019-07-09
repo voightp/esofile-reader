@@ -334,6 +334,33 @@ class EsoFile:
                 groups[interval].append(var_id)
         return groups
 
+    @staticmethod
+    def gen_column_index(ids, peak=False):
+        """ Generate column multi index. """
+        if peak:
+            return pd.MultiIndex(
+                levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
+                codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
+                names=["id", "key", "variable", "units", "data"]
+            )
+        else:
+            return pd.MultiIndex(
+                levels=[[ids], [header[0]], [header[1]], [header[2]]],
+                codes=[[0], [0], [0], [0]],
+                names=["id", "key", "variable", "units"]
+            )
+
+    def add_header_data(self, df, interval):
+        """ Add variable 'key', 'variable' and 'units' data. """
+        df = df.T
+        df.reset_index(inplace=True)
+
+        ids = df["id"]
+        variables =
+
+
+        variables[interval] =
+
     def results_df(
             self, *args, start_date=None, end_date=None,
             type="standard", header=True, add_file_name="row", include_interval=False,
@@ -425,12 +452,20 @@ class EsoFile:
 
             # Extract specified set of results
             f_args = (ids, start_date, end_date)
-            data = res[type]()
+            df = res[type]()
+
+            if df is None:
+                print("Results type '{}' is not applicable for '{}' interval."
+                      "\n\tignoring the request...".format(type, interval))
+                continue
+
+            if header:
+                self.add_header_data(df, interval)
 
             # # Find matching header information TODO set column index
             # header_data = self.header_dct[interval][var_id]
 
-            frames.append(data)
+            frames.append(df)
 
             # # convert 'rate' or 'energy' when standard results are requested
             # if type == "standard" and rate_to_energy_dct:
