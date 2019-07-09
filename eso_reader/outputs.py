@@ -88,22 +88,19 @@ class Outputs(pd.DataFrame):
 
         return df
 
-    def num_of_rows(self):
-        return len(self.index)
-
     def _validate(self, data):
         """ Validate if the data has required format. """
         # At the moment, just length is being checked
         valid = False
         length = len(data)
-        df_length = self.num_of_rows()
+        df_length = self.len(self.index)
 
         if length == df_length:
             valid = True
 
         else:
-            print("Warning: new variable contains {} values, df length is {}!".format(length, df_length))
-            print("\t Variable will not be added to the file. ")
+            print("Warning: new variable contains {} values, df length is {}!"
+                  "\n\t Variable will not be added to the file.".format(length, df_length))
 
         return valid
 
@@ -141,7 +138,7 @@ class Outputs(pd.DataFrame):
         return self._global_peak(ids, start_date, end_date, val_ix=val_ix, max_=False)
 
     def timestep_min(self, ids, start_date, end_date):
-        return self._timestep_peak(ids, start_date, end_date, maximum=False, **self._min_peak)
+        return self._timestep_peak(ids, start_date, end_date, max_=False, **self._min_peak)
 
     @staticmethod
     def _ashrae_peak(timestamp):
@@ -156,18 +153,25 @@ class Outputs(pd.DataFrame):
         vals = df.max() if max_ else df.min()
         ixs = df.idxmax() if max_ else df.idxmin()
 
-        out = pd.concat([vals, ixs], keys=["value", "timestamp"], names=["data", "id"])
-        out = pd.DataFrame(out)
+        vals = pd.DataFrame(vals)
+        ixs = pd.DataFrame(ixs)
 
-        out.reset_index(inplace=True)
-        out.sort_values(by="id", inplace=True)
-        out.set_index(["id", "data"], inplace=True)
+        out = pd.concat([vals.T, ixs.T], axis=1, sort=True)
+        out.sort_values(by="id", axis=1, inplace=True)
+
+        out = out.iloc[[0]]  # report only first occurrence
+
+        ids = out.columns
+        data = ["value", "timestamp"] * (len(ids) // 2)
+
+        mi = pd.MultiIndex.from_arrays([ids, data], names=["id", "data"])
+        out.columns = mi
 
         # if tmstmp_frm.lower() == "ashrae": #TODO postprocess this elsewhere
         #     date, time = self._ashrae_peak(timestamp)
         #     return pd.DataFrame([(peak, date, time)])
 
-        return out.T
+        return out
 
     def _local_peaks(
             self, ids, start_date, end_date, val_ix=None,
@@ -189,17 +193,19 @@ class Outputs(pd.DataFrame):
 
             return sr
 
-        timestamps = df.apply(get_timestamps, axis=1)
-        results = df.applymap(lambda x: x[val_ix])
+        ixs = df.apply(get_timestamps, axis=1)
+        vals = df.applymap(lambda x: x[val_ix])
 
-        out = pd.concat([results.T, timestamps.T], keys=["value", "timestamp"], names=["data", "id"])
-        out.reset_index(inplace=True)
-        out.sort_values(by="id", inplace=True)
-        out.set_index(["id", "data"], inplace=True)
+        out = pd.concat([vals, ixs], axis=1, sort=True)
+        out.sort_values(by="id", axis=1, inplace=True)
 
-        out = out.T
-        #TODO get original dtype
-        return out.T
+        ids = out.columns
+        data = ["value", "timestamp"] * (len(ids) // 2)
+
+        mi = pd.MultiIndex.from_arrays([ids, data], names=["id", "data"])
+        out.columns = mi
+
+        return out
 
     def _timestep_peak(
             self, ids, start_date, end_date, val_ix=None, month_ix=None,
@@ -212,35 +218,23 @@ class Outputs(pd.DataFrame):
             ids, start_date, end_date, val_ix=val_ix, hour_ix=hour_ix,
             end_min_ix=end_min_ix, day_ix=day_ix, month_ix=month_ix,
         )
-        print(df.dtypes)
 
-        df_vals = df.loc[:, df.columns.get_level_values(1) == "value"]
-        df_vals = df_vals.droplevel(1, axis=1)
-        df_ixs = df.loc[:, df.columns.get_level_values(1) == "timestamp"]
+        def get_peak(d):
+            c = d.iloc[:, 0] == d.iloc[:, 0].max()
+            out = d.loc[c]
+            out.reset_index(inplace=True, drop=True)
+            return out
 
-        group = df.groupby(axis=1, level=0)
+        grouped = df.groupby(axis=1, level=0, group_keys=False)
+        grouped = grouped.apply(get_peak)
 
-        for n, a in group:
-            gr = a.iloc[:, 0]
-            # print(a.dtypes)
-            # print(a)
-            # ix = gr.idxmax() if max_ else gr.idxmin()
-            # print(n, ix)
-
-        vals = df_vals.max() if max_ else df_vals.min()
-
-        # out = pd.concat([vals, ixs], keys=["value", "timestamp"], names=["data", "id"])
-        # out = pd.DataFrame(out)
-        #
-        # out.reset_index(inplace=True)
-        # out.sort_values(by="id", inplace=True)
-        # out.set_index(["id", "data"], inplace=True)
+        grouped = grouped.iloc[[0]]  # report only first occurrence
 
         # if tmstmp_frm.lower() == "ashrae": # TODO postprocess this elsewhere
         #     date, time = self._ashrae_peak(timestamp)
         #     return pd.DataFrame([(peak, date, time)])
 
-        return
+        return grouped
 
     # @staticmethod
     # def gen_column_index(ids, peak=False, tmstmp_frm="default"):
