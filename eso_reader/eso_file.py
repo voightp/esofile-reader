@@ -4,6 +4,7 @@ import time
 
 from random import randint
 from collections import defaultdict
+from functools import partial
 
 from eso_reader.convertor import rate_to_energy, convert
 from eso_reader.eso_processor import read_file
@@ -33,7 +34,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
                    suppress_errors=suppress_errors)
 
 
-def get_results(files, request, start_date=None, end_date=None, type="standard",
+def get_results(files, variables, start_date=None, end_date=None, type="standard",
                 header=True, add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
@@ -51,7 +52,7 @@ def get_results(files, request, start_date=None, end_date=None, type="standard",
      ----------
      files : {str, EsoFile} or list of ({str, EsoFile})
         Eso files defined as 'EsoFile' objects or using path like objects.
-     request : Variable or list of (Variable)
+     variables : Variable or list of (Variable)
         Requested output variable or variables. A mini class  'Variable' needs
         to be used to find results.
      start_date : datetime like object, default None
@@ -113,16 +114,15 @@ def get_results(files, request, start_date=None, end_date=None, type="standard",
     }
 
     if isinstance(files, list):
-        return _get_results_multiple_files(files, request, **kwargs)
+        return _get_results_multiple_files(files, variables, **kwargs)
 
-    return _get_results(files, request, **kwargs)
+    return _get_results(files, variables, **kwargs)
 
 
-def _get_results(file, request, **kwargs):
+def _get_results(file, variables, **kwargs):
     """ Load eso file and return requested results. """
     excl = kwargs.pop("exclude_intervals")
     report_progress = kwargs.pop("report_progress")
-    part_match = kwargs.pop("part_match")
     ignore_peaks = kwargs.pop("ignore_peaks")
 
     if isinstance(file, EsoFile):
@@ -136,28 +136,27 @@ def _get_results(file, request, **kwargs):
         raise NoResults("Cannot load results!\n"
                         "File '{}' is not complete.".format(eso_file.file_name))
 
-    ids = eso_file.find_ids(request, part_match=part_match)
+    df = eso_file.results_df(variables, **kwargs)
 
-    df = eso_file.results_df(*ids, **kwargs)
     return df
 
 
-def _get_results_multiple_files(file_list, request, **kwargs):
+def _get_results_multiple_files(file_list, variables, **kwargs):
     """ Extract results from multiple files. """
     frames = []
     for file in file_list:
-        df = _get_results(file, request, **kwargs)
+        df = _get_results(file, variables, **kwargs)
         if df is not None:
             frames.append(df)
     try:
         res = pd.concat(frames, sort=False)
 
     except ValueError:
-        if isinstance(request, list):
+        if isinstance(variables, list):
             lst = ["'{} - {} {} {}'".format(*tup) for tup in request]
             request_str = ", ".join(lst)
         else:
-            request_str = request
+            request_str = variables
 
         print("Any of requested variables was not found!\n"
               "Requested variables: '{}'\n"
@@ -323,16 +322,39 @@ class EsoFile:
             if var_id in data_set.columns:
                 return interval
         else:
-            VariableNotFound("Eso file does not contain variable id {}!".format(var_id))
+            VariableNotFound("Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id))
 
-    def categorize_ids(self, *args):
+    def categorize_ids(self, ids):
         """ Group ids based on interval. """
         groups = defaultdict(list)
-        for var_id in args:
+        for var_id in ids:
             interval = self.find_interval(var_id)
             if interval:
                 groups[interval].append(var_id)
         return groups
+
+    def full_header_df(self):
+        """ Get pd.DataFrame like header. """
+        rows = []
+        for interval, variables in self.header_dct.items():
+            for id_, var in variables.items():
+                rows.append((interval, id_, *var))
+        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
+        df.set_index(["interval", "id"], inplace=True, drop=True)
+        return df
+
+    def header_variables_df(self, interval, ids):
+        """ Create a header pd.DataFrame"""
+        rows = []
+        for id_ in ids:
+            try:
+                var = self.header_dct[interval][id_]
+                rows.append((interval, id_, *var))
+            except KeyError:
+                print("Id '{}' was not found in the header!")
+        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
+        df.set_index(["interval", "id"], inplace=True, drop=True)
+        return df
 
     @staticmethod
     def gen_column_index(ids, peak=False):
@@ -350,20 +372,27 @@ class EsoFile:
                 names=["id", "key", "variable", "units"]
             )
 
-    def add_header_data(self, df, interval):
+    def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
         df = df.T
         df.reset_index(inplace=True)
 
         ids = df["id"]
-        variables =
+        header_df = self.header_variables_df(interval, ids)
+        df = pd.merge(header_df, df, on="id")
 
+        df.drop(labels="id", inplace=True, axis=1)
+        keys = ["key", "variable", "units"]
 
-        variables[interval] =
+        if "data" in df.columns:
+            keys.append("data")
+
+        df.set_index(keys, inplace=True)
+        return df.T
 
     def results_df(
-            self, *args, start_date=None, end_date=None,
-            type="standard", header=True, add_file_name="row", include_interval=False,
+            self, variables, start_date=None, end_date=None,
+            type="standard", header=True, add_file_name="row", include_interval=False, part_match=False,
             units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):
@@ -375,7 +404,7 @@ class EsoFile:
 
         Parameters
         ----------
-        *args : int
+        variables : int
             Variable ID or IDs.
         start_date : datetime like object, default 'MIN_DATE' constant
             A start date for requested results.
@@ -393,6 +422,9 @@ class EsoFile:
         include_interval : bool
             Decide if 'interval' information should be included on
             the results df.
+        part_match : bool
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
         units_system : {'SI', 'IP'}
             Selected units type for requested outputs.
         rate_to_energy_dct : dct
@@ -445,7 +477,8 @@ class EsoFile:
         }
 
         frames = []
-        groups = self.categorize_ids(*args)
+        ids = self.find_ids(variables, part_match=part_match)
+        groups = self.categorize_ids(ids)
 
         for interval, ids in groups.items():
             data_set = self.outputs_dct[interval]
@@ -460,7 +493,7 @@ class EsoFile:
                 continue
 
             if header:
-                self.add_header_data(df, interval)
+                df = self.add_header_data(interval, df)
 
             # # Find matching header information TODO set column index
             # header_data = self.header_dct[interval][var_id]
@@ -493,7 +526,7 @@ class EsoFile:
         # Catch empty frames exception
         try:
             # Merge dfs
-            results = pd.concat(frames, axis=1)
+            results = pd.concat(frames, axis=1, sort=False)
             # Add file name to the index
             if add_file_name:
                 results = self.add_file_name(results, add_file_name)
@@ -524,13 +557,13 @@ class EsoFile:
             columns = columns.droplevel(1)
         return columns
 
-    def find_ids(self, request_lst, part_match=False):
+    def find_ids(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Requests'.
 
         Parameters
         ----------
-        request_lst : list of Variable
+        variables : list of Variable
             A list of 'Variable' named tuples.
         part_match : bool
             Only substring of the part of variable is enough
@@ -538,10 +571,10 @@ class EsoFile:
         """
         ids = []
 
-        if not isinstance(request_lst, list):
-            request_lst = [request_lst]
+        if not isinstance(variables, list):
+            variables = [variables]
 
-        for request in request_lst:
+        for request in variables:
             interval, key, var, units = request
             ids.extend(self._find_ids(interval=interval, key_name=key, var_name=var,
                                       units=units, part_match=part_match))
