@@ -495,17 +495,12 @@ class EsoFile:
             if header:
                 df = self.add_header_data(interval, df)
 
-            # # Find matching header information TODO set column index
-            # header_data = self.header_dct[interval][var_id]
-
-            frames.append(df)
-
-            # # convert 'rate' or 'energy' when standard results are requested
-            # if type == "standard" and rate_to_energy_dct:
-            #     is_energy = rate_to_energy_dct[interval]
-            #     if is_energy:
-            #         # 'energy' is requested for current output
-            #         data = rate_to_energy(data, data_set, start_date, end_date)
+            # convert 'rate' or 'energy' when standard results are requested
+            if type == "standard" and rate_to_energy_dct:
+                is_energy = rate_to_energy_dct[interval]
+                if is_energy:
+                    # 'energy' is requested for current output
+                    df = rate_to_energy(df, data_set, start_date, end_date)
             #
             # # Convert the data if units system, rate or energy
             # # units are not default
@@ -522,6 +517,8 @@ class EsoFile:
             #
             #     if include_interval:
             #         data = pd.concat([data], axis=1, keys=[interval], names=["interval"])
+
+            frames.append(df)
 
         # Catch empty frames exception
         try:
