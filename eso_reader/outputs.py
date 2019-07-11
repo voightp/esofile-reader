@@ -211,7 +211,7 @@ class Outputs(pd.DataFrame):
         )
 
         def get_peak(d):
-            c = d.iloc[:, 0] == d.iloc[:, 0].max()
+            c = d.iloc[:, 0] == (d.iloc[:, 0].max() if max_ else d.iloc[:, 0].min())
             out = d.loc[c]
             out.reset_index(inplace=True, drop=True)
             return out
