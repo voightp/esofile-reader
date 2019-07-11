@@ -404,7 +404,7 @@ class EsoFile:
 
         Parameters
         ----------
-        variables : int
+        variables : Variable or list of (Variable)
             Variable ID or IDs.
         start_date : datetime like object, default 'MIN_DATE' constant
             A start date for requested results.
