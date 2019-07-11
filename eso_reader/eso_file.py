@@ -166,6 +166,28 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
     return res
 
 
+def remove_header_variable(id, header_dct):
+    """ Remove header variable from header. """
+    try:
+        del header_dct[id]
+    except KeyError:
+        print("Cannot remove id: {} from header.\n"
+              "Given id is not valid.")
+
+
+def generate_id():
+    """ ID generator. """
+    while True:
+        yield -randint(1, 999999)
+
+
+def add_underscore(variable):
+    """ Create a new variable with added '_' in key. """
+    key, variable, units = variable
+    new_key = "_" + key
+    return new_key, variable, units
+
+
 class EsoFile:
     """
     The ESO class holds processed EnergyPlus output ESO file data.
@@ -355,22 +377,6 @@ class EsoFile:
         df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
         df.set_index(["interval", "id"], inplace=True, drop=True)
         return df
-
-    @staticmethod
-    def gen_column_index(ids, peak=False):
-        """ Generate column multi index. """
-        if peak:
-            return pd.MultiIndex(
-                levels=[[ids], [header[0]], [header[1]], [header[2]], ["value", "timestamp"]],
-                codes=[[0, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
-                names=["id", "key", "variable", "units", "data"]
-            )
-        else:
-            return pd.MultiIndex(
-                levels=[[ids], [header[0]], [header[1]], [header[2]]],
-                codes=[[0], [0], [0], [0]],
-                names=["id", "key", "variable", "units"]
-            )
 
     def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
@@ -586,15 +592,9 @@ class EsoFile:
 
         return ids
 
-    @staticmethod
-    def _generate_id():
-        """ ID generator. """
-        while True:
-            yield -randint(1, 999999)
-
     def _id_generator(self):
         """ Generate a unique id for custom variable. """
-        gen = self._generate_id()
+        gen = generate_id()
         while True:
             id = next(gen)
             if id not in self.all_ids:
@@ -604,13 +604,6 @@ class EsoFile:
         """ Check if the variable is included in a given interval. """
         is_unique = variable not in self.inverted_header_dct[interval]
         return is_unique
-
-    @staticmethod
-    def _add_underscore(variable):
-        """ Create a new variable with added '_' in key. """
-        key, variable, units = variable
-        new_key = "_" + key
-        return new_key, variable, units
 
     def _create_variable(self, interval, variable):
         """ Validate a new variable. """
@@ -623,16 +616,7 @@ class EsoFile:
                 header_variable = HeaderVariable(*variable)
                 return header_variable
 
-            variable = self._add_underscore(variable)
-
-    @staticmethod
-    def remove_header_variable(id, header_dct):
-        """ Remove header variable from header. """
-        try:
-            del header_dct[id]
-        except KeyError:
-            print("Cannot remove id: {} from header.\n"
-                  "Given id is not valid.")
+            variable = add_underscore(variable)
 
     def add_output(self, request_tuple, array):
         """ Add specified output variable to the file. """
@@ -662,4 +646,4 @@ class EsoFile:
             self.header_tree.add_branch(interval, key, var, units, id_)
         else:
             # Revert header dict in its original state
-            self.remove_header_variable(id_, header_dct)
+            remove_header_variable(id_, header_dct)
