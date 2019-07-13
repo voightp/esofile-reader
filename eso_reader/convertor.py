@@ -28,9 +28,9 @@ def convert_units(df, units_system, rate_units, energy_units):
 
     er_dct = {
         "W": rate_table(units_system, rate_units),
-        "W/m2": rate_table(units_system, rate_units, per_area=True),
+        "W/m2": rate_table(rate_units, per_area=True),
         "J": energy_table(units_system, energy_units),
-        "J/m2": energy_table(units_system, energy_units, per_area=True),
+        "J/m2": energy_table(energy_units, per_area=True),
     }
 
     conv_input = []
@@ -104,5 +104,4 @@ def rate_to_energy(df, data_set, start_date, end_date):
     new_units = ("J", "J/m2")
     conv_ratios = (conv_ratio, conv_ratio)  # ratios are the same
 
-    df = apply_conversion(df, orig_units, new_units, conv_ratios)
-    return df
+    return apply_conversion(df, orig_units, new_units, conv_ratios)

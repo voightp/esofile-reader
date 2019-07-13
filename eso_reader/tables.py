@@ -20,6 +20,7 @@ def si_to_ip(orig_units):
         W/m.K       ->
         m2/s        ->
         W/m2-K      ->
+        W/m2        ->      W/ft2       /       0.092903
         m2-K/W      ->
         lx          ->
         lm          ->
@@ -53,16 +54,13 @@ def si_to_ip(orig_units):
     }
 
     try:
-        conv_tuple = table[request]
+        return table[request]
 
     except KeyError:
         print("Cannot convert to IP, original units [{}] left!".format(orig_units))
-        conv_tuple = (orig_units, None, 1)
-
-    return conv_tuple
 
 
-def energy_table(units_system, new_units, per_area=False):
+def energy_table(new_units, per_area=False):
     """
     Find conversion rate for given energy units.
 
@@ -77,47 +75,42 @@ def energy_table(units_system, new_units, per_area=False):
         J       ->      GJ          /       1000 000 000
         J       ->      Btu         /       1055.056
         J       ->      kBtu        /       1 055 056
-        J       ->      kBtu        /       1 055 056 000
+        J       ->      MBtu        /       1 055 056 000
     """
     request = new_units.lower()
 
     table = {
-        "SI": {
-            "wh": 3600,
-            "kwh": 3600000,
-            "mwh": 3600000000,
-            "kj": 1000,
-            "mj": 1000000,
-            "gj": 1000000000},
-        "IP": {
-            "btu": 1055.056,
-            "kbtu": 1055056,
-            "mbtu": 1055056000,
-        }}
+        "wh": ("Wh", 3600),
+        "kwh": ("kWh", 3600000),
+        "mwh": ("MWh", 3600000000),
+        "kj": ("kJ", 1000),
+        "mj": ("MJ", 1000000),
+        "gj": ("GJ", 1000000000),
+        "btu": ("Btu", 1055.056),
+        "kbtu": ("kBtu", 1055056),
+        "mbtu": ("MBtu", 1055056000),
+    }
 
     table_pa = {
-        "SI": {
-            "wh": ("Wh/m2", 3600),
-            "kwh": ("kWh/m2", 3600000),
-            "mwh": ("MWh/m2", 3600000000),
-            "kj": ("kJ/m2", 1000),
-            "mj": ("MJ/m2", 1000000),
-            "gj": ("GJ/m2", 1000000000)},
-        "IP": {
-            "btu": ("btu/f2", 1055.056 / 10.76391),  # TODO verify this!
-            "kbtu": ("kBtu/f2", 1055056 / 10.76391),
-            "mbtu": ("mBtu/f2", 1055056000 / 10.76391),
-        }
+        "wh": ("Wh/m2", 3600),
+        "kwh": ("kWh/m2", 3600000),
+        "mwh": ("MWh/m2", 3600000000),
+        "kj": ("kJ/m2", 1000),
+        "mj": ("MJ/m2", 1000000),
+        "gj": ("GJ/m2", 1000000000),
+        "btu": ("Btu/f2", 1055.056 / 10.76391),  # TODO verify this!
+        "kbtu": ("kBtu/f2", 1055056 / 10.76391),
+        "mbtu": ("MBtu/f2", 1055056000 / 10.76391),
     }
 
     try:
         tbl = table_pa if per_area else table
-        return tbl[units_system][request]
+        return tbl[request]
     except KeyError:
         print("Specified energy units [{}] not applicable!".format(new_units))
 
 
-def rate_table(units_system, new_units, per_area=False):
+def rate_table(new_units, per_area=False):
     """
     Find conversion rate for given rate units.
 
@@ -133,31 +126,23 @@ def rate_table(units_system, new_units, per_area=False):
     request = new_units.lower()
 
     table = {
-        "SI": {
-            "kw": 1000,
-            "mw": 1000000},
-        "IP": {
-            "btu/h": 0.2930711,
-            "kbtu/h": 293.0711,
-            "mbtu/h": 293071.1,
-        }
+        "kw": ("kW", 1000),
+        "mw": ("MW", 1000000),
+        "btu/h": ("Btu/h", 0.2930711),
+        "kbtu/h": ("kBtu/h", 293.0711),
+        "mbtu/h": ("MBtu/h", 293071.1),
     }
 
     table_pa = {
-        "SI": {
-            "kw/m2": 1000,
-            "mw/m2": 1000000
-        },
-        "IP": {
-            "w/ft2": 1 / 10.76391,
-            "btu/h-ft2": 0.2930711 / 10.76391,  # TODO verify this!
-            "kbtu/h-ft2": 293.0711 / 10.76391,
-            "mbtu/h-ft2": 293071.1 / 10.76391,
-        }
+        "kw": ("kW/m2", 1000),
+        "mw": ("MW/m2", 1000000),
+        "btu/h": ("Btu/h-ft2", 0.2930711 / 10.76391),  # TODO verify this!
+        "kbtu/h": ("kBtu/h-ft2", 293.0711 / 10.76391),
+        "mbtu/h": ("MBtu/h-ft2", 293071.1 / 10.76391),
     }
 
     try:
         tbl = table_pa if per_area else table
-        return tbl[units_system][request]
+        return tbl[request]
     except KeyError:
         print("Specified energy units [{}] not applicable!".format(new_units))
