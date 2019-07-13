@@ -73,9 +73,9 @@ def get_results(files, variables, start_date=None, end_date=None, type="standard
          Selected units type for requested outputs.
      rate_to_energy_dct : dct
          Defines if 'energy' or 'rate' will be reported for a specified interval
-     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h', 'MBtu/h'}
          Convert default 'Rate' outputs to requested units.
-     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu','kBtu', 'MBtu', 'kWh', 'MWh'}
          Convert default 'Energy' outputs to requested units
      timestamp_format : str
          A format of timestamp for peak results, currently only used for ASHRAE
