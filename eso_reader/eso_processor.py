@@ -356,7 +356,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
 
 def _gen_output(data, index, interval, num_of_days):
     """ Handle class assignment for output data. """
-    clmn_name = "Number of days"  # Additional column to store 'Number of days'
+    clmn_name = "num days"  # Additional column to store 'Number of days'
     index = pd.Index(index, name="timestamp")
     columns = pd.Index(data.keys(), name="id")
 

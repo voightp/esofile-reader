@@ -6,7 +6,7 @@ from random import randint
 from collections import defaultdict
 from functools import partial
 
-from eso_reader.convertor import rate_to_energy, convert
+from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
 from eso_reader.mini_classes import HeaderVariable
 from eso_reader.constants import RATE_TO_ENERGY_DCT
@@ -347,7 +347,7 @@ class EsoFile:
             VariableNotFound("Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id))
 
     def categorize_ids(self, ids):
-        """ Group ids based on interval. """
+        """ Group ids based on an interval. """
         groups = defaultdict(list)
         for var_id in ids:
             interval = self.find_interval(var_id)
@@ -507,19 +507,11 @@ class EsoFile:
                 if is_energy:
                     # 'energy' is requested for current output
                     df = rate_to_energy(df, data_set, start_date, end_date)
-            #
-            # # Convert the data if units system, rate or energy
-            # # units are not default
-            # if units_system != "SI" or rate_units != "W" or energy_units != "J":
-            #     data = convert(data, units_system, rate_units, energy_units)
-            #
-            # # Remove 'key', 'variable' and 'units' from multi index
-            # if not header:
-            #     data.columns = self.drop_header_levels(data.columns)
-            #
-            # else:
-            #     # Drop only variable id (as index is defined using key, var and units).
-            #     data.columns = data.columns.droplevel(0)
+
+            # Convert the data if units system, rate or energy
+            # units are not default
+            if units_system != "SI" or rate_units != "W" or energy_units != "J":
+                df = convert_units(df, units_system, rate_units, energy_units)
             #
             #     if include_interval:
             #         data = pd.concat([data], axis=1, keys=[interval], names=["interval"])

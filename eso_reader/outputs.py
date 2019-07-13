@@ -8,6 +8,24 @@ class PeaksNotIncluded(Exception):
     pass
 
 
+def slicer(df, ids, start_date=None, end_date=None):
+    """ Slice df using indeterminate range. """
+    try:
+        if start_date and end_date:
+            return df.loc[start_date:end_date, ids]
+        elif start_date:
+            return df.loc[start_date:, ids]
+        elif end_date:
+            return df.loc[:end_date, ids]
+        else:
+            return df.loc[:, ids]
+
+    except KeyError:
+        # TODO catch specific exceptions
+        print("KEY ERROR")
+        raise Exception("FOO")
+
+
 class Outputs(pd.DataFrame):
     """
     A parent class to define all methods required for extracting
@@ -66,20 +84,7 @@ class Outputs(pd.DataFrame):
 
     def get_results_df(self, ids, index, start_date, end_date):
         """ Get base output DataFrame. """
-        try:
-            if start_date and end_date:
-                df = self.loc[start_date:end_date, ids]
-            elif start_date:
-                df = self.loc[start_date:, ids]
-            elif end_date:
-                df = self.loc[:end_date, ids]
-            else:
-                df = self.loc[:, ids]
-
-        except KeyError:
-            # TODO catch specific exceptions
-            print("KEY ERROR")
-            raise Exception("FOO")
+        df = slicer(self, ids, start_date=start_date, end_date=end_date)
 
         if isinstance(df, pd.Series):
             df = pd.DataFrame(df)
@@ -223,6 +228,10 @@ class Outputs(pd.DataFrame):
 
         return grouped
 
+    def number_of_days(self):
+        """ Return 'number of days' column. """
+        return self["num days"]
+
 
 class Hourly(Outputs):
     """
@@ -267,6 +276,10 @@ class Hourly(Outputs):
 
     def timestep_max(self, *args, **kwargs):
         """ Timestep maximum value is not applicable for Hourly interval. """
+        pass
+
+    def number_of_days(self):
+        """ Number of days is not available for Hourly interval. """
         pass
 
 
