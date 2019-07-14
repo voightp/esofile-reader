@@ -21,9 +21,13 @@ def slicer(df, ids, start_date=None, end_date=None):
             return df.loc[:, ids]
 
     except KeyError:
-        # TODO catch specific exceptions
-        print("KEY ERROR")
-        raise Exception("FOO")
+        valid_ids = df.columns.intersection(ids)
+        print("Cannot slice df using requested inputs:"
+              "ids: '{}', start date: '{}', end date: '{}'.\n"
+              "Trying to use ids: '{}' with all rows. ".format(", ".join(ids),
+                                                               start_date, end_date,
+                                                               valid_ids))
+        return df.loc[:, valid_ids]
 
 
 class Outputs(pd.DataFrame):
