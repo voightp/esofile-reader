@@ -570,7 +570,7 @@ class EsoFile:
             variables = [variables]
 
         for request in variables:
-            interval, key, var, units = request
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
             ids.extend(self._find_ids(interval=interval, key_name=key, var_name=var,
                                       units=units, part_match=part_match))
         return ids
