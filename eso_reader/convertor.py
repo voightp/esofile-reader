@@ -8,6 +8,7 @@ import pandas as pd
 def apply_conversion(df, orig_units, new_units, conv_ratios):
     """ Convert values for columns using specified units. """
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
+
         cnd = df.columns.get_level_values("units") == old
         if df.columns.nlevels == 4:
             cnd = cnd & df.columns.get_level_values("data") == "value"

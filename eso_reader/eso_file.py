@@ -35,7 +35,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
 
 
 def get_results(files, variables, start_date=None, end_date=None, type="standard",
-                header=True, add_file_name="row", include_interval=False, units_system="SI",
+                add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
                 part_match=False, ignore_peaks=True):
@@ -62,8 +62,6 @@ def get_results(files, variables, start_date=None, end_date=None, type="standard
      type : {'standard', 'local_max',' global_max', 'timestep_max',
              'local_min', 'global_min', 'timestep_min'}
          Requested type of results.
-     header : bool
-         Include full E+ header information in multi index if set to True.
      add_file_name : ('row','column',None)
          Specify if file name should be added into results df.
      include_interval : bool
@@ -99,7 +97,6 @@ def get_results(files, variables, start_date=None, end_date=None, type="standard
         "start_date": start_date,
         "end_date": end_date,
         "type": type,
-        "header": header,
         "add_file_name": add_file_name,
         "include_interval": include_interval,
         "units_system": units_system,
@@ -398,7 +395,7 @@ class EsoFile:
 
     def results_df(
             self, variables, start_date=None, end_date=None,
-            type="standard", header=True, add_file_name="row", include_interval=False, part_match=False,
+            type="standard", add_file_name="row", include_interval=False, part_match=False,
             units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):
@@ -421,8 +418,6 @@ class EsoFile:
                 'local_min', 'global_min', 'timestep_min'
                 }
             Requested type of results.
-        header : bool
-            Include full E+ header information in multi index if set to True.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
         include_interval : bool
@@ -498,8 +493,7 @@ class EsoFile:
                       "\n\tignoring the request...".format(type, interval))
                 continue
 
-            if header:
-                df = self.add_header_data(interval, df)
+            df = self.add_header_data(interval, df)
 
             # convert 'rate' or 'energy' when standard results are requested
             if type == "standard" and rate_to_energy_dct:
@@ -543,14 +537,6 @@ class EsoFile:
 
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
-
-    @classmethod
-    def drop_header_levels(cls, columns):
-        """ Exclude key, var and units from column index. """
-        end = 3 if columns.nlevels == 4 else 4
-        for _ in range(end):
-            columns = columns.droplevel(1)
-        return columns
 
     def find_ids(self, variables, part_match=False):
         """
