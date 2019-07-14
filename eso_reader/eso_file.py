@@ -368,11 +368,11 @@ class EsoFile:
         for id_ in ids:
             try:
                 var = self.header_dct[interval][id_]
-                rows.append((interval, id_, *var))
+                rows.append((id_, *var))
             except KeyError:
                 print("Id '{}' was not found in the header!")
-        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
-        df.set_index(["interval", "id"], inplace=True, drop=True)
+
+        df = pd.DataFrame(rows, columns=["id", "key", "variable", "units"])
         return df
 
     def add_header_data(self, interval, df):
@@ -380,7 +380,7 @@ class EsoFile:
         df = df.T
         df.reset_index(inplace=True)
 
-        ids = df["id"]
+        ids = df.id.unique()
         header_df = self.header_variables_df(interval, ids)
         df = pd.merge(header_df, df, on="id")
 
