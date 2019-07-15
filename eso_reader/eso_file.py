@@ -508,6 +508,10 @@ class EsoFile:
             if include_interval:
                 df = pd.concat([df], axis=1, keys=[interval], names=["interval"])
 
+            if timestamp_format != "standard":
+                # TODO implement some other
+                pass
+
             frames.append(df)
 
         # Catch empty frames exception
