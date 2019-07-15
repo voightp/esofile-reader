@@ -75,7 +75,7 @@ class Tree:
 
     def add_branch(self, interval, key, var, units, id):
         """ Append a branch to tree. """
-        pth = [interval, key, var, units]
+        pth = [interval, var, key, units]
         parent = self.root
 
         for nd_name in pth:
@@ -133,7 +133,7 @@ class Tree:
     def search(self, interval=None, key=None, var=None, units=None, part_match=False):
         """ Find variable ids for given arguments. """
         root = self.root
-        cond = [None, interval, key, var, units]  # First 'None' to skip root node
+        cond = [None, interval, var, key, units]  # First 'None' to skip root node
         level = -1
         ids = []
         self._loop(root, level, ids, cond, part_match=part_match)
