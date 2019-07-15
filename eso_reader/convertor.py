@@ -11,7 +11,7 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
         cnd = df.columns.get_level_values("units") == old
 
         if df.columns.nlevels == 4:
-            cnd = cnd & df.columns.get_level_values("data") == "value"
+            cnd = cnd & (df.columns.get_level_values("data") == "value")
 
         if isinstance(conv, (float, int)):
             df.loc[:, cnd] = df.loc[:, cnd] / conv
@@ -29,9 +29,9 @@ def convert_units(df, units_system, rate_units, energy_units):
     """ Convert raw E+ results to use requested units. """
 
     er_dct = {
-        "W": rate_table(units_system, rate_units),
+        "W": rate_table(rate_units),
         "W/m2": rate_table(rate_units, per_area=True),
-        "J": energy_table(units_system, energy_units),
+        "J": energy_table(energy_units),
         "J/m2": energy_table(energy_units, per_area=True),
     }
 
@@ -43,10 +43,15 @@ def convert_units(df, units_system, rate_units, energy_units):
         if units in er_dct:
             inp = er_dct[units]
         elif units_system == "IP":
-            inp = si_to_ip(units_system)
+            inp = si_to_ip(units)
 
         if inp:
+            assert units == inp[0], "Original units do not match!"  # TODO remove for distribution
             conv_input.append(inp)
+
+    if not conv_input:
+        # there's nothing to convert
+        return df
 
     orig_units, new_units, conv_ratios = zip(*conv_input)
     return apply_conversion(df, orig_units, new_units, conv_ratios)
