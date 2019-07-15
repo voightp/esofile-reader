@@ -27,20 +27,19 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
 def convert_units(df, units_system, rate_units, energy_units):
     """ Convert raw E+ results to use requested units. """
 
-    er_dct = {
-        "W": rate_table(rate_units),
-        "W/m2": rate_table(rate_units, per_area=True),
-        "J": energy_table(energy_units),
-        "J/m2": energy_table(energy_units, per_area=True),
-    }
-
     conv_input = []
 
     for units in df.columns.levels[2]:
         inp = None
 
-        if units in er_dct:
-            inp = er_dct[units]
+        if units == "J" and energy_units != "J":
+            inp = energy_table(energy_units)
+        elif units == "J/m2" and energy_units != "J":
+            inp = energy_table(energy_units, per_area=True)
+        elif units == "W" and rate_units != "W":
+            inp = rate_table(rate_units)
+        elif units == "W/m2" and rate_units != "W":
+            inp = rate_table(rate_units, per_area=True)
         elif units_system == "IP":
             inp = si_to_ip(units)
 

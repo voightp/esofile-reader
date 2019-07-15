@@ -47,11 +47,12 @@ def si_to_ip(orig_units):
     def c_to_fahrenheit(val):
         return val * 1.8 + 32
 
-    request = orig_units.lower()
     table = {
         "kg/s": ("kg/s", "lb/min", 0.007559),  # TODO add IP data, finish docstrings
         "c": ("C", "F", c_to_fahrenheit),
     }
+
+    request = orig_units.lower()
 
     try:
         return table[request]
@@ -77,7 +78,6 @@ def energy_table(new_units, per_area=False):
         J       ->      kBtu        /       1 055 056
         J       ->      MBtu        /       1 055 056 000
     """
-    request = new_units.lower()
 
     table = {
         "wh": ("J", "Wh", 3600),
@@ -103,6 +103,8 @@ def energy_table(new_units, per_area=False):
         "mbtu": ("J/m2", "MBtu/f2", 1055056000 / 10.76391),
     }
 
+    request = new_units.lower()
+
     try:
         tbl = table_pa if per_area else table
         return tbl[request]
@@ -123,7 +125,6 @@ def rate_table(new_units, per_area=False):
         W       ->      kW          /       1000
         W       ->      MW          /       1000 000
     """
-    request = new_units.lower()
 
     table = {
         "kw": ("W", "kW", 1000),
@@ -141,8 +142,10 @@ def rate_table(new_units, per_area=False):
         "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 / 10.76391),
     }
 
+    request = new_units.lower()
+
     try:
         tbl = table_pa if per_area else table
         return tbl[request]
     except KeyError:
-        print("Specified energy units [{}] not applicable!".format(new_units))
+        print("Specified rate units [{}] not applicable!".format(new_units))
