@@ -86,6 +86,20 @@ class Outputs(pd.DataFrame):
 
         return pd.concat(frames, sort=False)
 
+    @staticmethod
+    def _group_peak_outputs(df):
+        """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
+        length = len(df.columns)
+        order = list(range(1, length, 2)) + list(range(0, length, 2))
+        levels = [df.columns.get_level_values(i) for i in range(df.columns.nlevels)]
+        levels.insert(0, pd.Index(order))
+
+        df.columns = pd.MultiIndex.from_arrays(levels, names=["order", "id", "data"])
+        df.sort_values(by="order", inplace=True, axis=1)
+        df.columns = df.columns.droplevel(0)
+
+        return df
+
     def get_results_df(self, ids, index, start_date, end_date):
         """ Get base output DataFrame. """
         df = slicer(self, ids, start_date=start_date, end_date=end_date)
@@ -160,18 +174,12 @@ class Outputs(pd.DataFrame):
         vals = pd.DataFrame(vals)
         ixs = pd.DataFrame(ixs)
 
-        out = pd.concat([vals.T, ixs.T], axis=1, sort=True)
-        out.sort_values(by="id", axis=1, inplace=True)
+        df = pd.concat({"timestamp": ixs.T, "value": vals.T}, axis=1)
+        df = df.iloc[[0]]  # report only first occurrence
+        df.columns = df.columns.swaplevel(0, 1)
 
-        out = out.iloc[[0]]  # report only first occurrence
-
-        ids = out.columns
-        data = ["value", "timestamp"] * (len(ids) // 2)
-
-        mi = pd.MultiIndex.from_arrays([ids, data], names=["id", "data"])
-        out.columns = mi
-
-        return out
+        df = self._group_peak_outputs(df)
+        return df
 
     def _local_peaks(
             self, ids, start_date, end_date, val_ix=None,
@@ -193,19 +201,14 @@ class Outputs(pd.DataFrame):
 
             return sr
 
-        ixs = df.apply(get_timestamps, axis=1)
         vals = df.applymap(lambda x: x[val_ix])
+        ixs = df.apply(get_timestamps, axis=1)
 
-        out = pd.concat([vals, ixs], axis=1, sort=True)
-        out.sort_values(by="id", axis=1, inplace=True)
+        df = pd.concat({"timestamp": ixs, "value": vals}, axis=1)
+        df.columns = df.columns.swaplevel(0, 1)
 
-        ids = out.columns
-        data = ["value", "timestamp"] * (len(ids) // 2)
-
-        mi = pd.MultiIndex.from_arrays([ids, data], names=["id", "data"])
-        out.columns = mi
-
-        return out
+        df = self._group_peak_outputs(df)
+        return df
 
     def _timestep_peak(
             self, ids, start_date, end_date, val_ix=None, month_ix=None,
@@ -225,12 +228,9 @@ class Outputs(pd.DataFrame):
             out.reset_index(inplace=True, drop=True)
             return out
 
-        grouped = df.groupby(axis=1, level=0, group_keys=False)
-        grouped = grouped.apply(get_peak)
-
-        grouped = grouped.iloc[[0]]  # report only first occurrence
-
-        return grouped
+        grouped = df.groupby(axis=1, level=0, group_keys=False, sort=False)
+        df = grouped.apply(get_peak).iloc[[0]]
+        return df
 
     def number_of_days(self, start_date, end_date):
         """ Return 'number of days' column. """
