@@ -232,9 +232,9 @@ class Outputs(pd.DataFrame):
 
         return grouped
 
-    def number_of_days(self):
+    def number_of_days(self, start_date, end_date):
         """ Return 'number of days' column. """
-        return self["num days"]
+        return slicer(self, "num days", start_date, end_date)
 
 
 class Hourly(Outputs):
@@ -282,7 +282,7 @@ class Hourly(Outputs):
         """ Timestep maximum value is not applicable for Hourly interval. """
         pass
 
-    def number_of_days(self):
+    def number_of_days(self, start_date, end_date):
         """ Number of days is not available for Hourly interval. """
         pass
 
@@ -306,6 +306,12 @@ class Timestep(Hourly):
 
     def __init__(self, data, **kwargs):
         super(Timestep, self).__init__(data, **kwargs)
+
+    def get_n_steps(self):
+        """ Get a number of timesteps in an hour (this is unique for ts interval). """
+        timestamps = self.index
+        timedelta = timestamps[1] - timestamps[0]
+        return 3600 / timedelta.seconds
 
     def timestep_min(self, ids, start_date, end_date):
         """ Timestep minimum value is the same as global minimum for Timestep interval. """

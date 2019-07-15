@@ -8,8 +8,8 @@ import pandas as pd
 def apply_conversion(df, orig_units, new_units, conv_ratios):
     """ Convert values for columns using specified units. """
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
-
         cnd = df.columns.get_level_values("units") == old
+
         if df.columns.nlevels == 4:
             cnd = cnd & df.columns.get_level_values("data") == "value"
 
@@ -21,6 +21,7 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
             df.loc[:, cnd] = df.loc[:, cnd].div(conv, axis=0)
 
     update_multiindex(df, "units", orig_units, new_units)
+
     return df
 
 
@@ -37,28 +38,18 @@ def convert_units(df, units_system, rate_units, energy_units):
     conv_input = []
 
     for units in df.columns.levels[2]:
-        out = None
+        inp = None
 
         if units in er_dct:
-            out = er_dct[units]
+            inp = er_dct[units]
         elif units_system == "IP":
-            out = si_to_ip(units_system)
+            inp = si_to_ip(units_system)
 
-        if out:
-            conv_input.append(out)
+        if inp:
+            conv_input.append(inp)
 
     orig_units, new_units, conv_ratios = zip(*conv_input)
-    df = apply_conversion(df, orig_units, new_units, conv_ratios)
-
-    return df
-
-
-def get_timestep_n(df):
-    """ Get a number of timesteps in hour. """
-    timestamps = df.index
-    timedelta = timestamps[1] - timestamps[0]
-    n_steps = 3600 / timedelta.seconds
-    return n_steps
+    return apply_conversion(df, orig_units, new_units, conv_ratios)
 
 
 def update_multiindex(df, level, old_vals, new_vals, axis=1):
@@ -93,12 +84,12 @@ def rate_to_energy(df, data_set, start_date, end_date):
     if isinstance(data_set, Hourly):
         conv_ratio = 1 / 3600
     elif isinstance(data_set, Timestep):
-        n_steps = get_timestep_n(data_set)
+        n_steps = data_set.get_n_steps()
         conv_ratio = n_steps / 3600
     elif isinstance(data_set, Daily):
         conv_ratio = 1 / (24 * 3600)
     else:
-        sr = slicer(data_set, "num days", start_date, end_date)
+        sr = data_set.number_of_days(start_date, end_date)
         conv_ratio = 1 / (sr * 24 * 3600)
 
     orig_units = ("W", "W/m2")
