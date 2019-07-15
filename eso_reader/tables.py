@@ -49,8 +49,8 @@ def si_to_ip(orig_units):
 
     request = orig_units.lower()
     table = {
-        "kg/s": ("lb/min", 0.007559),  # TODO add IP data, finish docstrings
-        "c": ("F", c_to_fahrenheit),
+        "kg/s": ("kg/s", "lb/min", 0.007559),  # TODO add IP data, finish docstrings
+        "c": ("C", "F", c_to_fahrenheit),
     }
 
     try:
@@ -80,27 +80,27 @@ def energy_table(new_units, per_area=False):
     request = new_units.lower()
 
     table = {
-        "wh": ("Wh", 3600),
-        "kwh": ("kWh", 3600000),
-        "mwh": ("MWh", 3600000000),
-        "kj": ("kJ", 1000),
-        "mj": ("MJ", 1000000),
-        "gj": ("GJ", 1000000000),
-        "btu": ("Btu", 1055.056),
-        "kbtu": ("kBtu", 1055056),
-        "mbtu": ("MBtu", 1055056000),
+        "wh": ("J", "Wh", 3600),
+        "kwh": ("J", "kWh", 3600000),
+        "mwh": ("J", "MWh", 3600000000),
+        "kj": ("J", "kJ", 1000),
+        "mj": ("J", "MJ", 1000000),
+        "gj": ("J", "GJ", 1000000000),
+        "btu": ("J", "Btu", 1055.056),
+        "kbtu": ("J", "kBtu", 1055056),
+        "mbtu": ("J", "MBtu", 1055056000),
     }
 
     table_pa = {
-        "wh": ("Wh/m2", 3600),
-        "kwh": ("kWh/m2", 3600000),
+        "wh": ("J/m2", "Wh/m2", 3600),
+        "kwh": ("J/m2", "kWh/m2", 3600000),
         "mwh": ("MWh/m2", 3600000000),
-        "kj": ("kJ/m2", 1000),
-        "mj": ("MJ/m2", 1000000),
-        "gj": ("GJ/m2", 1000000000),
-        "btu": ("Btu/f2", 1055.056 / 10.76391),  # TODO verify this!
-        "kbtu": ("kBtu/f2", 1055056 / 10.76391),
-        "mbtu": ("MBtu/f2", 1055056000 / 10.76391),
+        "kj": ("J/m2", "kJ/m2", 1000),
+        "mj": ("J/m2", "MJ/m2", 1000000),
+        "gj": ("J/m2", "GJ/m2", 1000000000),
+        "btu": ("J/m2", "Btu/f2", 1055.056 / 10.76391),  # TODO verify this!
+        "kbtu": ("J/m2", "kBtu/f2", 1055056 / 10.76391),
+        "mbtu": ("J/m2", "MBtu/f2", 1055056000 / 10.76391),
     }
 
     try:
@@ -126,19 +126,19 @@ def rate_table(new_units, per_area=False):
     request = new_units.lower()
 
     table = {
-        "kw": ("kW", 1000),
-        "mw": ("MW", 1000000),
-        "btu/h": ("Btu/h", 0.2930711),
-        "kbtu/h": ("kBtu/h", 293.0711),
-        "mbtu/h": ("MBtu/h", 293071.1),
+        "kw": ("W", "kW", 1000),
+        "mw": ("W", "MW", 1000000),
+        "btu/h": ("W", "Btu/h", 0.2930711),
+        "kbtu/h": ("W", "kBtu/h", 293.0711),
+        "mbtu/h": ("W", "MBtu/h", 293071.1),
     }
 
     table_pa = {
-        "kw": ("kW/m2", 1000),
-        "mw": ("MW/m2", 1000000),
-        "btu/h": ("Btu/h-ft2", 0.2930711 / 10.76391),  # TODO verify this!
-        "kbtu/h": ("kBtu/h-ft2", 293.0711 / 10.76391),
-        "mbtu/h": ("MBtu/h-ft2", 293071.1 / 10.76391),
+        "kw": ("W/m2", "kW/m2", 1000),
+        "mw": ("W/m2", "MW/m2", 1000000),
+        "btu/h": ("W/m2", "Btu/h-ft2", 0.2930711 / 10.76391),  # TODO verify this!
+        "kbtu/h": ("W/m2", "kBtu/h-ft2", 293.0711 / 10.76391),
+        "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 / 10.76391),
     }
 
     try:
