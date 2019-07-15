@@ -502,13 +502,11 @@ class EsoFile:
                     # 'energy' is requested for current output
                     df = rate_to_energy(df, data_set, start_date, end_date)
 
-            # Convert the data if units system, rate or energy
-            # units are not default
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
-            #
-            #     if include_interval:
-            #         data = pd.concat([data], axis=1, keys=[interval], names=["interval"])
+
+            if include_interval:
+                df = pd.concat([df], axis=1, keys=[interval], names=["interval"])
 
             frames.append(df)
 
