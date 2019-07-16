@@ -352,8 +352,8 @@ class EsoFile:
                 groups[interval].append(var_id)
         return groups
 
-    def full_header_df(self):
-        """ Get pd.DataFrame like header. """
+    def get_header_df(self):
+        """ Get pd.DataFrame like header (index: mi(interval, id). """
         rows = []
         for interval, variables in self.header_dct.items():
             for id_, var in variables.items():
