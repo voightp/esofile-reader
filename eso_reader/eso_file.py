@@ -34,7 +34,7 @@ def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=Fals
                    suppress_errors=suppress_errors)
 
 
-def get_results(files, variables, start_date=None, end_date=None, type="standard",
+def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
                 add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
@@ -59,7 +59,7 @@ def get_results(files, variables, start_date=None, end_date=None, type="standard
          A start date for requested results.
      end_date : datetime like object, default None
          An end date for requested results.
-     type : {'standard', 'local_max',' global_max', 'timestep_max',
+     output_type : {'standard', 'local_max',' global_max', 'timestep_max',
              'local_min', 'global_min', 'timestep_min'}
          Requested type of results.
      add_file_name : ('row','column',None)
@@ -96,7 +96,7 @@ def get_results(files, variables, start_date=None, end_date=None, type="standard
     kwargs = {
         "start_date": start_date,
         "end_date": end_date,
-        "type": type,
+        "output_type": output_type,
         "add_file_name": add_file_name,
         "include_interval": include_interval,
         "units_system": units_system,
@@ -357,13 +357,13 @@ class EsoFile:
         rows = []
         for interval, variables in self.header_dct.items():
             for id_, var in variables.items():
-                rows.append((interval, id_, *var))
-        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
-        df.set_index(["interval", "id"], inplace=True, drop=True)
+                rows.append((id_, interval, *var))
+        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
+        df.set_index("id", inplace=True, drop=True)
         return df
 
     def header_variables_df(self, interval, ids):
-        """ Create a header pd.DataFrame"""
+        """ Create a header pd.DataFrame for given ids and interval. """
         rows = []
         for id_ in ids:
             try:
@@ -395,7 +395,7 @@ class EsoFile:
 
     def results_df(
             self, variables, start_date=None, end_date=None,
-            type="standard", add_file_name="row", include_interval=False, part_match=False,
+            output_type="standard", add_file_name="row", include_interval=False, part_match=False,
             units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):
@@ -413,7 +413,7 @@ class EsoFile:
             A start date for requested results.
         end_date : datetime like object, default 'MAX_DATE' constant
             An end date for requested results.
-        type : {
+        output_type : {
                 'standard', 'local_max',' global_max', 'timestep_max',
                 'local_min', 'global_min', 'timestep_min'
                 }
@@ -486,7 +486,7 @@ class EsoFile:
 
             # Extract specified set of results
             f_args = (ids, start_date, end_date)
-            df = res[type]()
+            df = res[output_type]()
 
             if df is None:
                 print("Results type '{}' is not applicable for '{}' interval."
@@ -496,7 +496,7 @@ class EsoFile:
             df = self.add_header_data(interval, df)
 
             # convert 'rate' or 'energy' when standard results are requested
-            if type == "standard" and rate_to_energy_dct:
+            if output_type == "standard" and rate_to_energy_dct:
                 is_energy = rate_to_energy_dct[interval]
                 if is_energy:
                     # 'energy' is requested for current output
