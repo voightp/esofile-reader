@@ -17,20 +17,8 @@ req = [
     Variable(interval=interval, key=None, variable="Zone Mean Air Temperature", units=None),
 ]
 
-eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=False)
-print(eso_file.header_tree)
+eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=True)
 
-with pd.ExcelWriter("C:/users/vojtechp1/desktop/types.xlsx")as wr:
-    for t in types:
-        r = get_results(eso_file, req, type=t, units_system="IP")
-        r.to_excel(wr, sheet_name=t)
-
-with pd.ExcelWriter("C:/users/vojtechp1/desktop/e_units.xlsx")as wr:
-    for e in energy_units:
-        r = get_results(eso_file, req, type="standard", energy_units=e, units_system="IP")
-        r.to_excel(wr, sheet_name=e.replace("/", "_"))
-
-with pd.ExcelWriter("C:/users/vojtechp1/desktop/r_units.xlsx")as wr:
-    for ra in rate_units:
-        r = get_results(eso_file, req, type="standard", rate_units=ra, units_system="IP")
-        r.to_excel(wr, sheet_name=ra.replace("/", "_"))
+for t in types:
+    r = get_results(eso_file, req, timestamp_format="FOO", output_type=t)
+    print(r.index)

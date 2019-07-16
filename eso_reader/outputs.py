@@ -60,10 +60,6 @@ class Outputs(pd.DataFrame):
     def fetch_outputs(df, index):
         """ Extract results column from df. """
 
-        if index == -1:
-            # return a copy without any modification
-            return df.copy()
-
         frames = []
         tuples = list(map(lambda x: x == object, df.dtypes))
 
@@ -73,6 +69,10 @@ class Outputs(pd.DataFrame):
         if (index != 0 or index == -1) and df_a.empty:
             raise PeaksNotIncluded("Peak values are not included, it's required to "
                                    "add kwarg 'ignore_peaks=False' when processing the file.")
+
+        if index == -1:
+            # return a copy without any modification
+            return df.copy()
 
         if not df_a.empty:
             # The data is stored as a tuple, value needs to be extracted
