@@ -10,7 +10,7 @@ from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timest
 from eso_reader.interval_processor import interval_processor
 from eso_reader.mini_classes import HeaderVariable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
-from eso_reader.search import Tree
+from eso_reader.tree import Tree
 from eso_reader.monitor import DefaultMonitor
 
 
