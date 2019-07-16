@@ -27,6 +27,11 @@ class IncompleteFile(Exception):
     pass
 
 
+class InvalidOutputType(Exception):
+    """ Exception raised when the output time is invalid. """
+    pass
+
+
 def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=False):
     """ Return EsoFile object. """
     return EsoFile(path, monitor=monitor,
@@ -391,6 +396,7 @@ class EsoFile:
             keys.append("data")
 
         df.set_index(keys, inplace=True)
+        df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
         return df.T
 
     def results_df(
@@ -477,6 +483,11 @@ class EsoFile:
             "timestep_min": timestep_min,
         }
 
+        if output_type not in res:
+            msg = "Invalid output type '{}' requested.\n" \
+                  "'Output_type' must be one of '{}'.".format(output_type, ", ".join(res.keys()))
+            raise InvalidOutputType(msg)
+
         frames = []
         ids = self.find_ids(variables, part_match=part_match)
         groups = self.categorize_ids(ids)
@@ -486,6 +497,7 @@ class EsoFile:
 
             # Extract specified set of results
             f_args = (ids, start_date, end_date)
+
             df = res[output_type]()
 
             if df is None:
@@ -508,19 +520,18 @@ class EsoFile:
             if include_interval:
                 df = pd.concat([df], axis=1, keys=[interval], names=["interval"])
 
-            if timestamp_format != "standard":
-                pass
-
             frames.append(df)
 
         # Catch empty frames exception
         try:
             # Merge dfs
-            results = pd.concat(frames, axis=1, sort=False)
+            df = pd.concat(frames, axis=1, sort=False)
             # Add file name to the index
+            if timestamp_format != "default":
+                df = self.update_dt_format(df, output_type, timestamp_format)
             if add_file_name:
-                results = self.add_file_name(results, add_file_name)
-            return results
+                df = self.add_file_name(df, add_file_name)
+            return df
 
         except ValueError:
             # raise ValueError("Any of requested variables is not included in the Eso file.")
@@ -538,6 +549,14 @@ class EsoFile:
 
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
+
+    @staticmethod
+    def update_dt_format(df, output_type, timestamp_format):
+        """ Set specified 'datetime' str format. """
+        if output_type in ["standard", "local_max", "local_min"]:
+            df.index = df.index.strftime(timestamp_format)
+
+        return df
 
     def find_ids(self, variables, part_match=False):
         """
