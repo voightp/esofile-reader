@@ -170,3 +170,14 @@ categories = {
     "Water Use Equipment",
     "Zone",
 }
+
+summed_units = [
+    "J",
+    "J/m2"
+]
+
+averaged_units = [
+    "W",
+    "W/m2",
+    "C"
+]
