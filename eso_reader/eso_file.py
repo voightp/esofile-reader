@@ -116,7 +116,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         "exclude_intervals": exclude_intervals,
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
-        "suppress_errors":suppress_errors,
+        "suppress_errors": suppress_errors,
     }
 
     if isinstance(files, list):
