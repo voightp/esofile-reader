@@ -17,8 +17,8 @@ req = [
     Variable(interval=interval, key=None, variable="Zone Mean Air Temperature", units=None),
 ]
 
-eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=True)
+eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=False)
 
 for t in types:
     r = get_results(eso_file, req, timestamp_format="FOO", output_type=t)
-    print(r.index)
+    print(r)
