@@ -155,7 +155,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
 
     except ValueError:
         if isinstance(variables, list):
-            lst = ["'{} - {} {} {}'".format(*tup) for tup in request]
+            lst = ["'{} - {} {} {}'".format(*tup) for tup in variables]
             request_str = ", ".join(lst)
         else:
             request_str = variables
@@ -396,7 +396,10 @@ class EsoFile:
             keys.append("data")
 
         df.set_index(keys, inplace=True)
-        df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
+
+        if not isinstance(df.columns[0], int):
+            df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
+
         return df.T
 
     def results_df(
