@@ -43,7 +43,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
                 add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
                 timestamp_format="default", report_progress=True, exclude_intervals=None,
-                part_match=False, ignore_peaks=True):
+                part_match=False, ignore_peaks=True, suppress_errors=False):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -58,40 +58,43 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
      files : {str, EsoFile} or list of ({str, EsoFile})
         Eso files defined as 'EsoFile' objects or using path like objects.
      variables : Variable or list of (Variable)
-        Requested output variable or variables. A mini class  'Variable' needs
-        to be used to find results.
+        Requested variables..
      start_date : datetime like object, default None
-         A start date for requested results.
+        A start date for requested results.
      end_date : datetime like object, default None
-         An end date for requested results.
-     output_type : {'standard', 'local_max',' global_max', 'timestep_max',
-             'local_min', 'global_min', 'timestep_min'}
-         Requested type of results.
+        An end date for requested results.
+     output_type : {
+            'standard', 'local_max',' global_max', 'timestep_max',
+            'local_min', 'global_min', 'timestep_min'
+            }
+        Requested type of results.
      add_file_name : ('row','column',None)
-         Specify if file name should be added into results df.
+        Specify if file name should be added into results df.
      include_interval : bool
-         Decide if 'interval' information should be included on
-         the results df column index.
-     units_system : {'SI', 'IP'}
-         Selected units type for requested outputs.
-     rate_to_energy_dct : dct
-         Defines if 'energy' or 'rate' will be reported for a specified interval
-     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h', 'MBtu/h'}
-         Convert default 'Rate' outputs to requested units.
-     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu','kBtu', 'MBtu', 'kWh', 'MWh'}
-         Convert default 'Energy' outputs to requested units
-     timestamp_format : str
-         A format of timestamp for peak results, currently only used for ASHRAE
-         140 as these need separate date and time column
-     report_progress : bool
-         Processing progress will be reported in the terminal if set to 'True'.
-     exclude_intervals : list of {TS, H, D, M, A, RP}
-         A list of interval identifiers which will be ignored.
+        Decide if 'interval' information should be included on
+        the results df.
      part_match : bool
-         Only substring of the part of variable is enough
-         to match when searching for variables if this is True.
+        Only substring of the part of variable is enough
+        to match when searching for variables if this is True.
+     units_system : {'SI', 'IP'}
+        Selected units type for requested outputs.
+     rate_to_energy_dct : dct
+        Defines if 'rate' will be converted to energy.
+     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+        Convert default 'Rate' outputs to requested units.
+     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+        Convert default 'Energy' outputs to requested units
+     timestamp_format : str
+        Specified str format of a datetime timestamp.
+     exclude_intervals : list of {TS, H, D, M, A, RP}
+        A list of interval identifiers which will be ignored. This can
+        be used to avoid processing hourly, sub-hourly intervals.
+     report_progress : bool, default True
+        Processing progress is reported in terminal when set as 'True'.
      ignore_peaks : bool, default: True
-         Ignore peak values from 'Daily'+ intervals.
+        Ignore peak values from 'Daily'+ intervals.
+     suppress_errors: bool, default False
+        Do not raise IncompleteFile exceptions when processing fails
 
      Returns
      -------
@@ -113,6 +116,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         "exclude_intervals": exclude_intervals,
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
+        "suppress_errors":suppress_errors,
     }
 
     if isinstance(files, list):
@@ -126,13 +130,15 @@ def _get_results(file, variables, **kwargs):
     excl = kwargs.pop("exclude_intervals")
     report_progress = kwargs.pop("report_progress")
     ignore_peaks = kwargs.pop("ignore_peaks")
+    suppress_errors = kwargs.pop("suppress_errors")
 
     if isinstance(file, EsoFile):
         eso_file = file
     else:
         eso_file = EsoFile(file, exclude_intervals=excl,
                            ignore_peaks=ignore_peaks,
-                           report_progress=report_progress)
+                           report_progress=report_progress,
+                           suppress_errors=suppress_errors)
 
     if not eso_file.complete:
         raise NoResults("Cannot load results!\n"
@@ -313,6 +319,14 @@ class EsoFile:
         """ Check if the file has been populated and complete. """
         return self._complete
 
+    @staticmethod
+    def update_dt_format(df, output_type, timestamp_format):
+        """ Set specified 'datetime' str format. """
+        if output_type in ["standard", "local_max", "local_min"]:
+            df.index = df.index.strftime(timestamp_format)
+
+        return df
+
     def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True,
                          ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
@@ -346,7 +360,32 @@ class EsoFile:
             if var_id in data_set.columns:
                 return interval
         else:
-            VariableNotFound("Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id))
+            msg = "Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id)
+            VariableNotFound(msg)
+
+    def find_ids(self, variables, part_match=False):
+        """
+        Find variable ids for a list of 'Variables'.
+
+        Parameters
+        ----------
+        variables : list of Variable
+            A list of 'Variable' named tuples.
+        part_match : bool
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
+        """
+        ids = []
+
+        if not isinstance(variables, list):
+            variables = [variables]
+
+        for request in variables:
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
+
+            ids.extend(self.header_tree.search(interval=interval, key=key, var=var,
+                                               units=units, part_match=part_match))
+        return ids
 
     def categorize_ids(self, ids):
         """ Group ids based on an interval. """
@@ -402,6 +441,18 @@ class EsoFile:
 
         return df.T
 
+    def add_file_name(self, results, name_position):
+        """ Add file name to index. """
+        if name_position not in {"row", "column", None}:
+            name_position = "row"
+            print("Invalid name position!\n"
+                  "'add_file_name' kwarg must be one of: "
+                  "'row', 'column' or None.\n"
+                  "Setting 'row'.")
+
+        axis = 0 if name_position == "row" else 1
+        return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
+
     def results_df(
             self, variables, start_date=None, end_date=None,
             output_type="standard", add_file_name="row", include_interval=False, part_match=False,
@@ -417,10 +468,10 @@ class EsoFile:
         Parameters
         ----------
         variables : Variable or list of (Variable)
-            Variable ID or IDs.
-        start_date : datetime like object, default 'MIN_DATE' constant
+            Requested variables..
+        start_date : datetime like object, default None
             A start date for requested results.
-        end_date : datetime like object, default 'MAX_DATE' constant
+        end_date : datetime like object, default None
             An end date for requested results.
         output_type : {
                 'standard', 'local_max',' global_max', 'timestep_max',
@@ -444,9 +495,7 @@ class EsoFile:
         energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
             Convert default 'Energy' outputs to requested units
         timestamp_format : str
-            A format of timestamp for peak results, currently only
-            used for ASHRAE 140 as these need separate date and
-            time column
+            Specified str format of a datetime timestamp.
 
         Returns
         -------
@@ -488,7 +537,8 @@ class EsoFile:
 
         if output_type not in res:
             msg = "Invalid output type '{}' requested.\n" \
-                  "'Output_type' must be one of '{}'.".format(output_type, ", ".join(res.keys()))
+                  "'output_type' kwarg must be one of '{}'.".format(output_type,
+                                                                    ", ".join(res.keys()))
             raise InvalidOutputType(msg)
 
         frames = []
@@ -541,58 +591,6 @@ class EsoFile:
             print("Any of requested variables is not "
                   "included in the Eso file '{}'.".format(self.file_name))
 
-    def add_file_name(self, results, name_position):
-        """ Add file name to index. """
-        if name_position not in {"row", "column", None}:
-            name_position = "row"
-            print("Invalid name position!\n"
-                  "'add_file_name' kwarg must be one of: "
-                  "'row', 'column' or None.\n"
-                  "Setting 'row'.")
-
-        axis = 0 if name_position == "row" else 1
-        return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
-
-    @staticmethod
-    def update_dt_format(df, output_type, timestamp_format):
-        """ Set specified 'datetime' str format. """
-        if output_type in ["standard", "local_max", "local_min"]:
-            df.index = df.index.strftime(timestamp_format)
-
-        return df
-
-    def find_ids(self, variables, part_match=False):
-        """
-        Find variable ids for a list of 'Requests'.
-
-        Parameters
-        ----------
-        variables : list of Variable
-            A list of 'Variable' named tuples.
-        part_match : bool
-            Only substring of the part of variable is enough
-            to match when searching for variables if this is True.
-        """
-        ids = []
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        for request in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-            ids.extend(self._find_ids(interval=interval, key_name=key, var_name=var,
-                                      units=units, part_match=part_match))
-        return ids
-
-    def _find_ids(self, interval=None, key_name=None, var_name=None, units=None, part_match=False):
-        """ Find variable id or ids for given identifiers. """
-        ids = self.header_tree.search(interval=interval, key=key_name, var=var_name,
-                                      units=units, part_match=part_match)
-        if not ids:
-            print("File: {}".format(self.file_path))
-
-        return ids
-
     def _id_generator(self):
         """ Generate a unique id for custom variable. """
         gen = generate_id()
@@ -625,7 +623,8 @@ class EsoFile:
 
         if interval not in self.available_intervals:
             print("Cannot add variable: '{} : {} : {}' into outputs.\n"
-                  "Interval is not included in file '{}'".format(key, var, units, self.file_name))
+                  "Interval is not included in file '{}'".format(key, var, units,
+                                                                 self.file_name))
             return
 
         variable = key, var, units
