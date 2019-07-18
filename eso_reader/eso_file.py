@@ -284,11 +284,6 @@ class EsoFile:
         return os.path.splitext(bsnm)[0]
 
     @property
-    def inverted_header_dct(self):
-        """ Header dict where items have ID and (key name, variable name, units) switched. """
-        return {key: {v: k for k, v in val.items()} for key, val in self.header_dct.items()}
-
-    @property
     def available_intervals(self):
         """ Return a list of available intervals. """
         return self.header_dct.keys()
@@ -601,7 +596,7 @@ class EsoFile:
 
     def _is_variable_unique(self, variable, interval):
         """ Check if the variable is included in a given interval. """
-        is_unique = variable not in self.inverted_header_dct[interval]
+        is_unique = variable not in self.header_dct[interval].values()
         return is_unique
 
     def _create_variable(self, interval, variable):
