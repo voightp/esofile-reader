@@ -149,35 +149,3 @@ def rate_table(new_units, per_area=False):
         return tbl[request]
     except KeyError:
         print("Specified rate units [{}] not applicable!".format(new_units))
-
-
-categories = {
-    "Air System",
-    "Debug Surface Solar Shading Model",
-    "Electric Load Center",
-    "Environmental Impact",
-    "Facility",
-    "Generator",
-    "HVAC System",
-    "Inverter",
-    "Lights",
-    "Other Equipment",
-    "People",
-    "Schedule",
-    "Site",
-    "Surface",
-    "System Node",
-    "Water Use Equipment",
-    "Zone",
-}
-
-summed_units = [
-    "J",
-    "J/m2"
-]
-
-averaged_units = [
-    "W",
-    "W/m2",
-    "C"
-]
