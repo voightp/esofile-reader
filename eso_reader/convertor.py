@@ -1,5 +1,5 @@
 from eso_reader.outputs import Timestep, Hourly, Daily
-from eso_reader.tables import energy_table, rate_table, si_to_ip
+from eso_reader.conversion_tables import energy_table, rate_table, si_to_ip
 
 import pandas as pd
 
