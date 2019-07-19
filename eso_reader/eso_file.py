@@ -174,15 +174,6 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
     return res
 
 
-def remove_header_variable(id, header_dct):
-    """ Remove header variable from header. """
-    try:
-        del header_dct[id]
-    except KeyError:
-        print("Cannot remove id: {} from header.\n"
-              "Given id is not valid.")
-
-
 def generate_id():
     """ ID generator. """
     while True:
@@ -313,6 +304,15 @@ class EsoFile:
     def complete(self):
         """ Check if the file has been populated and complete. """
         return self._complete
+
+    @staticmethod
+    def remove_header_variable(id_, header_dct):
+        """ Remove header variable from header. """
+        try:
+            del header_dct[id_]
+        except KeyError:
+            print("Cannot remove id: {} from header.\n"
+                  "Given id is not valid.")
 
     @staticmethod
     def update_dt_format(df, output_type, timestamp_format):
@@ -641,4 +641,4 @@ class EsoFile:
             self.header_tree.add_branch(interval, key, var, units, id_)
         else:
             # Revert header dict in its original state
-            remove_header_variable(id_, header_dct)
+            self.remove_header_variable(id_, header_dct)
