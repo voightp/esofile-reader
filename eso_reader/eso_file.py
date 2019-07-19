@@ -530,9 +530,8 @@ class EsoFile:
         }
 
         if output_type not in res:
-            msg = "Invalid output type '{}' requested.\n" \
-                  "'output_type' kwarg must be one of '{}'.".format(output_type,
-                                                                    ", ".join(res.keys()))
+            msg = "Invalid output type '{}' requested.\n'output_type'" \
+                  "kwarg must be one of '{}'.".format(output_type, ", ".join(res.keys()))
             raise InvalidOutputType(msg)
 
         frames = []
