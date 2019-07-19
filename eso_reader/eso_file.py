@@ -438,12 +438,11 @@ class EsoFile:
 
     def add_file_name(self, results, name_position):
         """ Add file name to index. """
-        if name_position not in {"row", "column", None}:
+        pos = ["row", "column", "None"]  # 'None' is here only to inform
+        if name_position not in pos:
             name_position = "row"
-            print("Invalid name position!\n"
-                  "'add_file_name' kwarg must be one of: "
-                  "'row', 'column' or None.\n"
-                  "Setting 'row'.")
+            print("Invalid name position!\n'add_file_name' kwarg must be one of: "
+                  "'{}'.\nSetting 'row'.".format(", ".join(pos)))
 
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
