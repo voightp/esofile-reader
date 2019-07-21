@@ -18,6 +18,20 @@ categories = {
     "Zone",
 }
 
+grouped_units = {
+    "W",
+    "W/m2",
+    "C",
+    "J",
+    "J/m2"
+}
+
+subgroup_keywords = [
+    "_PARTITION_",
+    "_WALL_",
+    "_ROOF_",
+]
+
 summed_units = [
     "J",
     "J/m2"

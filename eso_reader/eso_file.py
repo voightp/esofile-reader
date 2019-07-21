@@ -4,12 +4,13 @@ import time
 
 from random import randint
 from collections import defaultdict
-from functools import partial
+from functools import reduce
 
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
 from eso_reader.mini_classes import HeaderVariable
 from eso_reader.constants import RATE_TO_ENERGY_DCT
+from eso_reader.variable_categories import grouped_units, subgroup_keywords
 
 
 class VariableNotFound(Exception):
@@ -305,6 +306,16 @@ class EsoFile:
         """ Check if the file has been populated and complete. """
         return self._complete
 
+    @property
+    def header_df(self):
+        """ Get pd.DataFrame like header (index: mi(interval, id). """
+        rows = []
+        for interval, variables in self.header_dct.items():
+            for id_, var in variables.items():
+                rows.append((interval, id_, *var))
+        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
+        return df
+
     @staticmethod
     def remove_header_variable(id_, header_dct):
         """ Remove header variable from header. """
@@ -390,16 +401,6 @@ class EsoFile:
             if interval:
                 groups[interval].append(var_id)
         return groups
-
-    def get_header_df(self):
-        """ Get pd.DataFrame like header (index: mi(interval, id). """
-        rows = []
-        for interval, variables in self.header_dct.items():
-            for id_, var in variables.items():
-                rows.append((id_, interval, *var))
-        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
-        df.set_index("id", inplace=True, drop=True)
-        return df
 
     def header_variables_df(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
@@ -640,3 +641,70 @@ class EsoFile:
         else:
             # Revert header dict in its original state
             self.remove_header_variable(id_, header_dct)
+
+    def id_gen(self):  # TODO move out of namespace
+        """ Incremental id generator. """
+        i = 0
+        while True:
+            i += 1
+            yield i
+
+    def get_keyword(self, word):
+        if any(map(lambda x: x in word, subgroup_keywords)):
+            return next(w for w in subgroup_keywords if w in word)
+
+    def _group_ids(self, id_gen, variables):
+        """ Group header variables. """
+        groups = {}
+        rows = []
+        for id_, var in variables.items():
+            k, v, u = var.key, var.variable, var.units
+            gr_str = v
+
+            w = self.get_keyword(k)
+            if w:
+                gr_str = gr_str + w
+
+            if gr_str in groups:
+                group_id = groups[gr_str]
+            elif u in grouped_units:
+                group_id = next(id_gen)
+                groups[gr_str] = group_id
+            else:
+                group_id = next(id_gen)
+
+            rows.append((group_id, id_))
+
+        return pd.DataFrame(rows, columns=["group_id", "id"])
+
+    def grouped_ids(self):
+        """ Generate grouped sets of ids. """
+        id_gen = self.id_gen()
+        rows = []
+        for interval, vars in self.header_dct.items():
+            rows.extend([row for row in self._group_ids(id_gen, vars)])
+
+        df = pd.DataFrame(rows, columns=["group_id", "id"])
+        return df
+
+    def building_outputs(self):
+        """ Create building outputs. """
+        id_gen = self.id_gen()
+        outputs_dct = {}
+        hd_df = self.header_df
+
+        for interval in self.available_intervals:
+            vars = self.header_dct[interval]
+
+            df = [self._group_ids(id_gen, vars),
+                  self.outputs_dct[interval],
+                  hd_df.loc[hd_df["interval"] == interval]]
+
+            print(self._group_ids(id_gen, vars))
+            print(self.outputs_dct[interval])
+            print(hd_df.loc[hd_df["interval"] == interval])
+
+            df = reduce(lambda l, r: pd.merge(left=l, right=r, on="id"), df)
+            outputs_dct[interval] = df
+
+        return outputs_dct
