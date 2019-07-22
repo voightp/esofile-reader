@@ -57,7 +57,7 @@ class Outputs(pd.DataFrame):
         super(Outputs, self).__init__(data, **kwargs)
 
     @staticmethod
-    def fetch_outputs(df, index):
+    def fetch_outputs(df, val_ix):
         """ Extract results column from df. """
 
         frames = []
@@ -66,17 +66,16 @@ class Outputs(pd.DataFrame):
         df_a = df.loc[:, tuples]
         df_b = df.loc[:, [not t for t in tuples]]
 
-        if (index != 0 or index == -1) and df_a.empty:
+        if (val_ix != 0 or val_ix == -1) and df_a.empty:
             raise PeaksNotIncluded("Peak values are not included, it's required to "
                                    "add kwarg 'ignore_peaks=False' when processing the file.")
-
-        if index == -1:
+        if val_ix == -1:
             # return a copy without any modification
             return df.copy()
 
         if not df_a.empty:
             # The data is stored as a tuple, value needs to be extracted
-            df_a = df_a.applymap(lambda x: x[index] if x is not np.nan else np.nan)
+            df_a = df_a.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
             frames.append(df_a)
 
         if not df_b.empty:
@@ -84,7 +83,7 @@ class Outputs(pd.DataFrame):
             # as subsequent actions could modify original data
             frames.append(df_b.copy())
 
-        return pd.concat(frames, sort=False)
+        return pd.concat(frames, sort=False, axis=1)
 
     @staticmethod
     def _group_peak_outputs(df):
@@ -100,14 +99,24 @@ class Outputs(pd.DataFrame):
 
         return df
 
-    def get_results_df(self, ids, index, start_date, end_date):
+    def get_standard_results_only(self, transposed=False):
+        """ Get df with only 'standard' outputs and 'num days'. """
+        df = self.fetch_outputs(self, 0)
+
+        if transposed:
+            df = df.T
+            df.index = df.index.set_names(["id"])  # reapply the name as it gets lost when combining with 'num_days'
+
+        return df
+
+    def get_results_df(self, ids, val_ix, start_date, end_date):
         """ Get base output DataFrame. """
         df = slicer(self, ids, start_date=start_date, end_date=end_date)
 
         if isinstance(df, pd.Series):
             df = pd.DataFrame(df)
 
-        df = self.fetch_outputs(df, index)
+        df = self.fetch_outputs(df, val_ix)
 
         return df
 
@@ -138,8 +147,8 @@ class Outputs(pd.DataFrame):
 
     def standard_results(self, ids, start_date, end_date):
         """ Find standard result. """
-        index = 0
-        df = self.get_results_df(ids, index, start_date, end_date)
+        val_ix = 0
+        df = self.get_results_df(ids, val_ix, start_date, end_date)
         return df
 
     def local_maxs(self, ids, start_date, end_date):
@@ -188,8 +197,8 @@ class Outputs(pd.DataFrame):
         """
         Return value and datetime of occurrence.
         """
-        index = -1  # this makes sure that the original df is requested
-        df = self.get_results_df(ids, index, start_date, end_date)
+        val_ix = -1  # this makes sure that the original df is requested
+        df = self.get_results_df(ids, val_ix, start_date, end_date)
 
         def get_timestamps(sr):
             def parse_vals(val):
