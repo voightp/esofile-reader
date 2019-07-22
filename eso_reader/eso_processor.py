@@ -422,7 +422,7 @@ def process_file(file, monitor, excl=None, ignore_peaks=True, ):
 
     # Read header to obtain a header dictionary of EnergyPlus outputs
     # and initialize dictionary for output values
-    header_dicts, init_outputs = read_header(file, monitor, excl=excl)
+    header_dict, init_outputs = read_header(file, monitor, excl=excl)
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
@@ -439,11 +439,11 @@ def process_file(file, monitor, excl=None, ignore_peaks=True, ):
     monitor.output_cls_gen_finished()
 
     # Create a 'search tree' to allow searching for variables using header data
-    tree = create_tree(header_dicts)
+    tree = create_tree(header_dict)
     monitor.header_tree_finished()
 
     monitor.processing_finished()
-    return timestamp, environments, header_dicts, outputs, tree
+    return timestamp, environments, header_dict, outputs, tree
 
 
 def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False,
