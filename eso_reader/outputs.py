@@ -103,6 +103,11 @@ class Outputs(pd.DataFrame):
         """ Get df with only 'standard' outputs and 'num days'. """
         df = self.fetch_outputs(self, 0)
 
+        try:
+            df.drop("num days", axis=1, inplace=True)
+        except KeyError:
+            pass
+
         if transposed:
             df = df.T
             df.index = df.index.set_names(["id"])  # reapply the name as it gets lost when combining with 'num_days'
@@ -241,7 +246,7 @@ class Outputs(pd.DataFrame):
         df = grouped.apply(get_peak).iloc[[0]]
         return df
 
-    def number_of_days(self, start_date, end_date):
+    def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
         return slicer(self, "num days", start_date, end_date)
 
@@ -291,7 +296,7 @@ class Hourly(Outputs):
         """ Timestep maximum value is not applicable for Hourly interval. """
         pass
 
-    def number_of_days(self, start_date, end_date):
+    def get_number_of_days(self, *args, **kwargs):
         """ Number of days is not available for Hourly interval. """
         pass
 
