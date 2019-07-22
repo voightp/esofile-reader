@@ -365,6 +365,10 @@ class Daily(Outputs):
     def __init__(self, data, **kwargs):
         super(Daily, self).__init__(data, **kwargs)
 
+    def get_number_of_days(self, *args, **kwargs):
+        """ Number of days is not available for Hourly interval. """
+        pass
+
 
 class Monthly(Outputs):
     """
