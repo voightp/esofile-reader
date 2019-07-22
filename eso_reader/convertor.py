@@ -92,7 +92,7 @@ def rate_to_energy(df, data_set, start_date, end_date):
     elif isinstance(data_set, Daily):
         conv_ratio = 1 / (24 * 3600)
     else:
-        sr = data_set.number_of_days(start_date, end_date)
+        sr = data_set.get_number_of_days(start_date=start_date, end_date=end_date)
         conv_ratio = 1 / (sr * 24 * 3600)
 
     orig_units = ("W", "W/m2")
