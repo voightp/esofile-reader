@@ -1,5 +1,6 @@
 from eso_reader.eso_file import EsoFile, get_results
 from eso_reader.mini_classes import Variable
+from eso_reader.building_eso_file import BuildingEsoFile
 
 import pandas as pd
 
@@ -18,7 +19,6 @@ req = [
 ]
 
 eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=False)
+b_eso_file = BuildingEsoFile(eso_file)
 
-for t in types:
-    r = get_results(eso_file, req, timestamp_format="FOO", output_type=t)
-    print(r)
+
