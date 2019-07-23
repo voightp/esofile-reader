@@ -3,6 +3,9 @@ from eso_reader.mini_classes import Variable
 from eso_reader.building_eso_file import BuildingEsoFile
 
 import pandas as pd
+pd.set_option('display.max_rows', 20)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
 types = ["standard", "local_max", "global_max", "timestep_max", "local_min", "global_min", "timestep_min"]
 rate_units = ['W', 'kW', 'MW', 'Btu/h', 'kBtu/h', 'MBtu/h']
@@ -20,5 +23,3 @@ req = [
 
 eso_file = EsoFile("eso_files/eplusout.eso", ignore_peaks=False)
 b_eso_file = BuildingEsoFile(eso_file)
-
-
