@@ -7,12 +7,13 @@ from collections import defaultdict
 from functools import reduce
 
 from eso_reader.base_eso_file import BaseEsoFile
+from eso_reader.mini_classes import HeaderVariable
 from eso_reader.eso_file import EsoFile
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
+from eso_reader.tree import Tree
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
-from eso_reader.mini_classes import HeaderVariable
 from eso_reader.constants import RATE_TO_ENERGY_DCT
 
 categories = {
@@ -20,19 +21,15 @@ categories = {
     "Facility", "Generator", "HVAC System", "Inverter", "Lights", "Other Equipment", "People",
     "Schedule", "Site", "Surface", "System Node", "Water Use Equipment", "Zone", }
 
-grouped_units = {
-    "W",
-    "W/m2",
-    "C",
-    "J",
-    "J/m2"
+subgroups = {
+    "_PARTITION_": "Partitions",
+    "_WALL_": "Walls",
+    "_ROOF_": "Roofs",
+    "_FLOOR_": "Floors",
+    "_EXTFLOOR_": "External floors",
+    "_GROUNDFLOOR_": "Ground floors",
+    "_CEILING_": "Ceilings",
 }
-
-subgroup_keywords = [
-    "_PARTITION_",
-    "_WALL_",
-    "_ROOF_",
-]
 
 summed_units = [
     "J",
@@ -42,7 +39,9 @@ summed_units = [
 averaged_units = [
     "W",
     "W/m2",
-    "C"
+    "C",
+    "",
+    "W/m2-K",
 ]
 
 
@@ -52,6 +51,12 @@ def incr_id_gen():
     while True:
         i += 1
         yield i
+
+
+def get_keyword(string, keywords):
+    """ Return value if key is included in 'word'. """
+    if any(map(lambda x: x in string, keywords)):
+        return next(v for k, v in keywords.items() if k in string)
 
 
 class BuildingEsoFile(BaseEsoFile):
@@ -94,17 +99,9 @@ class BuildingEsoFile(BaseEsoFile):
 
     Parameters
     ----------
-    file_path : path like object
-        A full path of the ESO file
-    exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored. This can
-        be used to avoid processing hourly, sub-hourly intervals.
-    report_progress : bool, default True
-        Processing progress is reported in terminal when set as 'True'.
-    ignore_peaks : bool, default: True
-        Ignore peak values from 'Daily'+ intervals.
-    suppress_errors: bool, default False
-        Do not raise IncompleteFile exceptions when processing fails
+    eso_file : EsoFile
+        A processed E+ ESO file.
+
     Raises
     ------
     IncompleteFile
@@ -116,45 +113,21 @@ class BuildingEsoFile(BaseEsoFile):
         super().__init__()
         self.populate_content(eso_file)
 
-    def get_keyword(self, word):
-        if any(map(lambda x: x in word, subgroup_keywords)):
-            return next(w for w in subgroup_keywords if w in word)
-
-    def _get_grouped_vars(self, id_gen, variables):
-        """ Group header variables. """
-        groups = {}
-        rows = []
-        for id_, var in variables.items():
-            gr_str = var.variable
-
-            w = self.get_keyword(var.key)
-            if w:
-                gr_str = gr_str + w
-
-            if gr_str in groups:
-                group_id = groups[gr_str]
-            elif var.units in grouped_units:
-                group_id = next(id_gen)
-                groups[gr_str] = group_id
-            else:
-                group_id = next(id_gen)
-
-            rows.append((group_id, id_, *var))
-
-        cols = ["group_id", "id", "key", "variable", "units"]
-        return pd.DataFrame(rows, columns=cols)
-
-    def calculate_totals(self, df):
+    @staticmethod
+    def calculate_totals(df):
         """ Calculate 'building totals'."""
         cnd = df["units"].isin(averaged_units)
         df.drop(["id", "key", "variable", "units"], inplace=True, axis=1)
 
+        # split df into averages and sums
         avg_df = df.loc[cnd]
         sum_df = df.loc[[not b for b in cnd]]
 
+        # group variables and apply functions
         avg_df = avg_df.groupby(by="group_id", sort=False).mean()
         sum_df = sum_df.groupby(by="group_id", sort=False).sum()
 
+        # merge data having ids as columns
         df = pd.concat([avg_df.T, sum_df.T], axis=1)
 
         df.columns.set_names("id", inplace=True)
@@ -162,7 +135,54 @@ class BuildingEsoFile(BaseEsoFile):
 
         return df
 
-    def generate_outputs(self, grouped_ids, outputs):
+    @staticmethod
+    def get_grouped_vars(id_gen, variables):
+        """ Group header variables. """
+        groups = {}
+        rows = []
+        for id_, var in variables.items():
+            key, variable, units = var
+
+            gr_str = variable  # init group string to be the same as variable
+            w = get_keyword(key, subgroups)
+            if w:
+                gr_str = w + " " + gr_str
+                key = gr_str  # assign a new key based on subgroup keyword and variable name
+
+            if gr_str in groups:
+                group_id = groups[gr_str]
+            elif units in summed_units or units in averaged_units:
+                group_id = next(id_gen)
+                groups[gr_str] = group_id
+            else:
+                group_id = next(id_gen)
+
+            rows.append((group_id, id_, key, variable, units))
+
+        cols = ["group_id", "id", "key", "variable", "units"]
+        return pd.DataFrame(rows, columns=cols)
+
+    @staticmethod
+    def build_header_dct(header_df):
+        """ Reduce the header df to get totals. """
+
+        def merge_vars(df):
+            if len(df.index) > 1:
+                sr = df.iloc[0]
+                return sr
+            return df.iloc[0]
+
+        def header_vars(sr):
+            return HeaderVariable(sr.key, sr.variable, sr.units)
+
+        header_df.drop("id", axis=1, inplace=True)
+        header_df = header_df.groupby(by="group_id")
+        header_df = header_df.apply(merge_vars)
+        header_df = header_df.apply(header_vars, axis=1)
+
+        return header_df.to_dict()
+
+    def group_outputs(self, grouped_ids, outputs):
         """ Handle numeric outputs. """
         num_days = outputs.get_number_of_days()
         outputs = outputs.get_standard_results_only(transposed=True)
@@ -176,25 +196,9 @@ class BuildingEsoFile(BaseEsoFile):
 
         return df
 
-    def updaste_header_df(self, header_df):
-        """ Reduce the header df to get totals. """
-
-        def update(df):
-            if len(df.index) > 1:
-                sr = df.iloc[0]
-                sr["key"] = "Total"
-                return sr
-            return df.iloc[0]
-
-        header_df.drop("id", axis=1, inplace=True)
-        header_df = header_df.groupby(by="group_id")
-        header_df = header_df.apply(update)
-
-        return header_df
-
-    def building_outputs(self, eso_file: EsoFile):
+    def process_totals(self, eso_file: EsoFile):
         """ Create building outputs. """
-        dct = {
+        output_cls = {
             TS: Timestep,
             H: Hourly,
             D: Daily,
@@ -208,15 +212,17 @@ class BuildingEsoFile(BaseEsoFile):
         id_gen = incr_id_gen()
 
         for interval, vars in eso_file.header_dct.items():
-            header_df = self._get_grouped_vars(id_gen, vars)
+            header_df = self.get_grouped_vars(id_gen, vars)
 
             outputs = eso_file.outputs_dct[interval]
-            outputs = self.generate_outputs(header_df, outputs)
+            outputs = self.group_outputs(header_df, outputs)
 
-            outputs_dct[interval] = dct[interval](outputs)
-            header_dct[interval] = self.updaste_header_df(header_df)
+            outputs_dct[interval] = output_cls[interval](outputs)
+            header_dct[interval] = self.build_header_dct(header_df)
 
-        return header_dct, outputs_dct
+        tree = Tree(header_dct)
+
+        return header_dct, outputs_dct, tree
 
     def populate_content(self, eso_file):
         """ Generate building related data based on input 'EsoFile'. """
@@ -225,8 +231,6 @@ class BuildingEsoFile(BaseEsoFile):
         self.file_timestamp = eso_file.file_timestamp
         self.environments = eso_file.environments
 
-        self.building_outputs(eso_file)
-
-        self.header_dct = None
-        self.outputs_dct = None
-        self.header_tree = None
+        (self.header_dct,
+         self.outputs_dct,
+         self.header_tree) = self.process_totals(eso_file)

@@ -10,6 +10,7 @@ from eso_reader.base_eso_file import BaseEsoFile
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
 from eso_reader.constants import RATE_TO_ENERGY_DCT
+from eso_reader.building_eso_file import BuildingEsoFile
 
 
 class NoResults(Exception):
@@ -401,3 +402,7 @@ class EsoFile(BaseEsoFile):
             # raise ValueError("Any of requested variables is not included in the Eso file.")
             print("Any of requested variables is not "
                   "included in the Eso file '{}'.".format(self.file_name))
+
+    def get_building_totals(self):
+        """ Generate a new 'Building' eso file. """
+        return BuildingEsoFile(self)
