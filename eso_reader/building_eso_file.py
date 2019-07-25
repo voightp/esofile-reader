@@ -2,7 +2,6 @@ import pandas as pd
 
 from eso_reader.base_eso_file import BaseEsoFile
 from eso_reader.mini_classes import HeaderVariable
-from eso_reader.eso_file import EsoFile
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from eso_reader.tree import Tree
@@ -188,7 +187,7 @@ class BuildingEsoFile(BaseEsoFile):
 
         return df
 
-    def process_totals(self, eso_file: EsoFile):
+    def process_totals(self, eso_file):
         """ Create building outputs. """
         output_cls = {
             TS: Timestep,
