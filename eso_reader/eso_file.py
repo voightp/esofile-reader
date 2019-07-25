@@ -22,13 +22,6 @@ class InvalidOutputType(Exception):
     pass
 
 
-def load_eso_file(path, monitor=None, report_progress=True, suppress_errors=False):
-    """ Return EsoFile object. """
-    return EsoFile(path, monitor=monitor,
-                   report_progress=report_progress,
-                   suppress_errors=suppress_errors)
-
-
 def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
                 add_file_name="row", include_interval=False, units_system="SI",
                 rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
