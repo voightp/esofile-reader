@@ -1,10 +1,4 @@
 import pandas as pd
-import os
-import time
-
-from random import randint
-from collections import defaultdict
-from functools import reduce
 
 from eso_reader.base_eso_file import BaseEsoFile
 from eso_reader.convertor import rate_to_energy, convert_units

@@ -1,10 +1,4 @@
 import pandas as pd
-import os
-import time
-
-from random import randint
-from collections import defaultdict
-from functools import reduce
 
 from eso_reader.base_eso_file import BaseEsoFile
 from eso_reader.mini_classes import HeaderVariable
@@ -12,9 +6,7 @@ from eso_reader.eso_file import EsoFile
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from eso_reader.tree import Tree
-from eso_reader.convertor import rate_to_energy, convert_units
-from eso_reader.eso_processor import read_file
-from eso_reader.constants import RATE_TO_ENERGY_DCT
+
 
 categories = {
     "Air System", "Debug Surface Solar Shading Model", "Electric Load Center", "Environmental Impact",

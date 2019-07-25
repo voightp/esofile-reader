@@ -1,4 +1,3 @@
-import datetime as dt
 
 TS = "timestep"
 H = "hourly"
