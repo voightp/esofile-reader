@@ -79,22 +79,21 @@ class DefaultMonitor:
         self.record_time(identifier)
 
         if self.print_report:
+            elapsed, delta = self.calc_time(identifier)
             if identifier == -1:
                 print("\t{} - {}".format(identifier, text))
 
             else:
-                elapsed, delta = self.calc_time(identifier)
                 if identifier == 1:
                     print("\n{}\n"
-                          "File: '{}' \n\t{} - {} - {}".format("*" * 50, self.name, identifier, text, elapsed))
+                          "File: '{}' \n\t{} - {}".format("*" * 50, self.name, identifier, text))
                 elif identifier == 8:
                     print("\t{} - {} - {:.6f}s".format(identifier, text, elapsed))
                 else:
                     print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
 
     def record_time(self, identifier):
-        current_time = time.time()
-        self.processing_time_dct[identifier] = current_time
+        self.processing_time_dct[identifier] = time.perf_counter()
 
     def report_time(self):
         times = self.processing_time_dct
@@ -119,7 +118,7 @@ class DefaultMonitor:
         current = self.processing_time_dct[identifier]
 
         if identifier == 1:
-            return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start)), None
+            return None, None
 
         elapsed = current - start
         previous = self.processing_time_dct[identifier - 1]
