@@ -338,7 +338,7 @@ def _env_m(m_act_days, num_of_days):
         # For a single month environment start date is
         # left as first day of month
         else:
-            f_num_days, f_date = env[0], days[0]
+            f_num_days, f_date = days[0], env[0]
             environment.append((f_date, (f_date + dt.timedelta(days=f_num_days - 1))))
 
     return environment
