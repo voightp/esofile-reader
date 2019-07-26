@@ -148,8 +148,10 @@ class BuildingEsoFile(BaseEsoFile):
             w = get_keyword(key, subgroups)
 
             if key == "Cumulative Meter" or key == "Meter":
-                # do not modify 'key' when the variable is a meter
-                pass
+                if "#" in variable:
+                    # use last substring as a key
+                    variable = variable.split()[-1]
+                    gr_str = variable + " " + gr_str
             elif w:
                 gr_str = w + " " + gr_str
                 key = gr_str  # assign a new key based on subgroup keyword and variable name
