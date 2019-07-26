@@ -1,16 +1,18 @@
 import pandas as pd
 
 from eso_reader.base_eso_file import BaseEsoFile
+import re
+
 from eso_reader.mini_classes import HeaderVariable
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from eso_reader.tree import Tree
 
-
-categories = {
-    "Air System", "Debug Surface Solar Shading Model", "Electric Load Center", "Environmental Impact",
-    "Facility", "Generator", "HVAC System", "Inverter", "Lights", "Other Equipment", "People",
-    "Schedule", "Site", "Surface", "System Node", "Water Use Equipment", "Zone", }
+variable_groups = {
+    "Air System", "Boiler", "Chiller", "Pump", "Debug Surface Solar Shading Model", "Electric Load Center",
+    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System", "Heat Exchanger",
+    "Heating Coil", "Cooling Coil", "Inverter", "Lights", "Other Equipment", "People", "Schedule", "Site", "Surface",
+    "System Node", "Water Use Equipment", "Zone", }
 
 subgroups = {
     "_PARTITION_": "Partitions",
@@ -42,6 +44,14 @@ def incr_id_gen():
     while True:
         i += 1
         yield i
+
+
+def get_group_key(string, groups):
+    for g in groups:
+        if re.match(f"^{g}.*", string):
+            return g
+    else:
+        print(f"{string} not found!")
 
 
 def get_keyword(string, keywords):
@@ -136,9 +146,19 @@ class BuildingEsoFile(BaseEsoFile):
 
             gr_str = variable  # init group string to be the same as variable
             w = get_keyword(key, subgroups)
-            if w:
+
+            if key == "Cumulative Meter" or key == "Meter":
+                # do not modify 'key' when the variable is a meter
+                pass
+            elif w:
                 gr_str = w + " " + gr_str
                 key = gr_str  # assign a new key based on subgroup keyword and variable name
+            else:
+                # assign key based on 'Variable' category
+                # the category is missing, use a first word in 'Variable' string
+                key = get_group_key(variable, variable_groups)
+                if not key:
+                    key = variable.split(maxsplit=1)[0]
 
             if gr_str in groups:
                 group_id = groups[gr_str]
