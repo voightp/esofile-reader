@@ -5,6 +5,7 @@ import pandas as pd
 from random import randint
 from collections import defaultdict
 
+from eso_reader.performance import perf
 from eso_reader.mini_classes import HeaderVariable
 
 
@@ -126,6 +127,7 @@ class BaseEsoFile:
         """ Check if the file has been populated and complete. """
         return self._complete
 
+    @perf
     @property
     def header_df(self):
         """ Get pd.DataFrame like header (index: mi(interval, id). """
@@ -161,6 +163,7 @@ class BaseEsoFile:
         """ Fetch results. """
         pass
 
+    @perf
     def find_interval(self, var_id):
         """ Return an interval for given id. """
         for interval, data_set in self.outputs_dct.items():
@@ -170,6 +173,7 @@ class BaseEsoFile:
             msg = "Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id)
             VariableNotFound(msg)
 
+    @perf
     def find_ids(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
@@ -194,6 +198,7 @@ class BaseEsoFile:
                                                units=units, part_match=part_match))
         return ids
 
+    @perf
     def categorize_ids(self, ids):
         """ Group ids based on an interval. """
         groups = defaultdict(list)
@@ -203,6 +208,7 @@ class BaseEsoFile:
                 groups[interval].append(var_id)
         return groups
 
+    @perf
     def header_variables_df(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
         rows = []
@@ -216,6 +222,7 @@ class BaseEsoFile:
         df = pd.DataFrame(rows, columns=["id", "key", "variable", "units"])
         return df
 
+    @perf
     def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
         df = df.T
@@ -238,6 +245,7 @@ class BaseEsoFile:
 
         return df.T
 
+    @perf
     def add_file_name(self, results, name_position):
         """ Add file name to index. """
         pos = ["row", "column", "None"]  # 'None' is here only to inform
@@ -249,6 +257,7 @@ class BaseEsoFile:
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
 
+    @perf
     def generate_rand_id(self):
         """ Generate a unique id for custom variable. """
         gen = rand_id_gen()
@@ -257,6 +266,7 @@ class BaseEsoFile:
             if id_ not in self.all_ids:
                 return id_
 
+    @perf
     def _is_variable_unique(self, variable, interval):
         """ Check if the variable is included in a given interval. """
         is_unique = variable not in self.header_dct[interval].values()
