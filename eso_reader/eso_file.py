@@ -1,7 +1,7 @@
 import pandas as pd
 
 from eso_reader.performance import perf
-from eso_reader.base_eso_file import BaseEsoFile
+from eso_reader.base_eso_file import BaseEsoFile, InvalidOutputType
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
 from eso_reader.constants import RATE_TO_ENERGY_DCT
@@ -15,11 +15,6 @@ class NoResults(Exception):
 
 class IncompleteFile(Exception):
     """ Exception raised when the file is not complete. """
-    pass
-
-
-class InvalidOutputType(Exception):
-    """ Exception raised when the output time is invalid. """
     pass
 
 
@@ -116,7 +111,7 @@ def _get_results(file, variables, **kwargs):
     ignore_peaks = kwargs.pop("ignore_peaks")
     suppress_errors = kwargs.pop("suppress_errors")
 
-    if isinstance(file, EsoFile):
+    if issubclass(file.__class__, BaseEsoFile):
         eso_file = file
     else:
         eso_file = EsoFile(file, exclude_intervals=excl,
@@ -132,9 +127,7 @@ def _get_results(file, variables, **kwargs):
             print(msg)
             return
 
-    df = eso_file.results_df(variables, **kwargs)
-
-    return df
+    return eso_file.results_df(variables, **kwargs)
 
 
 def _get_results_multiple_files(file_list, variables, **kwargs):

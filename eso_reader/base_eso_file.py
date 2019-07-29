@@ -3,14 +3,17 @@ import time
 import pandas as pd
 
 from random import randint
-from collections import defaultdict
-
 from eso_reader.performance import perf
 from eso_reader.mini_classes import HeaderVariable
 
 
 class VariableNotFound(Exception):
     """ Exception raised when requested variable id is not available. """
+    pass
+
+
+class InvalidOutputType(Exception):
+    """ Exception raised when the output time is invalid. """
     pass
 
 
