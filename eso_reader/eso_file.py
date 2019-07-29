@@ -343,8 +343,7 @@ class EsoFile(BaseEsoFile):
             raise InvalidOutputType(msg)
 
         frames = []
-        ids = self.find_ids(variables, part_match=part_match)
-        groups = self.categorize_ids(ids)
+        groups = self.find_ids(variables, part_match=part_match)
 
         for interval, ids in groups.items():
             data_set = self.outputs_dct[interval]

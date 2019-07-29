@@ -186,7 +186,7 @@ class BaseEsoFile:
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
         """
-        ids = []
+        out = {}
 
         if not isinstance(variables, list):
             variables = [variables]
@@ -194,19 +194,17 @@ class BaseEsoFile:
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
 
-            ids.extend(self.header_tree.search(interval=interval, key=key, var=var,
-                                               units=units, part_match=part_match))
-        return ids
+            pairs = self.header_tree.get_pairs(interval=interval, key=key, variable=var,
+                                               units=units, part_match=part_match)
+            if not pairs:
+                continue
 
-    @perf
-    def categorize_ids(self, ids):
-        """ Group ids based on an interval. """
-        groups = defaultdict(list)
-        for var_id in ids:
-            interval = self.find_interval(var_id)
-            if interval:
-                groups[interval].append(var_id)
-        return groups
+            if interval in out:
+                out[interval].extend(pairs[interval])
+            else:
+                out[interval] = pairs[interval]
+
+        return out
 
     @perf
     def header_variables_df(self, interval, ids):

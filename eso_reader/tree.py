@@ -11,7 +11,7 @@ class Node:
     Attributes
     ----------
     parent : Node
-        A parent nod of the node.
+        A parent node of the node.
     key : str
         A node identifier.
     children : list of Node
@@ -130,14 +130,42 @@ class Tree:
             for nd in node.children:
                 self._loop(nd, level, lst, cond, part_match=part_match)
 
-    def search(self, interval=None, key=None, var=None, units=None, part_match=False):
+    def get_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
         """ Find variable ids for given arguments. """
         root = self.root
-        cond = [None, interval, var, key, units]  # First 'None' to skip root node
+        cond = [None, interval, variable, key, units]  # First 'None' to skip root node
         level = -1
         ids = []
         self._loop(root, level, ids, cond, part_match=part_match)
 
         if not ids:
-            print("Variable: '{} : {} : {} : {}' not found!".format(interval, key, var, units))
+            print("Variable: '{} : {} : {} : {}' not found!".format(interval, key, variable, units))
+
         return ids
+
+    def get_pairs(self, interval=None, key=None, variable=None, units=None, part_match=False):
+        """ Find interval : variable ids pairs for given arguments. """
+        root = self.root
+        cond = [variable, key, units]
+        pairs = {}
+
+        for interval_nd in root.children:
+            level = -1
+            ids = []
+            if interval:
+                if self._match(interval_nd, interval):
+                    for nd in interval_nd.children:
+                        self._loop(nd, level, ids, cond)
+            else:
+                for nd in interval_nd.children:
+                    self._loop(nd, level, ids, cond, part_match=part_match)
+
+            if ids:
+                pairs[interval] = ids
+
+        pairs = {k: v for k, v in pairs.items() if v}
+
+        if not pairs:
+            print("Variable: '{} : {} : {} : {}' not found!".format(interval, key, variable, units))
+
+        return pairs
