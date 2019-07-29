@@ -165,16 +165,6 @@ class BaseEsoFile:
         pass
 
     @perf
-    def find_interval(self, var_id):
-        """ Return an interval for given id. """
-        for interval, data_set in self.outputs_dct.items():
-            if var_id in data_set.columns:
-                return interval
-        else:
-            msg = "Eso file '{}' does not contain variable id {}!".format(self.file_path, var_id)
-            VariableNotFound(msg)
-
-    @perf
     def find_ids(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
