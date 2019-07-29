@@ -125,8 +125,12 @@ def _get_results(file, variables, **kwargs):
                            suppress_errors=suppress_errors)
 
     if not eso_file.complete:
-        raise NoResults("Cannot load results!\n"
-                        "File '{}' is not complete.".format(eso_file.file_name))
+        msg = f"Cannot load results!\nFile '{eso_file.file_name}' is not complete."
+        if not suppress_errors:
+            raise NoResults(msg)
+        else:
+            print(msg)
+            return
 
     df = eso_file.results_df(variables, **kwargs)
 
