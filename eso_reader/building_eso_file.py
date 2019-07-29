@@ -9,10 +9,11 @@ from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timest
 from eso_reader.tree import Tree
 
 variable_groups = {
-    "Air System", "Boiler", "Chiller", "Pump", "Debug Surface Solar Shading Model", "Electric Load Center",
-    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System", "Heat Exchanger",
-    "Heating Coil", "Cooling Coil", "Inverter", "Lights", "Other Equipment", "People", "Schedule", "Site", "Surface",
-    "System Node", "Water Use Equipment", "Zone", }
+    "AFN Zone", "Air System", "Baseboard", "Boiler", "Chiller", "Cooling Tower", "Earth Tube", "Pump",
+    "Debug Surface Solar Shading Model", "Electric Load Center", "Environmental Impact", "Facility Total", "Facility",
+    "Fan", "Generator", "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Cooling Coil", "Inverter",
+    "Lights", "Other Equipment", "People", "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump",
+    "Water Heater", "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
 
 subgroups = {
     "_PARTITION_": "Partitions",
