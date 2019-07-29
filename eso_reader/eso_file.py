@@ -393,4 +393,7 @@ class EsoFile(BaseEsoFile):
 
     def get_building_totals(self):
         """ Generate a new 'Building' eso file. """
-        return BuildingEsoFile(self)
+        if self.complete:
+            return BuildingEsoFile(self)
+        else:
+            print(f"Cannot generate building totals, file {self.file_path} is not complete!")
