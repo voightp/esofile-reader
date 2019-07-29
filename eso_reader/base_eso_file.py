@@ -147,6 +147,7 @@ class BaseEsoFile:
             print("Cannot remove id: {} from header.\n"
                   "Given id is not valid.")
 
+    @perf
     @staticmethod
     def update_dt_format(df, output_type, timestamp_format):
         """ Set specified 'datetime' str format. """
