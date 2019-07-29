@@ -124,7 +124,7 @@ def _get_results(file, variables, **kwargs):
                            report_progress=report_progress,
                            suppress_errors=suppress_errors)
 
-    if not eso_file.complete:
+    if not eso_file.complete and not suppress_errors:
         raise NoResults("Cannot load results!\n"
                         "File '{}' is not complete.".format(eso_file.file_name))
 
