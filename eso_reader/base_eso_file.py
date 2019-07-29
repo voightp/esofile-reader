@@ -198,41 +198,41 @@ class BaseEsoFile:
         return out
 
     @perf
-    def header_variables_df(self, interval, ids):
+    def header_variables_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
-        rows = []
-        for id_ in ids:
+
+        def fetch_var():
             try:
-                var = self.header_dct[interval][id_]
-                rows.append((id_, *var))
+                return self.header_dct[interval][id_]
             except KeyError:
                 print("Id '{}' was not found in the header!")
 
-        df = pd.DataFrame(rows, columns=["id", "key", "variable", "units"])
-        return df
+        tuples = []
+        names = ["key", "variable", "units"]
+        if isinstance(ids, pd.MultiIndex):
+            names.append("data")
+            for id_, data in ids:
+                var = fetch_var()
+                if var:
+                    tuples.append((*var, data))
+        else:
+            for id_ in ids:
+                var = fetch_var()
+                if var:
+                    tuples.append((*var,))
+
+        return pd.MultiIndex.from_tuples(tuples, names=names)
 
     @perf
     def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
-        df = df.T
-        df.reset_index(inplace=True)
+        mi = self.header_variables_mi(interval, df.columns)
+        df.columns = mi
 
-        ids = df.id.unique()
-        header_df = self.header_variables_df(interval, ids)
-        df = pd.merge(header_df, df, on="id")
+        # if not isinstance(df.columns[0], int):
+        #     df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
 
-        df.drop(labels="id", inplace=True, axis=1)
-        keys = ["key", "variable", "units"]
-
-        if "data" in df.columns:
-            keys.append("data")
-
-        df.set_index(keys, inplace=True)
-
-        if not isinstance(df.columns[0], int):
-            df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
-
-        return df.T
+        return df
 
     @perf
     def add_file_name(self, results, name_position):
