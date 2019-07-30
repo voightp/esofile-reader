@@ -148,6 +148,7 @@ class BuildingEsoFile(BaseEsoFile):
         rows = []
         for id_, var in variables.items():
             key, variable, units = var
+            group = units in summed_units or units in averaged_units  # check if the variables should be grouped
 
             gr_str = variable  # init group string to be the same as variable
             w = get_keyword(key, subgroups)
@@ -163,13 +164,14 @@ class BuildingEsoFile(BaseEsoFile):
             else:
                 # assign key based on 'Variable' category
                 # the category is missing, use a first word in 'Variable' string
-                key = get_group_key(variable, variable_groups)
-                if not key:
-                    key = variable.split(maxsplit=1)[0]
+                if group:
+                    key = get_group_key(variable, variable_groups)
+                    if not key:
+                        key = variable.split(maxsplit=1)[0]
 
             if gr_str in groups:
                 group_id = groups[gr_str]
-            elif units in summed_units or units in averaged_units:
+            elif group:
                 group_id = next(id_gen)
                 groups[gr_str] = group_id
             else:
