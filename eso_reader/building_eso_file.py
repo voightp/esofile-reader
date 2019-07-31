@@ -12,11 +12,11 @@ from eso_reader.base_eso_file import InvalidOutputType
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Chiller", "Chilled Water Thermal Storage Tank",
-    "Cooling Tower", "Earth Tube", "Pump", "Debug Surface Solar Shading Model", "Electric Load Center",
-    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System", "Heat Exchanger",
-    "Heating Coil", "Humidifier", "Cooling Coil", "Inverter", "Lights", "Other Equipment", "People", "Schedule", "Site",
-    "Surface", "System Node", "VRF Heat Pump", "Water Heater", "Water to Water Heat Pump", "Water Use Equipment",
-    "Zone", }
+    "Cooling Tower", "Earth Tube", "Exterior Lights", "Debug Surface Solar Shading Model",
+    "Electric Load Center", "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System",
+    "Heat Exchanger", "Heating Coil", "Humidifier", "Cooling Coil", "Inverter", "Lights", "Other Equipment",
+    "People", "Pump""Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
+    "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
 
 subgroups = {
     "_PARTITION_": "Partitions",
@@ -40,6 +40,8 @@ averaged_units = [
     "",
     "W/m2-K",
     "ppm",
+    "ach",
+    "hr",
 ]
 
 
