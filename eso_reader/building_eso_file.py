@@ -11,11 +11,11 @@ from eso_reader.performance import perf
 from eso_reader.base_eso_file import InvalidOutputType
 
 variable_groups = {
-    "AFN Zone", "Air System", "Baseboard", "Boiler", "Chiller", "Chilled Water Thermal Storage Tank",
+    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller", "Chilled Water Thermal Storage Tank",
     "Cooling Tower", "Earth Tube", "Exterior Lights", "Debug Surface Solar Shading Model",
     "Electric Load Center", "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System",
-    "Heat Exchanger", "Heating Coil", "Humidifier", "Cooling Coil", "Inverter", "Lights", "Other Equipment",
-    "People", "Pump""Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
+    "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter", "Lights", "Other Equipment",
+    "People", "Pump", "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
     "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
 
 subgroups = {
