@@ -134,18 +134,9 @@ class BaseEsoFile:
         df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
         return df
 
-    @staticmethod
-    def remove_header_variable(id_, header_dct):
-        """ Remove header variable from header. """
-        try:
-            del header_dct[id_]
-        except KeyError:
-            print("Cannot remove id: {} from header.\n"
-                  "Given id is not valid.")
-
     @perf
-    @staticmethod
-    def update_dt_format(df, output_type, timestamp_format):
+    @classmethod
+    def update_dt_format(cls, df, output_type, timestamp_format):
         """ Set specified 'datetime' str format. """
         if output_type in ["standard", "local_max", "local_min"]:
             df.index = df.index.strftime(timestamp_format)
@@ -195,7 +186,7 @@ class BaseEsoFile:
         return out
 
     @perf
-    def get_header_mi(self, interval, ids):
+    def create_header_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
 
         def fetch_var():
@@ -223,8 +214,7 @@ class BaseEsoFile:
     @perf
     def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
-        mi = self.get_header_mi(interval, df.columns)
-        df.columns = mi
+        df.columns = self.create_header_mi(interval, df.columns)
         return df
 
     @perf
@@ -251,11 +241,10 @@ class BaseEsoFile:
     @perf
     def is_variable_unique(self, variable, interval):
         """ Check if the variable is included in a given interval. """
-        is_unique = variable not in self.header_dct[interval].values()
-        return is_unique
+        return variable not in self.header_dct[interval].values()
 
     @perf
-    def create_variable(self, interval, key, var, units):
+    def create_header_variable(self, interval, key, var, units):
         """ Validate a new variable. """
 
         def add_num():
@@ -274,6 +263,15 @@ class BaseEsoFile:
         return variable
 
     @perf
+    def remove_header_variable(self, id_):
+        """ Remove header variable from header. """
+        try:
+            del self.header_dct[id_]
+        except KeyError:
+            print(f"Cannot remove id: {id_} from header.\n"
+                  "Given id is not valid.")
+
+    @perf
     def add_output(self, interval, key, var, units, array):
         """ Add specified output variable to the file. """
 
@@ -289,7 +287,7 @@ class BaseEsoFile:
         id_ = self.generate_rand_id()
 
         # add variable to the header
-        header_dct[id_] = self.create_variable(interval, key, var, units)
+        header_dct[id_] = self.create_header_variable(interval, key, var, units)
 
         # add variable data to the output df
         is_valid = self.outputs_dct[interval].add_column(id_, array)
@@ -303,7 +301,7 @@ class BaseEsoFile:
             # print(self.outputs_dct[interval][id_])
         else:
             # revert header dict in its original state
-            self.remove_header_variable(id_, header_dct)
+            self.remove_header_variable(id_)
 
     @perf
     def aggregate_variables(self, variables, func, key_name="Custom Key",
@@ -345,7 +343,7 @@ class BaseEsoFile:
 
         interval, ids = list(groups.items())[0]
 
-        mi = self.get_header_mi(interval, ids)
+        mi = self.create_header_mi(interval, ids)
         variables = mi.get_level_values("variable")
         units = mi.get_level_values("units")
 
