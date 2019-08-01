@@ -23,13 +23,6 @@ def rand_id_gen():
         yield -randint(1, 999999)
 
 
-def add_underscore(variable):
-    """ Create a new variable with added '_' in key. """
-    key, variable, units = variable
-    new_key = "_" + key
-    return new_key, variable, units
-
-
 class BaseEsoFile:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
@@ -179,6 +172,7 @@ class BaseEsoFile:
         part_match : bool
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
+
         """
         out = {}
 
@@ -201,7 +195,7 @@ class BaseEsoFile:
         return out
 
     @perf
-    def header_variables_mi(self, interval, ids):
+    def get_header_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
 
         def fetch_var():
@@ -229,12 +223,8 @@ class BaseEsoFile:
     @perf
     def add_header_data(self, interval, df):
         """ Add variable 'key', 'variable' and 'units' data. """
-        mi = self.header_variables_mi(interval, df.columns)
+        mi = self.get_header_mi(interval, df.columns)
         df.columns = mi
-
-        # if not isinstance(df.columns[0], int):
-        #     df.columns = pd.to_datetime(df.columns)  # revert 'datetime' dtype
-
         return df
 
     @perf
@@ -259,27 +249,33 @@ class BaseEsoFile:
                 return id_
 
     @perf
-    def _is_variable_unique(self, variable, interval):
+    def is_variable_unique(self, variable, interval):
         """ Check if the variable is included in a given interval. """
         is_unique = variable not in self.header_dct[interval].values()
         return is_unique
 
-    def _create_variable(self, interval, variable):
+    @perf
+    def create_variable(self, interval, key, var, units):
         """ Validate a new variable. """
-        while True:
-            # Underscores will be added into a 'key' until the variable name is unique
-            is_unique = self._is_variable_unique(variable, interval)
 
-            if is_unique:
-                # Variable is unique, return standard header variable
-                header_variable = HeaderVariable(*variable)
-                return header_variable
+        def add_num():
+            new_key = f"{key} ({i})"
+            return HeaderVariable(new_key, var, units)
 
-            variable = add_underscore(variable)
+        variable = HeaderVariable(key, var, units)
+        is_unique = self.is_variable_unique(variable, interval)
 
-    def add_output(self, request_tuple, array):
+        i = 0
+        while not is_unique:
+            i += 1
+            variable = add_num()
+            is_unique = self.is_variable_unique(variable, interval)
+
+        return variable
+
+    @perf
+    def add_output(self, interval, key, var, units, array):
         """ Add specified output variable to the file. """
-        interval, key, var, units = request_tuple
 
         if interval not in self.available_intervals:
             print("Cannot add variable: '{} : {} : {}' into outputs.\n"
@@ -287,23 +283,86 @@ class BaseEsoFile:
                                                                  self.file_name))
             return
 
-        variable = key, var, units
         header_dct = self.header_dct[interval]
-        # Generate a unique identifier
-        # Note that custom ids use '-' sign
+
+        # generate a unique identifier, custom ids use '-' sign
         id_ = self.generate_rand_id()
 
-        # Add variable identifiers to the header
-        header_variable = self._create_variable(interval, variable)
-        header_dct[id_] = header_variable
+        # add variable to the header
+        header_dct[id_] = self.create_variable(interval, key, var, units)
 
-        # Add variable data to the output df
-        outputs = self.outputs_dct[interval]
-        is_valid = outputs.add_output(id_, array)
+        # add variable data to the output df
+        is_valid = self.outputs_dct[interval].add_column(id_, array)
 
         if is_valid:
-            # Variable can be added, create a reference in the search tree
+            # variable can be added, create a reference in the search tree
             self.header_tree.add_branch(interval, key, var, units, id_)
+            v = header_dct[id_]
+            print(f"Variable {id_} : {v.key} | {v.variable} | {v.units} "
+                  f"has been added to the file. ")
+            # print(self.outputs_dct[interval][id_])
         else:
-            # Revert header dict in its original state
+            # revert header dict in its original state
             self.remove_header_variable(id_, header_dct)
+
+    @perf
+    def aggregate_variables(self, variables, func, key_name="Custom Key",
+                            variable_name="Custom Variable", part_match=False):
+        """
+        Aggregate given variables using given function.
+
+        A new 'Variable' with specified key and variable names
+        will be added into the file.
+
+        Parameters
+        ----------
+        variables : list of Variable
+            A list of 'Variable' named tuples.
+        func: func, func name
+            Function to use for aggregating the data.
+            It can be specified as np.mean, 'mean', 'sum', etc.
+        key_name: str, default 'Custom Key'
+            Specific key for a new variable. If this would not be
+            unique, unique number is added automatically.
+        variable_name: str, default 'Custom Variable'
+            Specific variable name for a new variable. If all the
+            input 'Variables' share the same variable name, this
+            will be used if nto specified otherwise.
+        part_match : bool
+            Only substring of the part of variable is enough
+        to match when searching for variables if this is True.
+
+        """
+        groups = self.find_ids(variables, part_match=part_match)
+
+        if not groups:
+            print("There are no variables to sum!")
+            return
+
+        if len(groups.keys()) > 1:
+            print("Cannot sum variables from multiple intervals!")
+            return
+
+        interval, ids = list(groups.items())[0]
+
+        mi = self.get_header_mi(interval, ids)
+        variables = mi.get_level_values("variable")
+        units = mi.get_level_values("units")
+
+        if not all(map(lambda x: x == units[0], units)):
+            print("Cannot sum variables using different units!")
+            return
+        units = units[0]  # reduce to a single value
+
+        if variable_name == "Custom Variable":
+            if all(map(lambda x: x == variables[0], variables)):
+                variable_name = variables[0]
+
+        if key_name == "Custom Key":
+            func_name = func.__name__ if callable(func) else func
+            key_name = f"{key_name} - {func_name}"
+
+        df = self.outputs_dct[interval].standard_results(ids)
+        sr = df.aggregate(func, axis=1)
+
+        self.add_output(interval, key_name, variable_name, units, sr)

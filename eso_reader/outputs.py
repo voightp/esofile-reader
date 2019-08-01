@@ -127,54 +127,50 @@ class Outputs(pd.DataFrame):
 
     def _validate(self, data):
         """ Validate if the data has required format. """
-        # At the moment, just length is being checked
-        valid = False
         length = len(data)
-        df_length = self.len(self.index)
+        df_length = len(self.index)
+        valid = length == df_length
 
-        if length == df_length:
-            valid = True
-
-        else:
-            print("Warning: new variable contains {} values, df length is {}!"
-                  "\n\t Variable will not be added to the file.".format(length, df_length))
+        if not valid:
+            print(f"New variable contains {length} values, df length is {df_length}!"
+                  "\n\t Variable will not be added to the file.")
 
         return valid
 
-    def add_output(self, id, array):
+    def add_column(self, id_, array):
         """ Add output data. """
         is_valid = self._validate(array)
 
         if is_valid:
-            self[id] = array
+            self[id_] = array
 
         return is_valid
 
-    def standard_results(self, ids, start_date, end_date):
+    def standard_results(self, ids, start_date=None, end_date=None):
         """ Find standard result. """
         val_ix = 0
         df = self.get_results_df(ids, val_ix, start_date, end_date)
         return df
 
-    def local_maxs(self, ids, start_date, end_date):
+    def local_maxs(self, ids, start_date=None, end_date=None):
         """ Find local interval maxima. """
         return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_max(self, ids, start_date, end_date):
+    def global_max(self, ids, start_date=None, end_date=None):
         val_ix = self._max_peak["val_ix"]
         return self._global_peak(ids, start_date, end_date, val_ix=val_ix)
 
-    def timestep_max(self, ids, start_date, end_date):
+    def timestep_max(self, ids, start_date=None, end_date=None):
         return self._timestep_peak(ids, start_date, end_date, **self._max_peak)
 
-    def local_mins(self, ids, start_date, end_date):
+    def local_mins(self, ids, start_date=None, end_date=None):
         return self._local_peaks(ids, start_date, end_date, **self._min_peak)
 
-    def global_min(self, ids, start_date, end_date):
+    def global_min(self, ids, start_date=None, end_date=None):
         val_ix = self._min_peak["val_ix"]
         return self._global_peak(ids, start_date, end_date, val_ix=val_ix, max_=False)
 
-    def timestep_min(self, ids, start_date, end_date):
+    def timestep_min(self, ids, start_date=None, end_date=None):
         return self._timestep_peak(ids, start_date, end_date, max_=False, **self._min_peak)
 
     def _global_peak(self, ids, start_date, end_date, val_ix=None, max_=True):
