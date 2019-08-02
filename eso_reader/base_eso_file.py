@@ -327,6 +327,12 @@ class BaseEsoFile:
             Only substring of the part of variable is enough
         to match when searching for variables if this is True.
 
+        Returns
+        -------
+        id_ : int or None
+            A numeric id of the new added variable. If the variable
+            could not be added, None is returned.
+
         """
         groups = self.find_ids(variables, part_match=part_match)
 
