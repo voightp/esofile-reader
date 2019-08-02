@@ -281,27 +281,24 @@ class BaseEsoFile:
                                                                  self.file_name))
             return
 
-        header_dct = self.header_dct[interval]
-
         # generate a unique identifier, custom ids use '-' sign
         id_ = self.generate_rand_id()
-
-        # add variable to the header
-        header_dct[id_] = self.create_header_variable(interval, key, var, units)
 
         # add variable data to the output df
         is_valid = self.outputs_dct[interval].add_column(id_, array)
 
         if is_valid:
             # variable can be added, create a reference in the search tree
+            self.header_dct[interval][id_] = self.create_header_variable(interval, key, var, units)
             self.header_tree.add_branch(interval, key, var, units, id_)
-            v = header_dct[id_]
+
+            v = self.header_dct[interval][id_]  # TODO REMOVE THIS FOR PRODUCTION
             print(f"Variable {id_} : {v.key} | {v.variable} | {v.units} "
                   f"has been added to the file. ")
-            # print(self.outputs_dct[interval][id_])
-        else:
-            # revert header dict in its original state
-            self.remove_header_variable(id_)
+
+            return id_
+
+
 
     @perf
     def aggregate_variables(self, variables, func, key_name="Custom Key",
@@ -363,4 +360,6 @@ class BaseEsoFile:
         df = self.outputs_dct[interval].standard_results(ids)
         sr = df.aggregate(func, axis=1)
 
-        self.add_output(interval, key_name, variable_name, units, sr)
+        id_ = self.add_output(interval, key_name, variable_name, units, sr)
+
+        return id_
