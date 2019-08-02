@@ -4,7 +4,7 @@ import pandas as pd
 
 from random import randint
 from eso_reader.performance import perf
-from eso_reader.mini_classes import HeaderVariable
+from eso_reader.mini_classes import HeaderVariable, Variable
 
 
 class VariableNotFound(Exception):
@@ -142,6 +142,19 @@ class BaseEsoFile:
             df.index = df.index.strftime(timestamp_format)
 
         return df
+
+    @perf
+    def get_variables_by_id(self, *args):
+        """ Get a list of header 'Variable' mini class for given ids. """
+
+        def get_var(var):
+            return Variable(interval, *var)
+
+        variables = []
+        for interval, vrs in self.header_dct.items():
+            variables.extend([get_var(vrs[id_]) for id_ in args if id_ in vrs])
+
+        return variables
 
     def populate_content(self, *args, **kwargs):
         """ Populate instance attributes. """
@@ -297,8 +310,6 @@ class BaseEsoFile:
                   f"has been added to the file. ")
 
             return id_
-
-
 
     @perf
     def aggregate_variables(self, variables, func, key_name="Custom Key",
