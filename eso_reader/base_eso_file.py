@@ -383,9 +383,13 @@ class BaseResultsFIle:
     def remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
-            self.outputs_dct[interval].remove_columns(ids)
-        except KeyError:
-            print(f"Interval '{interval}' was not found!")
+            out = self.outputs_dct[interval]
+            out.remove_columns(ids)
+            if out.empty:
+                del self.outputs_dct[interval]
+        except AttributeError:
+            print(f"Invalid interval: '{interval}' specified!")
+
 
     @perf
     def remove_header_variables(self, interval, ids):
@@ -395,9 +399,11 @@ class BaseResultsFIle:
         for id_ in ids:
             try:
                 del self.header_dct[interval][id_]
+                if not self.header_dct[interval]:
+                    del self.header_dct[interval]
             except KeyError:
-                print(f"Cannot remove id: {id_} from header."
-                      f"\nGiven id is not valid.")
+                print(f"Cannot remove id: {id_} from {interval}."
+                      f"\nGiven id or interval is not valid.")
 
     @perf
     def remove_outputs(self, variables):
