@@ -1,3 +1,6 @@
+from eso_reader.performance import perf
+
+
 class Node:
     """ A base tree component.
 
@@ -67,39 +70,44 @@ class Tree:
         else:
             lst.append("{}{}\n\n".format(tabs, node.key))
 
-    def create_tree(self, header_dct):
-        """ Create a search tree. """
-        for interval, data in header_dct.items():
-            for id, tup in data.items():
-                self.add_branch(interval, tup.key, tup.variable, tup.units, id)
+    @staticmethod
+    def _add_node(nd_name, parent):
+        """ Create a new node if it does not exists. """
 
-    def add_branch(self, interval, key, var, units, id):
-        """ Append a branch to tree. """
+        def _is_in_children():
+            """ Return child node if node already exists. """
+            for child in children:
+                if child.key.lower() == nd_name.lower():
+                    return child
+            else:
+                return None
+
+        children = parent.children
+        nd = _is_in_children()
+
+        if not nd:
+            nd = Node(parent, nd_name)
+            parent.children.append(nd)
+
+        return nd
+
+    def add_branch(self, interval, key, var, units, id_):
+        """ Append a branch to the tree. """
         pth = [interval, var, key, units]
         parent = self.root
 
         for nd_name in pth:
             parent = self._add_node(nd_name, parent)
 
-        val = Node(parent, id)
+        val = Node(parent, id_)
         val.children = None
         parent.children.append(val)
 
-    def _add_node(self, nd_name, parent):
-        """ Create a new node if it does not exists. """
-        nd = self._is_in_children(nd_name, parent.children)
-        if not nd:
-            nd = Node(parent, nd_name)
-            parent.children.append(nd)
-        return nd
-
-    def _is_in_children(self, nd_name, children):
-        """ Return child node if node already exists. """
-        for child in children:
-            if child.key.lower() == nd_name.lower():
-                return child
-        else:
-            return None
+    def create_tree(self, header_dct):
+        """ Create a search tree. """
+        for interval, data in header_dct.items():
+            for id_, tup in data.items():
+                self.add_branch(interval, tup.key, tup.variable, tup.units, id_)
 
     @staticmethod
     def _match(nd, condition, part_match=False):
@@ -109,55 +117,59 @@ class Tree:
         else:
             return condition.lower() in nd.key.lower()
 
-    def _loop(self, node, level, lst, cond, part_match=False):
+    def _loop(self, node, level, ids, cond, part_match=False):
+        """ Search through the tree to find ids. """
         level += 1
 
-        # Reached the top of tree, store value
+        # Reached the top of the tree, store value
         if not node.children:
-            lst.append(node.key)
+            ids.append(node.key)
             return
 
         # Handle if filtering condition applied
         if cond[level]:
             if self._match(node, cond[level], part_match=part_match):
                 for nd in node.children:
-                    self._loop(nd, level, lst, cond, part_match=part_match)
+                    self._loop(nd, level, ids, cond, part_match=part_match)
             else:
                 pass
 
         # Condition not applied, loop through all children
         else:
             for nd in node.children:
-                self._loop(nd, level, lst, cond, part_match=part_match)
+                self._loop(nd, level, ids, cond, part_match=part_match)
 
-    def get_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
+    @perf
+    def find_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
         """ Find variable ids for given arguments. """
-        root = self.root
-        cond = [None, interval, variable, key, units]  # First 'None' to skip root node
+        cond = [interval, variable, key, units]
         level = -1
         ids = []
-        self._loop(root, level, ids, cond, part_match=part_match)
+
+        for nd in self.root.children:
+            self._loop(nd, level, ids, cond, part_match=part_match)
 
         if not ids:
-            print("Variable: '{} : {} : {} : {}' not found!".format(interval, key, variable, units))
+            print(f"Variable: '{interval} : {key} : {variable} : {units}' not found!")
 
         return ids
 
+    @perf
     def get_pairs(self, interval=None, key=None, variable=None, units=None, part_match=False):
         """ Find interval : variable ids pairs for given arguments. """
         root = self.root
         cond = [variable, key, units]
         pairs = {}
 
-        for interval_nd in root.children:
+        for node in root.children:
             level = -1
             ids = []
             if interval:
-                if self._match(interval_nd, interval):
-                    for nd in interval_nd.children:
+                if self._match(node, interval):
+                    for nd in node.children:
                         self._loop(nd, level, ids, cond)
             else:
-                for nd in interval_nd.children:
+                for nd in node.children:
                     self._loop(nd, level, ids, cond, part_match=part_match)
 
             if ids:
@@ -166,6 +178,47 @@ class Tree:
         pairs = {k: v for k, v in pairs.items() if v}
 
         if not pairs:
-            print("Variable: '{} : {} : {} : {}' not found!".format(interval, key, variable, units))
+            print(f"Variable: '{interval} : {key} : {variable} : {units}' not found!")
 
         return pairs
+
+    def _rem_loop(self, node, level, cond):
+        """ Remove """
+
+        def remove_recursively(_node):
+            parent = _node.parent
+            if parent:
+                parent.children.remove(_node)
+                if not parent.children:
+                    # remove node only if there are no children left
+                    remove_recursively(parent)
+
+        level += 1
+
+        # Reached the top of tree, recursively remove nodes
+        if not node.children:
+            remove_recursively(node)
+            return
+
+        # Handle if filtering condition applied
+        if cond[level]:
+            if self._match(node, cond[level]):
+                for nd in node.children:
+                    self._rem_loop(nd, level, cond)
+        else:
+            for nd in node.children:
+                self._rem_loop(nd, level, cond)
+
+    @perf
+    def remove_variables(self, variables):
+        """ Remove variable from the tree. """
+        if not isinstance(variables, list):
+            variables = [variables]
+
+        for var in variables:
+            interval, key, variable, units = var
+            cond = [interval, variable, key, units]
+
+            for nd in self.root.children:
+                level = -1
+                self._rem_loop(nd, level, cond)

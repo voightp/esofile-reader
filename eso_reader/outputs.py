@@ -22,11 +22,15 @@ def slicer(df, ids, start_date=None, end_date=None):
 
     except KeyError:
         valid_ids = df.columns.intersection(ids)
+        ids = [str(ids)] if not isinstance(ids, list) else [str(i) for i in ids]
         print("Cannot slice df using requested inputs:"
               "ids: '{}', start date: '{}', end date: '{}'.\n"
               "Trying to use ids: '{}' with all rows. ".format(", ".join(ids),
                                                                start_date, end_date,
                                                                valid_ids))
+        if valid_ids.empty:
+            raise KeyError("Any of given ids is not included!")
+
         return df.loc[:, valid_ids]
 
 
@@ -145,6 +149,16 @@ class Outputs(pd.DataFrame):
             self[id_] = array
 
         return is_valid
+
+    def remove_columns(self, ids):
+        """ Remove output data. """
+        if not isinstance(ids, list):
+            ids = [ids]
+        try:
+            self.drop(columns=ids, inplace=True)
+        except KeyError:
+            strids = ", ".join(ids)
+            print(f"Cannot remove ids: {strids}")
 
     def standard_results(self, ids, start_date=None, end_date=None):
         """ Find standard result. """
