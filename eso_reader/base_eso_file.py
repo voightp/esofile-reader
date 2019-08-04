@@ -390,12 +390,11 @@ class BaseResultsFIle:
         except AttributeError:
             print(f"Invalid interval: '{interval}' specified!")
 
-
     @perf
     def remove_header_variables(self, interval, ids):
         """ Remove header variable from header. """
-        if not isinstance(ids, list):
-            ids = [ids]
+        ids = ids if isinstance(ids, list) else [ids]
+
         for id_ in ids:
             try:
                 del self.header_dct[interval][id_]
