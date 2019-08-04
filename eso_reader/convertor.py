@@ -87,6 +87,20 @@ def update_multiindex(df, level, old_vals, new_vals, axis=1):
 
 
 @perf
+def verify_units(units):
+    """ Check if the variables can be aggregated. """
+    if all(map(lambda x: x == units[0], units)):
+        # all units are the same
+        return units[0]
+    elif all(map(lambda x: x in ("J", "W"), units)):
+        # rate will be converted to energy
+        return list(set(units))
+    elif all(map(lambda x: x in ("J/m2", "W/m2"), units)):
+        # rate will be converted to energy
+        return list(set(units))
+
+
+@perf
 def rate_to_energy(df, data_set, start_date, end_date):
     """ Convert 'rate' outputs to 'energy'. """
     if isinstance(data_set, Hourly):
