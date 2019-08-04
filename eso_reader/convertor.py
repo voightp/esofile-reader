@@ -101,7 +101,7 @@ def verify_units(units):
 
 
 @perf
-def rate_to_energy(df, data_set, start_date, end_date):
+def rate_to_energy(df, data_set, start_date=None, end_date=None):
     """ Convert 'rate' outputs to 'energy'. """
     if isinstance(data_set, Hourly):
         conv_ratio = 1 / 3600
