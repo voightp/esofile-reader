@@ -5,6 +5,7 @@ import pandas as pd
 from random import randint
 from eso_reader.performance import perf
 from eso_reader.mini_classes import HeaderVariable, Variable
+from eso_reader.convertor import verify_units, rate_to_energy
 
 
 class VariableNotFound(Exception):
@@ -358,11 +359,22 @@ class BaseResultsFIle:
         variables = mi.get_level_values("variable")
         units = mi.get_level_values("units")
 
-        if not all(map(lambda x: x == units[0], units)):
+        units = verify_units(units)
+
+        if not units:
             print("Cannot sum variables using different units!")
             return
 
-        units = units[0]  # reduce to a single value
+        data_set = self.outputs_dct[interval]
+        df = data_set.standard_results(ids)
+
+        if isinstance(units, list):
+            # it's needed to convert rate to energy
+            df.columns = mi
+            df = rate_to_energy(df, data_set)
+            units = next(u for u in units if u in ("J", "J/m2"))
+
+        sr = df.aggregate(func, axis=1)
 
         if variable_name == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
@@ -371,9 +383,6 @@ class BaseResultsFIle:
         if key_name == "Custom Key":
             func_name = func.__name__ if callable(func) else func
             key_name = f"{key_name} - {func_name}"
-
-        df = self.outputs_dct[interval].standard_results(ids)
-        sr = df.aggregate(func, axis=1)
 
         id_ = self.add_output(interval, key_name, variable_name, units, sr)
 

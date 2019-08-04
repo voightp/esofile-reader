@@ -94,10 +94,10 @@ def verify_units(units):
         return units[0]
     elif all(map(lambda x: x in ("J", "W"), units)):
         # rate will be converted to energy
-        return list(set(units))
+        return units
     elif all(map(lambda x: x in ("J/m2", "W/m2"), units)):
         # rate will be converted to energy
-        return list(set(units))
+        return units
 
 
 @perf
