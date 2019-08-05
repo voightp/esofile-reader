@@ -443,3 +443,5 @@ class BaseResultsFIle:
             self.remove_header_variables(ivl, ids)
 
         self.header_tree.remove_variables(variables)
+
+        return groups
