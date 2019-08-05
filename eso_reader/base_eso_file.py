@@ -166,6 +166,26 @@ class BaseResultsFIle:
         pass
 
     @perf
+    def find_ids(self, variables, part_match=False):
+        """ Find ids for a list of 'Variables'. """
+        out = []
+
+        if not isinstance(variables, list):
+            variables = [variables]
+
+        for request in variables:
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
+
+            ids = self.header_tree.get_ids(interval=interval, key=key, variable=var,
+                                           units=units, part_match=part_match)
+            if not ids:
+                continue
+
+            out.extend(ids)
+
+        return out
+
+    @perf
     def find_pairs(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.

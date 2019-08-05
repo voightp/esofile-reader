@@ -140,7 +140,7 @@ class Tree:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
     @perf
-    def find_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
+    def get_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
         """ Find variable ids for given arguments. """
         cond = [interval, variable, key, units]
         ids = []
