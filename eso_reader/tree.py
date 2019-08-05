@@ -143,10 +143,10 @@ class Tree:
     def find_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
         """ Find variable ids for given arguments. """
         cond = [interval, variable, key, units]
-        level = -1
         ids = []
 
         for nd in self.root.children:
+            level = -1
             self._loop(nd, level, ids, cond, part_match=part_match)
 
         if not ids:
