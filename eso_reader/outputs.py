@@ -160,8 +160,9 @@ class Outputs(pd.DataFrame):
             strids = ", ".join(ids)
             print(f"Cannot remove ids: {strids}")
 
-        if self.columns == ["num days"]:
-            self.drop(columns="num days", inplace=True)
+        if len(self.columns) == 1:
+            if self.columns == ["num days"]:
+                self.drop(columns="num days", inplace=True)
 
     def standard_results(self, ids, start_date=None, end_date=None):
         """ Find standard result. """
