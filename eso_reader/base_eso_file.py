@@ -5,6 +5,7 @@ import pandas as pd
 from random import randint
 from eso_reader.performance import perf
 from eso_reader.mini_classes import HeaderVariable, Variable
+from eso_reader.convertor import verify_units, rate_to_energy
 
 
 class VariableNotFound(Exception):
@@ -23,7 +24,7 @@ def rand_id_gen():
         yield -randint(1, 999999)
 
 
-class BaseEsoFile:
+class BaseResultsFIle:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
     'building' totals file.
@@ -82,9 +83,9 @@ class BaseEsoFile:
 
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
-        return "File: {}\n" \
-               "Path: {}\n" \
-               "Created: {}".format(self.file_name, self.file_path, human_time)
+        return f"File: {self.file_name}" \
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {human_time}"
 
     @property
     def file_name(self):
@@ -165,7 +166,7 @@ class BaseEsoFile:
         pass
 
     @perf
-    def find_ids(self, variables, part_match=False):
+    def find_pairs(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
 
@@ -176,6 +177,12 @@ class BaseEsoFile:
         part_match : bool
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
+
+        Returns
+        -------
+        dct
+            A dictionary with 'intervals' as keys and lists of
+            ids as values.
 
         """
         out = {}
@@ -258,7 +265,7 @@ class BaseEsoFile:
 
     @perf
     def create_header_variable(self, interval, key, var, units):
-        """ Validate a new variable. """
+        """ Create a unique header variable. """
 
         def add_num():
             new_key = f"{key} ({i})"
@@ -274,15 +281,6 @@ class BaseEsoFile:
             is_unique = self.is_variable_unique(variable, interval)
 
         return variable
-
-    @perf
-    def remove_header_variable(self, id_):
-        """ Remove header variable from header. """
-        try:
-            del self.header_dct[id_]
-        except KeyError:
-            print(f"Cannot remove id: {id_} from header.\n"
-                  "Given id is not valid.")
 
     @perf
     def add_output(self, interval, key, var, units, array):
@@ -345,7 +343,7 @@ class BaseEsoFile:
             could not be added, None is returned.
 
         """
-        groups = self.find_ids(variables, part_match=part_match)
+        groups = self.find_pairs(variables, part_match=part_match)
 
         if not groups:
             print("There are no variables to sum!")
@@ -361,10 +359,22 @@ class BaseEsoFile:
         variables = mi.get_level_values("variable")
         units = mi.get_level_values("units")
 
-        if not all(map(lambda x: x == units[0], units)):
+        units = verify_units(units)
+
+        if not units:
             print("Cannot sum variables using different units!")
             return
-        units = units[0]  # reduce to a single value
+
+        data_set = self.outputs_dct[interval]
+        df = data_set.standard_results(ids)
+
+        if isinstance(units, list):
+            # it's needed to convert rate to energy
+            df.columns = mi
+            df = rate_to_energy(df, data_set)
+            units = next(u for u in units if u in ("J", "J/m2"))
+
+        sr = df.aggregate(func, axis=1)
 
         if variable_name == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
@@ -374,9 +384,42 @@ class BaseEsoFile:
             func_name = func.__name__ if callable(func) else func
             key_name = f"{key_name} - {func_name}"
 
-        df = self.outputs_dct[interval].standard_results(ids)
-        sr = df.aggregate(func, axis=1)
-
         id_ = self.add_output(interval, key_name, variable_name, units, sr)
 
         return id_
+
+    @perf
+    def remove_output_variables(self, interval, ids):
+        """ Remove output data from the file. """
+        try:
+            out = self.outputs_dct[interval]
+            out.remove_columns(ids)
+            if out.empty:
+                del self.outputs_dct[interval]
+        except AttributeError:
+            print(f"Invalid interval: '{interval}' specified!")
+
+    @perf
+    def remove_header_variables(self, interval, ids):
+        """ Remove header variable from header. """
+        ids = ids if isinstance(ids, list) else [ids]
+
+        for id_ in ids:
+            try:
+                del self.header_dct[interval][id_]
+                if not self.header_dct[interval]:
+                    del self.header_dct[interval]
+            except KeyError:
+                print(f"Cannot remove id: {id_} from {interval}."
+                      f"\nGiven id or interval is not valid.")
+
+    @perf
+    def remove_outputs(self, variables):
+        """ Remove given variables from the file. """
+        groups = self.find_pairs(variables)
+
+        for ivl, ids in groups.items():
+            self.remove_output_variables(ivl, ids)
+            self.remove_header_variables(ivl, ids)
+
+        self.header_tree.remove_variables(variables)
