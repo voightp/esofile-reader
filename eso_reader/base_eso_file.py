@@ -4,7 +4,7 @@ import pandas as pd
 
 from random import randint
 from eso_reader.performance import perf
-from eso_reader.mini_classes import HeaderVariable, Variable
+from eso_reader.mini_classes import Variable
 from eso_reader.convertor import verify_units, rate_to_energy
 
 
@@ -242,12 +242,12 @@ class BaseResultsFIle:
             for id_, data in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((*var, data))
+                    tuples.append((var.key, var.variable, var.units, data))
         else:
             for id_ in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((*var,))
+                    tuples.append((var.key, var.variable, var.units,))
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
 
@@ -284,14 +284,14 @@ class BaseResultsFIle:
         return variable not in self.header_dct[interval].values()
 
     @perf
-    def create_header_variable(self, interval, key, var, units):
+    def create_variable(self, interval, key, var, units):
         """ Create a unique header variable. """
 
         def add_num():
             new_key = f"{key} ({i})"
-            return HeaderVariable(new_key, var, units)
+            return Variable(interval, new_key, var, units)
 
-        variable = HeaderVariable(key, var, units)
+        variable = Variable(interval, key, var, units)
         is_unique = self.is_variable_unique(variable, interval)
 
         i = 0
@@ -320,7 +320,7 @@ class BaseResultsFIle:
 
         if is_valid:
             # variable can be added, create a reference in the search tree
-            self.header_dct[interval][id_] = self.create_header_variable(interval, key, var, units)
+            self.header_dct[interval][id_] = self.create_variable(interval, key, var, units)
             self.header_tree.add_branch(interval, key, var, units, id_)
 
             v = self.header_dct[interval][id_]  # TODO REMOVE THIS FOR PRODUCTION

@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 from eso_reader.base_eso_file import BaseResultsFIle
-from eso_reader.mini_classes import HeaderVariable
+from eso_reader.mini_classes import Variable
 from eso_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
@@ -149,7 +149,7 @@ class BuildingEsoFile(BaseResultsFIle):
         groups = {}
         rows = []
         for id_, var in variables.items():
-            key, variable, units = var
+            interval, key, variable, units = var
             group = units in summed_units or units in averaged_units  # check if the variables should be grouped
 
             gr_str = variable  # init group string to be the same as variable
@@ -179,9 +179,9 @@ class BuildingEsoFile(BaseResultsFIle):
             else:
                 group_id = next(id_gen)
 
-            rows.append((group_id, id_, key, variable, units))
+            rows.append((group_id, id_, interval, key, variable, units))
 
-        cols = ["group_id", "id", "key", "variable", "units"]
+        cols = ["group_id", "id", "interval", "key", "variable", "units"]
         return pd.DataFrame(rows, columns=cols)
 
     @staticmethod
@@ -195,7 +195,7 @@ class BuildingEsoFile(BaseResultsFIle):
             return df.iloc[0]
 
         def header_vars(sr):
-            return HeaderVariable(sr.key, sr.variable, sr.units)
+            return Variable(sr.interval, sr.key, sr.variable, sr.units)
 
         header_df.drop("id", axis=1, inplace=True)
         header_df = header_df.groupby(by="group_id")

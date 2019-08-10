@@ -8,7 +8,7 @@ from collections import defaultdict
 
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from eso_reader.interval_processor import interval_processor
-from eso_reader.mini_classes import HeaderVariable, IntervalTuple
+from eso_reader.mini_classes import Variable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.tree import Tree
 from eso_reader.monitor import DefaultMonitor
@@ -136,7 +136,7 @@ def read_header(eso_file, monitor, excl=None):
             continue
 
         # Create a new item in header_dict for a given frequency
-        header_dicts[frequency][line_id] = HeaderVariable(key_name, var_name, units)
+        header_dicts[frequency][line_id] = Variable(frequency, key_name, var_name, units)
 
         # Initialize output item for a given frequency
         outputs[frequency][line_id] = []

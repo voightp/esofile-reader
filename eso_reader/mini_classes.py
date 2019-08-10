@@ -5,4 +5,3 @@ Variable = namedtuple("Variable", "interval key variable units")
 
 # A mini class to store interval data
 IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
-HeaderVariable = namedtuple("HeaderVariable", "key variable units")
