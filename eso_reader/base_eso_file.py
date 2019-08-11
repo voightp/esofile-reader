@@ -144,19 +144,6 @@ class BaseResultsFIle:
 
         return df
 
-    @perf
-    def get_variables_by_id(self, *args):
-        """ Get a list of header 'Variable' mini class for given ids. """
-
-        def get_var(var):
-            return Variable(interval, *var)
-
-        variables = []
-        for interval, vrs in self.header_dct.items():
-            variables.extend([get_var(vrs[id_]) for id_ in args if id_ in vrs])
-
-        return variables
-
     def populate_content(self, *args, **kwargs):
         """ Populate instance attributes. """
         pass
@@ -307,9 +294,8 @@ class BaseResultsFIle:
         """ Add specified output variable to the file. """
 
         if interval not in self.available_intervals:
-            print("Cannot add variable: '{} : {} : {}' into outputs.\n"
-                  "Interval is not included in file '{}'".format(key, var, units,
-                                                                 self.file_name))
+            print(f"Cannot add variable: '{key} : {var} : {units}' into outputs.\n"
+                  "Interval is not included in file '{self.file_name}'")
             return
 
         # generate a unique identifier, custom ids use '-' sign
@@ -320,18 +306,15 @@ class BaseResultsFIle:
 
         if is_valid:
             # variable can be added, create a reference in the search tree
-            self.header_dct[interval][id_] = self.create_variable(interval, key, var, units)
+            new_var = self.create_variable(interval, key, var, units)
+            self.header_dct[interval][id_] = new_var
             self.header_tree.add_branch(interval, key, var, units, id_)
 
-            v = self.header_dct[interval][id_]  # TODO REMOVE THIS FOR PRODUCTION
-            print(f"Variable {id_} : {v.key} | {v.variable} | {v.units} "
-                  f"has been added to the file. ")
-
-            return id_
+            return id_, new_var
 
     @perf
-    def aggregate_variables(self, variables, func, key_name="Custom Key",
-                            variable_name="Custom Variable", part_match=False):
+    def aggregate_variables(self, variables, func, key_nm="Custom Key",
+                            var_nm="Custom Variable", part_match=False):
         """
         Aggregate given variables using given function.
 
@@ -345,10 +328,10 @@ class BaseResultsFIle:
         func: func, func name
             Function to use for aggregating the data.
             It can be specified as np.mean, 'mean', 'sum', etc.
-        key_name: str, default 'Custom Key'
+        key_nm: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
             unique, unique number is added automatically.
-        variable_name: str, default 'Custom Variable'
+        var_nm: str, default 'Custom Variable'
             Specific variable name for a new variable. If all the
             input 'Variables' share the same variable name, this
             will be used if nto specified otherwise.
@@ -358,7 +341,7 @@ class BaseResultsFIle:
 
         Returns
         -------
-        id_ : int or None
+        int, Variable or None
             A numeric id of the new added variable. If the variable
             could not be added, None is returned.
 
@@ -396,17 +379,18 @@ class BaseResultsFIle:
 
         sr = df.aggregate(func, axis=1)
 
-        if variable_name == "Custom Variable":
+        if var_nm == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
-                variable_name = variables[0]
+                var_nm = variables[0]
 
-        if key_name == "Custom Key":
+        if key_nm == "Custom Key":
             func_name = func.__name__ if callable(func) else func
-            key_name = f"{key_name} - {func_name}"
+            key_nm = f"{key_nm} - {func_name}"
 
-        id_ = self.add_output(interval, key_name, variable_name, units, sr)
+        # results can be either tuple (id, Variable) or None
+        out = self.add_output(interval, key_nm, var_nm, units, sr)
 
-        return id_
+        return out
 
     @perf
     def remove_output_variables(self, interval, ids):
