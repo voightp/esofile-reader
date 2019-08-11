@@ -290,6 +290,33 @@ class BaseResultsFIle:
         return variable
 
     @perf
+    def rename_variable(self, variable, var_nm="", key_nm=""):
+        """ Rename the given 'Variable' using given names. """
+        ids = self.find_ids(variable)
+        interval, key, var, units = variable
+
+        if not var_nm:
+            var_nm = var
+
+        if not key_nm:
+            key_nm = key
+
+        if ids:
+            id_ = ids[0]
+            # remove current item to avoid item duplicity and
+            # unique number increment
+            del self.header_dct[interval][id_]
+
+            # create a new variable
+            new_var = self.create_variable(interval, key_nm, var_nm, units)
+
+            # add variable to header and tree
+            self.header_dct[interval][id_] = new_var
+            self.header_tree.add_branch(interval, key_nm, var_nm, units, id_)
+
+            return id_, new_var
+
+    @perf
     def add_output(self, interval, key, var, units, array):
         """ Add specified output variable to the file. """
 
