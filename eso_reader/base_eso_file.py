@@ -359,8 +359,8 @@ class BaseResultsFIle:
         interval, ids = list(groups.items())[0]
 
         mi = self.create_header_mi(interval, ids)
-        variables = mi.get_level_values("variable")
-        units = mi.get_level_values("units")
+        variables = mi.get_level_values("variable").tolist()
+        units = mi.get_level_values("units").tolist()
 
         units = verify_units(units)
 
