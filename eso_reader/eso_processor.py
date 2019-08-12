@@ -140,7 +140,7 @@ def read_header(eso_file, monitor, excl=None):
     if not isinstance(excl, list):
         excl = list(excl)
 
-    header_dicts = defaultdict(partial(defaultdict))
+    header_dct = defaultdict(partial(defaultdict))
     outputs = defaultdict(partial(defaultdict))
 
     while True:
@@ -163,15 +163,19 @@ def read_header(eso_file, monitor, excl=None):
             continue
 
         # create a new item in header_dict for a given interval
-        all_variables = header_dicts[interval].values()
-        var = create_variable(all_variables, interval, key_nm, var_nm, units)
+        all_variables = header_dct[interval].values()
+        var = Variable(interval, key_nm, var_nm, units)
 
-        header_dicts[interval][id_] = var
+        if var in all_variables:
+            print(f"Variable '{interval} | {key_nm}| {var_nm}| {units}' "
+                  f"is not unique!\nIt will be ignored from the results set.")
+        else:
+            # add variable into header dict and initialize
+            # output item for a given frequency
+            header_dct[interval][id_] = var
+            outputs[interval][id_] = []
 
-        # Initialize output item for a given frequency
-        outputs[interval][id_] = []
-
-    return header_dicts, outputs
+    return header_dct, outputs
 
 
 def process_standard_lines(file):
@@ -296,7 +300,7 @@ def _process_result_line(data, ignore_peaks):
         return np.float(data[0])
 
     # return tuple([np.float(item) for item in data])
-    return tuple([np.float(item) if "." in item else np.int(item) for item in data])
+    return tuple([np.float(i) if "." in i else np.int(i) for i in data])
 
 
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
@@ -382,7 +386,11 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
 
             # current line represents a result
             # replace nan values from the last step
-            outputs[identifier][line_id][-1] = _process_result_line(data, ignore_peaks)
+            res = _process_result_line(data, ignore_peaks)
+            try:
+                outputs[identifier][line_id][-1] = res
+            except KeyError:
+                print(f"ignoring {line_id}")
 
     return outputs, envs
 
