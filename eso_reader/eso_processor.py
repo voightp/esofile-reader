@@ -13,6 +13,7 @@ from eso_reader.mini_classes import Variable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.tree import Tree
 from eso_reader.monitor import DefaultMonitor
+from eso_reader.performance import perf
 
 
 class InvalidLineSyntax(AttributeError):
@@ -81,6 +82,30 @@ def _process_header_line(line):
     return int(line_id), key, var, units, interval.lower()
 
 
+def create_variable(variables, interval, key, var, units):
+    """ Create a unique header variable. """
+
+    def is_unique():
+        return variable not in variables
+
+    def add_num():
+        new_key = f"{key} ({i})"
+        return Variable(interval, new_key, var, units)
+
+    variable = Variable(interval, key, var, units)
+
+    i = 0
+    while not is_unique():
+
+        if not is_unique():
+            print(variable)
+
+        i += 1
+        variable = add_num()
+
+    return variable
+
+
 def read_header(eso_file, monitor, excl=None):
     """
     Read header dictionary of the eso file.
@@ -137,8 +162,11 @@ def read_header(eso_file, monitor, excl=None):
         if interval in excl:
             continue
 
-        # Create a new item in header_dict for a given interval
-        header_dicts[interval][id_] = Variable(interval, key_nm, var_nm, units)
+        # create a new item in header_dict for a given interval
+        all_variables = header_dicts[interval].values()
+        var = create_variable(all_variables, interval, key_nm, var_nm, units)
+
+        header_dicts[interval][id_] = var
 
         # Initialize output item for a given frequency
         outputs[interval][id_] = []
