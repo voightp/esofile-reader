@@ -6,7 +6,8 @@ import numpy as np
 from functools import partial
 from collections import defaultdict
 
-from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
+from eso_reader.outputs import (Hourly, Daily, Monthly,
+                                Annual, Runperiod, Timestep)
 from eso_reader.interval_processor import interval_processor
 from eso_reader.mini_classes import Variable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
@@ -32,13 +33,13 @@ def _eso_file_version(raw_version):
 
 
 def _dt_timestamp(tmstmp):
-    """ Return date and time of the eso file generation as a Datetime object. """
+    """ Return date and time of the eso file generation as a Datetime. """
     timestamp = tmstmp.split("=")[1].strip()
     return dt.datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
 def _process_statement(file):
-    """ Process the first line of eso file to extract the version and time when the file was generated. """
+    """ Extract the version and time of the file generation. """
     _, _, raw_version, tmstmp = next(file).split(",")
     version = _eso_file_version(raw_version)
     timestamp = _dt_timestamp(tmstmp)
@@ -60,13 +61,13 @@ def _process_header_line(line):
     Returns
     -------
     tuple of (int, str, str, str, str)
-        Processed line tuple (ID, key name, variable name, units, frequency)
+        Processed line tuple (ID, key name, variable name, units, interval)
     """
 
     pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
 
     try:
-        line_id, _, key, var, units, frequency = pattern.search(line).groups()
+        line_id, _, key, var, units, interval = pattern.search(line).groups()
 
     except InvalidLineSyntax:
         print("Unexpected header line syntax:" + line)
@@ -77,7 +78,7 @@ def _process_header_line(line):
         var = key
         key = "Cumulative Meter" if "Cumulative" in key else "Meter"
 
-    return int(line_id), key, var, units, frequency.lower()
+    return int(line_id), key, var, units, interval.lower()
 
 
 def read_header(eso_file, monitor, excl=None):
@@ -87,7 +88,8 @@ def read_header(eso_file, monitor, excl=None):
     The file is being read line by line until the 'End of Data Dictionary'
     is reached. Raw line is processed and the data is added as an item to
     the header_dict dictionary. The outputs dictionary is populated with
-    dictionaries using output ids as keys and blank lists as values (to be populated later).
+    dictionaries using output ids as keys and blank lists as values
+    (to be populated later).
 
     Parameters
     ----------
@@ -129,17 +131,17 @@ def read_header(eso_file, monitor, excl=None):
             break
 
         # Extract data from a raw line
-        line_id, key_name, var_name, units, frequency = _process_header_line(line)
+        id_, key_nm, var_nm, units, interval = _process_header_line(line)
 
         # Block storing the data
-        if frequency in excl:
+        if interval in excl:
             continue
 
-        # Create a new item in header_dict for a given frequency
-        header_dicts[frequency][line_id] = Variable(frequency, key_name, var_name, units)
+        # Create a new item in header_dict for a given interval
+        header_dicts[interval][id_] = Variable(interval, key_nm, var_nm, units)
 
         # Initialize output item for a given frequency
-        outputs[frequency][line_id] = []
+        outputs[interval][id_] = []
 
     return header_dicts, outputs
 
@@ -212,38 +214,41 @@ def _process_interval_line(line_id, data):
         return None, None  # this will not be used
 
     def hourly_interval():
-        """ Process timestep or hourly interval entry and return identifier for following result lines. """
-        i = [int(float(item)) for item in data[:-1]]  # omit day of week in conversion
+        """ Process TS or H interval entry and return interval identifier. """
+        # omit day of week in conversion
+        i = [int(float(item)) for item in data[:-1]]
         interval = IntervalTuple(i[1], i[2], i[4], i[6])
 
-        # check if interval is timestep or hourly frequency
+        # check if interval is timestep or hourly interval
         if i[5] == 0 and i[6] == 60:
             return H, interval
         else:
             return TS, interval
 
     def daily_interval():
-        """ Populate daily list and return identifier for following result lines. """
-        i = [int(item) for item in data[:-1]]  # omit day of week in in conversion
-        interval = IntervalTuple(i[1], i[2], 0, 0)  # (Month, Day of Month)
+        """ Populate D list and return identifier. """
+        # omit day of week in in conversion
+        i = [int(item) for item in data[:-1]]
+        # (Month, Day of Month)
+        interval = IntervalTuple(i[1], i[2], 0, 0)
         return D, interval
 
     def monthly_interval():
-        """ Populate monthly list and return identifier for following result lines. """
+        """ Populate M list and return identifier. """
         interval = IntervalTuple(int(data[1]), 1, 0, 0)
         return M, (int(data[0]), interval)
 
     def runperiod_interval():
-        """ Populate runperiod list and return identifier for following result lines. """
+        """ Populate RP list and return identifier. """
         interval = IntervalTuple(1, 1, 0, 0)
         return RP, (int(data[0]), interval)
 
     def annual_interval():
-        """ Populate annual list and return identifier for following result lines. """
+        """ Populate A list and return identifier. """
         interval = IntervalTuple(1, 1, 0, 0)
         return A, (None, interval)
 
-    # switcher to return data for a specific frequency
+    # switcher to return data for a specific interval
     categories = {
         1: new_environment,
         2: hourly_interval,
@@ -275,8 +280,8 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     list, where each item represents a single environment.
     Result data is stored in the 'outputs' dictionary.
 
-    Index 1-5 for eso file generated prior to E+ 8.9 or 1-6 from E+ 8.9 further,
-    indicates that line is an interval.
+    Index 1-5 for eso file generated prior to E+ 8.9 or 1-6 from E+ 8.9
+    further, indicates that line is an interval.
 
     Parameters
     ----------
@@ -427,7 +432,8 @@ def process_file(file, monitor, excl=None, ignore_peaks=True, ):
 
     # Read body to obtain outputs and environment dictionaries.
     # Intervals excluded in header are ignored
-    outputs, envs = read_body(file, last_standard_item_id, init_outputs, ignore_peaks, monitor)
+    outputs, envs = read_body(file, last_standard_item_id,
+                              init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
 
     # Sort interval data into relevant dictionaries

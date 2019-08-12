@@ -140,8 +140,12 @@ class Tree:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
     @perf
-    def get_ids(self, interval=None, key=None, variable=None, units=None, part_match=False):
-        """ Find variable ids for given arguments. """
+    def get_ids(self, interval=None, key=None,
+                variable=None, units=None, part_match=False):
+        """
+        Find variable ids for given arguments.
+
+        """
         cond = [interval, variable, key, units]
         ids = []
 
@@ -155,8 +159,12 @@ class Tree:
         return ids
 
     @perf
-    def get_pairs(self, interval=None, key=None, variable=None, units=None, part_match=False):
-        """ Find interval : variable ids pairs for given arguments. """
+    def get_pairs(self, interval=None, key=None,
+                  variable=None, units=None, part_match=False):
+        """
+        Find interval : variable ids pairs for given arguments.
+
+        """
         root = self.root
         cond = [variable, key, units]
         pairs = {}

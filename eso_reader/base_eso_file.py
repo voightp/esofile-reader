@@ -321,8 +321,8 @@ class BaseResultsFile:
         """ Add specified output variable to the file. """
 
         if interval not in self.available_intervals:
-            print(f"Cannot add variable: '{key} : {var} : {units}' into outputs.\n"
-                  "Interval is not included in file '{self.file_name}'")
+            print(f"Cannot add variable: '{key} : {var} : {units}' into outputs."
+                  f"\nInterval is not included in file '{self.file_name}'")
             return
 
         # generate a unique identifier, custom ids use '-' sign
