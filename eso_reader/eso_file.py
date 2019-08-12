@@ -1,7 +1,7 @@
 import pandas as pd
 
 from eso_reader.performance import perf
-from eso_reader.base_eso_file import BaseResultsFIle, InvalidOutputType
+from eso_reader.base_eso_file import BaseResultsFile, InvalidOutputType
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
 from eso_reader.constants import RATE_TO_ENERGY_DCT
@@ -111,7 +111,7 @@ def _get_results(file, variables, **kwargs):
     ignore_peaks = kwargs.pop("ignore_peaks")
     suppress_errors = kwargs.pop("suppress_errors")
 
-    if issubclass(file.__class__, BaseResultsFIle):
+    if issubclass(file.__class__, BaseResultsFile):
         eso_file = file
     else:
         eso_file = EsoFile(file, exclude_intervals=excl,
@@ -155,7 +155,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
     return res
 
 
-class EsoFile(BaseResultsFIle):
+class EsoFile(BaseResultsFile):
     """
     The ESO class holds processed EnergyPlus output ESO file data.
 

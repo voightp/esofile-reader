@@ -24,7 +24,7 @@ def rand_id_gen():
         yield -randint(1, 999999)
 
 
-class BaseResultsFIle:
+class BaseResultsFile:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
     'building' totals file.

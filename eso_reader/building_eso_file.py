@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-from eso_reader.base_eso_file import BaseResultsFIle
+from eso_reader.base_eso_file import BaseResultsFile
 from eso_reader.mini_classes import Variable
 from eso_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
 from eso_reader.convertor import rate_to_energy, convert_units
@@ -67,7 +67,7 @@ def get_keyword(string, keywords):
         return next(v for k, v in keywords.items() if k in string)
 
 
-class BuildingEsoFile(BaseResultsFIle):
+class BuildingEsoFile(BaseResultsFile):
     """
     The ESO class holds processed EnergyPlus output ESO file data.
 
