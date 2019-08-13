@@ -4,7 +4,7 @@ import pandas as pd
 
 from random import randint
 from eso_reader.performance import perf
-from eso_reader.mini_classes import Variable
+from eso_reader.eso_processor import create_variable
 from eso_reader.convertor import verify_units, rate_to_energy
 
 
@@ -266,30 +266,6 @@ class BaseResultsFile:
                 return id_
 
     @perf
-    def is_variable_unique(self, variable, interval):
-        """ Check if the variable is included in a given interval. """
-        return variable not in self.header_dct[interval].values()
-
-    @perf
-    def create_variable(self, interval, key, var, units):
-        """ Create a unique header variable. """
-
-        def add_num():
-            new_key = f"{key} ({i})"
-            return Variable(interval, new_key, var, units)
-
-        variable = Variable(interval, key, var, units)
-        is_unique = self.is_variable_unique(variable, interval)
-
-        i = 0
-        while not is_unique:
-            i += 1
-            variable = add_num()
-            is_unique = self.is_variable_unique(variable, interval)
-
-        return variable
-
-    @perf
     def rename_variable(self, variable, var_nm="", key_nm=""):
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
@@ -308,7 +284,8 @@ class BaseResultsFile:
             del self.header_dct[interval][id_]
 
             # create a new variable
-            new_var = self.create_variable(interval, key_nm, var_nm, units)
+            all_vars = self.header_dct[interval].values()
+            new_var = create_variable(all_vars, interval, key_nm, var_nm, units)
 
             # add variable to header and tree
             self.header_dct[interval][id_] = new_var
@@ -317,27 +294,32 @@ class BaseResultsFile:
             return id_, new_var
 
     @perf
-    def add_output(self, interval, key, var, units, array):
+    def add_output(self, interval, key_nm, var_nm, units, array):
         """ Add specified output variable to the file. """
 
-        if interval not in self.available_intervals:
-            print(f"Cannot add variable: '{key} : {var} : {units}' into outputs.\n"
-                  "Interval is not included in file '{self.file_name}'")
-            return
+        if interval in self.available_intervals:
+            # generate a unique identifier, custom ids use '-' sign
+            id_ = self.generate_rand_id()
 
-        # generate a unique identifier, custom ids use '-' sign
-        id_ = self.generate_rand_id()
+            # add variable data to the output df
+            is_valid = self.outputs_dct[interval].add_column(id_, array)
 
-        # add variable data to the output df
-        is_valid = self.outputs_dct[interval].add_column(id_, array)
+            if is_valid:
+                # variable can be added, create a reference in the search tree
+                all_vars = self.header_dct[interval].values()
+                new_var = create_variable(all_vars, interval,
+                                          key_nm, var_nm, units)
 
-        if is_valid:
-            # variable can be added, create a reference in the search tree
-            new_var = self.create_variable(interval, key, var, units)
-            self.header_dct[interval][id_] = new_var
-            self.header_tree.add_branch(interval, key, var, units, id_)
+                # add variables to the header and search tree
+                self.header_dct[interval][id_] = new_var
+                self.header_tree.add_branch(interval, key_nm,
+                                            var_nm, units, id_)
 
-            return id_, new_var
+                return id_, new_var
+        else:
+            print(f"Cannot add variable: '{key_nm} : {var_nm} : "
+                  f"{units}'into outputs.\nInterval is not included "
+                  f"in file '{self.file_name}'")
 
     @perf
     def aggregate_variables(self, variables, func, key_nm="Custom Key",

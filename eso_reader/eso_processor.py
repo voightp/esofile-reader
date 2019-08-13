@@ -13,6 +13,7 @@ from eso_reader.mini_classes import Variable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.tree import Tree
 from eso_reader.monitor import DefaultMonitor
+from eso_reader.performance import perf
 
 
 class InvalidLineSyntax(AttributeError):
@@ -81,6 +82,30 @@ def _process_header_line(line):
     return int(line_id), key, var, units, interval.lower()
 
 
+def create_variable(variables, interval, key, var, units):
+    """ Create a unique header variable. """
+
+    def is_unique():
+        return variable not in variables
+
+    def add_num():
+        new_key = f"{key} ({i})"
+        return Variable(interval, new_key, var, units)
+
+    variable = Variable(interval, key, var, units)
+
+    i = 0
+    while not is_unique():
+
+        if not is_unique():
+            print(variable)
+
+        i += 1
+        variable = add_num()
+
+    return variable
+
+
 def read_header(eso_file, monitor, excl=None):
     """
     Read header dictionary of the eso file.
@@ -115,7 +140,7 @@ def read_header(eso_file, monitor, excl=None):
     if not isinstance(excl, list):
         excl = list(excl)
 
-    header_dicts = defaultdict(partial(defaultdict))
+    header_dct = defaultdict(partial(defaultdict))
     outputs = defaultdict(partial(defaultdict))
 
     while True:
@@ -137,13 +162,20 @@ def read_header(eso_file, monitor, excl=None):
         if interval in excl:
             continue
 
-        # Create a new item in header_dict for a given interval
-        header_dicts[interval][id_] = Variable(interval, key_nm, var_nm, units)
+        # create a new item in header_dict for a given interval
+        all_variables = header_dct[interval].values()
+        var = Variable(interval, key_nm, var_nm, units)
 
-        # Initialize output item for a given frequency
-        outputs[interval][id_] = []
+        if var in all_variables:
+            print(f"Variable '{interval} | {key_nm}| {var_nm}| {units}' "
+                  f"is not unique!\nIt will be ignored from the results set.")
+        else:
+            # add variable into header dict and initialize
+            # output item for a given frequency
+            header_dct[interval][id_] = var
+            outputs[interval][id_] = []
 
-    return header_dicts, outputs
+    return header_dct, outputs
 
 
 def process_standard_lines(file):
@@ -268,7 +300,7 @@ def _process_result_line(data, ignore_peaks):
         return np.float(data[0])
 
     # return tuple([np.float(item) for item in data])
-    return tuple([np.float(item) if "." in item else np.int(item) for item in data])
+    return tuple([np.float(i) if "." in i else np.int(i) for i in data])
 
 
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
@@ -354,7 +386,11 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
 
             # current line represents a result
             # replace nan values from the last step
-            outputs[identifier][line_id][-1] = _process_result_line(data, ignore_peaks)
+            res = _process_result_line(data, ignore_peaks)
+            try:
+                outputs[identifier][line_id][-1] = res
+            except KeyError:
+                print(f"ignoring {line_id}")
 
     return outputs, envs
 
