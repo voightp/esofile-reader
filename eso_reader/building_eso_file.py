@@ -360,7 +360,8 @@ class BuildingEsoFile(BaseResultsFile):
             outputs_dct[interval] = output_cls[interval](outputs)
             header_dct[interval] = self.build_header_dct(header_df)
 
-        tree = Tree(header_dct)
+        tree = Tree()
+        tree.populate_tree(header_dct)
 
         return header_dct, outputs_dct, tree
 

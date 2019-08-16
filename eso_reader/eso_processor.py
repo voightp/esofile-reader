@@ -448,7 +448,22 @@ def generate_outputs(outputs_dct, envs_dct, num_of_days_dct):
 
 def create_tree(header_dct):
     """ Generate a search tree. """
-    return Tree(header_dct)
+    tree = Tree()
+    dup_ids = tree.populate_tree(header_dct)
+    return tree, dup_ids
+
+
+def remove_duplicates(ids, header_dct, outputs_dct):
+    """ Remove duplicate outputs from results set. """
+    intervals = header_dct.keys()
+    for id_ in ids:
+        for interval in intervals:
+            try:
+                del header_dct[interval][id_]
+                del outputs_dct[interval][id_]
+                print(f"Removing duplicate variable '{id_}'.")
+            except KeyError:
+                pass
 
 
 def process_file(file, monitor, excl=None, ignore_peaks=True, ):
@@ -456,35 +471,41 @@ def process_file(file, monitor, excl=None, ignore_peaks=True, ):
     # process first few standard lines
     last_standard_item_id, timestamp = process_standard_lines(file)
 
-    # Read header to obtain a header dictionary of EnergyPlus outputs
-    # and initialize dictionary for output values
-    header_dict, init_outputs = read_header(file, monitor, excl=excl)
+    # Read header to obtain a header dictionary of EnergyPlus
+    # outputs and initialize dictionary for output values
+    header_dct, init_outputs = read_header(file, monitor, excl=excl)
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
     # Intervals excluded in header are ignored
-    outputs, envs = read_body(file, last_standard_item_id,
-                              init_outputs, ignore_peaks, monitor)
+    outputs_dct, envs = read_body(file, last_standard_item_id,
+                                  init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
 
     # Sort interval data into relevant dictionaries
     environments, env_dict, num_of_days_dict = interval_processor(envs)
     monitor.intervals_finished()
 
-    # Transform standard dictionaries into DataFrame like Output classes
-    outputs = generate_outputs(outputs, env_dict, num_of_days_dict)
+    # transform standard dictionaries into DataFrame
+    # like Output classes
+    outputs_dct = generate_outputs(outputs_dct, env_dict, num_of_days_dict)
     monitor.output_cls_gen_finished()
 
-    # Create a 'search tree' to allow searching for variables using header data
-    tree = create_tree(header_dict)
+    # Create a 'search tree' to allow searching for variables
+    # using header data
+    tree, dup_ids = create_tree(header_dct)
     monitor.header_tree_finished()
 
+    if dup_ids:
+        # remove duplicates from header and outputs
+        remove_duplicates(dup_ids, header_dct, outputs_dct)
+
     monitor.processing_finished()
-    return timestamp, environments, header_dict, outputs, tree
+    return timestamp, environments, header_dct, outputs_dct, tree
 
 
-def read_file(file_path, exclude_intervals=None, monitor=None, report_progress=False,
-              ignore_peaks=True, suppress_errors=False):
+def read_file(file_path, exclude_intervals=None, monitor=None,
+              report_progress=False, ignore_peaks=True, suppress_errors=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)

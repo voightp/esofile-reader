@@ -32,10 +32,8 @@ class Tree:
     A class which creates a tree like structure of
     the header dictionary.
 
-    Parameters
-    ----------
-    header_dct
-        An EnergyPlus Eso file header dictionary.
+    Tree needs to be populated using 'populate_tree'
+    method.
 
     Attributes
     ----------
@@ -44,9 +42,8 @@ class Tree:
         as its children and children of children.
     """
 
-    def __init__(self, header_dct):
+    def __init__(self):
         self.root = Node(None, "groot")
-        self.create_tree(header_dct)
 
     def __repr__(self):
         return self.str_tree()
@@ -99,15 +96,27 @@ class Tree:
         for nd_name in pth:
             parent = self._add_node(nd_name, parent)
 
+        # add 'leaf'
         val = Node(parent, id_)
         val.children = None
+        if parent.children:
+            # there's already a leaf, variable is duplicate
+            return id_
+
         parent.children.append(val)
 
-    def create_tree(self, header_dct):
+    def populate_tree(self, header_dct):
         """ Create a search tree. """
+        duplicates = []
+
         for interval, data in header_dct.items():
             for id_, tup in data.items():
-                self.add_branch(interval, tup.key, tup.variable, tup.units, id_)
+                dup_id = self.add_branch(interval, tup.key,
+                                         tup.variable, tup.units, id_)
+                if dup_id:
+                    duplicates.append(dup_id)
+
+        return duplicates
 
     @staticmethod
     def _match(nd, condition, part_match=False):
