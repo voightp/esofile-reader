@@ -163,17 +163,12 @@ def read_header(eso_file, monitor, excl=None):
             continue
 
         # create a new item in header_dict for a given interval
-        all_variables = header_dct[interval].values()
         var = Variable(interval, key_nm, var_nm, units)
 
-        if var in all_variables:
-            print(f"Variable '{interval} | {key_nm}| {var_nm}| {units}' "
-                  f"is not unique!\nIt will be ignored from the results set.")
-        else:
-            # add variable into header dict and initialize
-            # output item for a given frequency
-            header_dct[interval][id_] = var
-            outputs[interval][id_] = []
+        # add variable into header dict and initialize
+        # output item for a given frequency
+        header_dct[interval][id_] = var
+        outputs[interval][id_] = []
 
     return header_dct, outputs
 
