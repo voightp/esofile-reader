@@ -96,10 +96,6 @@ def create_variable(variables, interval, key, var, units):
 
     i = 0
     while not is_unique():
-
-        if not is_unique():
-            print(variable)
-
         i += 1
         variable = add_num()
 
