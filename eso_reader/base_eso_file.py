@@ -135,6 +135,10 @@ class BaseResultsFile:
         df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
         return df
 
+    def outputs_df(self):
+        """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
+        frames = pd.concat(self.outputs_dct, axis=1)
+
     @perf
     @classmethod
     def update_dt_format(cls, df, output_type, timestamp_format):
@@ -438,3 +442,14 @@ class BaseResultsFile:
         self.header_tree.remove_variables(variables)
 
         return groups
+
+    def as_df(self):
+        """ Return the file as a single DataFrame. """
+        pass
+        # TODO implement
+
+    def save(self,path=None, directory=None, name=None):
+        """ Save the file into filesystem. """
+        pass
+        # TODO implement
+
