@@ -73,6 +73,7 @@ class BaseResultsFile:
 
     def __init__(self):
         self.file_path = None
+        self.file_name = None
         self._complete = False
 
         self.file_timestamp = None
@@ -86,12 +87,6 @@ class BaseResultsFile:
         return f"File: {self.file_name}" \
             f"\nPath: {self.file_path}" \
             f"\nCreated: {human_time}"
-
-    @property
-    def file_name(self):
-        """ Return eso file name without suffix. """
-        bsnm = os.path.basename(self.file_path)
-        return os.path.splitext(bsnm)[0]
 
     @property
     def available_intervals(self):
@@ -137,6 +132,7 @@ class BaseResultsFile:
 
     def outputs_df(self):
         """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
+        # TODO finish this
         frames = pd.concat(self.outputs_dct, axis=1)
 
     @perf
@@ -147,6 +143,10 @@ class BaseResultsFile:
             df.index = df.index.strftime(timestamp_format)
 
         return df
+
+    def rename(self, name):
+        """ Set a new file name. """
+        self.file_name = name
 
     def populate_content(self, *args, **kwargs):
         """ Populate instance attributes. """
@@ -448,8 +448,7 @@ class BaseResultsFile:
         pass
         # TODO implement
 
-    def save(self,path=None, directory=None, name=None):
+    def save(self, path=None, directory=None, name=None):
         """ Save the file into filesystem. """
         pass
         # TODO implement
-

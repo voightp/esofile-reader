@@ -368,6 +368,7 @@ class BuildingEsoFile(BaseResultsFile):
     def populate_content(self, eso_file):
         """ Generate building related data based on input 'EsoFile'. """
         self.file_path = eso_file.file_path
+        self.file_name = eso_file.file_name
         self._complete = eso_file.complete
         self.file_timestamp = eso_file.file_timestamp
         self.environments = eso_file.environments

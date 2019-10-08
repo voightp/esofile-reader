@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 from eso_reader.performance import perf
 from eso_reader.base_eso_file import BaseResultsFile, InvalidOutputType
@@ -155,6 +156,11 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
     return res
 
 
+def get_file_name(pth):
+    """ Return eso file name without suffix. """
+    bsnm = os.path.basename(pth)
+    return os.path.splitext(bsnm)[0]
+
 class EsoFile(BaseResultsFile):
     """
     The ESO class holds processed EnergyPlus output ESO file data.
@@ -227,6 +233,8 @@ class EsoFile(BaseResultsFile):
     def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True,
                          ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
+        self.file_name = get_file_name(self.file_path)
+
         content = read_file(
             self.file_path,
             exclude_intervals=exclude_intervals,
