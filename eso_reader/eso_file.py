@@ -139,7 +139,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
         if df is not None:
             frames.append(df)
     try:
-        res = pd.concat(frames, sort=False)
+        res = pd.concat(frames, axis=1, sort=False)
 
     except ValueError:
         if isinstance(variables, list):
