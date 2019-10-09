@@ -20,10 +20,10 @@ class IncompleteFile(Exception):
 
 
 def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
-                add_file_name="row", include_interval=False, units_system="SI",
-                rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W", energy_units="J",
-                timestamp_format="default", report_progress=True, exclude_intervals=None,
-                part_match=False, ignore_peaks=True, suppress_errors=False):
+                add_file_name="row", include_interval=False, include_id=False,
+                units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
+                energy_units="J", timestamp_format="default", report_progress=True,
+                exclude_intervals=None, part_match=False, ignore_peaks=True, suppress_errors=False):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -53,6 +53,8 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
      include_interval : bool
         Decide if 'interval' information should be included on
         the results df.
+     include_id : bool
+        Decide if variable 'id' should be included on the results df.
      part_match : bool
         Only substring of the part of variable is enough
         to match when searching for variables if this is True.
@@ -87,6 +89,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         "output_type": output_type,
         "add_file_name": add_file_name,
         "include_interval": include_interval,
+        "include_id": include_id,
         "units_system": units_system,
         "rate_to_energy_dct": rate_to_energy_dct,
         "rate_units": rate_units,
@@ -160,6 +163,7 @@ def get_file_name(pth):
     """ Return eso file name without suffix. """
     bsnm = os.path.basename(pth)
     return os.path.splitext(bsnm)[0]
+
 
 class EsoFile(BaseResultsFile):
     """
@@ -262,8 +266,9 @@ class EsoFile(BaseResultsFile):
     @perf
     def results_df(
             self, variables, start_date=None, end_date=None,
-            output_type="standard", add_file_name="row", include_interval=False, part_match=False,
-            units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
+            output_type="standard", add_file_name="row", include_interval=False,
+            include_id=False, part_match=False, units_system="SI",
+            rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):
         """
@@ -290,6 +295,8 @@ class EsoFile(BaseResultsFile):
         include_interval : bool
             Decide if 'interval' information should be included on
             the results df.
+        include_id : bool
+            Decide if variable 'id' should be included on the results df.
         part_match : bool
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
@@ -363,7 +370,7 @@ class EsoFile(BaseResultsFile):
                       "\n\tignoring the request...".format(type, interval))
                 continue
 
-            df = self.add_header_data(interval, df)
+            df.columns = self.create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct:
@@ -375,8 +382,11 @@ class EsoFile(BaseResultsFile):
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
 
-            if include_interval:
-                df = pd.concat([df], axis=1, keys=[interval], names=["interval"])
+            if not include_id:
+                df.columns = df.columns.droplevel("id")
+
+            if not include_interval:
+                df.columns = df.columns.droplevel("interval")
 
             frames.append(df)
 

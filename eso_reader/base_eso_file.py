@@ -227,26 +227,22 @@ class BaseResultsFile:
                 print("Id '{}' was not found in the header!")
 
         tuples = []
-        names = ["key", "variable", "units"]
+        names = ["id", "interval", "key", "variable", "units"]
         if isinstance(ids, pd.MultiIndex):
             names.append("data")
             for id_, data in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((var.key, var.variable, var.units, data))
+                    tuples.append((id_, interval, var.key,
+                                   var.variable, var.units, data))
         else:
             for id_ in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((var.key, var.variable, var.units,))
+                    tuples.append((id_, interval, var.key,
+                                   var.variable, var.units))
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
-
-    @perf
-    def add_header_data(self, interval, df):
-        """ Add variable 'key', 'variable' and 'units' data. """
-        df.columns = self.create_header_mi(interval, df.columns)
-        return df
 
     @perf
     def add_file_name(self, results, name_position):

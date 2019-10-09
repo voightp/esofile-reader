@@ -207,8 +207,9 @@ class BuildingEsoFile(BaseResultsFile):
     @perf
     def results_df(
             self, variables, start_date=None, end_date=None,
-            output_type="standard", add_file_name="row", include_interval=False, part_match=False,
-            units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
+            output_type="standard", add_file_name="row", include_interval=False,
+            include_id=False,part_match=False, units_system="SI",
+            rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):
         """
@@ -232,6 +233,8 @@ class BuildingEsoFile(BaseResultsFile):
         include_interval : bool
             Decide if 'interval' information should be included on
             the results df.
+        include_id : bool
+            Decide if variable 'id' should be included on the results df.
         part_match : bool
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
@@ -289,7 +292,7 @@ class BuildingEsoFile(BaseResultsFile):
                       "\n\tignoring the request...".format(type, interval))
                 continue
 
-            df = self.add_header_data(interval, df)
+            df.columns = self.create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct:
@@ -301,8 +304,11 @@ class BuildingEsoFile(BaseResultsFile):
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
 
-            if include_interval:
-                df = pd.concat([df], axis=1, keys=[interval], names=["interval"])
+            if not include_id:
+                df.columns = df.columns.droplevel("id")
+
+            if not include_interval:
+                df.columns = df.columns.droplevel("interval")
 
             frames.append(df)
 
