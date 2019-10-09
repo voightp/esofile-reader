@@ -18,10 +18,13 @@ class InvalidOutputType(Exception):
     pass
 
 
-def rand_id_gen():
+def gen_id(checklist, negative=True):
     """ ID generator. """
     while True:
-        yield -randint(1, 999999)
+        i = randint(1, 999999)
+        i = -i if negative else i
+        if i not in checklist:
+            return -randint(1, 999999)
 
 
 class BaseResultsFile:
@@ -257,15 +260,6 @@ class BaseResultsFile:
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
 
     @perf
-    def generate_rand_id(self):
-        """ Generate a unique id for custom variable. """
-        gen = rand_id_gen()
-        while True:
-            id_ = next(gen)
-            if id_ not in self.all_ids:
-                return id_
-
-    @perf
     def rename_variable(self, variable, var_nm="", key_nm=""):
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
@@ -299,7 +293,7 @@ class BaseResultsFile:
 
         if interval in self.available_intervals:
             # generate a unique identifier, custom ids use '-' sign
-            id_ = self.generate_rand_id()
+            id_ = gen_id(self.all_ids, negative=True)
 
             # add variable data to the output df
             is_valid = self.outputs_dct[interval].add_column(id_, array)
