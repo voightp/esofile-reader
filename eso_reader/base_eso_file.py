@@ -233,13 +233,13 @@ class BaseResultsFile:
             for id_, data in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((id_, interval, var.key,
+                    tuples.append((str(id_), interval, var.key,
                                    var.variable, var.units, data))
         else:
             for id_ in ids:
                 var = fetch_var()
                 if var:
-                    tuples.append((id_, interval, var.key,
+                    tuples.append((str(id_), interval, var.key,
                                    var.variable, var.units))
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
