@@ -32,7 +32,7 @@ def convert_units(df, units_system, rate_units, energy_units):
 
     conv_input = []
 
-    for units in df.columns.get_level_values("units"):
+    for units in set(df.columns.get_level_values("units")):
         inp = None
 
         if units == "J" and energy_units != "J":
@@ -55,6 +55,7 @@ def convert_units(df, units_system, rate_units, energy_units):
         return df
 
     orig_units, new_units, conv_ratios = zip(*conv_input)
+
     return apply_conversion(df, orig_units, new_units, conv_ratios)
 
 
