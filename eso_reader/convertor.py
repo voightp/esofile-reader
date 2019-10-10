@@ -11,7 +11,7 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
         cnd = df.columns.get_level_values("units") == old
 
-        if df.columns.nlevels == 4:
+        if "data" in df.columns.names:
             cnd = cnd & (df.columns.get_level_values("data") == "value")
 
         if isinstance(conv, (float, int)):
@@ -32,7 +32,7 @@ def convert_units(df, units_system, rate_units, energy_units):
 
     conv_input = []
 
-    for units in df.columns.levels[2]:
+    for units in df.columns.get_level_values("units"):
         inp = None
 
         if units == "J" and energy_units != "J":
