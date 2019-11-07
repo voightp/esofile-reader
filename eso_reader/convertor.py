@@ -1,11 +1,9 @@
 from eso_reader.outputs import Timestep, Hourly, Daily
 from eso_reader.conversion_tables import energy_table, rate_table, si_to_ip
-from eso_reader.performance import perf
 
 import pandas as pd
 
 
-@perf
 def apply_conversion(df, orig_units, new_units, conv_ratios):
     """ Convert values for columns using specified units. """
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
@@ -26,7 +24,6 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
     return df
 
 
-@perf
 def convert_units(df, units_system, rate_units, energy_units):
     """ Convert raw E+ results to use requested units. """
 
@@ -59,7 +56,6 @@ def convert_units(df, units_system, rate_units, energy_units):
     return apply_conversion(df, orig_units, new_units, conv_ratios)
 
 
-@perf
 def update_multiindex(df, level, old_vals, new_vals, axis=1):
     """ Replace multiindex values on a specific level inplace. """
 
@@ -87,7 +83,6 @@ def update_multiindex(df, level, old_vals, new_vals, axis=1):
         df.index = new_mi
 
 
-@perf
 def verify_units(units):
     """ Check if the variables can be aggregated. """
     if all(map(lambda x: x == units[0], units)):
@@ -101,7 +96,6 @@ def verify_units(units):
         return units
 
 
-@perf
 def rate_to_energy(df, data_set, start_date=None, end_date=None):
     """ Convert 'rate' outputs to 'energy'. """
     if isinstance(data_set, Hourly):

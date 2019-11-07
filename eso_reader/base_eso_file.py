@@ -3,7 +3,6 @@ import time
 import pandas as pd
 
 from random import randint
-from eso_reader.performance import perf
 from eso_reader.eso_processor import create_variable
 from eso_reader.convertor import verify_units, rate_to_energy
 
@@ -122,7 +121,6 @@ class BaseResultsFile:
         """ Check if the file has been populated and complete. """
         return self._complete
 
-    @perf
     @property
     def header_df(self):
         """ Get pd.DataFrame like header (index: mi(interval, id). """
@@ -138,7 +136,6 @@ class BaseResultsFile:
         # TODO finish this
         frames = pd.concat(self.outputs_dct, axis=1)
 
-    @perf
     @classmethod
     def update_dt_format(cls, df, output_type, timestamp_format):
         """ Set specified 'datetime' str format. """
@@ -159,7 +156,6 @@ class BaseResultsFile:
         """ Fetch results. """
         pass
 
-    @perf
     def find_ids(self, variables, part_match=False):
         """ Find ids for a list of 'Variables'. """
         out = []
@@ -179,7 +175,6 @@ class BaseResultsFile:
 
         return out
 
-    @perf
     def find_pairs(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
@@ -219,7 +214,6 @@ class BaseResultsFile:
 
         return out
 
-    @perf
     def create_header_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
 
@@ -247,7 +241,6 @@ class BaseResultsFile:
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
 
-    @perf
     def add_file_name(self, results, name_position):
         """ Add file name to index. """
         pos = ["row", "column", "None"]  # 'None' is here only to inform
@@ -259,7 +252,6 @@ class BaseResultsFile:
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
 
-    @perf
     def rename_variable(self, variable, var_nm="", key_nm=""):
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
@@ -287,7 +279,6 @@ class BaseResultsFile:
 
             return id_, new_var
 
-    @perf
     def add_output(self, interval, key_nm, var_nm, units, array):
         """ Add specified output variable to the file. """
 
@@ -315,7 +306,6 @@ class BaseResultsFile:
                   f"{units}'into outputs.\nInterval is not included "
                   f"in file '{self.file_name}'")
 
-    @perf
     def aggregate_variables(self, variables, func, key_nm="Custom Key",
                             var_nm="Custom Variable", part_match=False):
         """
@@ -395,7 +385,6 @@ class BaseResultsFile:
 
         return out
 
-    @perf
     def remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
@@ -406,7 +395,6 @@ class BaseResultsFile:
         except AttributeError:
             print(f"Invalid interval: '{interval}' specified!")
 
-    @perf
     def remove_header_variables(self, interval, ids):
         """ Remove header variable from header. """
         ids = ids if isinstance(ids, list) else [ids]
@@ -420,7 +408,6 @@ class BaseResultsFile:
                 print(f"Cannot remove id: {id_} from {interval}."
                       f"\nGiven id or interval is not valid.")
 
-    @perf
     def remove_outputs(self, variables):
         """ Remove given variables from the file. """
         groups = self.find_pairs(variables)

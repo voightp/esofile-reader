@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 
-from eso_reader.performance import perf
 from eso_reader.base_eso_file import BaseResultsFile, InvalidOutputType
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.eso_processor import read_file
@@ -263,7 +262,6 @@ class EsoFile(BaseResultsFile):
                 raise IncompleteFile("Unexpected end of the file reached!\n"
                                      "File '{}' is not complete.".format(self.file_path))
 
-    @perf
     def results_df(
             self, variables, start_date=None, end_date=None,
             output_type="standard", add_file_name="row", include_interval=False,

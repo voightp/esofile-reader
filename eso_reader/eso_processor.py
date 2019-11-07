@@ -13,7 +13,6 @@ from eso_reader.mini_classes import Variable, IntervalTuple
 from eso_reader.constants import TS, H, D, M, A, RP
 from eso_reader.tree import Tree
 from eso_reader.monitor import DefaultMonitor
-from eso_reader.performance import perf
 
 
 class InvalidLineSyntax(AttributeError):

@@ -7,7 +7,6 @@ from eso_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
 from eso_reader.convertor import rate_to_energy, convert_units
 from eso_reader.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
 from eso_reader.tree import Tree
-from eso_reader.performance import perf
 from eso_reader.base_eso_file import InvalidOutputType
 
 variable_groups = {
@@ -204,11 +203,10 @@ class BuildingEsoFile(BaseResultsFile):
 
         return header_df.to_dict()
 
-    @perf
     def results_df(
             self, variables, start_date=None, end_date=None,
             output_type="standard", add_file_name="row", include_interval=False,
-            include_id=False,part_match=False, units_system="SI",
+            include_id=False, part_match=False, units_system="SI",
             rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
     ):

@@ -1,4 +1,4 @@
-from eso_reader.performance import perf
+
 
 
 class Node:
@@ -148,7 +148,6 @@ class Tree:
             for nd in node.children:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
-    @perf
     def get_ids(self, interval=None, key=None,
                 variable=None, units=None, part_match=False):
         """
@@ -167,7 +166,6 @@ class Tree:
 
         return ids
 
-    @perf
     def get_pairs(self, interval=None, key=None,
                   variable=None, units=None, part_match=False):
         """
@@ -226,7 +224,6 @@ class Tree:
             for nd in node.children:
                 self._rem_loop(nd, level, cond)
 
-    @perf
     def remove_variables(self, variables):
         """ Remove variable from the tree. """
         if not isinstance(variables, list):
