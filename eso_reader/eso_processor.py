@@ -32,15 +32,15 @@ def _eso_file_version(raw_version):
     return int(version[(start + 1):(start + 6)].replace(".", ""))
 
 
-def _dt_timestamp(tmstmp):
+def _dt_timestamp(timestamp):
     """ Return date and time of the eso file generation as a Datetime. """
-    timestamp = tmstmp.split("=")[1].strip()
+    timestamp = timestamp.split("=")[1].strip()
     return dt.datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
-def _process_statement(file):
+def _process_statement(line):
     """ Extract the version and time of the file generation. """
-    _, _, raw_version, tmstmp = next(file).split(",")
+    _, _, raw_version, tmstmp = line.split(",")
     version = _eso_file_version(raw_version)
     timestamp = _dt_timestamp(tmstmp)
     return version, timestamp
@@ -62,6 +62,7 @@ def _process_header_line(line):
     -------
     tuple of (int, str, str, str, str)
         Processed line tuple (ID, key name, variable name, units, interval)
+
     """
 
     pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
@@ -69,9 +70,8 @@ def _process_header_line(line):
     try:
         line_id, _, key, var, units, interval = pattern.search(line).groups()
 
-    except InvalidLineSyntax:
-        print("Unexpected header line syntax:" + line)
-        raise
+    except AttributeError:
+        raise InvalidLineSyntax("Unexpected header line syntax:" + line)
 
     # 'var' variable is 'None' for 'Meter' variable
     if var is None:
@@ -101,7 +101,7 @@ def create_variable(variables, interval, key, var, units):
     return variable
 
 
-def read_header(eso_file, monitor, excl=None):
+def read_header(eso_file, excl=None):
     """
     Read header dictionary of the eso file.
 
@@ -117,8 +117,6 @@ def read_header(eso_file, monitor, excl=None):
         Opened EnergyPlus result file.
     excl : list of {'TS', 'H', 'D', 'M', 'A', 'RP'}
         A list of interval identifiers which will be ignored.
-    monitor : DefaultMonitor, CustomMonitor
-        A custom class to monitor processing progress.
 
     Returns
     -------
@@ -143,7 +141,6 @@ def read_header(eso_file, monitor, excl=None):
 
         # something is wrong when there is a blank line in the file
         if line == "":
-            monitor.processing_failed("Blank line in header.")
             raise BlankLineError
 
         # Check if the end of data dictionary has been reached
@@ -170,7 +167,9 @@ def read_header(eso_file, monitor, excl=None):
 
 def process_standard_lines(file):
     """ Process first few standard lines. """
-    version, timestamp = _process_statement(file)
+    first_line = next(file)
+
+    version, timestamp = _process_statement(first_line)
     last = _last_standard_item_id(version)
 
     # Skip standard reporting intervals
@@ -468,8 +467,13 @@ def process_file(file, monitor, excl=None, ignore_peaks=True, ):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    header_dct, init_outputs = read_header(file, monitor, excl=excl)
-    monitor.header_finished()
+    try:
+        header_dct, init_outputs = read_header(file, excl=excl)
+        monitor.header_finished()
+    except BlankLineError:
+        msg = "Blank line in header."
+        monitor.processing_failed(msg)
+        raise BlankLineError(msg)
 
     # Read body to obtain outputs and environment dictionaries.
     # Intervals excluded in header are ignored
