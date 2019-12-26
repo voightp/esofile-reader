@@ -63,7 +63,6 @@ class Outputs(pd.DataFrame):
     @staticmethod
     def fetch_outputs(df, val_ix):
         """ Extract results column from df. """
-
         frames = []
         tuples = list(map(lambda x: x == object, df.dtypes))
 
@@ -72,7 +71,9 @@ class Outputs(pd.DataFrame):
 
         if (val_ix != 0 or val_ix == -1) and df_a.empty:
             raise PeaksNotIncluded("Peak values are not included, it's required to "
-                                   "add kwarg 'ignore_peaks=False' when processing the file.")
+                                   "add kwarg 'ignore_peaks=False' when processing the file."
+                                   "\nNote that peak values are only applicable for"
+                                   "raw Eso files.")
         if val_ix == -1:
             # return a copy without any modification
             return df.copy()
