@@ -286,11 +286,11 @@ class Hourly(Outputs):
     def __init__(self, data, **kwargs):
         super(Hourly, self).__init__(data, **kwargs)
 
-    def global_max(self, ids, start_date, end_date):
+    def global_max(self, ids, start_date=None, end_date=None):
         """ Return an interval maximum value and date of occurrence. """
         return self._global_peak(ids, start_date, end_date, val_ix=0)
 
-    def global_min(self, ids, start_date, end_date):
+    def global_min(self, ids, start_date=None, end_date=None):
         """ Return an interval minimum value and date of occurrence. """
         return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
 
