@@ -1,6 +1,3 @@
-
-
-
 class Node:
     """ A base tree component.
 

@@ -3,8 +3,9 @@ import time
 import pandas as pd
 
 from random import randint
-from eso_reader.eso_processor import create_variable
-from eso_reader.convertor import verify_units, rate_to_energy
+from esofile_reader.processing.esofile_processor import create_variable
+from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
+from esofile_reader.constants import *
 
 
 class VariableNotFound(Exception):
@@ -59,10 +60,10 @@ class BaseResultsFile:
         A full path of the ESO file.
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
-    header_dct : dict of {str : dict of {int : list of str}}
+    header : dict of {str : dict of {int : list of str}}
         A dictionary to store E+ header data
         {period : {ID : (key name, variable name, units)}}
-    outputs_dct : dict of {str : Outputs subclass}
+    outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
 
     Notes
@@ -80,8 +81,8 @@ class BaseResultsFile:
 
         self.file_timestamp = None
         self.environments = None
-        self.header_dct = None
-        self.outputs_dct = None
+        self.header = None
+        self.outputs = None
         self.header_tree = None
 
     def __repr__(self):
@@ -93,13 +94,13 @@ class BaseResultsFile:
     @property
     def available_intervals(self):
         """ Return a list of available intervals. """
-        return self.header_dct.keys()
+        return self.header.keys()
 
     @property
     def all_ids(self):
         """ Return a list of all ids (regardless the interval). """
         ids = []
-        for interval, data in self.header_dct.items():
+        for interval, data in self.header.items():
             keys = data.keys()
             ids.extend(keys)
         return ids
@@ -107,14 +108,12 @@ class BaseResultsFile:
     @property
     def modified(self):
         """ Return a timestamp of the last file system modification. """
-        path = self.file_path
-        return os.path.getmtime(path)
+        return os.path.getmtime(self.file_path)
 
     @property
     def created(self):
         """ Return a timestamp of the file system creation. """
-        path = self.file_path
-        return os.path.getctime(path)
+        return os.path.getctime(self.file_path)
 
     @property
     def complete(self):
@@ -125,7 +124,7 @@ class BaseResultsFile:
     def header_df(self):
         """ Get pd.DataFrame like header (index: mi(interval, id). """
         rows = []
-        for interval, variables in self.header_dct.items():
+        for interval, variables in self.header.items():
             for id_, var in variables.items():
                 rows.append((interval, id_, *var))
         df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
@@ -134,7 +133,7 @@ class BaseResultsFile:
     def outputs_df(self):
         """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
         # TODO finish this
-        frames = pd.concat(self.outputs_dct, axis=1)
+        frames = pd.concat(self.outputs, axis=1)
 
     @classmethod
     def update_dt_format(cls, df, output_type, timestamp_format):
@@ -152,9 +151,147 @@ class BaseResultsFile:
         """ Populate instance attributes. """
         pass
 
-    def results_df(self, *args, **kwargs):
-        """ Fetch results. """
-        pass
+    def results_df(
+            self, variables, start_date=None, end_date=None,
+            output_type="standard", add_file_name="row", include_interval=False,
+            include_id=False, part_match=False, units_system="SI",
+            rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
+            energy_units="J", timestamp_format="default"
+    ):
+        """
+        Return a pandas.DataFrame object with results for given variables.
+
+        This function extracts requested set of outputs from the eso file
+        and converts to specified units if requested.
+
+        Parameters
+        ----------
+        variables : Variable or list of (Variable)
+            Requested variables..
+        start_date : datetime like object, default None
+            A start date for requested results.
+        end_date : datetime like object, default None
+            An end date for requested results.
+        output_type : {
+                'standard', 'local_max',' global_max', 'timestep_max',
+                'local_min', 'global_min', 'timestep_min'
+                }
+            Requested type of results.
+        add_file_name : ('row','column',None)
+            Specify if file name should be added into results df.
+        include_interval : bool
+            Decide if 'interval' information should be included on
+            the results df.
+        include_id : bool
+            Decide if variable 'id' should be included on the results df.
+        part_match : bool
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
+        units_system : {'SI', 'IP'}
+            Selected units type for requested outputs.
+        rate_to_energy_dct : dct
+            Defines if 'rate' will be converted to energy.
+        rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+            Convert default 'Rate' outputs to requested units.
+        energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+            Convert default 'Energy' outputs to requested units
+        timestamp_format : str
+            Specified str format of a datetime timestamp.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Results for requested variables.
+
+        """
+
+        def standard():
+            return data_set.standard_results(*f_args)
+
+        def local_maxs():
+            return data_set.local_maxs(*f_args)
+
+        def global_max():
+            return data_set.global_max(*f_args)
+
+        def timestep_max():
+            return data_set.timestep_max(*f_args)
+
+        def local_mins():
+            return data_set.local_mins(*f_args)
+
+        def global_min():
+            return data_set.global_min(*f_args)
+
+        def timestep_min():
+            return data_set.timestep_min(*f_args)
+
+        res = {
+            "standard": standard,
+            "local_max": local_maxs,
+            "global_max": global_max,
+            "timestep_max": timestep_max,
+            "local_min": local_mins,
+            "global_min": global_min,
+            "timestep_min": timestep_min,
+        }
+
+        if output_type not in res:
+            msg = "Invalid output type '{}' requested.\n'output_type'" \
+                  "kwarg must be one of '{}'.".format(output_type, ", ".join(res.keys()))
+            raise InvalidOutputType(msg)
+
+        frames = []
+        groups = self.find_pairs(variables, part_match=part_match)
+
+        for interval, ids in groups.items():
+            data_set = self.outputs[interval]
+
+            # Extract specified set of results
+            f_args = (ids, start_date, end_date)
+
+            df = res[output_type]()
+
+            if df is None:
+                print("Results type '{}' is not applicable for '{}' interval."
+                      "\n\tignoring the request...".format(type, interval))
+                continue
+
+            df.columns = self.create_header_mi(interval, df.columns)
+
+            # convert 'rate' or 'energy' when standard results are requested
+            if output_type == "standard" and rate_to_energy_dct:
+                is_energy = rate_to_energy_dct[interval]
+                if is_energy:
+                    # 'energy' is requested for current output
+                    df = rate_to_energy(df, data_set, start_date, end_date)
+
+            if units_system != "SI" or rate_units != "W" or energy_units != "J":
+                df = convert_units(df, units_system, rate_units, energy_units)
+
+            if not include_id:
+                df.columns = df.columns.droplevel("id")
+
+            if not include_interval:
+                df.columns = df.columns.droplevel("interval")
+
+            frames.append(df)
+
+        # Catch empty frames exception
+        try:
+            # Merge dfs
+            df = pd.concat(frames, axis=1, sort=False)
+            # Add file name to the index
+            if timestamp_format != "default":
+                df = self.update_dt_format(df, output_type, timestamp_format)
+            if add_file_name:
+                df = self.add_file_name(df, add_file_name)
+            return df
+
+        except ValueError:
+            # raise ValueError("Any of requested variables is not included in the Eso file.")
+            print("Any of requested variables is not "
+                  "included in the Eso file '{}'.".format(self.file_name))
 
     def find_ids(self, variables, part_match=False):
         """ Find ids for a list of 'Variables'. """
@@ -219,9 +356,9 @@ class BaseResultsFile:
 
         def fetch_var():
             try:
-                return self.header_dct[interval][id_]
+                return self.header[interval][id_]
             except KeyError:
-                print("Id '{}' was not found in the header!")
+                print(f"Id '{id_}' was not found in the header!")
 
         tuples = []
         names = ["id", "interval", "key", "variable", "units"]
@@ -267,14 +404,14 @@ class BaseResultsFile:
             id_ = ids[0]
             # remove current item to avoid item duplicity and
             # unique number increment
-            del self.header_dct[interval][id_]
+            del self.header[interval][id_]
 
             # create a new variable
-            all_vars = self.header_dct[interval].values()
+            all_vars = self.header[interval].values()
             new_var = create_variable(all_vars, interval, key_nm, var_nm, units)
 
             # add variable to header and tree
-            self.header_dct[interval][id_] = new_var
+            self.header[interval][id_] = new_var
             self.header_tree.add_branch(interval, key_nm, var_nm, units, id_)
 
             return id_, new_var
@@ -287,16 +424,16 @@ class BaseResultsFile:
             id_ = gen_id(self.all_ids, negative=True)
 
             # add variable data to the output df
-            is_valid = self.outputs_dct[interval].add_column(id_, array)
+            is_valid = self.outputs[interval].add_column(id_, array)
 
             if is_valid:
                 # variable can be added, create a reference in the search tree
-                all_vars = self.header_dct[interval].values()
+                all_vars = self.header[interval].values()
                 new_var = create_variable(all_vars, interval,
                                           key_nm, var_nm, units)
 
                 # add variables to the header and search tree
-                self.header_dct[interval][id_] = new_var
+                self.header[interval][id_] = new_var
                 self.header_tree.add_branch(interval, key_nm,
                                             var_nm, units, id_)
 
@@ -361,7 +498,7 @@ class BaseResultsFile:
             print("Cannot sum variables using different units!")
             return
 
-        data_set = self.outputs_dct[interval]
+        data_set = self.outputs[interval]
         df = data_set.standard_results(ids)
 
         if isinstance(units, list):
@@ -388,10 +525,10 @@ class BaseResultsFile:
     def remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
-            out = self.outputs_dct[interval]
+            out = self.outputs[interval]
             out.remove_columns(ids)
             if out.empty:
-                del self.outputs_dct[interval]
+                del self.outputs[interval]
         except AttributeError:
             print(f"Invalid interval: '{interval}' specified!")
 
@@ -401,9 +538,9 @@ class BaseResultsFile:
 
         for id_ in ids:
             try:
-                del self.header_dct[interval][id_]
-                if not self.header_dct[interval]:
-                    del self.header_dct[interval]
+                del self.header[interval][id_]
+                if not self.header[interval]:
+                    del self.header[interval]
             except KeyError:
                 print(f"Cannot remove id: {id_} from {interval}."
                       f"\nGiven id or interval is not valid.")
@@ -419,6 +556,11 @@ class BaseResultsFile:
         self.header_tree.remove_variables(variables)
 
         return groups
+
+    def diff(self, other_file, absolute=False):
+        """ Calculate difference between this and other results file. """
+
+
 
     def as_df(self):
         """ Return the file as a single DataFrame. """

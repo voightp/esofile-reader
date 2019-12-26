@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from eso_reader.interval_processor import parse_result_dt
+from esofile_reader.processing.interval_processor import parse_result_dt
 
 
 class PeaksNotIncluded(Exception):
