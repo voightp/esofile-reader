@@ -6,13 +6,13 @@ import numpy as np
 from functools import partial
 from collections import defaultdict
 
-from eso_reader.outputs import (Hourly, Daily, Monthly,
-                                Annual, Runperiod, Timestep)
-from eso_reader.interval_processor import interval_processor
-from eso_reader.mini_classes import Variable, IntervalTuple
-from eso_reader.constants import TS, H, D, M, A, RP
-from eso_reader.tree import Tree
-from eso_reader.monitor import DefaultMonitor
+from esofile_reader.outputs.outputs import (Hourly, Daily, Monthly,
+                                            Annual, Runperiod, Timestep)
+from esofile_reader.processing.interval_processor import interval_processor
+from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.constants import TS, H, D, M, A, RP
+from esofile_reader.outputs.tree import Tree
+from esofile_reader.processing.monitor import DefaultMonitor
 
 
 class InvalidLineSyntax(AttributeError):

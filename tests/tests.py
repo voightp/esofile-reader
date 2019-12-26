@@ -1,14 +1,12 @@
 import unittest
 import datetime
-from collections import defaultdict
-from eso_reader.eso_processor import *
-from eso_reader.eso_processor import (_process_statement, _process_header_line,
-                                      _last_standard_item_id, _process_raw_line,
-                                      _process_interval_line)
+from esofile_reader.processing.esofile_processor import *
+from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
+                                                         _last_standard_item_id, _process_raw_line)
 
-from eso_reader.eso_file import EsoFile, get_results
-from eso_reader.mini_classes import Variable
-from eso_reader.building_eso_file import BuildingEsoFile
+from esofile_reader.mini_classes import Variable
+from esofile_reader.eso_file import EsoFile
+from esofile_reader.totals_file import TotalsFile
 
 
 class TestEsoFileProcessing(unittest.TestCase):
@@ -101,6 +99,15 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(l2, (945, ["217.68491613470054"]))
         self.assertEqual(l3, (3604, ["0.2382358160619045", "0.0", "10", "4", "1",
                                      "30", "11.73497", "12", "2", "6", "1"]))
+
+    def test_create_eso_file(self):
+        ef = EsoFile("../tests/eso_files/eplusout.eso")
+        self.assertTrue(ef.complete)
+
+    def test_create_totals_file(self):
+        ef = EsoFile("../tests/eso_files/eplusout.eso", report_progress=False)
+        tf = TotalsFile(ef)
+        self.assertTrue(tf.complete)
 
 
 if __name__ == "__main__":
