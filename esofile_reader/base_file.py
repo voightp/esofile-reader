@@ -35,7 +35,7 @@ class BaseResultsFile:
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for data bins is as follows:
+    A structure for line bins is as follows:
     header_dict = {
         TS : {(int)ID : ('Key','Variable','Units')},
         H : {(int)ID : ('Key','Variable','Units')},
@@ -61,7 +61,7 @@ class BaseResultsFile:
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
+        A dictionary to store E+ header line
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -88,8 +88,8 @@ class BaseResultsFile:
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return f"File: {self.file_name}" \
-            f"\nPath: {self.file_path}" \
-            f"\nCreated: {human_time}"
+               f"\nPath: {self.file_path}" \
+               f"\nCreated: {human_time}"
 
     @property
     def available_intervals(self):
@@ -206,7 +206,7 @@ class BaseResultsFile:
         """
 
         def standard():
-            return data_set.standard_results(*f_args)
+            return data_set.get_results(*f_args)
 
         def local_maxs():
             return data_set.local_maxs(*f_args)
@@ -245,16 +245,14 @@ class BaseResultsFile:
         groups = self.find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
-            data_set = self.outputs[interval]
-
             # Extract specified set of results
             f_args = (ids, start_date, end_date)
 
             df = res[output_type]()
 
             if df is None:
-                print("Results type '{}' is not applicable for '{}' interval."
-                      "\n\tignoring the request...".format(type, interval))
+                print(f"Results type '{output_type}' is not applicable for "
+                      f"'{interval}' interval. \n\tignoring the request...")
                 continue
 
             df.columns = self.create_header_mi(interval, df.columns)
@@ -363,7 +361,7 @@ class BaseResultsFile:
         tuples = []
         names = ["id", "interval", "key", "variable", "units"]
         if isinstance(ids, pd.MultiIndex):
-            names.append("data")
+            names.append("line")
             for id_, data in ids:
                 var = fetch_var()
                 if var:
@@ -423,7 +421,7 @@ class BaseResultsFile:
             # generate a unique identifier, custom ids use '-' sign
             id_ = gen_id(self.all_ids, negative=True)
 
-            # add variable data to the output df
+            # add variable line to the output df
             is_valid = self.outputs[interval].add_column(id_, array)
 
             if is_valid:
@@ -456,7 +454,7 @@ class BaseResultsFile:
         variables : list of Variable
             A list of 'Variable' named tuples.
         func: func, func name
-            Function to use for aggregating the data.
+            Function to use for aggregating the line.
             It can be specified as np.mean, 'mean', 'sum', etc.
         key_nm: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
@@ -499,7 +497,7 @@ class BaseResultsFile:
             return
 
         data_set = self.outputs[interval]
-        df = data_set.standard_results(ids)
+        df = data_set.get_results(ids)
 
         if isinstance(units, list):
             # it's needed to convert rate to energy
@@ -523,7 +521,7 @@ class BaseResultsFile:
         return out
 
     def remove_output_variables(self, interval, ids):
-        """ Remove output data from the file. """
+        """ Remove output line from the file. """
         try:
             out = self.outputs[interval]
             out.remove_columns(ids)
@@ -559,8 +557,6 @@ class BaseResultsFile:
 
     def diff(self, other_file, absolute=False):
         """ Calculate difference between this and other results file. """
-
-
 
     def as_df(self):
         """ Return the file as a single DataFrame. """

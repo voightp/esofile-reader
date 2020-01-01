@@ -160,12 +160,12 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
 
 class EsoFile(BaseResultsFile):
     """
-    The ESO class holds processed EnergyPlus output ESO file data.
+    The ESO class holds processed EnergyPlus output ESO file line.
 
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for data bins is as follows:
+    A structure for line bins is as follows:
     header_dict = {
         TS : {(int)ID : ('Key','Variable','Units')},
         H : {(int)ID : ('Key','Variable','Units')},
@@ -191,7 +191,7 @@ class EsoFile(BaseResultsFile):
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
+        A dictionary to store E+ header line
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -221,6 +221,7 @@ class EsoFile(BaseResultsFile):
                  ignore_peaks=True, suppress_errors=False):
         super().__init__()
         self.file_path = file_path
+        self.peak_outputs = None
         self.populate_content(exclude_intervals=exclude_intervals,
                               monitor=monitor,
                               report_progress=report_progress,
@@ -248,17 +249,19 @@ class EsoFile(BaseResultsFile):
                 self.environments,
                 self.header,
                 self.outputs,
+                self.peak_outputs,
                 self.header_tree,
             ) = content
 
         else:
             if not suppress_errors:
-                raise IncompleteFile("Unexpected end of the file reached!\n"
-                                     "File '{}' is not complete.".format(self.file_path))
+                raise IncompleteFile(f"Unexpected end of the file reached!\n"
+                                     f"File '{self.file_path}' is not complete.")
 
-    def get_building_totals(self):
+    def get_totals(self):
         """ Generate a new 'Building' eso file. """
         if self.complete:
             return TotalsFile(self)
         else:
-            print(f"Cannot generate building totals, file {self.file_path} is not complete!")
+            raise IncompleteFile(f"Cannot generate building totals, "
+                                 f"file {self.file_path} is not complete!")

@@ -35,7 +35,7 @@ class Tree:
     Attributes
     ----------
     root : Node
-        A base root node which holds all the data
+        A base root node which holds all the line
         as its children and children of children.
     """
 
