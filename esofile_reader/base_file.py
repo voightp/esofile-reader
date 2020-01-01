@@ -35,7 +35,7 @@ class BaseResultsFile:
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for data bins is as follows:
+    A structure for line bins is as follows:
     header_dict = {
         TS : {(int)ID : ('Key','Variable','Units')},
         H : {(int)ID : ('Key','Variable','Units')},
@@ -61,7 +61,7 @@ class BaseResultsFile:
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
+        A dictionary to store E+ header line
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -206,7 +206,7 @@ class BaseResultsFile:
         """
 
         def standard():
-            return data_set.standard_results(*f_args)
+            return data_set.get_results(*f_args)
 
         def local_maxs():
             return data_set.local_maxs(*f_args)
@@ -363,7 +363,7 @@ class BaseResultsFile:
         tuples = []
         names = ["id", "interval", "key", "variable", "units"]
         if isinstance(ids, pd.MultiIndex):
-            names.append("data")
+            names.append("line")
             for id_, data in ids:
                 var = fetch_var()
                 if var:
@@ -423,7 +423,7 @@ class BaseResultsFile:
             # generate a unique identifier, custom ids use '-' sign
             id_ = gen_id(self.all_ids, negative=True)
 
-            # add variable data to the output df
+            # add variable line to the output df
             is_valid = self.outputs[interval].add_column(id_, array)
 
             if is_valid:
@@ -456,7 +456,7 @@ class BaseResultsFile:
         variables : list of Variable
             A list of 'Variable' named tuples.
         func: func, func name
-            Function to use for aggregating the data.
+            Function to use for aggregating the line.
             It can be specified as np.mean, 'mean', 'sum', etc.
         key_nm: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
@@ -499,7 +499,7 @@ class BaseResultsFile:
             return
 
         data_set = self.outputs[interval]
-        df = data_set.standard_results(ids)
+        df = data_set.get_results(ids)
 
         if isinstance(units, list):
             # it's needed to convert rate to energy
@@ -523,7 +523,7 @@ class BaseResultsFile:
         return out
 
     def remove_output_variables(self, interval, ids):
-        """ Remove output data from the file. """
+        """ Remove output line from the file. """
         try:
             out = self.outputs[interval]
             out.remove_columns(ids)

@@ -9,8 +9,8 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
         cnd = df.columns.get_level_values("units") == old
 
-        if "data" in df.columns.names:
-            cnd = cnd & (df.columns.get_level_values("data") == "value")
+        if "line" in df.columns.names:
+            cnd = cnd & (df.columns.get_level_values("line") == "value")
 
         if isinstance(conv, (float, int)):
             df.loc[:, cnd] = df.loc[:, cnd] / conv
@@ -94,6 +94,14 @@ def verify_units(units):
     elif all(map(lambda x: x in ("J/m2", "W/m2"), units)):
         # rate will be converted to energy
         return units
+
+
+# TODO get n steps from subhourly interval
+def get_n_steps(self):
+    """ Get a number of timesteps in an hour (this is unique for ts interval). """
+    timestamps = self.index
+    timedelta = timestamps[1] - timestamps[0]
+    return 3600 / timedelta.seconds
 
 
 def rate_to_energy(df, data_set, start_date=None, end_date=None):

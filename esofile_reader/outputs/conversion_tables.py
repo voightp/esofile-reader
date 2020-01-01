@@ -48,7 +48,7 @@ def si_to_ip(orig_units):
         return val * 1.8 + 32
 
     table = {
-        "kg/s": ("kg/s", "lb/min", 0.007559),  # TODO add IP data, finish docstrings
+        "kg/s": ("kg/s", "lb/min", 0.007559),  # TODO add IP line, finish docstrings
         "c": ("C", "F", c_to_fahrenheit),
     }
 
