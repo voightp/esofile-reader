@@ -1,4 +1,5 @@
 import setuptools
+from Cython.Build import cythonize
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -18,4 +19,7 @@ setuptools.setup(
         "License :: ",
         "Operating System :: Windows",
     ],
+    ext_modules=cythonize("./esofile_reader/processing/esofile_processor.pyx",
+                          annotate=True),  # build with: python setup.py build_ext --inplace
+    zip_safe=False,
 )
