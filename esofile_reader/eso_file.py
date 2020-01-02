@@ -22,7 +22,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
                 add_file_name="row", include_interval=False, include_id=False,
                 units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
                 energy_units="J", timestamp_format="default", report_progress=True,
-                exclude_intervals=None, part_match=False, ignore_peaks=True, suppress_errors=False):
+                part_match=False, ignore_peaks=True, suppress_errors=False):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -67,9 +67,6 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         Convert default 'Energy' outputs to requested units
      timestamp_format : str
         Specified str format of a datetime timestamp.
-     exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored. This can
-        be used to avoid processing hourly, sub-hourly intervals.
      report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
      ignore_peaks : bool, default: True
@@ -95,7 +92,6 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         "energy_units": energy_units,
         "timestamp_format": timestamp_format,
         "report_progress": report_progress,
-        "exclude_intervals": exclude_intervals,
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
         "suppress_errors": suppress_errors,
@@ -109,7 +105,6 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
 
 def _get_results(file, variables, **kwargs):
     """ Load eso file and return requested results. """
-    excl = kwargs.pop("exclude_intervals")
     report_progress = kwargs.pop("report_progress")
     ignore_peaks = kwargs.pop("ignore_peaks")
     suppress_errors = kwargs.pop("suppress_errors")
@@ -117,7 +112,7 @@ def _get_results(file, variables, **kwargs):
     if issubclass(file.__class__, BaseResultsFile):
         eso_file = file
     else:
-        eso_file = EsoFile(file, exclude_intervals=excl,
+        eso_file = EsoFile(file,
                            ignore_peaks=ignore_peaks,
                            report_progress=report_progress,
                            suppress_errors=suppress_errors)
@@ -200,9 +195,6 @@ class EsoFile(BaseResultsFile):
     ----------
     file_path : path like object
         A full path of the ESO file
-    exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored. This can
-        be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
     ignore_peaks : bool, default: True
@@ -217,25 +209,23 @@ class EsoFile(BaseResultsFile):
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True,
+    def __init__(self, file_path, monitor=None, report_progress=True,
                  ignore_peaks=True, suppress_errors=False):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-        self.populate_content(exclude_intervals=exclude_intervals,
-                              monitor=monitor,
+        self.populate_content(monitor=monitor,
                               report_progress=report_progress,
                               ignore_peaks=ignore_peaks,
                               suppress_errors=suppress_errors)
 
-    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True,
+    def populate_content(self, monitor=None, report_progress=True,
                          ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
 
         content = read_file(
             self.file_path,
-            exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
             ignore_peaks=ignore_peaks,

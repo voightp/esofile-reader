@@ -237,8 +237,8 @@ class BaseResultsFile:
         }
 
         if output_type not in res:
-            msg = "Invalid output type '{}' requested.\n'output_type'" \
-                  "kwarg must be one of '{}'.".format(output_type, ", ".join(res.keys()))
+            msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
+                  f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
@@ -247,6 +247,7 @@ class BaseResultsFile:
         for interval, ids in groups.items():
             # Extract specified set of results
             f_args = (ids, start_date, end_date)
+            data_set = self.outputs[interval]
 
             df = res[output_type]()
 
@@ -262,7 +263,12 @@ class BaseResultsFile:
                 is_energy = rate_to_energy_dct[interval]
                 if is_energy:
                     # 'energy' is requested for current output
-                    df = rate_to_energy(df, data_set, start_date, end_date)
+                    try:
+                        n_days = data_set.get_number_of_days()
+                    except AttributeError:
+                        n_days = None
+
+                    df = rate_to_energy(df, interval, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -500,9 +506,15 @@ class BaseResultsFile:
         df = data_set.get_results(ids)
 
         if isinstance(units, list):
-            # it's needed to convert rate to energy
+            # it's needed to assign multi index to convert energy
             df.columns = mi
-            df = rate_to_energy(df, data_set)
+
+            try:
+                n_days = data_set.get_number_of_days()
+            except AttributeError:
+                n_days = None
+
+            df = rate_to_energy(df, interval, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
 
         sr = df.aggregate(func, axis=1)

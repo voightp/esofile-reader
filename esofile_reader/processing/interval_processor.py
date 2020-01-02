@@ -52,21 +52,24 @@ def parse_result_dt(date, res_tup, month_ix, day_ix, hour_ix, end_min_ix):
     # Runperiod results, all the timestamp information is
     # available in the output tuple
     if month_ix is not None:
-        m, d, h, min = datetime_helper(res_tup[month_ix], res_tup[day_ix], res_tup[hour_ix], res_tup[end_min_ix])
+        m, d, h, min = datetime_helper(res_tup[month_ix], res_tup[day_ix],
+                                       res_tup[hour_ix], res_tup[end_min_ix])
         return date.replace(month=m, day=d, hour=h, minute=min)
 
     # Monthly results, month needs to be extracted from the
     # datetime index of the output, other line is available
     # in the output tuple
     elif day_ix is not None:
-        m, d, h, min = datetime_helper(date.month, res_tup[day_ix], res_tup[hour_ix], res_tup[end_min_ix])
+        m, d, h, min = datetime_helper(date.month, res_tup[day_ix],
+                                       res_tup[hour_ix], res_tup[end_min_ix])
         return date.replace(month=m, day=d, hour=h, minute=min)
 
     # Daily outputs, month and day is extracted from the
     # datetime index, hour and end minute is is taken from
     # the output tuple
     else:
-        timestamp = datetime_helper(date.month, date.day, res_tup[hour_ix], res_tup[end_min_ix])
+        timestamp = datetime_helper(date.month, date.day, res_tup[hour_ix],
+                                    res_tup[end_min_ix])
 
         # Daily interval peak value might overlap to next year
         year = date.year + 1 if timestamp == (1, 1, 0, 0) else date.year
@@ -93,13 +96,12 @@ def month_act_days(m_envs):
 
     for m_env in m_envs:
         if len(m_env) > 1:
-            new_lst = [m_env.pop(0)]
-            old_num, _ = new_lst[0]
-            for i in range(len(m_env)):
-                num, m = m_env[i]
-                num = num - old_num
-                new_lst.append((num, m))
-                old_num += num
+            old_num = m_env.pop(0)
+            new_lst = [old_num]
+            for num in m_env:
+                new_num = num - old_num
+                new_lst.append(new_num)
+                old_num += new_num
             m_list.append(new_lst)
         else:
             m_list.append(m_env)
@@ -132,7 +134,7 @@ def get_num_of_days(cumulative_days):
 
     # calculate number of days for annual interval for
     # an incomplete year run or multi year analysis
-    if A in intervals and RP in intervals:
+    if A in cumulative_days.keys() and RP in cumulative_days.keys():
         num_of_days[A] = find_num_of_days_annual(num_of_days[A], num_of_days[RP])
 
     return num_of_days
@@ -435,5 +437,5 @@ def interval_processor(all_envs, cumulative_days):
     return (
         all_environment_dates,
         flat_values(dates),
-        flat_values(cumulative_days)
+        flat_values(num_of_days)
     )

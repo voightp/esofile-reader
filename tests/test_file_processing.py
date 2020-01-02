@@ -101,7 +101,8 @@ class TestEsoFileProcessing(unittest.TestCase):
                                      "30", "11.73497", "12", "2", "6", "1"]))
 
     def test_create_eso_file(self):
-        ef = EsoFile("../tests/eso_files/eplusout.eso")
+        ef = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=False)
+        print(ef.peak_outputs)
         self.assertTrue(ef.complete)
 
     def test_create_totals_file(self):

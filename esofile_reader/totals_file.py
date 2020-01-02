@@ -5,7 +5,7 @@ from esofile_reader.base_file import BaseResultsFile
 from esofile_reader.mini_classes import Variable
 from esofile_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
 from esofile_reader.outputs.convertor import rate_to_energy, convert_units
-from esofile_reader.outputs.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
+from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.outputs.tree import Tree
 from esofile_reader.base_file import InvalidOutputType
 
@@ -205,40 +205,33 @@ class TotalsFile(BaseResultsFile):
 
     def _group_outputs(self, grouped_ids, outputs):
         """ Handle numeric outputs. """
-        num_days = outputs.get_number_of_days()
         outputs = outputs.get_standard_results_only(transposed=True)
         outputs.reset_index(inplace=True)
 
         df = pd.merge(left=grouped_ids, right=outputs, on="id")
         df = self.calculate_totals(df)
 
-        if num_days is not None:
+        try:
+            num_days = outputs.get_number_of_days()
             df.insert(0, "num days", num_days)
+        except AttributeError:
+            pass
 
         return df
 
     def process_totals(self, eso_file):
         """ Create building outputs. """
-        output_cls = {
-            TS: Timestep,
-            H: Hourly,
-            D: Daily,
-            M: Monthly,
-            A: Annual,
-            RP: Runperiod
-        }
-
         header = {}
         outputs = {}
         id_gen = incr_id_gen()
 
-        for interval, vars in eso_file.header.items():
-            header_df = self.get_grouped_vars(id_gen, vars)
+        for interval, variables in eso_file.header.items():
+            header_df = self.get_grouped_vars(id_gen, variables)
 
             out = eso_file.outputs[interval]
             out = self._group_outputs(header_df, out)
 
-            outputs[interval] = output_cls[interval](out)
+            outputs[interval] = Outputs(out)
             header[interval] = self.build_header_dct(header_df)
 
         tree = Tree()

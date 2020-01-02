@@ -30,19 +30,21 @@ def _sort_peak_outputs(df):
 def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
                  hour_ix=None, end_min_ix=None):
     """ Return value and datetime of occurrence. """
-    df = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
 
     def get_timestamps(sr):
         def parse_vals(val):
-            ts = parse_result_dt(date, val, month_ix, day_ix, hour_ix, end_min_ix)
-            return ts
+            if val is not np.NaN:
+                ts = parse_result_dt(date, val, month_ix, day_ix, hour_ix, end_min_ix)
+                return ts
+            else:
+                return np.NaN
 
         date = sr.name
         sr = sr.apply(parse_vals)
 
         return sr
 
-    vals = df.applymap(lambda x: x[val_ix])
+    vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
     ixs = df.apply(get_timestamps, axis=1)
 
     df = pd.concat({"timestamp": ixs, "value": vals}, axis=1)
@@ -52,27 +54,25 @@ def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
     return df
 
 
-def get_mins(data, interval):
+def create_peak_df(data, interval, index, max_=True):
     """ Create DataFrame for peak minimums. """
     df = PeakOutputs(data)
-    indexes = {
-        D: {"val_ix": 0, "hour_ix": 1, "end_min_ix": 2},
-        M: {"val_ix": 0, "day_ix": 1, "hour_ix": 2, "end_min_ix": 3},
-        A: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
-        RP: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
-    }
-    return _local_peaks(df, **indexes[interval])
+    df.index = index
 
-
-def get_maxs(data, interval):
-    """ Create DataFrame for peak minimums. """
-    df = PeakOutputs(data)
-    indexes = {
+    max_indexes = {
         D: {"val_ix": 3, "hour_ix": 4, "end_min_ix": 5},
         M: {"val_ix": 4, "day_ix": 5, "hour_ix": 6, "end_min_ix": 7},
         A: {"val_ix": 5, "month_ix": 6, "day_ix": 7, "hour_ix": 8, "end_min_ix": 9},
         RP: {"val_ix": 5, "month_ix": 6, "day_ix": 7, "hour_ix": 8, "end_min_ix": 9}
     }
+    min_indexes = {
+        D: {"val_ix": 0, "hour_ix": 1, "end_min_ix": 2},
+        M: {"val_ix": 0, "day_ix": 1, "hour_ix": 2, "end_min_ix": 3},
+        A: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
+        RP: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
+    }
+    indexes = max_indexes if max_ else min_indexes
+
     return _local_peaks(df, **indexes[interval])
 
 
@@ -204,88 +204,3 @@ class Outputs(pd.DataFrame):
             raise AttributeError("'days of week' column is not available"
                                  "on the given data set.")
         return slicer(self, "days of week", start_date, end_date)
-
-
-class Hourly(Outputs):
-    """
-    Pandas.DataFrame like class to hold EnergyPlus results
-    for Hourly interval.
-
-    Local peak and timestep results are nor applicable for
-    Hourly interval.
-
-    Parameters
-    ----------
-    data : dict like objects
-        Dict of list-like objects of processed EnergyPlus results.
-    **kwargs
-        Key word arguments which are passed to
-        super() pandas.DataFrame class.
-
-    """
-
-    def __init__(self, data, **kwargs):
-        super(Hourly, self).__init__(data, **kwargs)
-
-    def global_max(self, ids, start_date=None, end_date=None):
-        """ Return an interval maximum value and date of occurrence. """
-        return self._global_peak(ids, start_date, end_date, val_ix=0)
-
-    def global_min(self, ids, start_date=None, end_date=None):
-        """ Return an interval minimum value and date of occurrence. """
-        return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
-
-    def local_maxs(self, *args, **kwargs):
-        """ Local maximum values are not applicable for Hourly interval. """
-        pass
-
-    def local_mins(self, *args, **kwargs):
-        """ Local minimum values are not applicable for Hourly interval. """
-        pass
-
-    def timestep_min(self, *args, **kwargs):
-        """ Timestep maximum value is not applicable for Hourly interval. """
-        pass
-
-    def timestep_max(self, *args, **kwargs):
-        """ Timestep maximum value is not applicable for Hourly interval. """
-        pass
-
-    def get_number_of_days(self, *args, **kwargs):
-        """ Number of days is not available for Hourly interval. """
-        pass
-
-
-class Timestep(Hourly):
-    """
-    Pandas.DataFrame like class to hold EnergyPlus results
-    for Timestep interval.
-
-    Local peak results are nor applicable for
-    Hourly interval.
-
-    Parameters
-    ----------
-    data : dict like objects
-        Dict of list-like objects of processed EnergyPlus results.
-    **kwargs
-        Key word arguments which are passed to super() pandas.DataFrame class.
-
-    """
-
-    def __init__(self, data, **kwargs):
-        super(Timestep, self).__init__(data, **kwargs)
-
-    def get_n_steps(self):
-        """ Get a number of timesteps in an hour (this is unique for ts interval). """
-        timestamps = self.index
-        timedelta = timestamps[1] - timestamps[0]
-        return 3600 / timedelta.seconds
-
-    def timestep_min(self, ids, start_date, end_date):
-        """ Timestep minimum value is the same as global minimum for Timestep interval. """
-        return self._global_peak(ids, start_date, end_date, val_ix=0, max_=False)
-
-    def timestep_max(self, ids, start_date, end_date):
-        """ Timestep maximum value is the same as global maximum for Timestep interval. """
-        return self._global_peak(ids, start_date, end_date, val_ix=0)

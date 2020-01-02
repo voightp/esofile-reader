@@ -5,8 +5,9 @@ import numpy as np
 
 from functools import partial
 from collections import defaultdict
+from copy import deepcopy
 
-from esofile_reader.outputs.outputs import Outputs, PeakOutputs, get_mins, get_maxs
+from esofile_reader.outputs.outputs import Outputs, create_peak_df
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.constants import TS, H, D, M, A, RP
@@ -100,7 +101,7 @@ def create_variable(variables, interval, key, var, units):
     return variable
 
 
-def read_header(eso_file, excl=None):
+def read_header(eso_file):
     """
     Read header dictionary of the eso file.
 
@@ -114,8 +115,6 @@ def read_header(eso_file, excl=None):
     ----------
     eso_file : EsoFile
         Opened EnergyPlus result file.
-    excl : list of {'TS', 'H', 'D', 'M', 'A', 'RP'}
-        A list of interval identifiers which will be ignored.
 
     Returns
     -------
@@ -125,12 +124,6 @@ def read_header(eso_file, excl=None):
         A dictionary of expected eso file results with initialized lists.
 
     """
-
-    if not excl:
-        excl = []
-
-    if not isinstance(excl, list):
-        excl = list(excl)
 
     header_dct = defaultdict(partial(defaultdict))
     outputs = defaultdict(partial(defaultdict))
@@ -148,10 +141,6 @@ def read_header(eso_file, excl=None):
 
         # Extract line from a raw line
         id_, key_nm, var_nm, units, interval = _process_header_line(line)
-
-        # Block storing the line
-        if interval in excl:
-            continue
 
         # create a new item in header_dict for a given interval
         var = Variable(interval, key_nm, var_nm, units)
@@ -274,11 +263,10 @@ def _process_interval_line(line_id, data):
 
 def _process_result_line(line, ignore_peaks):
     """ Convert items of result line list from string to float. """
-    if len(line) == 1 or ignore_peaks:
-        # Hourly and timestep results hold only a single value
-        return np.float(line[0]), None
-
-    return np.float(line[0]), [np.float(i) if "." in i else np.int(i) for i in line[1:]]
+    if ignore_peaks:
+        return line[0], None
+    else:
+        return line[0], [np.float(i) if "." in i else np.int(i) for i in line[1:]]
 
 
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
@@ -317,78 +305,77 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
      """
     dates = {k: [] for k in outputs.keys()}
     cumulative_days = {k: [] for k in outputs.keys() if k in (M, A, RP)}
-
-    peak_outputs = defaultdict(dict)
     days_of_week = defaultdict(list)
-
     interval = None
-    i = 0
+
+    if not ignore_peaks:
+        peak_outputs = {k: v for k, v in deepcopy(outputs).items() if k in (D, M, A, RP)}
+    else:
+        peak_outputs = None
 
     while True:
-        i += 1
         line = next(eso_file)
         monitor.update_body_progress()
 
-        # something is wrong when there is a blank line in the file
-        if line == "":
-            monitor.processing_failed("Blank line in file.")
-            raise BlankLineError
-
-        # Check if the end of line block is reached
-        if "End of Data" in line:
-            break
-
-        line_id, line = _process_raw_line(line)
-
-        # check if the current line represents
-        # an interval or an output
-        if line_id == 1:
-            # Initialize new list to store environment line
-            [value.append([]) for value in dates.values()]
-
-        elif line_id <= highest_interval_id:
-            interval, date, other = _process_interval_line(line_id, line)
-
-            if interval not in dates.keys():
-                # Skip when current interval is not requested
-                continue
-
-            # Populate last environment list with interval line
-            dates[interval][-1].append(date)
-
-            # Populate current step for all result ids with nan values.
-            # This is in place to avoid issues for variables which are not
-            # reported during current interval
-            [v.append(np.nan) for v in outputs[interval].values()]
-
-            if line_id <= 3:
-                days_of_week[interval].append(other)
+        try:
+            line_id, line = _process_raw_line(line)
+        except ValueError:
+            if "End of Data" in line:
+                break
             else:
-                cumulative_days[interval][-1].append(other)
+                raise ValueError
+
+        if line_id <= highest_interval_id:
+            # check if the current line represents
+            # an interval or an output
+            if line_id == 1:
+                # Initialize new list to store environment line
+                [value.append([]) for value in dates.values()]
+                [value.append([]) for value in cumulative_days.values()]
+            else:
+                interval, date, other = _process_interval_line(line_id, line)
+
+                if interval not in dates.keys():
+                    # Skip when current interval is not requested
+                    continue
+
+                # Populate last environment list with interval line
+                dates[interval][-1].append(date)
+
+                # Populate current step for all result ids with nan values.
+                # This is in place to avoid issues for variables which are not
+                # reported during current interval
+                [v.append(np.nan) for v in outputs[interval].values()]
+
+                if line_id >= 3 and not ignore_peaks:
+                    [v.append(np.nan) for v in peak_outputs[interval].values()]
+
+                if line_id <= 3:
+                    days_of_week[interval].append(other)
+                else:
+                    cumulative_days[interval][-1].append(other)
 
         else:
-            if interval not in dates.keys():
-                continue  # Skip when current interval is not requested
-
             # current line represents a result
             # replace nan values from the last step
             res, peak_res = _process_result_line(line, ignore_peaks)
             try:
                 outputs[interval][line_id][-1] = res
                 if peak_res:
-                    peak_outputs[interval][line_id] = peak_res
+                    peak_outputs[interval][line_id][-1] = peak_res
             except KeyError:
                 print(f"ignoring {line_id}")
 
     return outputs, peak_outputs, dates, cumulative_days, days_of_week
 
 
-def generate_peak_outputs(peak_outputs):
+def generate_peak_outputs(peak_outputs, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     out = {"min": {}, "max": {}}
     for interval, data in peak_outputs.items():
-        out["min"][interval] = get_mins(data, interval)
-        out["max"][interval] = get_maxs(data, interval)
+        index = pd.Index(dates[interval], name="timestamp")
+        out["min"][interval] = create_peak_df(data, interval, index, max_=False)
+        out["max"][interval] = create_peak_df(data, interval, index)
     return out
 
 
@@ -398,7 +385,7 @@ def generate_outputs(outputs, dates, other_data):
         index = pd.Index(dates[interval], name="timestamp")
         columns = pd.Index(data.keys(), name="id")
 
-        out = Outputs(data, index=index, columns=columns)
+        out = Outputs(data, index=index, columns=columns, dtype=np.float)
 
         for k, v in other_data.items():
             try:
@@ -432,7 +419,7 @@ def remove_duplicates(ids, header_dct, outputs_dct):
                 pass
 
 
-def process_file(file, monitor, excl=None, ignore_peaks=True):
+def process_file(file, monitor, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
     # process first few standard lines
     last_standard_item_id, timestamp = process_standard_lines(file)
@@ -440,7 +427,7 @@ def process_file(file, monitor, excl=None, ignore_peaks=True):
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
     try:
-        header, init_outputs = read_header(file, excl=excl)
+        header, init_outputs = read_header(file)
         monitor.header_finished()
     except BlankLineError:
         msg = "Blank line in header."
@@ -448,7 +435,6 @@ def process_file(file, monitor, excl=None, ignore_peaks=True):
         raise BlankLineError(msg)
 
     # Read body to obtain outputs and environment dictionaries.
-    # Intervals excluded in header are ignored
     (outputs, peak_outputs, dates,
      cumulative_days, days_of_week) = read_body(file, last_standard_item_id,
                                                 init_outputs, ignore_peaks, monitor)
@@ -458,8 +444,8 @@ def process_file(file, monitor, excl=None, ignore_peaks=True):
     environments, dates, num_of_days = interval_processor(dates, cumulative_days)
     monitor.intervals_finished()
 
-    if peak_outputs:
-        peak_outputs = generate_peak_outputs(peak_outputs)
+    if not ignore_peaks:
+        peak_outputs = generate_peak_outputs(peak_outputs, dates)
 
     # transform standard dictionaries into DataFrame like Output classes
     other_data = {"num days": num_of_days, "days of week": days_of_week}
@@ -479,7 +465,7 @@ def process_file(file, monitor, excl=None, ignore_peaks=True):
     return timestamp, environments, header, outputs, peak_outputs, tree
 
 
-def read_file(file_path, exclude_intervals=None, monitor=None,
+def read_file(file_path, monitor=None,
               report_progress=False, ignore_peaks=True, suppress_errors=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
@@ -495,7 +481,7 @@ def read_file(file_path, exclude_intervals=None, monitor=None,
 
     try:
         with open(file_path, "r") as file:
-            return process_file(file, monitor, excl=exclude_intervals, ignore_peaks=ignore_peaks)
+            return process_file(file, monitor, ignore_peaks=ignore_peaks)
 
     except IOError:
         print("IOError thrown when handling: " + file_path)
