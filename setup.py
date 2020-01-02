@@ -20,6 +20,6 @@ setuptools.setup(
         "Operating System :: Windows",
     ],
     ext_modules=cythonize("./esofile_reader/processing/esofile_processor.pyx",
-                          annotate=True),  # build with: python setup.py build_ext --inplace
+                          annotate=False),  # build with: python setup.py build_ext --inplace
     zip_safe=False,
 )
