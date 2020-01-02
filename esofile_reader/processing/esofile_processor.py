@@ -131,16 +131,17 @@ def read_header(eso_file):
     while True:
         line = next(eso_file)
 
-        # something is wrong when there is a blank line in the file
-        if line == "":
-            raise BlankLineError
-
-        # Check if the end of line dictionary has been reached
-        if "End of Data Dictionary" in line:
-            break
-
         # Extract line from a raw line
-        id_, key_nm, var_nm, units, interval = _process_header_line(line)
+        try:
+            id_, key_nm, var_nm, units, interval = _process_header_line(line)
+
+        except AttributeError:
+            if "End of Data Dictionary" in line:
+                break
+            elif line == "":
+                raise BlankLineError
+            else:
+                raise AttributeError
 
         # create a new item in header_dict for a given interval
         var = Variable(interval, key_nm, var_nm, units)
@@ -321,6 +322,8 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         except ValueError:
             if "End of Data" in line:
                 break
+            elif line == "":
+                raise BlankLineError
             else:
                 raise ValueError
 
@@ -425,13 +428,8 @@ def process_file(file, monitor, ignore_peaks=True):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    try:
-        header, init_outputs = read_header(file)
-        monitor.header_finished()
-    except BlankLineError:
-        msg = "Blank line in header."
-        monitor.processing_failed(msg)
-        raise BlankLineError(msg)
+    header, init_outputs = read_header(file)
+    monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
     (outputs, peak_outputs, dates,
@@ -482,5 +480,10 @@ def read_file(file_path, monitor=None,
         with open(file_path, "r") as file:
             return process_file(file, monitor, ignore_peaks=ignore_peaks)
 
+    except BlankLineError:
+        msg = f"There's a blank line in file '{file_path}'."
+        monitor.processing_failed(msg)
+        raise BlankLineError(msg)
+
     except IOError:
-        print("IOError thrown when handling: " + file_path)
+        print(f"IOError thrown when handling: '{file_path}'")
