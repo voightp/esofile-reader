@@ -174,9 +174,8 @@ def _last_standard_item_id(version):
 
 def _process_raw_line(line):
     """ Return id and list of line without trailing whitespaces. """
-    line_data = line.split(",")
-    cleaned_line_data = [item.strip() for item in line_data]
-    return int(line_data[0]), cleaned_line_data[1:]
+    split_line = line.split(",")
+    return int(split_line[0]), split_line[1:]
 
 
 def _process_interval_line(line_id, data):
@@ -351,7 +350,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
                     [v.append(np.nan) for v in peak_outputs[interval].values()]
 
                 if line_id <= 3:
-                    days_of_week[interval].append(other)
+                    days_of_week[interval].append(other.strip())
                 else:
                     cumulative_days[interval][-1].append(other)
 
