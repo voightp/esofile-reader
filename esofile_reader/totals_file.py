@@ -185,11 +185,12 @@ class TotalsFile(BaseFile):
         df = pd.merge(left=grouped_ids, right=outputs, on="id")
         df = self.calculate_totals(df)
 
-        try:
-            n_days = outputs.get_number_of_days()
-            df.insert(0, "n days", n_days)
-        except AttributeError:
-            pass
+        for s in ["n days", "day"]:
+            try:
+                col = outputs[s]
+                df.insert(0, s, col)
+            except AttributeError:
+                pass
 
         return df
 
