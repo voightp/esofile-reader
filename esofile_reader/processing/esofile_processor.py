@@ -10,7 +10,7 @@ from copy import deepcopy
 from esofile_reader.outputs.outputs import Outputs, create_peak_df
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
-from esofile_reader.constants import TS, H, D, M, A, RP
+from esofile_reader.constants import *
 from esofile_reader.utils.tree import Tree
 from esofile_reader.processing.monitor import DefaultMonitor
 
@@ -71,7 +71,7 @@ def _process_header_line(line):
         line_id, _, key, var, units, interval = pattern.search(line).groups()
 
     except AttributeError:
-        raise InvalidLineSyntax("Unexpected header line syntax:" + line)
+        raise InvalidLineSyntax(f"Unexpected header line syntax: {line}")
 
     # 'var' variable is 'None' for 'Meter' variable
     if var is None:
@@ -434,12 +434,12 @@ def process_file(file, monitor, ignore_peaks=True):
 
     # Read body to obtain outputs and environment dictionaries.
     (raw_outputs, raw_peak_outputs, dates,
-     cumulative_days, days_of_week) = read_body(file, last_standard_item_id,
-                                                init_outputs, ignore_peaks, monitor)
+     cumulative_days, day_of_week) = read_body(file, last_standard_item_id,
+                                               init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
 
     # Sort interval line into relevant dictionaries
-    environments, dates, num_of_days = interval_processor(dates, cumulative_days)
+    environments, dates, n_days = interval_processor(dates, cumulative_days)
     monitor.intervals_finished()
 
     if not ignore_peaks:
@@ -448,7 +448,7 @@ def process_file(file, monitor, ignore_peaks=True):
         peak_outputs = None
 
     # transform standard dictionaries into DataFrame like Output classes
-    other_data = {"n days": num_of_days, "day": days_of_week}
+    other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
     outputs = generate_outputs(raw_outputs, dates, other_data)
     monitor.output_cls_gen_finished()
 

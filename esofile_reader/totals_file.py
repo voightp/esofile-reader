@@ -5,6 +5,7 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.utils.tree import Tree
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller", "Chilled Water Thermal Storage Tank",
@@ -185,7 +186,7 @@ class TotalsFile(BaseFile):
         df = pd.merge(left=grouped_ids, right=outputs, on="id")
         df = self.calculate_totals(df)
 
-        for s in ["n days", "day"]:
+        for s in [N_DAYS_COLUMN, DAY_COLUMN]:
             try:
                 col = outputs[s]
                 df.insert(0, s, col)

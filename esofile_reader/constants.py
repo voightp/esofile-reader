@@ -6,6 +6,9 @@ M = "monthly"
 A = "annual"
 RP = "runperiod"
 
+N_DAYS_COLUMN = "n days"
+DAY_COLUMN = "day"
+
 RATE_TO_ENERGY_DCT = {TS: False,
                       H: False,
                       D: True,

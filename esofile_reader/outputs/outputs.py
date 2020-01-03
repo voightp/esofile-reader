@@ -140,7 +140,7 @@ class Outputs(BaseOutputs):
         df = self.copy()
 
         if drop_special:
-            for s in ["n days", "day"]:
+            for s in [N_DAYS_COLUMN, DAY_COLUMN]:
                 try:
                     df.drop(s, axis=1, inplace=True)
                 except KeyError:
@@ -185,7 +185,7 @@ class Outputs(BaseOutputs):
 
         if len(self.columns) == 1:
             # df can only include one of identifiers below
-            for s in ["n days", "day"]:
+            for s in [N_DAYS_COLUMN, DAY_COLUMN]:
                 try:
                     self.drop(s, axis=1, inplace=True)
                 except KeyError:
@@ -193,17 +193,17 @@ class Outputs(BaseOutputs):
 
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
-        if "n days" not in self.columns:
+        if N_DAYS_COLUMN not in self.columns:
             raise AttributeError("'n days' column is not available"
                                  "on the given data set.")
-        return slicer(self, "n days", start_date, end_date)
+        return slicer(self, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(self, start_date=None, end_date=None):
         """ Return 'days of week' column. """
-        if "days of week" not in self.columns:
+        if DAY_COLUMN not in self.columns:
             raise AttributeError("'day' column is not available"
                                  "on the given data set.")
-        return slicer(self, "day", start_date, end_date)
+        return slicer(self, DAY_COLUMN, start_date, end_date)
 
     def _global_peak(self, ids, start_date, end_date, max_=True):
         """ Return maximum or minimum value and datetime of occurrence. """
