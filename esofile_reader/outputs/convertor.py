@@ -9,8 +9,8 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
     for old, new, conv in zip(orig_units, new_units, conv_ratios):
         cnd = df.columns.get_level_values("units") == old
 
-        if "line" in df.columns.names:
-            cnd = cnd & (df.columns.get_level_values("line") == "value")
+        if "data" in df.columns.names:
+            cnd = cnd & (df.columns.get_level_values("data") == "value")
 
         if isinstance(conv, (float, int)):
             df.loc[:, cnd] = df.loc[:, cnd] / conv

@@ -11,7 +11,7 @@ def _sort_peak_outputs(df):
     levels = [df.columns.get_level_values(i) for i in range(df.columns.nlevels)]
     levels.insert(0, pd.Index(order))
 
-    df.columns = pd.MultiIndex.from_arrays(levels, names=["order", "id", "line"])
+    df.columns = pd.MultiIndex.from_arrays(levels, names=["order", "id", "data"])
     df.sort_values(by="order", inplace=True, axis=1)
     df.columns = df.columns.droplevel(0)
 
@@ -153,7 +153,7 @@ class Outputs(BaseOutputs):
         return df
 
     def _validate(self, data):
-        """ Validate if the line has required format. """
+        """ Validate if the data has required format. """
         length = len(data)
         df_length = len(self.index)
         valid = length == df_length
@@ -165,7 +165,7 @@ class Outputs(BaseOutputs):
         return valid
 
     def add_column(self, id_, array):
-        """ Add output line. """
+        """ Add output variable. """
         is_valid = self._validate(array)
 
         if is_valid:
@@ -174,7 +174,7 @@ class Outputs(BaseOutputs):
         return is_valid
 
     def remove_columns(self, ids):
-        """ Remove output line. """
+        """ Remove output variable. """
         if not isinstance(ids, list):
             ids = [ids]
         try:
@@ -204,3 +204,27 @@ class Outputs(BaseOutputs):
             raise AttributeError("'day' column is not available"
                                  "on the given data set.")
         return slicer(self, "day", start_date, end_date)
+
+    def _global_peak(self, ids, start_date, end_date, max_=True):
+        """ Return maximum or minimum value and datetime of occurrence. """
+        df = self.get_results(ids, start_date, end_date)
+
+        vals = df.max() if max_ else df.min()
+        ixs = df.idxmax() if max_ else df.idxmin()
+
+        vals = pd.DataFrame(vals)
+        ixs = pd.DataFrame(ixs)
+
+        df = pd.concat({"timestamp": ixs.T, "value": vals.T}, axis=1)
+        df = df.iloc[[0]]  # report only first occurrence
+        df.columns = df.columns.swaplevel(0, 1)
+
+        df = _sort_peak_outputs(df)
+
+        return df
+
+    def global_max(self, ids, start_date=None, end_date=None):
+        return self._global_peak(ids, start_date, end_date)
+
+    def global_min(self, ids, start_date=None, end_date=None):
+        return self._global_peak(ids, start_date, end_date, max_=False)

@@ -35,7 +35,7 @@ class BaseResultsFile:
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for line bins is as follows:
+    A structure for data bins is as follows:
     header_dict = {
         TS : {(int)ID : ('Key','Variable','Units')},
         H : {(int)ID : ('Key','Variable','Units')},
@@ -61,7 +61,7 @@ class BaseResultsFile:
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header line
+        A dictionary to store E+ header data
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -172,10 +172,7 @@ class BaseResultsFile:
             A start date for requested results.
         end_date : datetime like object, default None
             An end date for requested results.
-        output_type : {
-                'standard', 'local_max',' global_max', 'timestep_max',
-                'local_min', 'global_min', 'timestep_min'
-                }
+        output_type : {'standard', global_max','global_min'}
             Requested type of results.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
@@ -208,32 +205,16 @@ class BaseResultsFile:
         def standard():
             return data_set.get_results(*f_args)
 
-        def local_maxs():
-            return data_set.local_maxs(*f_args)
-
         def global_max():
             return data_set.global_max(*f_args)
-
-        def timestep_max():
-            return data_set.timestep_max(*f_args)
-
-        def local_mins():
-            return data_set.local_mins(*f_args)
 
         def global_min():
             return data_set.global_min(*f_args)
 
-        def timestep_min():
-            return data_set.timestep_min(*f_args)
-
         res = {
             "standard": standard,
-            "local_max": local_maxs,
             "global_max": global_max,
-            "timestep_max": timestep_max,
-            "local_min": local_mins,
             "global_min": global_min,
-            "timestep_min": timestep_min,
         }
 
         if output_type not in res:
@@ -293,9 +274,8 @@ class BaseResultsFile:
             return df
 
         except ValueError:
-            # raise ValueError("Any of requested variables is not included in the Eso file.")
-            print("Any of requested variables is not "
-                  "included in the Eso file '{}'.".format(self.file_name))
+            print(f"Any of requested variables is not "
+                  f"included in the Eso file '{self.file_name}'.")
 
     def find_ids(self, variables, part_match=False):
         """ Find ids for a list of 'Variables'. """
@@ -367,7 +347,7 @@ class BaseResultsFile:
         tuples = []
         names = ["id", "interval", "key", "variable", "units"]
         if isinstance(ids, pd.MultiIndex):
-            names.append("line")
+            names.append("data")
             for id_, data in ids:
                 var = fetch_var()
                 if var:
@@ -427,7 +407,7 @@ class BaseResultsFile:
             # generate a unique identifier, custom ids use '-' sign
             id_ = gen_id(self.all_ids, negative=True)
 
-            # add variable line to the output df
+            # add variable data to the output df
             is_valid = self.outputs[interval].add_column(id_, array)
 
             if is_valid:
@@ -460,7 +440,7 @@ class BaseResultsFile:
         variables : list of Variable
             A list of 'Variable' named tuples.
         func: func, func name
-            Function to use for aggregating the line.
+            Function to use for aggregating the data.
             It can be specified as np.mean, 'mean', 'sum', etc.
         key_nm: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
@@ -533,7 +513,7 @@ class BaseResultsFile:
         return out
 
     def remove_output_variables(self, interval, ids):
-        """ Remove output line from the file. """
+        """ Remove output data from the file. """
         try:
             out = self.outputs[interval]
             out.remove_columns(ids)

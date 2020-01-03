@@ -86,11 +86,11 @@ def is_end_day(month, day):
 
 def month_act_days(m_envs):
     """
-    Transform consecutive number of days in monthly line to actual number of days.
+    Transform consecutive number of days in monthly data to actual number of days.
 
     EnergyPlus monthly results report a total consecutive number of days for each day.
-    Raw line reports interval as (31,1), (59,2)..., this function calculates and returns
-    actual number of days for each month (31,1), (28,2)...
+    Raw data reports interval as 31, 59..., this function calculates and returns
+    actual number of days for each month 31, 28...
     """
     m_list = []
 
@@ -110,7 +110,7 @@ def month_act_days(m_envs):
 
 
 def find_num_of_days_annual(ann_num_of_days, rp_num_of_days):
-    """ Use runperiod line to calculate number of days for each annual period. """
+    """ Use runperiod data to calculate number of days for each annual period. """
     new_ann = []
 
     for an_env, rp_env in zip(ann_num_of_days, rp_num_of_days):
@@ -249,7 +249,7 @@ def convert_to_dt_index(env_dict, year):
     """
     Replace raw date information with datetime like object.
 
-    If there isn't any line in the interval, set interval value to None.
+    If there isn't any data in the interval, set interval value to None.
     """
     for interval, value in env_dict.items():
         env_dict[interval] = _gen_dt(value, year)
@@ -280,7 +280,7 @@ def update_start_dates(env_dict):
 
 
 def _env_ts_d_h(envs):
-    """ Find start and end date for a single environment based on daily, hourly or timestep line. """
+    """ Find start and end date for a single environment based on daily, hourly or timestep data. """
     environment = []
 
     for env in envs:
@@ -301,15 +301,15 @@ def _env_ts_d_h(envs):
 
 
 def find_env_ts_to_d(interval):
-    """ Find start and end date for all environments based on daily, hourly or timestep line. """
+    """ Find start and end date for all environments based on daily, hourly or timestep data. """
     for envs in interval.values():
         if envs is not None:
-            return _env_ts_d_h(envs)  # Return line based on first not empty interval
+            return _env_ts_d_h(envs)  # Return data based on first not empty interval
 
 
 def _env_m(m_act_days, num_of_days):
     """
-    Find start and end date for a single environment based on monthly line.
+    Find start and end date for a single environment based on monthly data.
 
     Note
     ----
@@ -339,7 +339,7 @@ def _env_m(m_act_days, num_of_days):
 
 
 def _env_r(runperiods, num_of_days):
-    """ Find start and end date for a single environment based on runperiod line. """
+    """ Find start and end date for a single environment based on runperiod data. """
     environment = []
 
     for r, num in zip(runperiods, num_of_days):
@@ -349,7 +349,7 @@ def _env_r(runperiods, num_of_days):
 
 
 def find_env_m_to_rp(env_dict, num_of_days_dict):
-    """ Find start and end date for all environments based on monthly or runperiod line. """
+    """ Find start and end date for all environments based on monthly or runperiod data. """
     if list_not_empty(env_dict[M]):
         environment = _env_m(env_dict[M], num_of_days_dict[M])
         return environment
@@ -359,7 +359,7 @@ def find_env_m_to_rp(env_dict, num_of_days_dict):
         return environment
 
     else:
-        print("Not enough line to find environment!")
+        print("Not enough data to find environment!")
 
 
 def find_environment(all_envs_dates, monthly_to_rp_cd):
@@ -369,8 +369,8 @@ def find_environment(all_envs_dates, monthly_to_rp_cd):
     Note
     ----
     Primary, the start and end date is based on daily, timestep or
-    hourly line. If any of these is not available, monthly or runperiod
-    line is used. Environment based on interval greater than monthly
+    hourly data. If any of these is not available, monthly or runperiod
+    data is used. Environment based on interval greater than monthly
     might not give a precise start date.
     """
     ts_to_daily_envs = slice_dict(all_envs_dates, [TS, H, D])
@@ -402,18 +402,18 @@ def interval_processor(all_envs, cumulative_days):
     """
     Process E+ raw date and time line.
 
-    Transform raw E+ date and time integer line into datetime module Date
+    Transform raw E+ date and time integer data into datetime module Date
     and Datetime objects.
 
-    First, the 'number of days' line for monthly, annual and runperiod
+    First, the 'number of days' data for monthly, annual and runperiod
     is separated from the base dictionary.
-    Separated date and time line is converted into datetime like objects.
+    Separated date and time data is converted into datetime like objects.
 
-    Based on the available line, start and end date for each environment is found
+    Based on the available data, start and end date for each environment is found
     and stored.
 
     Finally, values containing nested lists are transformed into flat lists
-    to be consistent with output line.
+    to be consistent with output data.
     """
 
     year = YEAR
@@ -421,10 +421,10 @@ def interval_processor(all_envs, cumulative_days):
     m_to_rp = {k: v for k, v in all_envs.items() if k in (M, A, RP)}
 
     if m_to_rp:
-        # Separate number of days line if any M to RP interval is available
+        # Separate number of days data if any M to RP interval is available
         num_of_days = get_num_of_days(cumulative_days)
 
-    # transform raw int line into datetime like index
+    # transform raw int data into datetime like index
     dates = convert_to_dt_index(all_envs, year)
 
     # update first day of monthly+ interval based on

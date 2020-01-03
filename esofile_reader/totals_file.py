@@ -72,7 +72,7 @@ class TotalsFile(BaseResultsFile):
 
     Output variables are grouped and aggregated based on
 
-    A structure for line bins is as follows:
+    A structure for data bins is as follows:
     header_dict = {
         interval : {(int)ID : ('Key','Variable','Units')},
     }
@@ -89,7 +89,7 @@ class TotalsFile(BaseResultsFile):
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header line
+        A dictionary to store E+ header data
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -124,7 +124,7 @@ class TotalsFile(BaseResultsFile):
         avg_df = avg_df.groupby(by="group_id", sort=False).mean()
         sum_df = sum_df.groupby(by="group_id", sort=False).sum()
 
-        # merge line having ids as columns
+        # merge data having ids as columns
         df = pd.concat([avg_df.T, sum_df.T], axis=1)
 
         df.columns.set_names("id", inplace=True)
@@ -230,7 +230,7 @@ class TotalsFile(BaseResultsFile):
         return header, outputs, tree
 
     def populate_content(self, eso_file):
-        """ Generate building related line based on input 'EsoFile'. """
+        """ Generate building related data based on input 'EsoFile'. """
         self.file_path = eso_file.file_path
         self.file_name = f"{eso_file.file_name} - totals"
         self._complete = eso_file.complete

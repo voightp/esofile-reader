@@ -164,7 +164,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
 
 class EsoFile(BaseResultsFile):
     """
-    The ESO class holds processed EnergyPlus output ESO file line.
+    The ESO class holds processed EnergyPlus output ESO file data.
 
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
