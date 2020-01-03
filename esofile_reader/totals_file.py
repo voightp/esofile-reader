@@ -68,10 +68,9 @@ def get_keyword(string, keywords):
 
 class TotalsFile(BaseResultsFile):
     """
-    The ESO class holds processed EnergyPlus output ESO file line.
+    This class holds transformed EsoFile.
 
-    The results are stored in a dictionary using string interval identifiers
-    as keys and pandas.DataFrame like classes as values.
+    Output variables are grouped and aggregated based on
 
     A structure for line bins is as follows:
     header_dict = {
@@ -81,7 +80,7 @@ class TotalsFile(BaseResultsFile):
     outputs = {
         interval : outputs.Outputs,
     }
-    interval key can be 'timestep', 'hourly', 'daily', 'monthly', 'annual', 'runperiod',
+    interval key can be 'timestep', 'hourly', 'daily', 'monthly', 'annual', 'runperiod'
 
     Attributes
     ----------
@@ -196,7 +195,7 @@ class TotalsFile(BaseResultsFile):
 
     def _group_outputs(self, grouped_ids, outputs):
         """ Handle numeric outputs. """
-        outputs = outputs.get_standard_results_only(transposed=True)
+        outputs = outputs.get_all_results(transposed=True)
         outputs.reset_index(inplace=True)
 
         df = pd.merge(left=grouped_ids, right=outputs, on="id")

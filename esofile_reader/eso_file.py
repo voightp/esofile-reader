@@ -18,6 +18,15 @@ class IncompleteFile(Exception):
     pass
 
 
+class PeaksNotIncluded(Exception):
+    """ Exception is raised when EsoFile has been processed without peaks. """
+    # PeaksNotIncluded("Peak values are not included, it's required to "
+    #                  "add kwarg 'ignore_peaks=False' when processing the file."
+    #                  "\nNote that peak values are only applicable for"
+    #                  "raw Eso files.")
+    pass
+
+
 def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
                 add_file_name="row", include_interval=False, include_id=False,
                 units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",

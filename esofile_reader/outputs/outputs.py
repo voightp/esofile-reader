@@ -4,15 +4,6 @@ from esofile_reader.processing.interval_processor import parse_result_dt
 from esofile_reader.constants import *
 
 
-class PeaksNotIncluded(Exception):
-    """ Exception is raised when EsoFile has been processed without peaks. """
-    # PeaksNotIncluded("Peak values are not included, it's required to "
-    #                  "add kwarg 'ignore_peaks=False' when processing the file."
-    #                  "\nNote that peak values are only applicable for"
-    #                  "raw Eso files.")
-    pass
-
-
 def _sort_peak_outputs(df):
     """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
     length = len(df.columns)
@@ -144,15 +135,16 @@ class Outputs(BaseOutputs):
     def __init__(self, data, **kwargs):
         super(Outputs, self).__init__(data, **kwargs)
 
-    def get_standard_results_only(self, transposed=False):
+    def get_all_results(self, transposed=False, drop_special=True):
         """ Get df with only 'standard' outputs and 'num days'. """
         df = self.copy()
 
-        for s in ["n days", "day"]:
-            try:
-                df.drop(s, axis=1, inplace=True)
-            except KeyError:
-                pass
+        if drop_special:
+            for s in ["n days", "day"]:
+                try:
+                    df.drop(s, axis=1, inplace=True)
+                except KeyError:
+                    pass
 
         if transposed:
             df = df.T
@@ -192,10 +184,12 @@ class Outputs(BaseOutputs):
             print(f"Cannot remove ids: {strids}")
 
         if len(self.columns) == 1:
-            if self.columns == ["n days"]:
-                self.drop(columns="n days", inplace=True)
-            elif self.columns == ["day"]:
-                self.drop(columns="day", inplace=True)
+            # df can only include one of identifiers below
+            for s in ["n days", "day"]:
+                try:
+                    self.drop(s, axis=1, inplace=True)
+                except KeyError:
+                    pass
 
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
