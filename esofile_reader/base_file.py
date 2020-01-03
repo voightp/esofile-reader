@@ -328,10 +328,11 @@ class BaseResultsFile:
             if not pairs:
                 continue
 
-            if interval in out:
-                out[interval].extend(pairs[interval])
-            else:
-                out[interval] = pairs[interval]
+            for k, v in pairs.items():
+                if k in out.keys():
+                    out[k].extend(pairs[k])
+                else:
+                    out[k] = pairs[k]
 
         return out
 

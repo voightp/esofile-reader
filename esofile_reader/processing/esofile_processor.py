@@ -381,9 +381,10 @@ def generate_peak_outputs(peak_outputs, dates):
     return out
 
 
-def generate_outputs(outputs, dates, other_data):
+def generate_outputs(raw_outputs, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
-    for interval, data in outputs.items():
+    outputs = {}
+    for interval, data in raw_outputs.items():
         index = pd.Index(dates[interval], name="timestamp")
 
         out = Outputs(data, index=index, dtype=np.float)
@@ -432,7 +433,7 @@ def process_file(file, monitor, ignore_peaks=True):
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
-    (outputs, peak_outputs, dates,
+    (raw_outputs, raw_peak_outputs, dates,
      cumulative_days, days_of_week) = read_body(file, last_standard_item_id,
                                                 init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
@@ -442,11 +443,13 @@ def process_file(file, monitor, ignore_peaks=True):
     monitor.intervals_finished()
 
     if not ignore_peaks:
-        peak_outputs = generate_peak_outputs(peak_outputs, dates)
+        peak_outputs = generate_peak_outputs(raw_peak_outputs, dates)
+    else:
+        peak_outputs = None
 
     # transform standard dictionaries into DataFrame like Output classes
     other_data = {"n days": num_of_days, "day": days_of_week}
-    outputs = generate_outputs(outputs, dates, other_data)
+    outputs = generate_outputs(raw_outputs, dates, other_data)
     monitor.output_cls_gen_finished()
 
     # Create a 'search tree' to allow searching for variables

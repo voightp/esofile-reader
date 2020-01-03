@@ -169,11 +169,10 @@ class Tree:
         Find interval : variable ids pairs for given arguments.
 
         """
-        root = self.root
         cond = [variable, key, units]
         pairs = {}
 
-        for node in root.children:
+        for node in self.root.children:
             level = -1
             ids = []
             if interval:
@@ -185,7 +184,7 @@ class Tree:
                     self._loop(nd, level, ids, cond, part_match=part_match)
 
             if ids:
-                pairs[interval] = ids
+                pairs[node.key] = ids
 
         pairs = {k: v for k, v in pairs.items() if v}
 
