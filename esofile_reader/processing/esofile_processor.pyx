@@ -385,9 +385,9 @@ def generate_outputs(outputs, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     for interval, data in outputs.items():
         index = pd.Index(dates[interval], name="timestamp")
-        columns = pd.Index(data.keys(), name="id")
 
-        out = Outputs(data, index=index, columns=columns, dtype=np.float)
+        out = Outputs(data, index=index, dtype=np.float)
+        out.columns.set_names(["id"])
 
         for k, v in other_data.items():
             try:
@@ -445,7 +445,7 @@ def process_file(file, monitor, ignore_peaks=True):
         peak_outputs = generate_peak_outputs(peak_outputs, dates)
 
     # transform standard dictionaries into DataFrame like Output classes
-    other_data = {"num days": num_of_days, "days of week": days_of_week}
+    other_data = {"n days": num_of_days, "day": days_of_week}
     outputs = generate_outputs(outputs, dates, other_data)
     monitor.output_cls_gen_finished()
 

@@ -75,22 +75,13 @@ class TotalsFile(BaseResultsFile):
 
     A structure for line bins is as follows:
     header_dict = {
-        TS : {(int)ID : ('Key','Variable','Units')},
-        H : {(int)ID : ('Key','Variable','Units')},
-        D : {(int)ID : ('Key','Variable','Units')},
-        M : {(int)ID : ('Key','Variable','Units')},
-        A : {(int)ID : ('Key','Variable','Units')},
-        RP : {(int)ID : ('Key','Variable','Units')},
+        interval : {(int)ID : ('Key','Variable','Units')},
     }
 
     outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
+        interval : outputs.Outputs,
     }
+    interval key can be 'timestep', 'hourly', 'daily', 'monthly', 'annual', 'runperiod',
 
     Attributes
     ----------
@@ -212,8 +203,8 @@ class TotalsFile(BaseResultsFile):
         df = self.calculate_totals(df)
 
         try:
-            num_days = outputs.get_number_of_days()
-            df.insert(0, "num days", num_days)
+            n_days = outputs.get_number_of_days()
+            df.insert(0, "n days", n_days)
         except AttributeError:
             pass
 

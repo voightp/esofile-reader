@@ -88,8 +88,8 @@ class BaseResultsFile:
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return f"File: {self.file_name}" \
-               f"\nPath: {self.file_path}" \
-               f"\nCreated: {human_time}"
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {human_time}"
 
     @property
     def available_intervals(self):
@@ -238,7 +238,7 @@ class BaseResultsFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                  f"kwarg must be one of '{', '.join(res.keys())}'."
+                f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
@@ -569,6 +569,7 @@ class BaseResultsFile:
 
     def diff(self, other_file, absolute=False):
         """ Calculate difference between this and other results file. """
+        pass
 
     def as_df(self):
         """ Return the file as a single DataFrame. """

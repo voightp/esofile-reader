@@ -91,23 +91,36 @@ def slicer(df, ids, start_date=None, end_date=None):
     except KeyError:
         valid_ids = df.columns.intersection(ids)
         ids = [str(ids)] if not isinstance(ids, list) else [str(i) for i in ids]
-        print("Cannot slice df using requested inputs:"
-              "ids: '{}', start date: '{}', end date: '{}'.\n"
-              "Trying to use ids: '{}' with all rows. ".format(", ".join(ids),
-                                                               start_date, end_date,
-                                                               valid_ids))
+        print(f"Cannot slice df using requested inputs:"
+              f"ids: '{', '.join(ids)}', start date: '{start_date}', end date: "
+              f"'{end_date}'.\nTrying to use ids: '{valid_ids}' with all rows.")
+
         if valid_ids.empty:
             raise KeyError("Any of given ids is not included!")
 
         return df.loc[:, valid_ids]
 
 
-class PeakOutputs(pd.DataFrame):
+class BaseOutputs(pd.DataFrame):
+    def __init__(self, *args, **kwargs):
+        super(BaseOutputs, self).__init__(*args, **kwargs)
+
+    def get_results(self, ids, start_date=None, end_date=None):
+        """ Find standard result. """
+        df = slicer(self, ids, start_date=start_date, end_date=end_date)
+
+        if isinstance(df, pd.Series):
+            df = pd.DataFrame(df)
+
+        return df.copy()
+
+
+class PeakOutputs(BaseOutputs):
     def __init__(self, *args, **kwargs):
         super(PeakOutputs, self).__init__(*args, **kwargs)
 
 
-class Outputs(pd.DataFrame):
+class Outputs(BaseOutputs):
     """
     A parent class to define all methods required for extracting
     specific E+ results.
@@ -135,7 +148,7 @@ class Outputs(pd.DataFrame):
         """ Get df with only 'standard' outputs and 'num days'. """
         df = self.copy()
 
-        for s in ["num days", "days of week"]:
+        for s in ["n days", "day"]:
             try:
                 df.drop(s, axis=1, inplace=True)
             except KeyError:
@@ -179,28 +192,21 @@ class Outputs(pd.DataFrame):
             print(f"Cannot remove ids: {strids}")
 
         if len(self.columns) == 1:
-            if self.columns == ["num days"]:
-                self.drop(columns="num days", inplace=True)
-
-    def get_results(self, ids, start_date=None, end_date=None):
-        """ Find standard result. """
-        df = slicer(self, ids, start_date=start_date, end_date=end_date)
-
-        if isinstance(df, pd.Series):
-            df = pd.DataFrame(df)
-
-        return df.copy()
+            if self.columns == ["n days"]:
+                self.drop(columns="n days", inplace=True)
+            elif self.columns == ["day"]:
+                self.drop(columns="day", inplace=True)
 
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
-        if "num days" not in self.columns:
-            raise AttributeError("'number of days' column is not available"
+        if "n days" not in self.columns:
+            raise AttributeError("'n days' column is not available"
                                  "on the given data set.")
-        return slicer(self, "num days", start_date, end_date)
+        return slicer(self, "n days", start_date, end_date)
 
     def get_days_of_week(self, start_date=None, end_date=None):
         """ Return 'days of week' column. """
         if "days of week" not in self.columns:
-            raise AttributeError("'days of week' column is not available"
+            raise AttributeError("'day' column is not available"
                                  "on the given data set.")
-        return slicer(self, "days of week", start_date, end_date)
+        return slicer(self, "day", start_date, end_date)

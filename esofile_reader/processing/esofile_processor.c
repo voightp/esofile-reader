@@ -1532,6 +1532,7 @@ static const char __pyx_k_re[] = "re";
 static const char __pyx_k__22[] = "'.";
 static const char __pyx_k__24[] = "'";
 static const char __pyx_k__30[] = "_";
+static const char __pyx_k_day[] = "day";
 static const char __pyx_k_doc[] = "__doc__";
 static const char __pyx_k_end[] = "end";
 static const char __pyx_k_ids[] = "ids";
@@ -1589,6 +1590,7 @@ static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_insert[] = "insert";
 static const char __pyx_k_key_nm[] = "key_nm";
 static const char __pyx_k_module[] = "__module__";
+static const char __pyx_k_n_days[] = "n days";
 static const char __pyx_k_name_2[] = "__name__";
 static const char __pyx_k_pandas[] = "pandas";
 static const char __pyx_k_search[] = "search";
@@ -1618,7 +1620,6 @@ static const char __pyx_k_deepcopy[] = "deepcopy";
 static const char __pyx_k_eso_file[] = "eso_file";
 static const char __pyx_k_ignoring[] = "ignoring ";
 static const char __pyx_k_interval[] = "interval";
-static const char __pyx_k_num_days[] = "num days";
 static const char __pyx_k_peak_res[] = "peak_res";
 static const char __pyx_k_qualname[] = "__qualname__";
 static const char __pyx_k_strptime[] = "strptime";
@@ -1631,6 +1632,7 @@ static const char __pyx_k_is_unique[] = "is_unique";
 static const char __pyx_k_metaclass[] = "__metaclass__";
 static const char __pyx_k_read_body[] = "read_body";
 static const char __pyx_k_read_file[] = "read_file";
+static const char __pyx_k_set_names[] = "set_names";
 static const char __pyx_k_timestamp[] = "timestamp";
 static const char __pyx_k_variables[] = "variables";
 static const char __pyx_k_Cumulative[] = "Cumulative";
@@ -1649,7 +1651,7 @@ static const char __pyx_k_num_of_days[] = "num_of_days";
 static const char __pyx_k_outputs_dct[] = "outputs_dct";
 static const char __pyx_k_raw_version[] = "raw_version";
 static const char __pyx_k_read_header[] = "read_header";
-static const char __pyx_k_days_of_week[] = "days of week";
+static const char __pyx_k_days_of_week[] = "days_of_week";
 static const char __pyx_k_dt_timestamp[] = "_dt_timestamp";
 static const char __pyx_k_environments[] = "environments";
 static const char __pyx_k_ignore_peaks[] = "ignore_peaks";
@@ -1665,7 +1667,6 @@ static const char __pyx_k_BlankLineError[] = "BlankLineError";
 static const char __pyx_k_DefaultMonitor[] = "DefaultMonitor";
 static const char __pyx_k_create_peak_df[] = "create_peak_df";
 static const char __pyx_k_daily_interval[] = "daily_interval";
-static const char __pyx_k_days_of_week_2[] = "days_of_week";
 static const char __pyx_k_annual_interval[] = "annual_interval";
 static const char __pyx_k_create_variable[] = "create_variable";
 static const char __pyx_k_cumulative_days[] = "cumulative_days";
@@ -1785,8 +1786,8 @@ static PyObject *__pyx_n_s_data;
 static PyObject *__pyx_n_s_date;
 static PyObject *__pyx_n_s_dates;
 static PyObject *__pyx_n_s_datetime;
-static PyObject *__pyx_kp_s_days_of_week;
-static PyObject *__pyx_n_s_days_of_week_2;
+static PyObject *__pyx_n_s_day;
+static PyObject *__pyx_n_s_days_of_week;
 static PyObject *__pyx_n_s_deepcopy;
 static PyObject *__pyx_n_s_defaultdict;
 static PyObject *__pyx_n_s_doc;
@@ -1859,12 +1860,12 @@ static PyObject *__pyx_n_s_module;
 static PyObject *__pyx_n_s_monitor;
 static PyObject *__pyx_n_s_monthly_interval;
 static PyObject *__pyx_n_s_msg;
+static PyObject *__pyx_kp_s_n_days;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_name_2;
 static PyObject *__pyx_n_s_nan;
 static PyObject *__pyx_n_s_new_key;
 static PyObject *__pyx_n_s_np;
-static PyObject *__pyx_kp_s_num_days;
 static PyObject *__pyx_n_s_num_of_days;
 static PyObject *__pyx_n_s_numpy;
 static PyObject *__pyx_n_s_open;
@@ -1915,6 +1916,7 @@ static PyObject *__pyx_n_s_report_progress;
 static PyObject *__pyx_n_s_res;
 static PyObject *__pyx_n_s_runperiod_interval;
 static PyObject *__pyx_n_s_search;
+static PyObject *__pyx_n_s_set_names;
 static PyObject *__pyx_n_s_split;
 static PyObject *__pyx_n_s_split_line;
 static PyObject *__pyx_n_s_start;
@@ -8378,7 +8380,6 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                 PyObject *__pyx_v_interval = NULL;
                 PyObject *__pyx_v_data = NULL;
                 PyObject *__pyx_v_index = NULL;
-                PyObject *__pyx_v_columns = NULL;
                 PyObject *__pyx_v_out = NULL;
                 PyObject *__pyx_v_k = NULL;
                 PyObject *__pyx_v_v = NULL;
@@ -8407,7 +8408,7 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
  *     """ Transform processed output data into DataFrame like classes. """
  *     for interval, data in outputs.items():             # <<<<<<<<<<<<<<
  *         index = pd.Index(dates[interval], name="timestamp")
- *         columns = pd.Index(data.keys(), name="id")
+ * 
  */
                 __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_outputs, __pyx_n_s_items); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 386, __pyx_L1_error)
                 __Pyx_GOTREF(__pyx_t_2);
@@ -8521,8 +8522,8 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
  *     """ Transform processed output data into DataFrame like classes. """
  *     for interval, data in outputs.items():
  *         index = pd.Index(dates[interval], name="timestamp")             # <<<<<<<<<<<<<<
- *         columns = pd.Index(data.keys(), name="id")
  * 
+ *         out = Outputs(data, index=index, dtype=np.float)
  */
                   __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_pd); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 387, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_1);
@@ -8547,138 +8548,127 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                   __Pyx_XDECREF_SET(__pyx_v_index, __pyx_t_7);
                   __pyx_t_7 = 0;
 
-                  /* "esofile_reader/processing/esofile_processor.pyx":388
- *     for interval, data in outputs.items():
+                  /* "esofile_reader/processing/esofile_processor.pyx":389
  *         index = pd.Index(dates[interval], name="timestamp")
- *         columns = pd.Index(data.keys(), name="id")             # <<<<<<<<<<<<<<
  * 
- *         out = Outputs(data, index=index, columns=columns, dtype=np.float)
+ *         out = Outputs(data, index=index, dtype=np.float)             # <<<<<<<<<<<<<<
+ *         out.columns.set_names(["id"])
+ * 
  */
-                  __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_pd); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 388, __pyx_L1_error)
+                  __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_Outputs); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 389, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_7);
-                  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_Index); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 388, __pyx_L1_error)
+                  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 389, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_1);
-                  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-                  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_data, __pyx_n_s_keys); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_3);
-                  __pyx_t_6 = NULL;
-                  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
-                    __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_3);
-                    if (likely(__pyx_t_6)) {
-                      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-                      __Pyx_INCREF(__pyx_t_6);
-                      __Pyx_INCREF(function);
-                      __Pyx_DECREF_SET(__pyx_t_3, function);
-                    }
-                  }
-                  __pyx_t_7 = (__pyx_t_6) ? __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_6) : __Pyx_PyObject_CallNoArg(__pyx_t_3);
-                  __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-                  if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_7);
-                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-                  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_3);
-                  __Pyx_GIVEREF(__pyx_t_7);
-                  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_7);
-                  __pyx_t_7 = 0;
-                  __pyx_t_7 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_7);
-                  if (PyDict_SetItem(__pyx_t_7, __pyx_n_s_name, __pyx_n_s_id) < 0) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_3, __pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 388, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_6);
-                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-                  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-                  __Pyx_XDECREF_SET(__pyx_v_columns, __pyx_t_6);
-                  __pyx_t_6 = 0;
-
-                  /* "esofile_reader/processing/esofile_processor.pyx":390
- *         columns = pd.Index(data.keys(), name="id")
- * 
- *         out = Outputs(data, index=index, columns=columns, dtype=np.float)             # <<<<<<<<<<<<<<
- * 
- *         for k, v in other_data.items():
- */
-                  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_Outputs); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_6);
-                  __pyx_t_7 = PyTuple_New(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_7);
                   __Pyx_INCREF(__pyx_v_data);
                   __Pyx_GIVEREF(__pyx_v_data);
-                  PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_v_data);
-                  __pyx_t_3 = __Pyx_PyDict_NewPresized(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_data);
+                  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 389, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_3);
-                  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_index, __pyx_v_index) < 0) __PYX_ERR(0, 390, __pyx_L1_error)
-                  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_columns, __pyx_v_columns) < 0) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_1);
-                  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_float); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_9);
-                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-                  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_9) < 0) __PYX_ERR(0, 390, __pyx_L1_error)
-                  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-                  __pyx_t_9 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_7, __pyx_t_3); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_index, __pyx_v_index) < 0) __PYX_ERR(0, 389, __pyx_L1_error)
+                  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 389, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_6);
+                  __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 389, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_9);
                   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+                  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_9) < 0) __PYX_ERR(0, 389, __pyx_L1_error)
+                  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+                  __pyx_t_9 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_1, __pyx_t_3); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 389, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_9);
                   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
                   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
                   __Pyx_XDECREF_SET(__pyx_v_out, __pyx_t_9);
                   __pyx_t_9 = 0;
 
+                  /* "esofile_reader/processing/esofile_processor.pyx":390
+ * 
+ *         out = Outputs(data, index=index, dtype=np.float)
+ *         out.columns.set_names(["id"])             # <<<<<<<<<<<<<<
+ * 
+ *         for k, v in other_data.items():
+ */
+                  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_out, __pyx_n_s_columns); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_3);
+                  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_set_names); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_1);
+                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+                  __pyx_t_3 = PyList_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_3);
+                  __Pyx_INCREF(__pyx_n_s_id);
+                  __Pyx_GIVEREF(__pyx_n_s_id);
+                  PyList_SET_ITEM(__pyx_t_3, 0, __pyx_n_s_id);
+                  __pyx_t_7 = NULL;
+                  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
+                    __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_1);
+                    if (likely(__pyx_t_7)) {
+                      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+                      __Pyx_INCREF(__pyx_t_7);
+                      __Pyx_INCREF(function);
+                      __Pyx_DECREF_SET(__pyx_t_1, function);
+                    }
+                  }
+                  __pyx_t_9 = (__pyx_t_7) ? __Pyx_PyObject_Call2Args(__pyx_t_1, __pyx_t_7, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_3);
+                  __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+                  if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 390, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_9);
+                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+                  __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+
                   /* "esofile_reader/processing/esofile_processor.pyx":392
- *         out = Outputs(data, index=index, columns=columns, dtype=np.float)
+ *         out.columns.set_names(["id"])
  * 
  *         for k, v in other_data.items():             # <<<<<<<<<<<<<<
  *             try:
  *                 column = v.pop(interval)
  */
-                  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_other_data, __pyx_n_s_items); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 392, __pyx_L1_error)
-                  __Pyx_GOTREF(__pyx_t_3);
-                  __pyx_t_7 = NULL;
-                  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
-                    __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_3);
-                    if (likely(__pyx_t_7)) {
-                      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-                      __Pyx_INCREF(__pyx_t_7);
+                  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_other_data, __pyx_n_s_items); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 392, __pyx_L1_error)
+                  __Pyx_GOTREF(__pyx_t_1);
+                  __pyx_t_3 = NULL;
+                  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
+                    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_1);
+                    if (likely(__pyx_t_3)) {
+                      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+                      __Pyx_INCREF(__pyx_t_3);
                       __Pyx_INCREF(function);
-                      __Pyx_DECREF_SET(__pyx_t_3, function);
+                      __Pyx_DECREF_SET(__pyx_t_1, function);
                     }
                   }
-                  __pyx_t_9 = (__pyx_t_7) ? __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_7) : __Pyx_PyObject_CallNoArg(__pyx_t_3);
-                  __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+                  __pyx_t_9 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_1);
+                  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
                   if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 392, __pyx_L1_error)
                   __Pyx_GOTREF(__pyx_t_9);
-                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
                   if (likely(PyList_CheckExact(__pyx_t_9)) || PyTuple_CheckExact(__pyx_t_9)) {
-                    __pyx_t_3 = __pyx_t_9; __Pyx_INCREF(__pyx_t_3); __pyx_t_10 = 0;
+                    __pyx_t_1 = __pyx_t_9; __Pyx_INCREF(__pyx_t_1); __pyx_t_10 = 0;
                     __pyx_t_11 = NULL;
                   } else {
-                    __pyx_t_10 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_t_9); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 392, __pyx_L1_error)
-                    __Pyx_GOTREF(__pyx_t_3);
-                    __pyx_t_11 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 392, __pyx_L1_error)
+                    __pyx_t_10 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_t_9); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 392, __pyx_L1_error)
+                    __Pyx_GOTREF(__pyx_t_1);
+                    __pyx_t_11 = Py_TYPE(__pyx_t_1)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 392, __pyx_L1_error)
                   }
                   __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
                   for (;;) {
                     if (likely(!__pyx_t_11)) {
-                      if (likely(PyList_CheckExact(__pyx_t_3))) {
-                        if (__pyx_t_10 >= PyList_GET_SIZE(__pyx_t_3)) break;
+                      if (likely(PyList_CheckExact(__pyx_t_1))) {
+                        if (__pyx_t_10 >= PyList_GET_SIZE(__pyx_t_1)) break;
                         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-                        __pyx_t_9 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_10); __Pyx_INCREF(__pyx_t_9); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 392, __pyx_L1_error)
+                        __pyx_t_9 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_10); __Pyx_INCREF(__pyx_t_9); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 392, __pyx_L1_error)
                         #else
-                        __pyx_t_9 = PySequence_ITEM(__pyx_t_3, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 392, __pyx_L1_error)
+                        __pyx_t_9 = PySequence_ITEM(__pyx_t_1, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 392, __pyx_L1_error)
                         __Pyx_GOTREF(__pyx_t_9);
                         #endif
                       } else {
-                        if (__pyx_t_10 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
+                        if (__pyx_t_10 >= PyTuple_GET_SIZE(__pyx_t_1)) break;
                         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-                        __pyx_t_9 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_10); __Pyx_INCREF(__pyx_t_9); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 392, __pyx_L1_error)
+                        __pyx_t_9 = PyTuple_GET_ITEM(__pyx_t_1, __pyx_t_10); __Pyx_INCREF(__pyx_t_9); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 392, __pyx_L1_error)
                         #else
-                        __pyx_t_9 = PySequence_ITEM(__pyx_t_3, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 392, __pyx_L1_error)
+                        __pyx_t_9 = PySequence_ITEM(__pyx_t_1, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 392, __pyx_L1_error)
                         __Pyx_GOTREF(__pyx_t_9);
                         #endif
                       }
                     } else {
-                      __pyx_t_9 = __pyx_t_11(__pyx_t_3);
+                      __pyx_t_9 = __pyx_t_11(__pyx_t_1);
                       if (unlikely(!__pyx_t_9)) {
                         PyObject* exc_type = PyErr_Occurred();
                         if (exc_type) {
@@ -8699,46 +8689,46 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                       }
                       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
                       if (likely(PyTuple_CheckExact(sequence))) {
-                        __pyx_t_7 = PyTuple_GET_ITEM(sequence, 0); 
-                        __pyx_t_6 = PyTuple_GET_ITEM(sequence, 1); 
+                        __pyx_t_3 = PyTuple_GET_ITEM(sequence, 0); 
+                        __pyx_t_7 = PyTuple_GET_ITEM(sequence, 1); 
                       } else {
-                        __pyx_t_7 = PyList_GET_ITEM(sequence, 0); 
-                        __pyx_t_6 = PyList_GET_ITEM(sequence, 1); 
+                        __pyx_t_3 = PyList_GET_ITEM(sequence, 0); 
+                        __pyx_t_7 = PyList_GET_ITEM(sequence, 1); 
                       }
+                      __Pyx_INCREF(__pyx_t_3);
                       __Pyx_INCREF(__pyx_t_7);
-                      __Pyx_INCREF(__pyx_t_6);
                       #else
-                      __pyx_t_7 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 392, __pyx_L1_error)
+                      __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 392, __pyx_L1_error)
+                      __Pyx_GOTREF(__pyx_t_3);
+                      __pyx_t_7 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 392, __pyx_L1_error)
                       __Pyx_GOTREF(__pyx_t_7);
-                      __pyx_t_6 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 392, __pyx_L1_error)
-                      __Pyx_GOTREF(__pyx_t_6);
                       #endif
                       __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
                     } else {
                       Py_ssize_t index = -1;
-                      __pyx_t_1 = PyObject_GetIter(__pyx_t_9); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 392, __pyx_L1_error)
-                      __Pyx_GOTREF(__pyx_t_1);
-                      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-                      __pyx_t_8 = Py_TYPE(__pyx_t_1)->tp_iternext;
-                      index = 0; __pyx_t_7 = __pyx_t_8(__pyx_t_1); if (unlikely(!__pyx_t_7)) goto __pyx_L9_unpacking_failed;
-                      __Pyx_GOTREF(__pyx_t_7);
-                      index = 1; __pyx_t_6 = __pyx_t_8(__pyx_t_1); if (unlikely(!__pyx_t_6)) goto __pyx_L9_unpacking_failed;
+                      __pyx_t_6 = PyObject_GetIter(__pyx_t_9); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 392, __pyx_L1_error)
                       __Pyx_GOTREF(__pyx_t_6);
-                      if (__Pyx_IternextUnpackEndCheck(__pyx_t_8(__pyx_t_1), 2) < 0) __PYX_ERR(0, 392, __pyx_L1_error)
+                      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+                      __pyx_t_8 = Py_TYPE(__pyx_t_6)->tp_iternext;
+                      index = 0; __pyx_t_3 = __pyx_t_8(__pyx_t_6); if (unlikely(!__pyx_t_3)) goto __pyx_L9_unpacking_failed;
+                      __Pyx_GOTREF(__pyx_t_3);
+                      index = 1; __pyx_t_7 = __pyx_t_8(__pyx_t_6); if (unlikely(!__pyx_t_7)) goto __pyx_L9_unpacking_failed;
+                      __Pyx_GOTREF(__pyx_t_7);
+                      if (__Pyx_IternextUnpackEndCheck(__pyx_t_8(__pyx_t_6), 2) < 0) __PYX_ERR(0, 392, __pyx_L1_error)
                       __pyx_t_8 = NULL;
-                      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+                      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
                       goto __pyx_L10_unpacking_done;
                       __pyx_L9_unpacking_failed:;
-                      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+                      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
                       __pyx_t_8 = NULL;
                       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
                       __PYX_ERR(0, 392, __pyx_L1_error)
                       __pyx_L10_unpacking_done:;
                     }
-                    __Pyx_XDECREF_SET(__pyx_v_k, __pyx_t_7);
+                    __Pyx_XDECREF_SET(__pyx_v_k, __pyx_t_3);
+                    __pyx_t_3 = 0;
+                    __Pyx_XDECREF_SET(__pyx_v_v, __pyx_t_7);
                     __pyx_t_7 = 0;
-                    __Pyx_XDECREF_SET(__pyx_v_v, __pyx_t_6);
-                    __pyx_t_6 = 0;
 
                     /* "esofile_reader/processing/esofile_processor.pyx":393
  * 
@@ -8763,23 +8753,23 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
  *                 out.insert(0, k, column)
  *             except KeyError:
  */
-                        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_v, __pyx_n_s_pop); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 394, __pyx_L11_error)
-                        __Pyx_GOTREF(__pyx_t_6);
-                        __pyx_t_7 = NULL;
-                        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
-                          __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_6);
-                          if (likely(__pyx_t_7)) {
-                            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-                            __Pyx_INCREF(__pyx_t_7);
+                        __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_v, __pyx_n_s_pop); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 394, __pyx_L11_error)
+                        __Pyx_GOTREF(__pyx_t_7);
+                        __pyx_t_3 = NULL;
+                        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_7))) {
+                          __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_7);
+                          if (likely(__pyx_t_3)) {
+                            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
+                            __Pyx_INCREF(__pyx_t_3);
                             __Pyx_INCREF(function);
-                            __Pyx_DECREF_SET(__pyx_t_6, function);
+                            __Pyx_DECREF_SET(__pyx_t_7, function);
                           }
                         }
-                        __pyx_t_9 = (__pyx_t_7) ? __Pyx_PyObject_Call2Args(__pyx_t_6, __pyx_t_7, __pyx_v_interval) : __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_v_interval);
-                        __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+                        __pyx_t_9 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_7, __pyx_t_3, __pyx_v_interval) : __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_v_interval);
+                        __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
                         if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 394, __pyx_L11_error)
                         __Pyx_GOTREF(__pyx_t_9);
-                        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+                        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
                         __Pyx_XDECREF_SET(__pyx_v_column, __pyx_t_9);
                         __pyx_t_9 = 0;
 
@@ -8790,56 +8780,56 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
  *             except KeyError:
  *                 pass
  */
-                        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_out, __pyx_n_s_insert); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 395, __pyx_L11_error)
-                        __Pyx_GOTREF(__pyx_t_6);
-                        __pyx_t_7 = NULL;
+                        __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_out, __pyx_n_s_insert); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 395, __pyx_L11_error)
+                        __Pyx_GOTREF(__pyx_t_7);
+                        __pyx_t_3 = NULL;
                         __pyx_t_15 = 0;
-                        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
-                          __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_6);
-                          if (likely(__pyx_t_7)) {
-                            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-                            __Pyx_INCREF(__pyx_t_7);
+                        if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_7))) {
+                          __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_7);
+                          if (likely(__pyx_t_3)) {
+                            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_7);
+                            __Pyx_INCREF(__pyx_t_3);
                             __Pyx_INCREF(function);
-                            __Pyx_DECREF_SET(__pyx_t_6, function);
+                            __Pyx_DECREF_SET(__pyx_t_7, function);
                             __pyx_t_15 = 1;
                           }
                         }
                         #if CYTHON_FAST_PYCALL
-                        if (PyFunction_Check(__pyx_t_6)) {
-                          PyObject *__pyx_temp[4] = {__pyx_t_7, __pyx_int_0, __pyx_v_k, __pyx_v_column};
-                          __pyx_t_9 = __Pyx_PyFunction_FastCall(__pyx_t_6, __pyx_temp+1-__pyx_t_15, 3+__pyx_t_15); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
-                          __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+                        if (PyFunction_Check(__pyx_t_7)) {
+                          PyObject *__pyx_temp[4] = {__pyx_t_3, __pyx_int_0, __pyx_v_k, __pyx_v_column};
+                          __pyx_t_9 = __Pyx_PyFunction_FastCall(__pyx_t_7, __pyx_temp+1-__pyx_t_15, 3+__pyx_t_15); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
+                          __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
                           __Pyx_GOTREF(__pyx_t_9);
                         } else
                         #endif
                         #if CYTHON_FAST_PYCCALL
-                        if (__Pyx_PyFastCFunction_Check(__pyx_t_6)) {
-                          PyObject *__pyx_temp[4] = {__pyx_t_7, __pyx_int_0, __pyx_v_k, __pyx_v_column};
-                          __pyx_t_9 = __Pyx_PyCFunction_FastCall(__pyx_t_6, __pyx_temp+1-__pyx_t_15, 3+__pyx_t_15); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
-                          __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+                        if (__Pyx_PyFastCFunction_Check(__pyx_t_7)) {
+                          PyObject *__pyx_temp[4] = {__pyx_t_3, __pyx_int_0, __pyx_v_k, __pyx_v_column};
+                          __pyx_t_9 = __Pyx_PyCFunction_FastCall(__pyx_t_7, __pyx_temp+1-__pyx_t_15, 3+__pyx_t_15); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
+                          __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
                           __Pyx_GOTREF(__pyx_t_9);
                         } else
                         #endif
                         {
-                          __pyx_t_1 = PyTuple_New(3+__pyx_t_15); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 395, __pyx_L11_error)
-                          __Pyx_GOTREF(__pyx_t_1);
-                          if (__pyx_t_7) {
-                            __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_7); __pyx_t_7 = NULL;
+                          __pyx_t_6 = PyTuple_New(3+__pyx_t_15); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 395, __pyx_L11_error)
+                          __Pyx_GOTREF(__pyx_t_6);
+                          if (__pyx_t_3) {
+                            __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_3); __pyx_t_3 = NULL;
                           }
                           __Pyx_INCREF(__pyx_int_0);
                           __Pyx_GIVEREF(__pyx_int_0);
-                          PyTuple_SET_ITEM(__pyx_t_1, 0+__pyx_t_15, __pyx_int_0);
+                          PyTuple_SET_ITEM(__pyx_t_6, 0+__pyx_t_15, __pyx_int_0);
                           __Pyx_INCREF(__pyx_v_k);
                           __Pyx_GIVEREF(__pyx_v_k);
-                          PyTuple_SET_ITEM(__pyx_t_1, 1+__pyx_t_15, __pyx_v_k);
+                          PyTuple_SET_ITEM(__pyx_t_6, 1+__pyx_t_15, __pyx_v_k);
                           __Pyx_INCREF(__pyx_v_column);
                           __Pyx_GIVEREF(__pyx_v_column);
-                          PyTuple_SET_ITEM(__pyx_t_1, 2+__pyx_t_15, __pyx_v_column);
-                          __pyx_t_9 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_1, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
+                          PyTuple_SET_ITEM(__pyx_t_6, 2+__pyx_t_15, __pyx_v_column);
+                          __pyx_t_9 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_6, NULL); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 395, __pyx_L11_error)
                           __Pyx_GOTREF(__pyx_t_9);
-                          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+                          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
                         }
-                        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+                        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
                         __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
 
                         /* "esofile_reader/processing/esofile_processor.pyx":393
@@ -8855,7 +8845,7 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                       __Pyx_XDECREF(__pyx_t_14); __pyx_t_14 = 0;
                       goto __pyx_L18_try_end;
                       __pyx_L11_error:;
-                      __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+                      __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
                       __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
                       __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
                       __Pyx_XDECREF(__pyx_t_9); __pyx_t_9 = 0;
@@ -8896,14 +8886,14 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                     }
 
                     /* "esofile_reader/processing/esofile_processor.pyx":392
- *         out = Outputs(data, index=index, columns=columns, dtype=np.float)
+ *         out.columns.set_names(["id"])
  * 
  *         for k, v in other_data.items():             # <<<<<<<<<<<<<<
  *             try:
  *                 column = v.pop(interval)
  */
                   }
-                  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+                  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
                   /* "esofile_reader/processing/esofile_processor.pyx":399
  *                 pass
@@ -8919,7 +8909,7 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
  *     """ Transform processed output data into DataFrame like classes. """
  *     for interval, data in outputs.items():             # <<<<<<<<<<<<<<
  *         index = pd.Index(dates[interval], name="timestamp")
- *         columns = pd.Index(data.keys(), name="id")
+ * 
  */
                 }
                 __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -8958,7 +8948,6 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                 __Pyx_XDECREF(__pyx_v_interval);
                 __Pyx_XDECREF(__pyx_v_data);
                 __Pyx_XDECREF(__pyx_v_index);
-                __Pyx_XDECREF(__pyx_v_columns);
                 __Pyx_XDECREF(__pyx_v_out);
                 __Pyx_XDECREF(__pyx_v_k);
                 __Pyx_XDECREF(__pyx_v_v);
@@ -10187,20 +10176,20 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                 /* "esofile_reader/processing/esofile_processor.pyx":448
  * 
  *     # transform standard dictionaries into DataFrame like Output classes
- *     other_data = {"num days": num_of_days, "days of week": days_of_week}             # <<<<<<<<<<<<<<
+ *     other_data = {"n days": num_of_days, "day": days_of_week}             # <<<<<<<<<<<<<<
  *     outputs = generate_outputs(outputs, dates, other_data)
  *     monitor.output_cls_gen_finished()
  */
                 __pyx_t_1 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 448, __pyx_L1_error)
                 __Pyx_GOTREF(__pyx_t_1);
-                if (PyDict_SetItem(__pyx_t_1, __pyx_kp_s_num_days, __pyx_v_num_of_days) < 0) __PYX_ERR(0, 448, __pyx_L1_error)
-                if (PyDict_SetItem(__pyx_t_1, __pyx_kp_s_days_of_week, __pyx_v_days_of_week) < 0) __PYX_ERR(0, 448, __pyx_L1_error)
+                if (PyDict_SetItem(__pyx_t_1, __pyx_kp_s_n_days, __pyx_v_num_of_days) < 0) __PYX_ERR(0, 448, __pyx_L1_error)
+                if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_day, __pyx_v_days_of_week) < 0) __PYX_ERR(0, 448, __pyx_L1_error)
                 __pyx_v_other_data = ((PyObject*)__pyx_t_1);
                 __pyx_t_1 = 0;
 
                 /* "esofile_reader/processing/esofile_processor.pyx":449
  *     # transform standard dictionaries into DataFrame like Output classes
- *     other_data = {"num days": num_of_days, "days of week": days_of_week}
+ *     other_data = {"n days": num_of_days, "day": days_of_week}
  *     outputs = generate_outputs(outputs, dates, other_data)             # <<<<<<<<<<<<<<
  *     monitor.output_cls_gen_finished()
  * 
@@ -10259,7 +10248,7 @@ static char __pyx_doc_14esofile_reader_10processing_17esofile_processor_10read_h
                 __pyx_t_1 = 0;
 
                 /* "esofile_reader/processing/esofile_processor.pyx":450
- *     other_data = {"num days": num_of_days, "days of week": days_of_week}
+ *     other_data = {"n days": num_of_days, "day": days_of_week}
  *     outputs = generate_outputs(outputs, dates, other_data)
  *     monitor.output_cls_gen_finished()             # <<<<<<<<<<<<<<
  * 
@@ -11657,8 +11646,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_date, __pyx_k_date, sizeof(__pyx_k_date), 0, 0, 1, 1},
   {&__pyx_n_s_dates, __pyx_k_dates, sizeof(__pyx_k_dates), 0, 0, 1, 1},
   {&__pyx_n_s_datetime, __pyx_k_datetime, sizeof(__pyx_k_datetime), 0, 0, 1, 1},
-  {&__pyx_kp_s_days_of_week, __pyx_k_days_of_week, sizeof(__pyx_k_days_of_week), 0, 0, 1, 0},
-  {&__pyx_n_s_days_of_week_2, __pyx_k_days_of_week_2, sizeof(__pyx_k_days_of_week_2), 0, 0, 1, 1},
+  {&__pyx_n_s_day, __pyx_k_day, sizeof(__pyx_k_day), 0, 0, 1, 1},
+  {&__pyx_n_s_days_of_week, __pyx_k_days_of_week, sizeof(__pyx_k_days_of_week), 0, 0, 1, 1},
   {&__pyx_n_s_deepcopy, __pyx_k_deepcopy, sizeof(__pyx_k_deepcopy), 0, 0, 1, 1},
   {&__pyx_n_s_defaultdict, __pyx_k_defaultdict, sizeof(__pyx_k_defaultdict), 0, 0, 1, 1},
   {&__pyx_n_s_doc, __pyx_k_doc, sizeof(__pyx_k_doc), 0, 0, 1, 1},
@@ -11731,12 +11720,12 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_monitor, __pyx_k_monitor, sizeof(__pyx_k_monitor), 0, 0, 1, 1},
   {&__pyx_n_s_monthly_interval, __pyx_k_monthly_interval, sizeof(__pyx_k_monthly_interval), 0, 0, 1, 1},
   {&__pyx_n_s_msg, __pyx_k_msg, sizeof(__pyx_k_msg), 0, 0, 1, 1},
+  {&__pyx_kp_s_n_days, __pyx_k_n_days, sizeof(__pyx_k_n_days), 0, 0, 1, 0},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
   {&__pyx_n_s_nan, __pyx_k_nan, sizeof(__pyx_k_nan), 0, 0, 1, 1},
   {&__pyx_n_s_new_key, __pyx_k_new_key, sizeof(__pyx_k_new_key), 0, 0, 1, 1},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
-  {&__pyx_kp_s_num_days, __pyx_k_num_days, sizeof(__pyx_k_num_days), 0, 0, 1, 0},
   {&__pyx_n_s_num_of_days, __pyx_k_num_of_days, sizeof(__pyx_k_num_of_days), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
   {&__pyx_n_s_open, __pyx_k_open, sizeof(__pyx_k_open), 0, 0, 1, 1},
@@ -11787,6 +11776,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_res, __pyx_k_res, sizeof(__pyx_k_res), 0, 0, 1, 1},
   {&__pyx_n_s_runperiod_interval, __pyx_k_runperiod_interval, sizeof(__pyx_k_runperiod_interval), 0, 0, 1, 1},
   {&__pyx_n_s_search, __pyx_k_search, sizeof(__pyx_k_search), 0, 0, 1, 1},
+  {&__pyx_n_s_set_names, __pyx_k_set_names, sizeof(__pyx_k_set_names), 0, 0, 1, 1},
   {&__pyx_n_s_split, __pyx_k_split, sizeof(__pyx_k_split), 0, 0, 1, 1},
   {&__pyx_n_s_split_line, __pyx_k_split_line, sizeof(__pyx_k_split_line), 0, 0, 1, 1},
   {&__pyx_n_s_start, __pyx_k_start, sizeof(__pyx_k_start), 0, 0, 1, 1},
@@ -12102,7 +12092,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     """
  *     Read body of the eso file.
  */
-  __pyx_tuple__49 = PyTuple_Pack(22, __pyx_n_s_eso_file, __pyx_n_s_highest_interval_id, __pyx_n_s_outputs, __pyx_n_s_ignore_peaks, __pyx_n_s_monitor, __pyx_n_s_dates, __pyx_n_s_cumulative_days, __pyx_n_s_days_of_week_2, __pyx_n_s_interval, __pyx_n_s_peak_outputs, __pyx_n_s_line, __pyx_n_s_line_id, __pyx_n_s_date, __pyx_n_s_other, __pyx_n_s_res, __pyx_n_s_peak_res, __pyx_n_s_k, __pyx_n_s_k, __pyx_n_s_k, __pyx_n_s_v, __pyx_n_s_value, __pyx_n_s_v); if (unlikely(!__pyx_tuple__49)) __PYX_ERR(0, 272, __pyx_L1_error)
+  __pyx_tuple__49 = PyTuple_Pack(22, __pyx_n_s_eso_file, __pyx_n_s_highest_interval_id, __pyx_n_s_outputs, __pyx_n_s_ignore_peaks, __pyx_n_s_monitor, __pyx_n_s_dates, __pyx_n_s_cumulative_days, __pyx_n_s_days_of_week, __pyx_n_s_interval, __pyx_n_s_peak_outputs, __pyx_n_s_line, __pyx_n_s_line_id, __pyx_n_s_date, __pyx_n_s_other, __pyx_n_s_res, __pyx_n_s_peak_res, __pyx_n_s_k, __pyx_n_s_k, __pyx_n_s_k, __pyx_n_s_v, __pyx_n_s_value, __pyx_n_s_v); if (unlikely(!__pyx_tuple__49)) __PYX_ERR(0, 272, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__49);
   __Pyx_GIVEREF(__pyx_tuple__49);
   __pyx_codeobj__50 = (PyObject*)__Pyx_PyCode_New(5, 0, 22, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__49, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_esofile_reader_processing_esofil, __pyx_n_s_read_body, 272, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__50)) __PYX_ERR(0, 272, __pyx_L1_error)
@@ -12126,10 +12116,10 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     """ Transform processed output data into DataFrame like classes. """
  *     for interval, data in outputs.items():
  */
-  __pyx_tuple__53 = PyTuple_Pack(11, __pyx_n_s_outputs, __pyx_n_s_dates, __pyx_n_s_other_data, __pyx_n_s_interval, __pyx_n_s_data, __pyx_n_s_index, __pyx_n_s_columns, __pyx_n_s_out, __pyx_n_s_k, __pyx_n_s_v, __pyx_n_s_column); if (unlikely(!__pyx_tuple__53)) __PYX_ERR(0, 384, __pyx_L1_error)
+  __pyx_tuple__53 = PyTuple_Pack(10, __pyx_n_s_outputs, __pyx_n_s_dates, __pyx_n_s_other_data, __pyx_n_s_interval, __pyx_n_s_data, __pyx_n_s_index, __pyx_n_s_out, __pyx_n_s_k, __pyx_n_s_v, __pyx_n_s_column); if (unlikely(!__pyx_tuple__53)) __PYX_ERR(0, 384, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__53);
   __Pyx_GIVEREF(__pyx_tuple__53);
-  __pyx_codeobj__54 = (PyObject*)__Pyx_PyCode_New(3, 0, 11, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__53, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_esofile_reader_processing_esofil, __pyx_n_s_generate_outputs, 384, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__54)) __PYX_ERR(0, 384, __pyx_L1_error)
+  __pyx_codeobj__54 = (PyObject*)__Pyx_PyCode_New(3, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__53, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_esofile_reader_processing_esofil, __pyx_n_s_generate_outputs, 384, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__54)) __PYX_ERR(0, 384, __pyx_L1_error)
 
   /* "esofile_reader/processing/esofile_processor.pyx":404
  * 
@@ -12162,7 +12152,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     """ Process raw EnergyPlus output file. """
  *     # process first few standard lines
  */
-  __pyx_tuple__59 = PyTuple_Pack(17, __pyx_n_s_file, __pyx_n_s_monitor, __pyx_n_s_ignore_peaks, __pyx_n_s_last_standard_item_id_2, __pyx_n_s_timestamp, __pyx_n_s_header, __pyx_n_s_init_outputs, __pyx_n_s_outputs, __pyx_n_s_peak_outputs, __pyx_n_s_dates, __pyx_n_s_cumulative_days, __pyx_n_s_days_of_week_2, __pyx_n_s_environments, __pyx_n_s_num_of_days, __pyx_n_s_other_data, __pyx_n_s_tree, __pyx_n_s_dup_ids); if (unlikely(!__pyx_tuple__59)) __PYX_ERR(0, 424, __pyx_L1_error)
+  __pyx_tuple__59 = PyTuple_Pack(17, __pyx_n_s_file, __pyx_n_s_monitor, __pyx_n_s_ignore_peaks, __pyx_n_s_last_standard_item_id_2, __pyx_n_s_timestamp, __pyx_n_s_header, __pyx_n_s_init_outputs, __pyx_n_s_outputs, __pyx_n_s_peak_outputs, __pyx_n_s_dates, __pyx_n_s_cumulative_days, __pyx_n_s_days_of_week, __pyx_n_s_environments, __pyx_n_s_num_of_days, __pyx_n_s_other_data, __pyx_n_s_tree, __pyx_n_s_dup_ids); if (unlikely(!__pyx_tuple__59)) __PYX_ERR(0, 424, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__59);
   __Pyx_GIVEREF(__pyx_tuple__59);
   __pyx_codeobj__60 = (PyObject*)__Pyx_PyCode_New(3, 0, 17, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__59, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_esofile_reader_processing_esofil, __pyx_n_s_process_file, 424, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__60)) __PYX_ERR(0, 424, __pyx_L1_error)
