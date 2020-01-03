@@ -27,10 +27,10 @@ def gen_id(checklist, negative=True):
             return -randint(1, 999999)
 
 
-class BaseResultsFile:
+class BaseFile:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
-    'building' totals file.
+    totals file.
 
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
@@ -46,12 +46,12 @@ class BaseResultsFile:
     }
 
     outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
+        TS : outputs.Outputs,
+        H : outputs.Outputs,
+        D : outputs.Outputs,
+        M : outputs.Outputs,
+        A : outputs.Outputs,
+        RP : outputs.Outputs,
     }
 
     Attributes

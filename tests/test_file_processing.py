@@ -1,15 +1,22 @@
 import unittest
 import datetime
+
 from esofile_reader.processing.esofile_processor import *
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
                                                          _last_standard_item_id, _process_raw_line)
 
-from esofile_reader.mini_classes import Variable
-from esofile_reader.eso_file import EsoFile
-from esofile_reader.totals_file import TotalsFile
+from esofile_reader.utils.mini_classes import Variable
+from esofile_reader import EsoFile
+from esofile_reader import TotalsFile
+from esofile_reader import get_results
 
 
 class TestEsoFileProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.ef = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=True)
+        cls.ef_peaks = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=False)
+
     def test_esofile_statement(self):
         line = "Program Version,EnergyPlus, " \
                "Version 9.1.0-08d2e308bb, YMD=2019.07.23 15:19"
@@ -92,22 +99,21 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(_last_standard_item_id(750), 5)
 
     def test_process_raw_line(self):
-        l1 = _process_raw_line("1 , a  ,b  , c")
         l2 = _process_raw_line("945,217.68491613470054")
         l3 = _process_raw_line("3604,0.2382358160619045,0.0,10, 4, 1,30,11.73497,12, 2, 6, 1")
-        self.assertEqual(l1, (1, ["a", "b", "c"]))
         self.assertEqual(l2, (945, ["217.68491613470054"]))
-        self.assertEqual(l3, (3604, ["0.2382358160619045", "0.0", "10", "4", "1",
-                                     "30", "11.73497", "12", "2", "6", "1"]))
+        self.assertEqual(l3, (3604, ["0.2382358160619045", "0.0", "10", " 4", " 1",
+                                     "30", "11.73497", "12", " 2", " 6", " 1"]))
 
-    def test_create_eso_file(self):
-        ef = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=False)
-        print(ef.peak_outputs)
-        self.assertTrue(ef.complete)
+    def test_file_created(self):
+        self.assertTrue(self.ef.complete)
+        self.assertIsNone(self.ef.peak_outputs)
+
+        self.assertTrue(self.ef_peaks.complete)
+        self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_create_totals_file(self):
-        ef = EsoFile("../tests/eso_files/eplusout.eso", report_progress=False)
-        tf = TotalsFile(ef)
+        tf = TotalsFile(self.ef)
         self.assertTrue(tf.complete)
 
 

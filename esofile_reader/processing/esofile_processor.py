@@ -9,9 +9,9 @@ from copy import deepcopy
 
 from esofile_reader.outputs.outputs import Outputs, create_peak_df
 from esofile_reader.processing.interval_processor import interval_processor
-from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.constants import TS, H, D, M, A, RP
-from esofile_reader.outputs.tree import Tree
+from esofile_reader.utils.tree import Tree
 from esofile_reader.processing.monitor import DefaultMonitor
 
 

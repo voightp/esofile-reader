@@ -1,13 +1,10 @@
 import pandas as pd
 import re
 
-from esofile_reader.base_file import BaseResultsFile
-from esofile_reader.mini_classes import Variable
-from esofile_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
-from esofile_reader.outputs.convertor import rate_to_energy, convert_units
+from esofile_reader.base_file import BaseFile
+from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.outputs.outputs import Outputs
-from esofile_reader.outputs.tree import Tree
-from esofile_reader.base_file import InvalidOutputType
+from esofile_reader.utils.tree import Tree
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller", "Chilled Water Thermal Storage Tank",
@@ -66,7 +63,7 @@ def get_keyword(string, keywords):
         return next(v for k, v in keywords.items() if k in string)
 
 
-class TotalsFile(BaseResultsFile):
+class TotalsFile(BaseFile):
     """
     This class holds transformed EsoFile.
 
