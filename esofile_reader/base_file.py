@@ -368,8 +368,8 @@ class BaseFile:
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            print("Invalid name position!\n'add_file_name' kwarg must be one of: "
-                  "'{}'.\nSetting 'row'.".format(", ".join(pos)))
+            print(f"Invalid name position!\n'add_file_name' kwarg must be one of: "
+                  f"'{', '.join(pos)}'.\nSetting 'row'.")
 
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])

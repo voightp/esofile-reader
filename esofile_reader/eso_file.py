@@ -26,24 +26,7 @@ class EsoFile(BaseFile):
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for line bins is as follows:
-    header_dict = {
-        TS : {(int)ID : ('Key','Variable','Units')},
-        H : {(int)ID : ('Key','Variable','Units')},
-        D : {(int)ID : ('Key','Variable','Units')},
-        M : {(int)ID : ('Key','Variable','Units')},
-        A : {(int)ID : ('Key','Variable','Units')},
-        RP : {(int)ID : ('Key','Variable','Units')},
-    }
-
-    outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
-    }
+    A structure for data bins is works as for 'BaseFile'.
 
     Attributes
     ----------
@@ -71,7 +54,6 @@ class EsoFile(BaseFile):
     Raises
     ------
     IncompleteFile
-    InvalidOutputType
 
     """
 
@@ -119,5 +101,5 @@ class EsoFile(BaseFile):
         if self.complete:
             return TotalsFile(self)
         else:
-            raise IncompleteFile(f"Cannot generate building totals, "
+            raise IncompleteFile(f"Cannot generate totals, "
                                  f"file {self.file_path} is not complete!")

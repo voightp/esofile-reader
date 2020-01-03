@@ -65,19 +65,7 @@ def get_keyword(string, keywords):
 
 class TotalsFile(BaseFile):
     """
-    This class holds transformed EsoFile.
-
-    Output variables are grouped and aggregated based on
-
-    A structure for data bins is as follows:
-    header_dict = {
-        interval : {(int)ID : ('Key','Variable','Units')},
-    }
-
-    outputs = {
-        interval : outputs.Outputs,
-    }
-    interval key can be 'timestep', 'hourly', 'daily', 'monthly', 'annual', 'runperiod'
+    This class holds aggregated results from EsoFile class.
 
     Attributes
     ----------
@@ -99,7 +87,6 @@ class TotalsFile(BaseFile):
     Raises
     ------
     IncompleteFile
-
 
     """
 
