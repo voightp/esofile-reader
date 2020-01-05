@@ -554,12 +554,23 @@ class BaseFile:
 
     def diff(self, other_file, absolute=False):
         """ Calculate difference between this and other results file. """
-        pass
+        diff = {}
+        df1 = self.as_df()
+        df2 = other_file.as_df()
+        for interval in self.available_intervals:
+            df = df1[interval] - df2[interval]
+            if not df.empty:
+                diff[interval] = df
+        return diff
 
     def as_df(self):
         """ Return the file as a single DataFrame. """
-        pass
-        # TODO implement
+        out = {}
+        for interval, outputs in self.outputs.items():
+            df = outputs.get_all_results(transposed=False, drop_special=True)
+            df.columns = self._create_header_mi(interval, df.columns)
+            out[interval] = df
+        return out
 
     def save(self, path=None, directory=None, name=None):
         """ Save the file into filesystem. """
