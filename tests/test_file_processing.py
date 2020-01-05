@@ -3,19 +3,14 @@ import datetime
 
 from esofile_reader.processing.esofile_processor import *
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
-                                                         _last_standard_item_id, _process_raw_line)
+                                                         _last_standard_item_id, _process_raw_line,
+                                                         _process_interval_line, _process_result_line)
 
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader import EsoFile
-from esofile_reader import TotalsFile
-from esofile_reader import get_results
+from esofile_reader.constants import *
 
 
 class TestEsoFileProcessing(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=True)
-        cls.ef_peaks = EsoFile("../tests/eso_files/eplusout.eso", ignore_peaks=False)
 
     def test_esofile_statement(self):
         line = "Program Version,EnergyPlus, " \
@@ -51,14 +46,6 @@ class TestEsoFileProcessing(unittest.TestCase):
         line = "302,1,InteriorEquipment,Electricity,[J], !Hourly"
         with self.assertRaises(InvalidLineSyntax):
             _process_header_line(line)
-
-    def test_create_variable(self):
-        variables = [Variable("foo", "bar", "baz", "u")]
-        new_var1 = create_variable(variables, "foo", "bar", "baz", "u")
-        new_var2 = create_variable(variables, "fo", "bar", "baz", "u")
-
-        self.assertTupleEqual(new_var1, Variable("foo", "bar (1)", "baz", "u"))
-        self.assertTupleEqual(new_var2, Variable("fo", "bar", "baz", "u"))
 
     def test_read_header1(self):
         f = ["7,1,Environment,Site Outdoor Air Drybulb Temperature [C] !Hourly",
@@ -99,22 +86,79 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(_last_standard_item_id(750), 5)
 
     def test_process_raw_line(self):
-        l2 = _process_raw_line("945,217.68491613470054")
-        l3 = _process_raw_line("3604,0.2382358160619045,0.0,10, 4, 1,30,11.73497,12, 2, 6, 1")
-        self.assertEqual(l2, (945, ["217.68491613470054"]))
-        self.assertEqual(l3, (3604, ["0.2382358160619045", "0.0", "10", " 4", " 1",
+        l0 = _process_raw_line("945,217.68491613470054")
+        l1 = _process_raw_line("3604,0.2382358160619045,0.0,10, 4, 1,30,11.73497,12, 2, 6, 1")
+        self.assertEqual(l0, (945, ["217.68491613470054"]))
+        self.assertEqual(l1, (3604, ["0.2382358160619045", "0.0", "10", " 4", " 1",
                                      "30", "11.73497", "12", " 2", " 6", " 1"]))
 
-    def test_file_created(self):
-        self.assertTrue(self.ef.complete)
-        self.assertIsNone(self.ef.peak_outputs)
+    def test_process_interval_line(self):
+        l0 = [" 1", " 2", " 3", " 0", "10.00", "0.00", "60.00", "Saturday"]
+        l1 = [" 1", " 2", " 3", " 0", "10.00", "0.00", "30.00", "Saturday"]
+        l2 = [" 20", " 1", " 2", " 0", "Saturday"]
+        l3 = [" 58", " 1"]
+        l4 = ["365"]
+        l5 = ["1"]
 
-        self.assertTrue(self.ef_peaks.complete)
-        self.assertIsNotNone(self.ef_peaks.peak_outputs)
+        l0 = _process_interval_line(2, l0)
+        l1 = _process_interval_line(2, l1)
+        l2 = _process_interval_line(3, l2)
+        l3 = _process_interval_line(4, l3)
+        l4 = _process_interval_line(5, l4)
+        l5 = _process_interval_line(6, l5)
 
-    def test_create_totals_file(self):
-        tf = TotalsFile(self.ef)
-        self.assertTrue(tf.complete)
+        self.assertEqual(l0[0], H)
+        self.assertEqual(l1[0], TS)
+        self.assertEqual(l2[0], D)
+        self.assertEqual(l3[0], M)
+        self.assertEqual(l4[0], RP)
+        self.assertEqual(l5[0], A)
+
+        self.assertEqual(l0[1], IntervalTuple(2, 3, 10, 60))
+        self.assertEqual(l1[1], IntervalTuple(2, 3, 10, 30))
+        self.assertEqual(l2[1], IntervalTuple(1, 2, 0, 0))
+        self.assertEqual(l3[1], IntervalTuple(1, 1, 0, 0))
+        self.assertEqual(l4[1], IntervalTuple(1, 1, 0, 0))
+        self.assertEqual(l5[1], IntervalTuple(1, 1, 0, 0))
+
+        self.assertEqual(l0[2], "Saturday")
+        self.assertEqual(l1[2], "Saturday")
+        self.assertEqual(l2[2], "Saturday")
+        self.assertEqual(l3[2], 58)
+        self.assertEqual(l4[2], 365)
+        self.assertEqual(l5[2], None)
+
+    def test_process_result_line(self):
+        l0 = ["102.13019653252035", "0.0", "10", "60", "160.3332731467023", "7", "60"]
+
+        l0a = _process_result_line(l0, True)
+        self.assertEqual(l0a[0], "102.13019653252035")
+        self.assertIsNone(l0a[1])
+
+        l0b = _process_result_line(l0, False)
+        self.assertEqual(l0b[0], "102.13019653252035")
+        self.assertEqual(l0b[1], [0.0, 10, 60, 160.3332731467023, 7, 60])
+
+    def test_read_body(self):
+        pass
+
+    def test_generate_peak_outputs(self):
+        pass
+
+    def test_generate_outputs(self):
+        pass
+
+    def test_create_tree(self):
+        pass
+
+    def test_remove_duplicates(self):
+        pass
+
+    def test_process_file(self):
+        pass
+
+    def test_read_file(self):
+        pass
 
 
 if __name__ == "__main__":

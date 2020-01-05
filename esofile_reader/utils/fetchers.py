@@ -116,7 +116,7 @@ def _get_results(file, variables, **kwargs):
             print(msg)
             return
 
-    return eso_file.results_df(variables, **kwargs)
+    return eso_file.get_results(variables, **kwargs)
 
 
 def _get_results_multiple_files(file_list, variables, **kwargs):

@@ -3,6 +3,7 @@ import time
 import pandas as pd
 
 from random import randint
+from datetime import datetime
 from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
@@ -86,15 +87,14 @@ class BaseFile:
         self.header_tree = None
 
     def __repr__(self):
-        human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return f"File: {self.file_name}" \
                f"\nPath: {self.file_path}" \
-               f"\nCreated: {human_time}"
+               f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
         """ Return a list of available intervals. """
-        return self.header.keys()
+        return list(self.header.keys())
 
     @property
     def all_ids(self):
@@ -108,12 +108,12 @@ class BaseFile:
     @property
     def modified(self):
         """ Return a timestamp of the last file system modification. """
-        return os.path.getmtime(self.file_path)
+        return datetime.fromtimestamp(os.path.getmtime(self.file_path))
 
     @property
     def created(self):
         """ Return a timestamp of the file system creation. """
-        return os.path.getctime(self.file_path)
+        return datetime.fromtimestamp(os.path.getmtime(self.file_path))
 
     @property
     def complete(self):
@@ -126,10 +126,11 @@ class BaseFile:
         rows = []
         for interval, variables in self.header.items():
             for id_, var in variables.items():
-                rows.append((interval, id_, *var))
-        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
+                rows.append((id_, *var))
+        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
 
+    @property
     def outputs_df(self):
         """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
         # TODO finish this
@@ -151,7 +152,7 @@ class BaseFile:
         """ Populate instance attributes. """
         pass
 
-    def results_df(
+    def get_results(
             self, variables, start_date=None, end_date=None,
             output_type="standard", add_file_name="row", include_interval=False,
             include_id=False, part_match=False, units_system="SI",
@@ -374,31 +375,7 @@ class BaseFile:
         axis = 0 if name_position == "row" else 1
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
 
-    def rename_variable(self, variable, var_nm="", key_nm=""):
-        """ Rename the given 'Variable' using given names. """
-        ids = self.find_ids(variable)
-        interval, key, var, units = variable
-
-        if not var_nm:
-            var_nm = var
-
-        if not key_nm:
-            key_nm = key
-
-        if ids:
-            id_ = ids[0]
-            # remove current item to avoid item duplicity
-            del self.header[interval][id_]
-
-            new_var = self.create_variable(interval, key_nm, var_nm, units)
-
-            # add variable to header and tree
-            self.header[interval][id_] = new_var
-            self.header_tree.add_branch(interval, key_nm, var_nm, units, id_)
-
-            return id_, new_var
-
-    def create_variable(self, interval, key, var, units):
+    def _add_header_variable(self, id_, interval, key, var, units):
         """ Create a unique header variable. """
 
         def add_num():
@@ -412,31 +389,48 @@ class BaseFile:
             i += 1
             variable = add_num()
 
+        self.header[interval][id_] = variable
+        self.header_tree.add_branch(*variable, id_)
+
         return variable
+
+    def rename_variable(self, variable, var_nm="", key_nm=""):
+        """ Rename the given 'Variable' using given names. """
+        ids = self.find_ids(variable)
+        interval, key, var, units = variable
+
+        if not var_nm:
+            var_nm = var
+
+        if not key_nm:
+            key_nm = key
+
+        if ids:
+            # remove current item to avoid item duplicity
+            self.remove_header_variables(interval, ids)
+
+            # create a new header variable
+            new_var = self._add_header_variable(ids[0], interval, key_nm, var_nm, units)
+
+            return ids[0], new_var
 
     def add_output(self, interval, key_nm, var_nm, units, array):
         """ Add specified output variable to the file. """
+        # generate a unique identifier, custom ids use '-' sign
+        id_ = gen_id(self.all_ids, negative=True)
 
-        if interval in self.available_intervals:
-            # generate a unique identifier, custom ids use '-' sign
-            id_ = gen_id(self.all_ids, negative=True)
-
-            # add variable data to the output df
+        # add variable data to the output df
+        try:
             is_valid = self.outputs[interval].add_column(id_, array)
+        except KeyError:
+            is_valid = False
+            print(f"Cannot add variable: "
+                  f"'{key_nm} : {var_nm} : {units}'into outputs."
+                  f"\nInterval is not included in file '{self.file_name}'")
 
-            if is_valid:
-                new_var = self.create_variable(interval, key_nm, var_nm, units)
-
-                # add variables to the header and search tree
-                self.header[interval][id_] = new_var
-                self.header_tree.add_branch(interval, key_nm,
-                                            var_nm, units, id_)
-
-                return id_, new_var
-        else:
-            print(f"Cannot add variable: '{key_nm} : {var_nm} : "
-                  f"{units}'into outputs.\nInterval is not included "
-                  f"in file '{self.file_name}'")
+        if is_valid:
+            new_var = self._add_header_variable(id_, interval, key_nm, var_nm, units)
+            return id_, new_var
 
     def aggregate_variables(self, variables, func, key_nm="Custom Key",
                             var_nm="Custom Variable", part_match=False):
@@ -526,9 +520,8 @@ class BaseFile:
     def remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
-            out = self.outputs[interval]
-            out.remove_columns(ids)
-            if out.empty:
+            self.outputs[interval].remove_columns(ids)
+            if self.outputs[interval].empty:
                 del self.outputs[interval]
         except AttributeError:
             print(f"Invalid interval: '{interval}' specified!")
@@ -538,6 +531,7 @@ class BaseFile:
         ids = ids if isinstance(ids, list) else [ids]
 
         for id_ in ids:
+            self.header_tree.remove_variables([self.header[interval][id_]])
             try:
                 del self.header[interval][id_]
                 if not self.header[interval]:
@@ -553,8 +547,6 @@ class BaseFile:
         for ivl, ids in groups.items():
             self.remove_output_variables(ivl, ids)
             self.remove_header_variables(ivl, ids)
-
-        self.header_tree.remove_variables(variables)
 
         return groups
 

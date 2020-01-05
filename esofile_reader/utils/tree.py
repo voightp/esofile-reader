@@ -194,7 +194,7 @@ class Tree:
         return pairs
 
     def _rem_loop(self, node, level, cond):
-        """ Remove """
+        """ Recursively remove nodes. """
 
         def remove_recursively(_node):
             parent = _node.parent

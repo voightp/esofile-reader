@@ -243,6 +243,7 @@ def _process_interval_line(line_id, data):
 
 def _process_result_line(line, ignore_peaks):
     """ Convert items of result line list from string to float. """
+    # first value is converted in batch when creating results DataFrame
     if ignore_peaks:
         return line[0], None
     else:

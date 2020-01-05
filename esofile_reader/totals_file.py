@@ -190,7 +190,7 @@ class TotalsFile(BaseFile):
             try:
                 col = outputs[s]
                 df.insert(0, s, col)
-            except AttributeError:
+            except KeyError:
                 pass
 
         return df
