@@ -224,7 +224,7 @@ class BaseFile:
             raise InvalidOutputType(msg)
 
         frames = []
-        groups = self.find_pairs(variables, part_match=part_match)
+        groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
             # Extract specified set of results
@@ -238,7 +238,7 @@ class BaseFile:
                       f"'{interval}' interval. \n\tignoring the request...")
                 continue
 
-            df.columns = self.create_header_mi(interval, df.columns)
+            df.columns = self._create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct:
@@ -271,7 +271,7 @@ class BaseFile:
             if timestamp_format != "default":
                 df = self.update_dt_format(df, output_type, timestamp_format)
             if add_file_name:
-                df = self.add_file_name(df, add_file_name)
+                df = self._add_file_name(df, add_file_name)
             return df
 
         except ValueError:
@@ -297,7 +297,7 @@ class BaseFile:
 
         return out
 
-    def find_pairs(self, variables, part_match=False):
+    def _find_pairs(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
 
@@ -337,7 +337,7 @@ class BaseFile:
 
         return out
 
-    def create_header_mi(self, interval, ids):
+    def _create_header_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
 
         def fetch_var():
@@ -364,7 +364,7 @@ class BaseFile:
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
 
-    def add_file_name(self, results, name_position):
+    def _add_file_name(self, results, name_position):
         """ Add file name to index. """
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
@@ -407,10 +407,11 @@ class BaseFile:
 
         if ids:
             # remove current item to avoid item duplicity
-            self.remove_header_variables(interval, ids)
+            self._remove_header_variables(interval, ids)
 
             # create a new header variable
-            new_var = self._add_header_variable(ids[0], interval, key_nm, var_nm, units)
+            new_var = self._add_header_variable(ids[0], interval,
+                                                key_nm, var_nm, units)
 
             return ids[0], new_var
 
@@ -429,7 +430,8 @@ class BaseFile:
                   f"\nInterval is not included in file '{self.file_name}'")
 
         if is_valid:
-            new_var = self._add_header_variable(id_, interval, key_nm, var_nm, units)
+            new_var = self._add_header_variable(id_, interval,
+                                                key_nm, var_nm, units)
             return id_, new_var
 
     def aggregate_variables(self, variables, func, key_nm="Custom Key",
@@ -465,7 +467,7 @@ class BaseFile:
             could not be added, None is returned.
 
         """
-        groups = self.find_pairs(variables, part_match=part_match)
+        groups = self._find_pairs(variables, part_match=part_match)
 
         if not groups:
             print("There are no variables to sum!")
@@ -477,7 +479,7 @@ class BaseFile:
 
         interval, ids = list(groups.items())[0]
 
-        mi = self.create_header_mi(interval, ids)
+        mi = self._create_header_mi(interval, ids)
         variables = mi.get_level_values("variable").tolist()
         units = mi.get_level_values("units").tolist()
 
@@ -517,16 +519,16 @@ class BaseFile:
 
         return out
 
-    def remove_output_variables(self, interval, ids):
+    def _remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
             self.outputs[interval].remove_columns(ids)
             if self.outputs[interval].empty:
                 del self.outputs[interval]
-        except AttributeError:
+        except KeyError:
             print(f"Invalid interval: '{interval}' specified!")
 
-    def remove_header_variables(self, interval, ids):
+    def _remove_header_variables(self, interval, ids):
         """ Remove header variable from header. """
         ids = ids if isinstance(ids, list) else [ids]
 
@@ -542,11 +544,11 @@ class BaseFile:
 
     def remove_outputs(self, variables):
         """ Remove given variables from the file. """
-        groups = self.find_pairs(variables)
+        groups = self._find_pairs(variables)
 
         for ivl, ids in groups.items():
-            self.remove_output_variables(ivl, ids)
-            self.remove_header_variables(ivl, ids)
+            self._remove_output_variables(ivl, ids)
+            self._remove_header_variables(ivl, ids)
 
         return groups
 
