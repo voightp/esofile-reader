@@ -3,9 +3,9 @@ import time
 import pandas as pd
 
 from random import randint
-from esofile_reader.processing.esofile_processor import create_variable
 from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
 from esofile_reader.constants import *
+from esofile_reader.utils.mini_classes import Variable
 
 
 class VariableNotFound(Exception):
@@ -88,8 +88,8 @@ class BaseFile:
     def __repr__(self):
         human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return f"File: {self.file_name}" \
-            f"\nPath: {self.file_path}" \
-            f"\nCreated: {human_time}"
+               f"\nPath: {self.file_path}" \
+               f"\nCreated: {human_time}"
 
     @property
     def available_intervals(self):
@@ -219,7 +219,7 @@ class BaseFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                f"kwarg must be one of '{', '.join(res.keys())}'."
+                  f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
@@ -387,19 +387,32 @@ class BaseFile:
 
         if ids:
             id_ = ids[0]
-            # remove current item to avoid item duplicity and
-            # unique number increment
+            # remove current item to avoid item duplicity
             del self.header[interval][id_]
 
-            # create a new variable
-            all_vars = self.header[interval].values()
-            new_var = create_variable(all_vars, interval, key_nm, var_nm, units)
+            new_var = self.create_variable(interval, key_nm, var_nm, units)
 
             # add variable to header and tree
             self.header[interval][id_] = new_var
             self.header_tree.add_branch(interval, key_nm, var_nm, units, id_)
 
             return id_, new_var
+
+    def create_variable(self, interval, key, var, units):
+        """ Create a unique header variable. """
+
+        def add_num():
+            new_key = f"{key} ({i})"
+            return Variable(interval, new_key, var, units)
+
+        variable = Variable(interval, key, var, units)
+
+        i = 0
+        while variable in self.header[interval].values():
+            i += 1
+            variable = add_num()
+
+        return variable
 
     def add_output(self, interval, key_nm, var_nm, units, array):
         """ Add specified output variable to the file. """
@@ -412,10 +425,7 @@ class BaseFile:
             is_valid = self.outputs[interval].add_column(id_, array)
 
             if is_valid:
-                # variable can be added, create a reference in the search tree
-                all_vars = self.header[interval].values()
-                new_var = create_variable(all_vars, interval,
-                                          key_nm, var_nm, units)
+                new_var = self.create_variable(interval, key_nm, var_nm, units)
 
                 # add variables to the header and search tree
                 self.header[interval][id_] = new_var

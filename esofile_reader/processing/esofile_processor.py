@@ -81,26 +81,6 @@ def _process_header_line(line):
     return int(line_id), key, var, units, interval.lower()
 
 
-def create_variable(variables, interval, key, var, units):
-    """ Create a unique header variable. """
-
-    def is_unique():
-        return variable not in variables
-
-    def add_num():
-        new_key = f"{key} ({i})"
-        return Variable(interval, new_key, var, units)
-
-    variable = Variable(interval, key, var, units)
-
-    i = 0
-    while not is_unique():
-        i += 1
-        variable = add_num()
-
-    return variable
-
-
 def read_header(eso_file):
     """
     Read header dictionary of the eso file.
