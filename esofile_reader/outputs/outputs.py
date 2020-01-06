@@ -137,7 +137,11 @@ class Outputs(BaseOutputs):
 
     def get_all_results(self, transposed=False, drop_special=True):
         """ Get df with only 'standard' outputs and 'num days'. """
-        df = self.copy()
+        try:
+            df = self.copy()
+        except MemoryError:
+            raise MemoryError("Cannot create outputs set copy!"
+                              "\nRunning out of memory!")
 
         if drop_special:
             for s in [N_DAYS_COLUMN, DAY_COLUMN]:
@@ -194,15 +198,15 @@ class Outputs(BaseOutputs):
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
         if N_DAYS_COLUMN not in self.columns:
-            raise AttributeError("'n days' column is not available"
-                                 "on the given data set.")
+            raise AttributeError(f"'{N_DAYS_COLUMN}' column is not available"
+                                 f"on the given data set.")
         return slicer(self, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(self, start_date=None, end_date=None):
         """ Return 'days of week' column. """
         if DAY_COLUMN not in self.columns:
-            raise AttributeError("'day' column is not available"
-                                 "on the given data set.")
+            raise AttributeError(f"'{DAY_COLUMN}' column is not available"
+                                 f"on the given data set.")
         return slicer(self, DAY_COLUMN, start_date, end_date)
 
     def _global_peak(self, ids, start_date, end_date, max_=True):

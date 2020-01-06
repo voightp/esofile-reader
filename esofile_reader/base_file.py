@@ -88,8 +88,8 @@ class BaseFile:
 
     def __repr__(self):
         return f"File: {self.file_name}" \
-               f"\nPath: {self.file_path}" \
-               f"\nCreated: {self.created}"
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
@@ -129,12 +129,6 @@ class BaseFile:
                 rows.append((id_, *var))
         df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
-
-    @property
-    def outputs_df(self):
-        """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
-        # TODO finish this
-        frames = pd.concat(self.outputs, axis=1)
 
     @classmethod
     def update_dt_format(cls, df, output_type, timestamp_format):
@@ -220,7 +214,7 @@ class BaseFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                  f"kwarg must be one of '{', '.join(res.keys())}'."
+                f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
@@ -241,16 +235,13 @@ class BaseFile:
             df.columns = self._create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
-            if output_type == "standard" and rate_to_energy_dct:
-                is_energy = rate_to_energy_dct[interval]
-                if is_energy:
-                    # 'energy' is requested for current output
-                    try:
-                        n_days = data_set.get_number_of_days()
-                    except AttributeError:
-                        n_days = None
+            if output_type == "standard" and rate_to_energy_dct[interval]:
+                try:
+                    n_days = data_set.get_number_of_days(start_date, end_date)
+                except AttributeError:
+                    n_days = None
 
-                    df = rate_to_energy(df, interval, n_days)
+                df = rate_to_energy(df, interval, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -263,11 +254,10 @@ class BaseFile:
 
             frames.append(df)
 
-        # Catch empty frames exception
         try:
-            # Merge dfs
+            # Catch empty frames exception
             df = pd.concat(frames, axis=1, sort=False)
-            # Add file name to the index
+
             if timestamp_format != "default":
                 df = self.update_dt_format(df, output_type, timestamp_format)
             if add_file_name:
@@ -500,6 +490,10 @@ class BaseFile:
                 n_days = data_set.get_number_of_days()
             except AttributeError:
                 n_days = None
+                if interval in [M, A, RP]:
+                    print("Cannot sum rate and energy variables!"
+                          "\nN days column is not available!")
+                    return
 
             df = rate_to_energy(df, interval, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
@@ -552,25 +546,56 @@ class BaseFile:
 
         return groups
 
+    def as_df(self, interval):
+        """ Return the file as a single DataFrame. """
+        try:
+            df = self.outputs[interval].get_all_results(drop_special=True)
+            df.columns = self._create_header_mi(interval, df.columns)
+
+        except KeyError:
+            raise KeyError(f"Cannot find interval: '{interval}'.")
+
+        return df
+
     def diff(self, other_file, absolute=False):
         """ Calculate difference between this and other results file. """
         diff = {}
-        df1 = self.as_df()
-        df2 = other_file.as_df()
-        for interval in self.available_intervals:
-            df = df1[interval] - df2[interval]
-            if not df.empty:
-                diff[interval] = df
-        return diff
 
-    def as_df(self):
-        """ Return the file as a single DataFrame. """
-        out = {}
-        for interval, outputs in self.outputs.items():
-            df = outputs.get_all_results(transposed=False, drop_special=True)
-            df.columns = self._create_header_mi(interval, df.columns)
-            out[interval] = df
-        return out
+        for interval in self.available_intervals:
+            df1 = self.as_df(interval)
+
+            if interval not in other_file.available_intervals:
+                continue
+
+            df2 = other_file.as_df(interval)
+
+            df1.columns = df1.columns.droplevel("id")
+            df1.columns = df1.columns.droplevel("interval")
+
+            df2.columns = df2.columns.droplevel("id")
+            df2.columns = df2.columns.droplevel("interval")
+
+            try:
+                df = df1 - df2
+                df.dropna(how="all", inplace=True, axis=1)
+
+                if not df.empty:
+                    if absolute:
+                        df = df.abs()
+
+                    diff[interval] = df
+            except MemoryError:
+                raise MemoryError("Cannot subtract output DataFrames!"
+                                  "\nRunning out of memory!")
+
+            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
+                try:
+                    if other_file.outputs[interval][c].equals(self.outputs[interval][c]):
+                        df.insert(0, c, self.outputs[interval][c])
+                except KeyError:
+                    pass
+
+        return diff
 
     def save(self, path=None, directory=None, name=None):
         """ Save the file into filesystem. """
