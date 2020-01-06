@@ -38,10 +38,12 @@ def calculate_diff(first_file, other_file, absolute=False,
                     df = df.abs()
 
                 if include_id:
-                    ids = pd.Index([next(id_gen) for _ in range(len(df.columns))])
-                    df = pd.concat([df], axis=1, keys=ids, names=["id"])
+                    # create new id for each record
+                    ids = [next(id_gen) for _ in range(len(df.columns))]
+                    header_df = df.columns.to_frame(index=False)
+                    header_df.insert(0, "id", ids)
 
-                    # TODO handle appending multiindex level
+                    df.columns = pd.MultiIndex.from_frame(header_df)
 
                 diff[interval] = df
 
@@ -71,8 +73,13 @@ class DiffFile(BaseFile):
         def header_vars(sr):
             return Variable(sr.interval, sr.key, sr.variable, sr.units)
 
+        # drop special columns, those are included on outputs df
+        header_df = header_df[(header_df.id != N_DAYS_COLUMN)
+                              & (header_df.id != DAY_COLUMN)]
+
+        header_df.set_index(keys="id", inplace=True)
         header_df = header_df.apply(header_vars, axis=1)
-        print(header_df)
+
         return header_df.to_dict()
 
     def process_diff(self, first_file, other_file):
@@ -85,10 +92,8 @@ class DiffFile(BaseFile):
 
         for interval, output_df in diff.items():
             header_df = output_df.columns.to_frame(index=False)
-            header_df.to_excel("C:/users/vojtechp1/desktop/ttt.xlsx")
             header[interval] = self.build_header_dict(header_df)
 
-            # TODO verify if indexes match
             output_df.columns = output_df.columns.get_level_values("id")
             outputs[interval] = output_df
 
@@ -98,10 +103,11 @@ class DiffFile(BaseFile):
         return header, outputs, tree
 
     def populate_content(self, first_file, other_file):
+        """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
-        self._complete = first_file.complete and other_file.complete
         self.file_timestamp = datetime.utcnow().timestamp()
+        self._complete = first_file.complete and other_file.complete
 
         content = self.process_diff(first_file, other_file)
 
