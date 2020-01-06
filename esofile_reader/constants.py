@@ -20,4 +20,20 @@ YEAR = 2002
 
 ALL_INTERVALS = ["timestep", "hourly", "daily", "monthly", "annual", "runperiod"]
 
-AVERAGED_VARIABLES = ["C", "F", "W", "ach", "ppm", "%", "", " ", "kgWater/kgDryAir"]
+# AVERAGED_VARIABLES = ["C", "F", "W", "ach", "ppm", "%", "", " ", "kgWater/kgDryAir"]
+
+AVERAGED_UNITS = [
+    "W",
+    "W/m2",
+    "C",
+    "",
+    "W/m2-K",
+    "ppm",
+    "ach",
+    "hr",
+]
+
+SUMMED_UNITS = [
+    "J",
+    "J/m2"
+]

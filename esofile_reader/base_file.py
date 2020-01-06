@@ -113,7 +113,7 @@ class BaseFile:
     @property
     def created(self):
         """ Return a timestamp of the file system creation. """
-        return datetime.fromtimestamp(os.path.getmtime(self.file_path))
+        return datetime.fromtimestamp(os.path.getctime(self.file_path))
 
     @property
     def complete(self):
@@ -556,46 +556,6 @@ class BaseFile:
             raise KeyError(f"Cannot find interval: '{interval}'.")
 
         return df
-
-    def diff(self, other_file, absolute=False):
-        """ Calculate difference between this and other results file. """
-        diff = {}
-
-        for interval in self.available_intervals:
-            df1 = self.as_df(interval)
-
-            if interval not in other_file.available_intervals:
-                continue
-
-            df2 = other_file.as_df(interval)
-
-            df1.columns = df1.columns.droplevel("id")
-            df1.columns = df1.columns.droplevel("interval")
-
-            df2.columns = df2.columns.droplevel("id")
-            df2.columns = df2.columns.droplevel("interval")
-
-            try:
-                df = df1 - df2
-                df.dropna(how="all", inplace=True, axis=1)
-
-                if not df.empty:
-                    if absolute:
-                        df = df.abs()
-
-                    diff[interval] = df
-            except MemoryError:
-                raise MemoryError("Cannot subtract output DataFrames!"
-                                  "\nRunning out of memory!")
-
-            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
-                try:
-                    if other_file.outputs[interval][c].equals(self.outputs[interval][c]):
-                        df.insert(0, c, self.outputs[interval][c])
-                except KeyError:
-                    pass
-
-        return diff
 
     def save(self, path=None, directory=None, name=None):
         """ Save the file into filesystem. """

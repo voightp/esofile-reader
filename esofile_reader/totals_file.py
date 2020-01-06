@@ -5,15 +5,18 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.utils.tree import Tree
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
+from esofile_reader.utils.utils import incremental_id_gen
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, SUMMED_UNITS
 
 variable_groups = {
-    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller", "Chilled Water Thermal Storage Tank",
-    "Cooling Tower", "Earth Tube", "Exterior Lights", "Debug Surface Solar Shading Model",
-    "Electric Load Center", "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System",
-    "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter", "Lights", "Other Equipment",
-    "People", "Pump", "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
-    "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
+    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
+    "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
+    "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
+    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
+    "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
+    "Lights", "Other Equipment", "People", "Pump", "Schedule", "Site", "Surface",
+    "System Node", "VRF Heat Pump", "Water Heater", "Water to Water Heat Pump",
+    "Water Use Equipment", "Zone", }
 
 subgroups = {
     "_PARTITION_": "Partitions",
@@ -24,30 +27,6 @@ subgroups = {
     "_GROUNDFLOOR_": "Ground floors",
     "_CEILING_": "Ceilings",
 }
-
-summed_units = [
-    "J",
-    "J/m2"
-]
-
-averaged_units = [
-    "W",
-    "W/m2",
-    "C",
-    "",
-    "W/m2-K",
-    "ppm",
-    "ach",
-    "hr",
-]
-
-
-def incr_id_gen():
-    """ Incremental id generator. """
-    i = 0
-    while True:
-        i += 1
-        yield i
 
 
 def get_group_key(string, groups):
@@ -98,7 +77,7 @@ class TotalsFile(BaseFile):
     @staticmethod
     def calculate_totals(df):
         """ Calculate 'building totals'."""
-        cnd = df["units"].isin(averaged_units)
+        cnd = df["units"].isin(AVERAGED_UNITS)
         df.drop(["id", "key", "variable", "units"], inplace=True, axis=1)
 
         # split df into averages and sums
@@ -124,9 +103,12 @@ class TotalsFile(BaseFile):
         rows = []
         for id_, var in variables.items():
             interval, key, variable, units = var
-            group = units in summed_units or units in averaged_units  # check if the variables should be grouped
 
-            gr_str = variable  # init group string to be the same as variable
+            # variable can be grouped only if it's included as avg or sum
+            group = units in SUMMED_UNITS or units in AVERAGED_UNITS
+
+            # init group string to be the same as variable
+            gr_str = variable
             w = get_keyword(key, subgroups)
 
             if key == "Cumulative Meter" or key == "Meter":
@@ -199,7 +181,7 @@ class TotalsFile(BaseFile):
         """ Create building outputs. """
         header = {}
         outputs = {}
-        id_gen = incr_id_gen()
+        id_gen = incremental_id_gen()
 
         for interval, variables in eso_file.header.items():
             header_df = self.get_grouped_vars(id_gen, variables)
