@@ -1,8 +1,15 @@
 import os
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.processing.esofile_processor import read_file
 from esofile_reader.totals_file import TotalsFile
+
+try:
+    from esofile_reader.processing.esofile_processor import read_file
+except ModuleNotFoundError:
+    import pyximport
+
+    pyximport.install()
+    from esofile_reader.processing.esofile_processor import read_file
 
 
 class IncompleteFile(Exception):

@@ -19,7 +19,7 @@ setuptools.setup(
         "License :: ",
         "Operating System :: Windows",
     ],
-    ext_modules=cythonize("./esofile_reader/processing/esofile_processor.py",
-                          annotate=False),  # build with: python setup.py build_ext --inplace
+    ext_modules=cythonize("./esofile_reader/processing/esofile_processor.pyx",
+                          annotate=False),
     zip_safe=False,
 )
