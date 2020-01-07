@@ -1,7 +1,9 @@
 import os
+import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.constants import *
 
 try:
     from esofile_reader.processing.esofile_processor import read_file
@@ -19,10 +21,6 @@ class IncompleteFile(Exception):
 
 class PeaksNotIncluded(Exception):
     """ Exception is raised when EsoFile has been processed without peaks. """
-    # PeaksNotIncluded("Peak values are not included, it's required to "
-    #                  "add kwarg 'ignore_peaks=False' when processing the file."
-    #                  "\nNote that peak values are only applicable for"
-    #                  "raw Eso files.")
     pass
 
 
@@ -102,6 +100,51 @@ class EsoFile(BaseFile):
             if not suppress_errors:
                 raise IncompleteFile(f"Unexpected end of the file reached!\n"
                                      f"File '{self.file_path}' is not complete.")
+
+    def _get_peak_results(self, variables, output_type, start_date=None,
+                          end_date=None, part_match=False, add_file_name=False,
+                          timestamp_format="default"):
+        """ Return peak results. """
+        frames = []
+        groups = self._find_pairs(variables, part_match=part_match)
+
+        for interval, ids in groups.items():
+            try:
+                data_set = self.peak_outputs[interval][output_type]
+            except KeyError:
+                raise KeyError(f"There are no peak outputs stored for"
+                               f"interval: '{interval}'.")
+
+            df = data_set.get_results(ids, start_date, end_date)
+            df.columns = self._create_header_mi(interval, df.columns)
+
+            frames.append(df)
+
+        try:
+            # Catch empty frames exception
+            df = pd.concat(frames, axis=1, sort=False)
+
+            if timestamp_format != "default":
+                df = self.update_dt_format(df, output_type, timestamp_format)
+            if add_file_name:
+                df = self._add_file_name(df, add_file_name)
+            return df
+
+        except ValueError:
+            print(f"Any of requested variables is not "
+                  f"included in the Eso file '{self.file_name}'.")
+
+    def get_results(self, variables, **kwargs):
+        if kwargs["output_type"] in ["local_max", "local_min"]:
+            if self.peak_outputs:
+                df = self._get_peak_results(variables, kwargs["output_type"])
+
+            else:
+                raise PeaksNotIncluded("Peak values are not included, it's "
+                                       "required to add kwarg 'ignore_peaks=False' "
+                                       "when processing the file.")
+        else:
+            df = super(variables, **kwargs)
 
     def get_totals(self):
         """ Generate a new 'Building' eso file. """
