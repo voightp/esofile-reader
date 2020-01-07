@@ -18,11 +18,8 @@ class MyTestCase(unittest.TestCase):
     def test_all_ids(self):
         self.assertEqual(len(self.ef.all_ids), 2564)
 
-    def test_modified(self):
-        self.assertEqual(self.ef.modified, datetime(2019, 7, 25, 19, 8, 34, 963648))
-
     def test_created(self):
-        self.assertEqual(self.ef.modified, datetime(2019, 7, 25, 19, 8, 34, 963648))
+        self.assertEqual(self.ef.created, datetime(2019, 7, 17, 13, 33, 47, 568468))
 
     def test_complete(self):
         self.assertTrue(self.ef.complete)

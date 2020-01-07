@@ -405,8 +405,8 @@ def remove_duplicates(ids, header_dct, outputs_dct):
 
 def process_file(file, monitor, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
-    # process first few standard lines
-    last_standard_item_id, timestamp = process_standard_lines(file)
+    # process first few standard lines, ignore timestamp
+    last_standard_item_id, _ = process_standard_lines(file)
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
@@ -443,7 +443,7 @@ def process_file(file, monitor, ignore_peaks=True):
 
     monitor.processing_finished()
 
-    return timestamp, environments, header, outputs, peak_outputs, tree
+    return environments, header, outputs, peak_outputs, tree
 
 
 def read_file(file_path, monitor=None,

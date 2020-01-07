@@ -71,6 +71,7 @@ class EsoFile(BaseFile):
                          ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
+        self.file_timestamp = os.path.getctime(self.file_path)
 
         content = read_file(
             self.file_path,
@@ -83,7 +84,6 @@ class EsoFile(BaseFile):
         if content:
             self._complete = True
             (
-                self.file_timestamp,
                 self.environments,
                 self.header,
                 self.outputs,

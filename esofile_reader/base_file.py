@@ -106,14 +106,9 @@ class BaseFile:
         return ids
 
     @property
-    def modified(self):
-        """ Return a timestamp of the last file system modification. """
-        return datetime.fromtimestamp(os.path.getmtime(self.file_path))
-
-    @property
     def created(self):
         """ Return a timestamp of the file system creation. """
-        return datetime.fromtimestamp(os.path.getctime(self.file_path))
+        return datetime.fromtimestamp(self.file_timestamp)
 
     @property
     def complete(self):
