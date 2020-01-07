@@ -352,14 +352,14 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     return outputs, peak_outputs, dates, cumulative_days, days_of_week
 
 
-def generate_peak_outputs(peak_outputs, dates):
+def generate_peak_outputs(raw_peak_outputs, dates):
     """ Transform processed peak output data into DataFrame like classes. """
-    out = {"min": {}, "max": {}}
-    for interval, data in peak_outputs.items():
+    peak_outputs = {"min": {}, "max": {}}
+    for interval, data in raw_peak_outputs.items():
         index = pd.Index(dates[interval], name="timestamp")
-        out["min"][interval] = create_peak_df(data, interval, index, max_=False)
-        out["max"][interval] = create_peak_df(data, interval, index)
-    return out
+        peak_outputs["min"][interval] = create_peak_df(data, interval, index, max_=False)
+        peak_outputs["max"][interval] = create_peak_df(data, interval, index)
+    return peak_outputs
 
 
 def generate_outputs(raw_outputs, dates, other_data):
@@ -395,12 +395,12 @@ def remove_duplicates(ids, header_dct, outputs_dct):
     intervals = header_dct.keys()
     for id_ in ids:
         for interval in intervals:
-            try:
-                del header_dct[interval][id_]
-                del outputs_dct[interval][id_]
-                print(f"Removing duplicate variable '{id_}'.")
-            except KeyError:
-                pass
+            for dct in [header_dct, outputs_dct]:
+                try:
+                    del dct[interval][id_]
+                    print(f"Removing duplicate variable '{id_}'.")
+                except KeyError:
+                    pass
 
 
 def process_file(file, monitor, ignore_peaks=True):
@@ -446,8 +446,8 @@ def process_file(file, monitor, ignore_peaks=True):
     return environments, header, outputs, peak_outputs, tree
 
 
-def read_file(file_path, monitor=None,
-              report_progress=False, ignore_peaks=True, suppress_errors=False):
+def read_file(file_path, monitor=None, report_progress=False,
+              ignore_peaks=True, suppress_errors=False):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)
