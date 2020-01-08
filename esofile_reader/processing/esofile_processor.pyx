@@ -356,7 +356,7 @@ def generate_peak_outputs(raw_peak_outputs, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     peak_outputs = {"min": {}, "max": {}}
     for interval, data in raw_peak_outputs.items():
-        index = pd.Index(dates[interval], name="timestamp")
+        index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
         peak_outputs["min"][interval] = create_peak_df(data, interval, index, max_=False)
         peak_outputs["max"][interval] = create_peak_df(data, interval, index)
     return peak_outputs
@@ -366,7 +366,7 @@ def generate_outputs(raw_outputs, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     outputs = {}
     for interval, data in raw_outputs.items():
-        index = pd.Index(dates[interval], name="timestamp")
+        index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
         out = Outputs(data, index=index, dtype=np.float)
         out.columns.set_names(["id"])

@@ -1,7 +1,5 @@
 import os
 import pandas as pd
-
-from functools import wraps
 from esofile_reader.base_file import BaseFile
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.constants import *
@@ -123,7 +121,7 @@ class EsoFile(BaseFile):
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def get_results(self, variables, **kwargs):
+    def get_results(self, variables, output_type="standard", **kwargs):
         """
         Return a pandas.DataFrame object with results for given variables.
 
@@ -134,14 +132,14 @@ class EsoFile(BaseFile):
         ----------
         variables : Variable or list of (Variable)
             Requested variables..
+        output_type : {'standard', global_max','global_min', 'local_max', 'local_min'}
+                Requested type of results.
 
         **kwargs
             start_date : datetime like object, default None
                 A start date for requested results.
             end_date : datetime like object, default None
                 An end date for requested results.
-            output_type : {'standard', global_max','global_min', 'local_max', 'local_min'}
-                Requested type of results.
             add_file_name : ('row','column',None)
                 Specify if file name should be added into results df.
             include_interval : bool
@@ -169,7 +167,7 @@ class EsoFile(BaseFile):
             Results for requested variables.
 
         """
-        if kwargs["output_type"] in ["local_max", "local_min"]:
+        if "output_type" in ["local_max", "local_min"]:
             if self.peak_outputs:
                 df = self._get_peak_results(variables, kwargs["output_type"])
 
@@ -178,7 +176,7 @@ class EsoFile(BaseFile):
                                        "required to add kwarg 'ignore_peaks=False' "
                                        "when processing the file.")
         else:
-            df = super(variables, **kwargs)
+            df = super().get_results(variables, output_type=output_type, **kwargs)
 
         return df
 

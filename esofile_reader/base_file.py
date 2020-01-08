@@ -158,8 +158,8 @@ class BaseFile:
                   f"included in the Eso file '{self.file_name}'.")
 
     def get_results(
-            self, variables, start_date=None, end_date=None,
-            output_type="standard", add_file_name="row", include_interval=False,
+            self, variables, start_date=None, end_date=None, output_type="standard",
+            add_file_name="row", include_interval=False, include_day=False,
             include_id=False, part_match=False, units_system="SI",
             rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
@@ -185,6 +185,9 @@ class BaseFile:
         include_interval : bool
             Decide if 'interval' information should be included on
             the results df.
+        include_day : bool
+            Add day of week into index, this is applicable only for 'timestep',
+            'hourly' and 'daily' outputs.
         include_id : bool
             Decide if variable 'id' should be included on the results df.
         part_match : bool
@@ -209,13 +212,13 @@ class BaseFile:
         """
 
         def standard():
-            return data_set.get_results(*f_args)
+            return data_set.get_results(*args)
 
         def global_max():
-            return data_set.global_max(*f_args)
+            return data_set.global_max(*args)
 
         def global_min():
-            return data_set.global_min(*f_args)
+            return data_set.global_min(*args)
 
         res = {
             "standard": standard,
@@ -232,10 +235,8 @@ class BaseFile:
         groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
-            # Extract specified set of results
-            f_args = (ids, start_date, end_date)
             data_set = self.outputs[interval]
-
+            args = (ids, start_date, end_date, include_day)
             df = res[output_type]()
 
             if df is None:
@@ -249,7 +250,7 @@ class BaseFile:
             if output_type == "standard" and rate_to_energy_dct[interval]:
                 try:
                     n_days = data_set.get_number_of_days(start_date, end_date)
-                except AttributeError:
+                except KeyError:
                     n_days = None
 
                 df = rate_to_energy(df, interval, n_days)
@@ -358,10 +359,11 @@ class BaseFile:
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            print(f"Invalid name position!\n'add_file_name' kwarg must be one of: "
-                  f"'{', '.join(pos)}'.\nSetting 'row'.")
+            print(f"Invalid name position!\n'add_file_name' kwarg must "
+                  f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
 
         axis = 0 if name_position == "row" else 1
+
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
 
     def _add_header_variable(self, id_, interval, key, var, units):

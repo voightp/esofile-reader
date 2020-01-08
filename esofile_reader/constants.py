@@ -1,4 +1,3 @@
-
 TS = "timestep"
 H = "hourly"
 D = "daily"
@@ -8,6 +7,8 @@ RP = "runperiod"
 
 N_DAYS_COLUMN = "n days"
 DAY_COLUMN = "day"
+TIMESTAMP_COLUMN = "timestamp"
+VALUE_COLUMN = "value"
 
 RATE_TO_ENERGY_DCT = {TS: False,
                       H: False,

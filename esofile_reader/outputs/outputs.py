@@ -38,7 +38,7 @@ def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
     vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
     ixs = df.apply(get_timestamps, axis=1)
 
-    df = pd.concat({"timestamp": ixs, "value": vals}, axis=1)
+    df = pd.concat({TIMESTAMP_COLUMN: ixs, VALUE_COLUMN: vals}, axis=1)
     df.columns = df.columns.swaplevel(0, 1)
     df = _sort_peak_outputs(df)
 
@@ -97,7 +97,7 @@ class BaseOutputs(pd.DataFrame):
         super(BaseOutputs, self).__init__(*args, **kwargs)
 
     def get_results(self, ids, start_date=None, end_date=None):
-        """ Find standard result. """
+        """ Return standard result. """
         df = slicer(self, ids, start_date=start_date, end_date=end_date)
 
         if isinstance(df, pd.Series):
@@ -136,7 +136,7 @@ class Outputs(BaseOutputs):
         super(Outputs, self).__init__(data, **kwargs)
 
     def get_all_results(self, transposed=False, drop_special=True):
-        """ Get df with only 'standard' outputs and 'num days'. """
+        """ Get df with only 'standard' numeric outputs. """
         try:
             df = self.copy()
         except MemoryError:
@@ -153,6 +153,24 @@ class Outputs(BaseOutputs):
         if transposed:
             df = df.T
             df.index = df.index.set_names(["id"])  # reapply the name as it gets lost when combining with 'num_days'
+
+        return df
+
+    def get_results(self, ids, start_date=None, end_date=None, include_day=False):
+        """ Return standard result. """
+        df = super().get_results(ids, start_date, end_date)
+
+        if include_day:
+            try:
+                days = self.get_days_of_week(start_date, end_date)
+                df[DAY_COLUMN] = days
+                df.set_index(DAY_COLUMN, append=True, inplace=True)
+            except KeyError:
+                try:
+                    df[DAY_COLUMN] = df.index.strftime("%A")
+                    df.set_index(DAY_COLUMN, append=True, inplace=True)
+                except AttributeError:
+                    pass
 
         return df
 
@@ -198,15 +216,15 @@ class Outputs(BaseOutputs):
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
         if N_DAYS_COLUMN not in self.columns:
-            raise AttributeError(f"'{N_DAYS_COLUMN}' column is not available"
-                                 f"on the given data set.")
+            raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
+                           f"on the given data set.")
         return slicer(self, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(self, start_date=None, end_date=None):
         """ Return 'days of week' column. """
         if DAY_COLUMN not in self.columns:
-            raise AttributeError(f"'{DAY_COLUMN}' column is not available"
-                                 f"on the given data set.")
+            raise KeyError(f"'{DAY_COLUMN}' column is not available"
+                           f"on the given data set.")
         return slicer(self, DAY_COLUMN, start_date, end_date)
 
     def _global_peak(self, ids, start_date, end_date, max_=True):
@@ -219,7 +237,7 @@ class Outputs(BaseOutputs):
         vals = pd.DataFrame(vals)
         ixs = pd.DataFrame(ixs)
 
-        df = pd.concat({"timestamp": ixs.T, "value": vals.T}, axis=1)
+        df = pd.concat({TIMESTAMP_COLUMN: ixs.T, VALUE_COLUMN: vals.T}, axis=1)
         df = df.iloc[[0]]  # report only first occurrence
         df.columns = df.columns.swaplevel(0, 1)
 
