@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 
+from functools import wraps
 from esofile_reader.base_file import BaseFile
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.constants import *
@@ -120,21 +121,54 @@ class EsoFile(BaseFile):
 
             frames.append(df)
 
-        try:
-            # Catch empty frames exception
-            df = pd.concat(frames, axis=1, sort=False)
-
-            if timestamp_format != "default":
-                df = self.update_dt_format(df, output_type, timestamp_format)
-            if add_file_name:
-                df = self._add_file_name(df, add_file_name)
-            return df
-
-        except ValueError:
-            print(f"Any of requested variables is not "
-                  f"included in the Eso file '{self.file_name}'.")
+        return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def get_results(self, variables, **kwargs):
+        """
+        Return a pandas.DataFrame object with results for given variables.
+
+        This function extracts requested set of outputs from the file
+        and converts to specified units if requested.
+
+        Parameters
+        ----------
+        variables : Variable or list of (Variable)
+            Requested variables..
+
+        **kwargs
+            start_date : datetime like object, default None
+                A start date for requested results.
+            end_date : datetime like object, default None
+                An end date for requested results.
+            output_type : {'standard', global_max','global_min', 'local_max', 'local_min'}
+                Requested type of results.
+            add_file_name : ('row','column',None)
+                Specify if file name should be added into results df.
+            include_interval : bool
+                Decide if 'interval' information should be included on
+                the results df.
+            include_id : bool
+                Decide if variable 'id' should be included on the results df.
+            part_match : bool
+                Only substring of the part of variable is enough
+                to match when searching for variables if this is True.
+            units_system : {'SI', 'IP'}
+                Selected units type for requested outputs.
+            rate_to_energy_dct : dct
+                Defines if 'rate' will be converted to energy.
+            rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+                Convert default 'Rate' outputs to requested units.
+            energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+                Convert default 'Energy' outputs to requested units
+            timestamp_format : str
+                Specified str format of a datetime timestamp.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Results for requested variables.
+
+        """
         if kwargs["output_type"] in ["local_max", "local_min"]:
             if self.peak_outputs:
                 df = self._get_peak_results(variables, kwargs["output_type"])
@@ -145,6 +179,8 @@ class EsoFile(BaseFile):
                                        "when processing the file.")
         else:
             df = super(variables, **kwargs)
+
+        return df
 
     def get_totals(self):
         """ Generate a new 'Building' eso file. """

@@ -126,7 +126,7 @@ class BaseFile:
         return df
 
     @classmethod
-    def update_dt_format(cls, df, output_type, timestamp_format):
+    def update_dt_format(cls, df, timestamp_format):
         """ Set specified 'datetime' str format. """
         if output_type in ["standard", "local_max", "local_min"]:
             df.index = df.index.strftime(timestamp_format)
@@ -141,6 +141,22 @@ class BaseFile:
         """ Populate instance attributes. """
         pass
 
+    def _merge_frame(self, frames, timestamp_format="default", add_file_name=False):
+        """ Merge result DataFrames into a single one. """
+        try:
+            # Catch empty frames exception
+            df = pd.concat(frames, axis=1, sort=False)
+
+            if timestamp_format != "default":
+                df = self.update_dt_format(df, timestamp_format)
+            if add_file_name:
+                df = self._add_file_name(df, add_file_name)
+            return df
+
+        except ValueError:
+            print(f"Any of requested variables is not "
+                  f"included in the Eso file '{self.file_name}'.")
+
     def get_results(
             self, variables, start_date=None, end_date=None,
             output_type="standard", add_file_name="row", include_interval=False,
@@ -151,7 +167,7 @@ class BaseFile:
         """
         Return a pandas.DataFrame object with results for given variables.
 
-        This function extracts requested set of outputs from the eso file
+        This function extracts requested set of outputs from the file
         and converts to specified units if requested.
 
         Parameters
@@ -249,19 +265,7 @@ class BaseFile:
 
             frames.append(df)
 
-        try:
-            # Catch empty frames exception
-            df = pd.concat(frames, axis=1, sort=False)
-
-            if timestamp_format != "default":
-                df = self.update_dt_format(df, output_type, timestamp_format)
-            if add_file_name:
-                df = self._add_file_name(df, add_file_name)
-            return df
-
-        except ValueError:
-            print(f"Any of requested variables is not "
-                  f"included in the Eso file '{self.file_name}'.")
+        return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def find_ids(self, variables, part_match=False):
         """ Find ids for a list of 'Variables'. """
