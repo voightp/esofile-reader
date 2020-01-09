@@ -178,7 +178,7 @@ class Tree:
             if interval:
                 if self._match(node, interval):
                     for nd in node.children:
-                        self._loop(nd, level, ids, cond)
+                        self._loop(nd, level, ids, cond, part_match=part_match)
             else:
                 for nd in node.children:
                     self._loop(nd, level, ids, cond, part_match=part_match)
