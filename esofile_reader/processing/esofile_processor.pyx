@@ -7,7 +7,7 @@ from functools import partial
 from collections import defaultdict
 from copy import deepcopy
 
-from esofile_reader.outputs.outputs import Outputs, create_peak_df
+from esofile_reader.outputs.outputs import Outputs, create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.constants import *
@@ -354,11 +354,11 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
 
 def generate_peak_outputs(raw_peak_outputs, dates):
     """ Transform processed peak output data into DataFrame like classes. """
-    peak_outputs = {"min": {}, "max": {}}
+    peak_outputs = {"local_min": {}, "local_max": {}}
     for interval, data in raw_peak_outputs.items():
         index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-        peak_outputs["min"][interval] = create_peak_df(data, interval, index, max_=False)
-        peak_outputs["max"][interval] = create_peak_df(data, interval, index)
+        peak_outputs["local_min"][interval] = create_peak_outputs(data, interval, index, max_=False)
+        peak_outputs["local_max"][interval] = create_peak_outputs(data, interval, index)
     return peak_outputs
 
 

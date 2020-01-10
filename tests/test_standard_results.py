@@ -7,7 +7,7 @@ from datetime import datetime
 class MyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso")
+        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False)
 
     def test_basic_standard_results(self):
         v = Variable(None, None, None, None)
@@ -36,13 +36,12 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(r.shape, shape)
 
     def test_standard_results_dates(self):
-        intervals = [TS, H, D, M, A, RP]
         shapes = [(1480, 2), (740, 2), (31, 2), (1, 2), (0, 2), (0, 2)]
 
         start_date = datetime(2002, 5, 1, 12, 30)
         end_date = datetime(2002, 6, 1, 8, 0)
 
-        for interval, shape in zip(intervals, shapes):
+        for interval, shape in zip(self.ef.available_intervals, shapes):
             variables = [
                 Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
@@ -60,9 +59,8 @@ class MyTestCase(unittest.TestCase):
             if not r2.empty:
                 self.assertEqual(r2.index.names, ["file", "timestamp", "day"])
 
-    def test_standard_results_indexes(self):
-        intervals = [TS, H, D, M, A, RP]
-        for interval in intervals:
+    def test_standard_results_file_name(self):
+        for interval in self.ef.available_intervals:
             variables = [
                 Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
@@ -79,6 +77,57 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(r.index.names, ["timestamp"])
             self.assertEqual(r.columns.names, ["key", "variable", "units"])
 
+    def test_standard_results_include_id(self):
+        for interval in self.ef.available_intervals:
+            variables = [
+                Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+                Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+            ]
+
+            r = self.ef.get_results(variables, add_file_name="row", include_id=True)
+            self.assertEqual(r.index.names, ["file", "timestamp"])
+            self.assertEqual(r.columns.names, ["id", "key", "variable", "units"])
+
+            r = self.ef.get_results(variables, add_file_name="row", include_id=False)
+            self.assertEqual(r.index.names, ["file", "timestamp"])
+            self.assertEqual(r.columns.names, ["key", "variable", "units"])
+
+    def test_standard_results_include_day(self):
+        for interval in self.ef.available_intervals:
+            variables = [
+                Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+                Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+            ]
+
+            r = self.ef.get_results(variables, add_file_name="row", include_day=True)
+            self.assertEqual(r.index.names, ["file", "timestamp", "day"])
+            self.assertEqual(r.columns.names, ["key", "variable", "units"])
+
+            r = self.ef.get_results(variables, add_file_name="row", include_day=False)
+            self.assertEqual(r.index.names, ["file", "timestamp"])
+            self.assertEqual(r.columns.names, ["key", "variable", "units"])
+
+    def test_standard_results_include_interval(self):
+        for interval in self.ef.available_intervals:
+            variables = [
+                Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+                Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+            ]
+
+            r = self.ef.get_results(variables, add_file_name="row", include_interval=True)
+            self.assertEqual(r.index.names, ["file", "timestamp"])
+            self.assertEqual(r.columns.names, ["interval", "key", "variable", "units"])
+
+            r = self.ef.get_results(variables, add_file_name="row", include_interval=False)
+            self.assertEqual(r.index.names, ["file", "timestamp"])
+            self.assertEqual(r.columns.names, ["key", "variable", "units"])
+
+    def test_standard_results_full_index(self):
+        for interval in self.ef.available_intervals:
+            variables = [
+                Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+                Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+            ]
             r = self.ef.get_results(variables, add_file_name="row", include_day=True,
                                     include_interval=True, include_id=True)
             self.assertEqual(r.index.names, ["file", "timestamp", "day"])
@@ -95,8 +144,7 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(r.columns.names, ["id", "interval", "key", "variable", "units"])
 
     def test_variable_partial_match(self):
-        intervals = [TS, H, D, M, A, RP]
-        for interval in intervals:
+        for interval in self.ef.available_intervals:
             variables = [
                 Variable(interval, "envir", "Site", None),
                 Variable(interval, "BLOCK", "Zone People Occupant Count", ""),
@@ -108,7 +156,27 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(r.shape[1], 5)
 
     def test_timestamp_format(self):
-        pass
+        first = [
+            "2002-01-01-00-30",
+            "2002-01-01-01-00",
+            "2002-01-01-00-00",
+            "2002-01-01-00-00",
+            "2002-01-01-00-00",
+            "2002-01-01-00-00",
+        ]
+        for interval, f in zip(self.ef.available_intervals, first):
+            variables = [
+                Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+                Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+            ]
+
+            r = self.ef.get_results(variables, timestamp_format="%Y-%m-%d-%H-%M",
+                                    include_interval=True)
+            self.assertEqual(r.index.get_level_values("timestamp")[0], f)
+
+            r = self.ef.get_results(variables, timestamp_format="%Y-%m-%d-%H-%M",
+                                    include_interval=True, include_day=True)
+            self.assertEqual(r.index.get_level_values("timestamp")[0], f)
 
 
 if __name__ == '__main__':

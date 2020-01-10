@@ -42,12 +42,12 @@ def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
     df.columns = df.columns.swaplevel(0, 1)
     df = _sort_peak_outputs(df)
 
-    return df
+    return PeakOutputs(df)
 
 
-def create_peak_df(data, interval, index, max_=True):
+def create_peak_outputs(data, interval, index, max_=True):
     """ Create DataFrame for peak minimums. """
-    df = PeakOutputs(data)
+    df = pd.DataFrame(data)
     df.index = index
 
     max_indexes = {

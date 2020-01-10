@@ -1,6 +1,7 @@
 import os
 import time
 import pandas as pd
+import numpy as np
 
 from random import randint
 from datetime import datetime
@@ -126,10 +127,17 @@ class BaseFile:
         return df
 
     @classmethod
-    def update_dt_format(cls, df, timestamp_format):
+    def _update_dt_format(cls, df, timestamp_format):
         """ Set specified 'datetime' str format. """
-        if output_type in ["standard", "local_max", "local_min"]:
-            df.index = df.index.strftime(timestamp_format)
+        if TIMESTAMP_COLUMN in df.index.names:
+            ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
+
+            if isinstance(ts_index, pd.DatetimeIndex):
+                new_index = ts_index.strftime(timestamp_format)
+                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
+
+        cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
+        df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
 
         return df
 
@@ -143,17 +151,18 @@ class BaseFile:
 
     def _merge_frame(self, frames, timestamp_format="default", add_file_name=False):
         """ Merge result DataFrames into a single one. """
-        try:
+        if frames:
             # Catch empty frames exception
             df = pd.concat(frames, axis=1, sort=False)
 
-            if timestamp_format != "default":
-                df = self.update_dt_format(df, timestamp_format)
             if add_file_name:
                 df = self._add_file_name(df, add_file_name)
-            return df
 
-        except ValueError:
+            if timestamp_format != "default":
+                df = self._update_dt_format(df, timestamp_format)
+
+            return df
+        else:
             print(f"Any of requested variables is not "
                   f"included in the Eso file '{self.file_name}'.")
 
@@ -212,13 +221,13 @@ class BaseFile:
         """
 
         def standard():
-            return data_set.get_results(*args)
+            return data_set.get_results(ids, start_date, end_date, include_day)
 
         def global_max():
-            return data_set.global_max(*args)
+            return data_set.global_max(ids, start_date, end_date)
 
         def global_min():
-            return data_set.global_min(*args)
+            return data_set.global_min(ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -236,7 +245,6 @@ class BaseFile:
 
         for interval, ids in groups.items():
             data_set = self.outputs[interval]
-            args = (ids, start_date, end_date, include_day)
             df = res[output_type]()
 
             if df is None:
