@@ -4,10 +4,10 @@ from esofile_reader.constants import *
 from datetime import datetime
 
 
-class MyTestCase(unittest.TestCase):
+class TestStandardResults(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False)
+        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso")
 
     def test_basic_standard_results(self):
         v = Variable(None, None, None, None)
@@ -16,10 +16,9 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(r.columns.names, ['key', 'variable', 'units'])
         self.assertEqual(r.index.names, ["file", "timestamp"])
 
-        intervals = [TS, H, D, M, A, RP]
         shapes = [(17520, 9), (8760, 9), (365, 9), (12, 9), (1, 9), (1, 9)]
 
-        for interval, shape in zip(intervals, shapes):
+        for interval, shape in zip(self.ef.available_intervals, shapes):
             variables = [
                 Variable(interval, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
