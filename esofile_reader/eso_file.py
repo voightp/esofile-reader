@@ -1,8 +1,7 @@
 import os
-import pandas as pd
-from esofile_reader.base_file import BaseFile
+from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.totals_file import TotalsFile
-from esofile_reader.constants import *
+from esofile_reader.diff_file import DiffFile
 
 try:
     from esofile_reader.processing.esofile_processor import read_file
@@ -11,11 +10,6 @@ except ModuleNotFoundError:
 
     pyximport.install()
     from esofile_reader.processing.esofile_processor import read_file
-
-
-class IncompleteFile(Exception):
-    """ Exception raised when the file is not complete. """
-    pass
 
 
 class PeaksNotIncluded(Exception):
@@ -190,10 +184,18 @@ class EsoFile(BaseFile):
 
         return df
 
-    def get_totals(self):
-        """ Generate a new 'Building' eso file. """
+    def generate_totals(self):
+        """ Generate a new 'Totals' file. """
         if self.complete:
             return TotalsFile(self)
+        else:
+            raise IncompleteFile(f"Cannot generate totals, "
+                                 f"file {self.file_path} is not complete!")
+
+    def generate_diff(self, other_file):
+        """ Generate a new 'Building' eso file. """
+        if self.complete:
+            return DiffFile(self, other_file)
         else:
             raise IncompleteFile(f"Cannot generate totals, "
                                  f"file {self.file_path} is not complete!")

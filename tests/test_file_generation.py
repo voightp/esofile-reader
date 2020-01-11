@@ -27,3 +27,16 @@ class TestFileGeneration(unittest.TestCase):
         df = DiffFile(self.ef, self.ef)
         tf = TotalsFile(df)
         self.assertTrue(tf.complete)
+
+    def test_generate_totals_eso_file(self):
+        tf = self.ef.generate_totals()
+        self.assertTrue(tf.complete)
+
+    def test_generate_diff_eso_file(self):
+        df = self.ef.generate_diff(self.ef_peaks)
+        self.assertTrue(df.complete)
+
+    def test_generate_diff_totals_file(self):
+        tf = self.ef.generate_totals()
+        df = tf.generate_diff(self.ef)
+        self.assertTrue(df.complete)

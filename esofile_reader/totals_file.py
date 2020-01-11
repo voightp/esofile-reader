@@ -1,7 +1,8 @@
 import pandas as pd
 import re
 
-from esofile_reader.base_file import BaseFile
+from esofile_reader.base_file import BaseFile, IncompleteFile
+from esofile_reader.diff_file import DiffFile
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.utils.tree import Tree
@@ -210,3 +211,11 @@ class TotalsFile(BaseFile):
             (self.header,
              self.outputs,
              self.header_tree) = content
+
+    def generate_diff(self, other_file):
+        """ Generate a new 'Building' eso file. """
+        if self.complete:
+            return DiffFile(self, other_file)
+        else:
+            raise IncompleteFile(f"Cannot generate totals, "
+                                 f"file {self.file_path} is not complete!")

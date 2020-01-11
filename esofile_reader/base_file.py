@@ -20,6 +20,11 @@ class InvalidOutputType(Exception):
     pass
 
 
+class IncompleteFile(Exception):
+    """ Exception raised when the file is not complete. """
+    pass
+
+
 def gen_id(checklist, negative=True):
     """ ID generator. """
     while True:
@@ -88,8 +93,8 @@ class BaseFile:
 
     def __repr__(self):
         return f"File: {self.file_name}" \
-            f"\nPath: {self.file_path}" \
-            f"\nCreated: {self.created}"
+               f"\nPath: {self.file_path}" \
+               f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
@@ -236,7 +241,7 @@ class BaseFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                f"kwarg must be one of '{', '.join(res.keys())}'."
+                  f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
