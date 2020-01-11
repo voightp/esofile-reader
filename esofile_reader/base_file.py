@@ -82,7 +82,6 @@ class BaseFile:
         self._complete = False
 
         self.file_timestamp = None
-        self.environments = None
         self.header = None
         self.outputs = None
         self.header_tree = None

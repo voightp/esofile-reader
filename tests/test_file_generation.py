@@ -12,6 +12,9 @@ class TestFileGeneration(unittest.TestCase):
     def test_eso_file(self):
         self.assertTrue(self.ef.complete)
 
+    def test_peak_eso_file(self):
+        self.assertTrue(self.ef_peaks.complete)
+
     def test_eso_file_to_totals_file(self):
         tf = TotalsFile(self.ef)
         self.assertTrue(tf.complete)

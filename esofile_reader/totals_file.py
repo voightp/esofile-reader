@@ -202,7 +202,6 @@ class TotalsFile(BaseFile):
         self.file_path = eso_file.file_path
         self.file_name = f"{eso_file.file_name} - totals"
         self.file_timestamp = eso_file.file_timestamp  # use base file timestamp
-        self.environments = eso_file.environments
 
         content = self.process_totals(eso_file)
 
