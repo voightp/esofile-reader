@@ -3,6 +3,7 @@ from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import incremental_id_gen
 from esofile_reader.utils.tree import Tree
+from esofile_reader.outputs.outputs import Outputs
 from datetime import datetime
 
 import pandas as pd
@@ -95,7 +96,7 @@ class DiffFile(BaseFile):
             header[interval] = self.build_header_dict(header_df)
 
             output_df.columns = output_df.columns.get_level_values("id")
-            outputs[interval] = output_df
+            outputs[interval] = Outputs(output_df)
 
         tree = Tree()
         tree.populate_tree(header)
@@ -107,11 +108,11 @@ class DiffFile(BaseFile):
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
         self.file_timestamp = datetime.utcnow().timestamp()
-        self._complete = first_file.complete and other_file.complete
 
         content = self.process_diff(first_file, other_file)
 
         if content:
+            self._complete = True
             (self.header,
              self.outputs,
              self.header_tree) = content
