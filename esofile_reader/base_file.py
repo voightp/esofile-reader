@@ -1,11 +1,13 @@
 import os
 import time
 import pandas as pd
+import numpy as np
 
 from random import randint
-from esofile_reader.processing.esofile_processor import create_variable
+from datetime import datetime
 from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
 from esofile_reader.constants import *
+from esofile_reader.utils.mini_classes import Variable
 
 
 class VariableNotFound(Exception):
@@ -18,6 +20,11 @@ class InvalidOutputType(Exception):
     pass
 
 
+class IncompleteFile(Exception):
+    """ Exception raised when the file is not complete. """
+    pass
+
+
 def gen_id(checklist, negative=True):
     """ ID generator. """
     while True:
@@ -27,10 +34,10 @@ def gen_id(checklist, negative=True):
             return -randint(1, 999999)
 
 
-class BaseResultsFile:
+class BaseFile:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
-    'building' totals file.
+    totals file.
 
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
@@ -46,12 +53,12 @@ class BaseResultsFile:
     }
 
     outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
+        TS : outputs.Outputs,
+        H : outputs.Outputs,
+        D : outputs.Outputs,
+        M : outputs.Outputs,
+        A : outputs.Outputs,
+        RP : outputs.Outputs,
     }
 
     Attributes
@@ -80,21 +87,19 @@ class BaseResultsFile:
         self._complete = False
 
         self.file_timestamp = None
-        self.environments = None
         self.header = None
         self.outputs = None
         self.header_tree = None
 
     def __repr__(self):
-        human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.created))
         return f"File: {self.file_name}" \
-            f"\nPath: {self.file_path}" \
-            f"\nCreated: {human_time}"
+               f"\nPath: {self.file_path}" \
+               f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
         """ Return a list of available intervals. """
-        return self.header.keys()
+        return list(self.header.keys())
 
     @property
     def all_ids(self):
@@ -106,14 +111,9 @@ class BaseResultsFile:
         return ids
 
     @property
-    def modified(self):
-        """ Return a timestamp of the last file system modification. """
-        return os.path.getmtime(self.file_path)
-
-    @property
     def created(self):
         """ Return a timestamp of the file system creation. """
-        return os.path.getctime(self.file_path)
+        return datetime.fromtimestamp(self.file_timestamp)
 
     @property
     def complete(self):
@@ -126,20 +126,22 @@ class BaseResultsFile:
         rows = []
         for interval, variables in self.header.items():
             for id_, var in variables.items():
-                rows.append((interval, id_, *var))
-        df = pd.DataFrame(rows, columns=["interval", "id", "key", "variable", "units"])
+                rows.append((id_, *var))
+        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
 
-    def outputs_df(self):
-        """ Get all outputs as pd.DataFrame (columns: mi(interval, id). """
-        # TODO finish this
-        frames = pd.concat(self.outputs, axis=1)
-
     @classmethod
-    def update_dt_format(cls, df, output_type, timestamp_format):
+    def _update_dt_format(cls, df, timestamp_format):
         """ Set specified 'datetime' str format. """
-        if output_type in ["standard", "local_max", "local_min"]:
-            df.index = df.index.strftime(timestamp_format)
+        if TIMESTAMP_COLUMN in df.index.names:
+            ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
+
+            if isinstance(ts_index, pd.DatetimeIndex):
+                new_index = ts_index.strftime(timestamp_format)
+                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
+
+        cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
+        df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
 
         return df
 
@@ -151,9 +153,26 @@ class BaseResultsFile:
         """ Populate instance attributes. """
         pass
 
-    def results_df(
-            self, variables, start_date=None, end_date=None,
-            output_type="standard", add_file_name="row", include_interval=False,
+    def _merge_frame(self, frames, timestamp_format="default", add_file_name=False):
+        """ Merge result DataFrames into a single one. """
+        if frames:
+            # Catch empty frames exception
+            df = pd.concat(frames, axis=1, sort=False)
+
+            if add_file_name:
+                df = self._add_file_name(df, add_file_name)
+
+            if timestamp_format != "default":
+                df = self._update_dt_format(df, timestamp_format)
+
+            return df
+        else:
+            print(f"Any of requested variables is not "
+                  f"included in the Eso file '{self.file_name}'.")
+
+    def get_results(
+            self, variables, start_date=None, end_date=None, output_type="standard",
+            add_file_name="row", include_interval=False, include_day=False,
             include_id=False, part_match=False, units_system="SI",
             rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
             energy_units="J", timestamp_format="default"
@@ -161,7 +180,7 @@ class BaseResultsFile:
         """
         Return a pandas.DataFrame object with results for given variables.
 
-        This function extracts requested set of outputs from the eso file
+        This function extracts requested set of outputs from the file
         and converts to specified units if requested.
 
         Parameters
@@ -172,16 +191,16 @@ class BaseResultsFile:
             A start date for requested results.
         end_date : datetime like object, default None
             An end date for requested results.
-        output_type : {
-                'standard', 'local_max',' global_max', 'timestep_max',
-                'local_min', 'global_min', 'timestep_min'
-                }
+        output_type : {'standard', global_max','global_min'}
             Requested type of results.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
         include_interval : bool
             Decide if 'interval' information should be included on
             the results df.
+        include_day : bool
+            Add day of week into index, this is applicable only for 'timestep',
+            'hourly' and 'daily' outputs.
         include_id : bool
             Decide if variable 'id' should be included on the results df.
         part_match : bool
@@ -206,65 +225,47 @@ class BaseResultsFile:
         """
 
         def standard():
-            return data_set.standard_results(*f_args)
-
-        def local_maxs():
-            return data_set.local_maxs(*f_args)
+            return data_set.get_results(ids, start_date, end_date, include_day)
 
         def global_max():
-            return data_set.global_max(*f_args)
-
-        def timestep_max():
-            return data_set.timestep_max(*f_args)
-
-        def local_mins():
-            return data_set.local_mins(*f_args)
+            return data_set.global_max(ids, start_date, end_date)
 
         def global_min():
-            return data_set.global_min(*f_args)
-
-        def timestep_min():
-            return data_set.timestep_min(*f_args)
+            return data_set.global_min(ids, start_date, end_date)
 
         res = {
             "standard": standard,
-            "local_max": local_maxs,
             "global_max": global_max,
-            "timestep_max": timestep_max,
-            "local_min": local_mins,
             "global_min": global_min,
-            "timestep_min": timestep_min,
         }
 
         if output_type not in res:
-            msg = "Invalid output type '{}' requested.\n'output_type'" \
-                  "kwarg must be one of '{}'.".format(output_type, ", ".join(res.keys()))
+            msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
+                  f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
-        groups = self.find_pairs(variables, part_match=part_match)
+        groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
             data_set = self.outputs[interval]
-
-            # Extract specified set of results
-            f_args = (ids, start_date, end_date)
-
             df = res[output_type]()
 
             if df is None:
-                print("Results type '{}' is not applicable for '{}' interval."
-                      "\n\tignoring the request...".format(type, interval))
+                print(f"Results type '{output_type}' is not applicable for "
+                      f"'{interval}' interval. \n\tignoring the request...")
                 continue
 
-            df.columns = self.create_header_mi(interval, df.columns)
+            df.columns = self._create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
-            if output_type == "standard" and rate_to_energy_dct:
-                is_energy = rate_to_energy_dct[interval]
-                if is_energy:
-                    # 'energy' is requested for current output
-                    df = rate_to_energy(df, data_set, start_date, end_date)
+            if output_type == "standard" and rate_to_energy_dct[interval]:
+                try:
+                    n_days = data_set.get_number_of_days(start_date, end_date)
+                except KeyError:
+                    n_days = None
+
+                df = rate_to_energy(df, interval, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -277,21 +278,7 @@ class BaseResultsFile:
 
             frames.append(df)
 
-        # Catch empty frames exception
-        try:
-            # Merge dfs
-            df = pd.concat(frames, axis=1, sort=False)
-            # Add file name to the index
-            if timestamp_format != "default":
-                df = self.update_dt_format(df, output_type, timestamp_format)
-            if add_file_name:
-                df = self.add_file_name(df, add_file_name)
-            return df
-
-        except ValueError:
-            # raise ValueError("Any of requested variables is not included in the Eso file.")
-            print("Any of requested variables is not "
-                  "included in the Eso file '{}'.".format(self.file_name))
+        return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def find_ids(self, variables, part_match=False):
         """ Find ids for a list of 'Variables'. """
@@ -312,7 +299,7 @@ class BaseResultsFile:
 
         return out
 
-    def find_pairs(self, variables, part_match=False):
+    def _find_pairs(self, variables, part_match=False):
         """
         Find variable ids for a list of 'Variables'.
 
@@ -344,14 +331,15 @@ class BaseResultsFile:
             if not pairs:
                 continue
 
-            if interval in out:
-                out[interval].extend(pairs[interval])
-            else:
-                out[interval] = pairs[interval]
+            for k, v in pairs.items():
+                if k in out.keys():
+                    out[k].extend(pairs[k])
+                else:
+                    out[k] = pairs[k]
 
         return out
 
-    def create_header_mi(self, interval, ids):
+    def _create_header_mi(self, interval, ids):
         """ Create a header pd.DataFrame for given ids and interval. """
 
         def fetch_var():
@@ -378,16 +366,36 @@ class BaseResultsFile:
 
         return pd.MultiIndex.from_tuples(tuples, names=names)
 
-    def add_file_name(self, results, name_position):
+    def _add_file_name(self, results, name_position):
         """ Add file name to index. """
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            print("Invalid name position!\n'add_file_name' kwarg must be one of: "
-                  "'{}'.\nSetting 'row'.".format(", ".join(pos)))
+            print(f"Invalid name position!\n'add_file_name' kwarg must "
+                  f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
 
         axis = 0 if name_position == "row" else 1
+
         return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
+
+    def _add_header_variable(self, id_, interval, key, var, units):
+        """ Create a unique header variable. """
+
+        def add_num():
+            new_key = f"{key} ({i})"
+            return Variable(interval, new_key, var, units)
+
+        variable = Variable(interval, key, var, units)
+
+        i = 0
+        while variable in self.header[interval].values():
+            i += 1
+            variable = add_num()
+
+        self.header[interval][id_] = variable
+        self.header_tree.add_branch(*variable, id_)
+
+        return variable
 
     def rename_variable(self, variable, var_nm="", key_nm=""):
         """ Rename the given 'Variable' using given names. """
@@ -401,47 +409,33 @@ class BaseResultsFile:
             key_nm = key
 
         if ids:
-            id_ = ids[0]
-            # remove current item to avoid item duplicity and
-            # unique number increment
-            del self.header[interval][id_]
+            # remove current item to avoid item duplicity
+            self._remove_header_variables(interval, ids)
 
-            # create a new variable
-            all_vars = self.header[interval].values()
-            new_var = create_variable(all_vars, interval, key_nm, var_nm, units)
+            # create a new header variable
+            new_var = self._add_header_variable(ids[0], interval,
+                                                key_nm, var_nm, units)
 
-            # add variable to header and tree
-            self.header[interval][id_] = new_var
-            self.header_tree.add_branch(interval, key_nm, var_nm, units, id_)
-
-            return id_, new_var
+            return ids[0], new_var
 
     def add_output(self, interval, key_nm, var_nm, units, array):
         """ Add specified output variable to the file. """
+        # generate a unique identifier, custom ids use '-' sign
+        id_ = gen_id(self.all_ids, negative=True)
 
-        if interval in self.available_intervals:
-            # generate a unique identifier, custom ids use '-' sign
-            id_ = gen_id(self.all_ids, negative=True)
-
-            # add variable data to the output df
+        # add variable data to the output df
+        try:
             is_valid = self.outputs[interval].add_column(id_, array)
+        except KeyError:
+            is_valid = False
+            print(f"Cannot add variable: "
+                  f"'{key_nm} : {var_nm} : {units}'into outputs."
+                  f"\nInterval is not included in file '{self.file_name}'")
 
-            if is_valid:
-                # variable can be added, create a reference in the search tree
-                all_vars = self.header[interval].values()
-                new_var = create_variable(all_vars, interval,
-                                          key_nm, var_nm, units)
-
-                # add variables to the header and search tree
-                self.header[interval][id_] = new_var
-                self.header_tree.add_branch(interval, key_nm,
-                                            var_nm, units, id_)
-
-                return id_, new_var
-        else:
-            print(f"Cannot add variable: '{key_nm} : {var_nm} : "
-                  f"{units}'into outputs.\nInterval is not included "
-                  f"in file '{self.file_name}'")
+        if is_valid:
+            new_var = self._add_header_variable(id_, interval,
+                                                key_nm, var_nm, units)
+            return id_, new_var
 
     def aggregate_variables(self, variables, func, key_nm="Custom Key",
                             var_nm="Custom Variable", part_match=False):
@@ -476,7 +470,7 @@ class BaseResultsFile:
             could not be added, None is returned.
 
         """
-        groups = self.find_pairs(variables, part_match=part_match)
+        groups = self._find_pairs(variables, part_match=part_match)
 
         if not groups:
             print("There are no variables to sum!")
@@ -488,7 +482,7 @@ class BaseResultsFile:
 
         interval, ids = list(groups.items())[0]
 
-        mi = self.create_header_mi(interval, ids)
+        mi = self._create_header_mi(interval, ids)
         variables = mi.get_level_values("variable").tolist()
         units = mi.get_level_values("units").tolist()
 
@@ -499,12 +493,22 @@ class BaseResultsFile:
             return
 
         data_set = self.outputs[interval]
-        df = data_set.standard_results(ids)
+        df = data_set.get_results(ids)
 
         if isinstance(units, list):
-            # it's needed to convert rate to energy
+            # it's needed to assign multi index to convert energy
             df.columns = mi
-            df = rate_to_energy(df, data_set)
+
+            try:
+                n_days = data_set.get_number_of_days()
+            except AttributeError:
+                n_days = None
+                if interval in [M, A, RP]:
+                    print("Cannot sum rate and energy variables!"
+                          "\nN days column is not available!")
+                    return
+
+            df = rate_to_energy(df, interval, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
 
         sr = df.aggregate(func, axis=1)
@@ -522,21 +526,21 @@ class BaseResultsFile:
 
         return out
 
-    def remove_output_variables(self, interval, ids):
+    def _remove_output_variables(self, interval, ids):
         """ Remove output data from the file. """
         try:
-            out = self.outputs[interval]
-            out.remove_columns(ids)
-            if out.empty:
+            self.outputs[interval].remove_columns(ids)
+            if self.outputs[interval].empty:
                 del self.outputs[interval]
-        except AttributeError:
+        except KeyError:
             print(f"Invalid interval: '{interval}' specified!")
 
-    def remove_header_variables(self, interval, ids):
+    def _remove_header_variables(self, interval, ids):
         """ Remove header variable from header. """
         ids = ids if isinstance(ids, list) else [ids]
 
         for id_ in ids:
+            self.header_tree.remove_variables([self.header[interval][id_]])
             try:
                 del self.header[interval][id_]
                 if not self.header[interval]:
@@ -547,25 +551,24 @@ class BaseResultsFile:
 
     def remove_outputs(self, variables):
         """ Remove given variables from the file. """
-        groups = self.find_pairs(variables)
+        groups = self._find_pairs(variables)
 
         for ivl, ids in groups.items():
-            self.remove_output_variables(ivl, ids)
-            self.remove_header_variables(ivl, ids)
-
-        self.header_tree.remove_variables(variables)
+            self._remove_output_variables(ivl, ids)
+            self._remove_header_variables(ivl, ids)
 
         return groups
 
-    def diff(self, other_file, absolute=False):
-        """ Calculate difference between this and other results file. """
-
-
-
-    def as_df(self):
+    def as_df(self, interval):
         """ Return the file as a single DataFrame. """
-        pass
-        # TODO implement
+        try:
+            df = self.outputs[interval].get_all_results(drop_special=True)
+            df.columns = self._create_header_mi(interval, df.columns)
+
+        except KeyError:
+            raise KeyError(f"Cannot find interval: '{interval}'.")
+
+        return df
 
     def save(self, path=None, directory=None, name=None):
         """ Save the file into filesystem. """

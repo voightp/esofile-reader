@@ -1,21 +1,23 @@
 import pandas as pd
 import re
 
-from esofile_reader.base_file import BaseResultsFile
-from esofile_reader.mini_classes import Variable
-from esofile_reader.constants import TS, H, D, M, A, RP, RATE_TO_ENERGY_DCT
-from esofile_reader.outputs.convertor import rate_to_energy, convert_units
-from esofile_reader.outputs.outputs import Hourly, Daily, Monthly, Annual, Runperiod, Timestep
-from esofile_reader.outputs.tree import Tree
-from esofile_reader.base_file import InvalidOutputType
+from esofile_reader.base_file import BaseFile, IncompleteFile
+from esofile_reader.diff_file import DiffFile
+from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.outputs.outputs import Outputs
+from esofile_reader.utils.tree import Tree
+from esofile_reader.utils.utils import incremental_id_gen
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, SUMMED_UNITS
 
 variable_groups = {
-    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller", "Chilled Water Thermal Storage Tank",
-    "Cooling Tower", "Earth Tube", "Exterior Lights", "Debug Surface Solar Shading Model",
-    "Electric Load Center", "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator", "HVAC System",
-    "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter", "Lights", "Other Equipment",
-    "People", "Pump", "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
-    "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
+    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
+    "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
+    "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
+    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
+    "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
+    "Lights", "Other Equipment", "People", "Pump", "Schedule", "Site", "Surface",
+    "System Node", "VRF Heat Pump", "Water Heater", "Water to Water Heat Pump",
+    "Water Use Equipment", "Zone", }
 
 subgroups = {
     "_PARTITION_": "Partitions",
@@ -26,30 +28,6 @@ subgroups = {
     "_GROUNDFLOOR_": "Ground floors",
     "_CEILING_": "Ceilings",
 }
-
-summed_units = [
-    "J",
-    "J/m2"
-]
-
-averaged_units = [
-    "W",
-    "W/m2",
-    "C",
-    "",
-    "W/m2-K",
-    "ppm",
-    "ach",
-    "hr",
-]
-
-
-def incr_id_gen():
-    """ Incremental id generator. """
-    i = 0
-    while True:
-        i += 1
-        yield i
 
 
 def get_group_key(string, groups):
@@ -66,31 +44,9 @@ def get_keyword(string, keywords):
         return next(v for k, v in keywords.items() if k in string)
 
 
-class TotalsFile(BaseResultsFile):
+class TotalsFile(BaseFile):
     """
-    The ESO class holds processed EnergyPlus output ESO file data.
-
-    The results are stored in a dictionary using string interval identifiers
-    as keys and pandas.DataFrame like classes as values.
-
-    A structure for data bins is as follows:
-    header_dict = {
-        TS : {(int)ID : ('Key','Variable','Units')},
-        H : {(int)ID : ('Key','Variable','Units')},
-        D : {(int)ID : ('Key','Variable','Units')},
-        M : {(int)ID : ('Key','Variable','Units')},
-        A : {(int)ID : ('Key','Variable','Units')},
-        RP : {(int)ID : ('Key','Variable','Units')},
-    }
-
-    outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
-    }
+    This class holds aggregated results from EsoFile class.
 
     Attributes
     ----------
@@ -113,7 +69,6 @@ class TotalsFile(BaseResultsFile):
     ------
     IncompleteFile
 
-
     """
 
     def __init__(self, eso_file):
@@ -123,7 +78,7 @@ class TotalsFile(BaseResultsFile):
     @staticmethod
     def calculate_totals(df):
         """ Calculate 'building totals'."""
-        cnd = df["units"].isin(averaged_units)
+        cnd = df["units"].isin(AVERAGED_UNITS)
         df.drop(["id", "key", "variable", "units"], inplace=True, axis=1)
 
         # split df into averages and sums
@@ -149,9 +104,12 @@ class TotalsFile(BaseResultsFile):
         rows = []
         for id_, var in variables.items():
             interval, key, variable, units = var
-            group = units in summed_units or units in averaged_units  # check if the variables should be grouped
 
-            gr_str = variable  # init group string to be the same as variable
+            # variable can be grouped only if it's included as avg or sum
+            group = units in SUMMED_UNITS or units in AVERAGED_UNITS
+
+            # init group string to be the same as variable
+            gr_str = variable
             w = get_keyword(key, subgroups)
 
             if key == "Cumulative Meter" or key == "Meter":
@@ -205,40 +163,34 @@ class TotalsFile(BaseResultsFile):
 
     def _group_outputs(self, grouped_ids, outputs):
         """ Handle numeric outputs. """
-        num_days = outputs.get_number_of_days()
-        outputs = outputs.get_standard_results_only(transposed=True)
+        outputs = outputs.get_all_results(transposed=True)
         outputs.reset_index(inplace=True)
 
         df = pd.merge(left=grouped_ids, right=outputs, on="id")
         df = self.calculate_totals(df)
 
-        if num_days is not None:
-            df.insert(0, "num days", num_days)
+        for s in [N_DAYS_COLUMN, DAY_COLUMN]:
+            try:
+                col = outputs[s]
+                df.insert(0, s, col)
+            except KeyError:
+                pass
 
         return df
 
     def process_totals(self, eso_file):
         """ Create building outputs. """
-        output_cls = {
-            TS: Timestep,
-            H: Hourly,
-            D: Daily,
-            M: Monthly,
-            A: Annual,
-            RP: Runperiod
-        }
-
         header = {}
         outputs = {}
-        id_gen = incr_id_gen()
+        id_gen = incremental_id_gen()
 
-        for interval, vars in eso_file.header.items():
-            header_df = self.get_grouped_vars(id_gen, vars)
+        for interval, variables in eso_file.header.items():
+            header_df = self.get_grouped_vars(id_gen, variables)
 
             out = eso_file.outputs[interval]
             out = self._group_outputs(header_df, out)
 
-            outputs[interval] = output_cls[interval](out)
+            outputs[interval] = Outputs(out)
             header[interval] = self.build_header_dct(header_df)
 
         tree = Tree()
@@ -250,10 +202,20 @@ class TotalsFile(BaseResultsFile):
         """ Generate building related data based on input 'EsoFile'. """
         self.file_path = eso_file.file_path
         self.file_name = f"{eso_file.file_name} - totals"
-        self._complete = eso_file.complete
-        self.file_timestamp = eso_file.file_timestamp
-        self.environments = eso_file.environments
+        self.file_timestamp = eso_file.file_timestamp  # use base file timestamp
 
-        (self.header,
-         self.outputs,
-         self.header_tree) = self.process_totals(eso_file)
+        content = self.process_totals(eso_file)
+
+        if content:
+            self._complete = True
+            (self.header,
+             self.outputs,
+             self.header_tree) = content
+
+    def generate_diff(self, other_file):
+        """ Generate a new 'Building' eso file. """
+        if self.complete:
+            return DiffFile(self, other_file)
+        else:
+            raise IncompleteFile(f"Cannot generate totals, "
+                                 f"file {self.file_path} is not complete!")

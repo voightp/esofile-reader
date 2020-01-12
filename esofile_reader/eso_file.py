@@ -1,188 +1,30 @@
-import pandas as pd
 import os
-
-from esofile_reader.base_file import BaseResultsFile, InvalidOutputType
-from esofile_reader.outputs.convertor import rate_to_energy, convert_units
-from esofile_reader.processing.esofile_processor import read_file
-from esofile_reader.constants import RATE_TO_ENERGY_DCT
+from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.diff_file import DiffFile
+
+try:
+    from esofile_reader.processing.esofile_processor import read_file
+except ModuleNotFoundError:
+    import pyximport
+
+    pyximport.install()
+    from esofile_reader.processing.esofile_processor import read_file
 
 
-class NoResults(Exception):
-    """ Exception raised when results are requested from an incomplete file. """
+class PeaksNotIncluded(Exception):
+    """ Exception is raised when EsoFile has been processed without peaks. """
     pass
 
 
-class IncompleteFile(Exception):
-    """ Exception raised when the file is not complete. """
-    pass
-
-
-def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
-                add_file_name="row", include_interval=False, include_id=False,
-                units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
-                energy_units="J", timestamp_format="default", report_progress=True,
-                exclude_intervals=None, part_match=False, ignore_peaks=True, suppress_errors=False):
-    """
-     Return a pandas.DataFrame object with outputs for specified request.
-
-     Eso files can be specified using 'path' like objects or an instantiated
-     'EsoFile' class object. This function accepts either single file or multiple
-     files in a list.
-
-     Multiple options are available to transform the original 'Eso' file outputs.
-
-     Parameters
-     ----------
-     files : {str, EsoFile} or list of ({str, EsoFile})
-        Eso files defined as 'EsoFile' objects or using path like objects.
-     variables : Variable or list of (Variable)
-        Requested variables..
-     start_date : datetime like object, default None
-        A start date for requested results.
-     end_date : datetime like object, default None
-        An end date for requested results.
-     output_type : {
-            'standard', 'local_max',' global_max', 'timestep_max',
-            'local_min', 'global_min', 'timestep_min'
-            }
-        Requested type of results.
-     add_file_name : ('row','column',None)
-        Specify if file name should be added into results df.
-     include_interval : bool
-        Decide if 'interval' information should be included on
-        the results df.
-     include_id : bool
-        Decide if variable 'id' should be included on the results df.
-     part_match : bool
-        Only substring of the part of variable is enough
-        to match when searching for variables if this is True.
-     units_system : {'SI', 'IP'}
-        Selected units type for requested outputs.
-     rate_to_energy_dct : dct
-        Defines if 'rate' will be converted to energy.
-     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
-        Convert default 'Rate' outputs to requested units.
-     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
-        Convert default 'Energy' outputs to requested units
-     timestamp_format : str
-        Specified str format of a datetime timestamp.
-     exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored. This can
-        be used to avoid processing hourly, sub-hourly intervals.
-     report_progress : bool, default True
-        Processing progress is reported in terminal when set as 'True'.
-     ignore_peaks : bool, default: True
-        Ignore peak values from 'Daily'+ intervals.
-     suppress_errors: bool, default False
-        Do not raise IncompleteFile exceptions when processing fails
-
-     Returns
-     -------
-     pandas.DataFrame
-         Results for requested variables.
-    """
-    kwargs = {
-        "start_date": start_date,
-        "end_date": end_date,
-        "output_type": output_type,
-        "add_file_name": add_file_name,
-        "include_interval": include_interval,
-        "include_id": include_id,
-        "units_system": units_system,
-        "rate_to_energy_dct": rate_to_energy_dct,
-        "rate_units": rate_units,
-        "energy_units": energy_units,
-        "timestamp_format": timestamp_format,
-        "report_progress": report_progress,
-        "exclude_intervals": exclude_intervals,
-        "part_match": part_match,
-        "ignore_peaks": ignore_peaks,
-        "suppress_errors": suppress_errors,
-    }
-
-    if isinstance(files, list):
-        return _get_results_multiple_files(files, variables, **kwargs)
-
-    return _get_results(files, variables, **kwargs)
-
-
-def _get_results(file, variables, **kwargs):
-    """ Load eso file and return requested results. """
-    excl = kwargs.pop("exclude_intervals")
-    report_progress = kwargs.pop("report_progress")
-    ignore_peaks = kwargs.pop("ignore_peaks")
-    suppress_errors = kwargs.pop("suppress_errors")
-
-    if issubclass(file.__class__, BaseResultsFile):
-        eso_file = file
-    else:
-        eso_file = EsoFile(file, exclude_intervals=excl,
-                           ignore_peaks=ignore_peaks,
-                           report_progress=report_progress,
-                           suppress_errors=suppress_errors)
-
-    if not eso_file.complete:
-        msg = f"Cannot load results!\nFile '{eso_file.file_name}' is not complete."
-        if not suppress_errors:
-            raise NoResults(msg)
-        else:
-            print(msg)
-            return
-
-    return eso_file.results_df(variables, **kwargs)
-
-
-def _get_results_multiple_files(file_list, variables, **kwargs):
-    """ Extract results from multiple files. """
-    frames = []
-    for file in file_list:
-        df = _get_results(file, variables, **kwargs)
-        if df is not None:
-            frames.append(df)
-    try:
-        res = pd.concat(frames, axis=1, sort=False)
-
-    except ValueError:
-        if isinstance(variables, list):
-            lst = ["'{} - {} {} {}'".format(*tup) for tup in variables]
-            request_str = ", ".join(lst)
-        else:
-            request_str = variables
-
-        print("Any of requested variables was not found!\n"
-              "Requested variables: '{}'\n"
-              "Files: '{}'".format(request_str, ", ".join(file_list)))
-        return
-
-    return res
-
-
-class EsoFile(BaseResultsFile):
+class EsoFile(BaseFile):
     """
     The ESO class holds processed EnergyPlus output ESO file data.
 
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame like classes as values.
 
-    A structure for data bins is as follows:
-    header_dict = {
-        TS : {(int)ID : ('Key','Variable','Units')},
-        H : {(int)ID : ('Key','Variable','Units')},
-        D : {(int)ID : ('Key','Variable','Units')},
-        M : {(int)ID : ('Key','Variable','Units')},
-        A : {(int)ID : ('Key','Variable','Units')},
-        RP : {(int)ID : ('Key','Variable','Units')},
-    }
-
-    outputs = {
-        TS : outputs.Timestep,
-        H : outputs.Hourly,
-        D : outputs.Daily,
-        M : outputs.Monthly,
-        A : outputs.Annual,
-        RP : outputs.Runperiod,
-    }
+    A structure for data bins is works as for 'BaseFile'.
 
     Attributes
     ----------
@@ -191,7 +33,7 @@ class EsoFile(BaseResultsFile):
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
+        A dictionary to store E+ header line
         {period : {ID : (key name, variable name, units)}}
     outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
@@ -200,9 +42,6 @@ class EsoFile(BaseResultsFile):
     ----------
     file_path : path like object
         A full path of the ESO file
-    exclude_intervals : list of {TS, H, D, M, A, RP}
-        A list of interval identifiers which will be ignored. This can
-        be used to avoid processing hourly, sub-hourly intervals.
     report_progress : bool, default True
         Processing progress is reported in terminal when set as 'True'.
     ignore_peaks : bool, default: True
@@ -213,28 +52,28 @@ class EsoFile(BaseResultsFile):
     Raises
     ------
     IncompleteFile
-    InvalidOutputType
 
     """
 
-    def __init__(self, file_path, exclude_intervals=None, monitor=None, report_progress=True,
+    def __init__(self, file_path, monitor=None, report_progress=True,
                  ignore_peaks=True, suppress_errors=False):
         super().__init__()
         self.file_path = file_path
-        self.populate_content(exclude_intervals=exclude_intervals,
-                              monitor=monitor,
+        self.peak_outputs = None
+        self.environments = None
+        self.populate_content(monitor=monitor,
                               report_progress=report_progress,
                               ignore_peaks=ignore_peaks,
                               suppress_errors=suppress_errors)
 
-    def populate_content(self, exclude_intervals=None, monitor=None, report_progress=True,
+    def populate_content(self, monitor=None, report_progress=True,
                          ignore_peaks=True, suppress_errors=False):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
+        self.file_timestamp = os.path.getctime(self.file_path)
 
         content = read_file(
             self.file_path,
-            exclude_intervals=exclude_intervals,
             monitor=monitor,
             report_progress=report_progress,
             ignore_peaks=ignore_peaks,
@@ -244,21 +83,119 @@ class EsoFile(BaseResultsFile):
         if content:
             self._complete = True
             (
-                self.file_timestamp,
                 self.environments,
                 self.header,
                 self.outputs,
+                self.peak_outputs,
                 self.header_tree,
             ) = content
 
         else:
             if not suppress_errors:
-                raise IncompleteFile("Unexpected end of the file reached!\n"
-                                     "File '{}' is not complete.".format(self.file_path))
+                raise IncompleteFile(f"Unexpected end of the file reached!\n"
+                                     f"File '{self.file_path}' is not complete.")
 
-    def get_building_totals(self):
-        """ Generate a new 'Building' eso file. """
+    def _get_peak_results(self, variables, output_type, start_date=None, end_date=None,
+                          add_file_name="row", include_interval=False,
+                          include_id=False, part_match=False, timestamp_format="default"):
+        """ Return peak results. """
+        frames = []
+        groups = self._find_pairs(variables, part_match=part_match)
+
+        for interval, ids in groups.items():
+            try:
+                data_set = self.peak_outputs[output_type][interval]
+            except KeyError:
+                print(f"There are no peak outputs stored for interval: '{interval}'.")
+                continue
+
+            df = data_set.get_results(ids, start_date, end_date)
+            df.columns = self._create_header_mi(interval, df.columns)
+
+            if not include_id:
+                df.columns = df.columns.droplevel("id")
+
+            if not include_interval:
+                df.columns = df.columns.droplevel("interval")
+
+            frames.append(df)
+
+        return self._merge_frame(frames, timestamp_format, add_file_name)
+
+    def get_results(self, variables, output_type="standard", **kwargs):
+        """
+        Return a pandas.DataFrame object with results for given variables.
+
+        This function extracts requested set of outputs from the file
+        and converts to specified units if requested.
+
+        Parameters
+        ----------
+        variables : Variable or list of (Variable)
+            Requested variables..
+        output_type : {'standard', global_max','global_min', 'local_max', 'local_min'}
+                Requested type of results.
+
+        **kwargs
+            start_date : datetime like object, default None
+                A start date for requested results.
+            end_date : datetime like object, default None
+                An end date for requested results.
+            add_file_name : ('row','column',None)
+                Specify if file name should be added into results df.
+            include_interval : bool
+                Decide if 'interval' information should be included on
+                the results df.
+            include_id : bool
+                Decide if variable 'id' should be included on the results df.
+            part_match : bool
+                Only substring of the part of variable is enough
+                to match when searching for variables if this is True.
+            units_system : {'SI', 'IP'}
+                Selected units type for requested outputs.
+            rate_to_energy_dct : dct
+                Defines if 'rate' will be converted to energy.
+            rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+                Convert default 'Rate' outputs to requested units.
+            energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+                Convert default 'Energy' outputs to requested units
+            timestamp_format : str
+                Specified str format of a datetime timestamp.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Results for requested variables.
+
+        """
+        if output_type in ["local_max", "local_min"]:
+            if self.peak_outputs:
+                ignore = ["units_system", "rate_to_energy_dct",
+                          "rate_units", "energy_units"]
+                kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
+                df = self._get_peak_results(variables, output_type, **kwargs)
+
+            else:
+                raise PeaksNotIncluded("Peak values are not included, it's "
+                                       "required to add kwarg 'ignore_peaks=False' "
+                                       "when processing the file.")
+        else:
+            df = super().get_results(variables, output_type=output_type, **kwargs)
+
+        return df
+
+    def generate_totals(self):
+        """ Generate a new 'Totals' file. """
         if self.complete:
             return TotalsFile(self)
         else:
-            print(f"Cannot generate building totals, file {self.file_path} is not complete!")
+            raise IncompleteFile(f"Cannot generate totals, "
+                                 f"file {self.file_path} is not complete!")
+
+    def generate_diff(self, other_file):
+        """ Generate a new 'Building' eso file. """
+        if self.complete:
+            return DiffFile(self, other_file)
+        else:
+            raise IncompleteFile(f"Cannot generate totals, "
+                                 f"file {self.file_path} is not complete!")

@@ -1,5 +1,5 @@
-from esofile_reader.outputs.outputs import Timestep, Hourly, Daily
 from esofile_reader.outputs.conversion_tables import energy_table, rate_table, si_to_ip
+from esofile_reader.constants import *
 
 import pandas as pd
 
@@ -26,7 +26,6 @@ def apply_conversion(df, orig_units, new_units, conv_ratios):
 
 def convert_units(df, units_system, rate_units, energy_units):
     """ Convert raw E+ results to use requested units. """
-
     conv_input = []
 
     for units in set(df.columns.get_level_values("units")):
@@ -96,21 +95,31 @@ def verify_units(units):
         return units
 
 
-def rate_to_energy(df, data_set, start_date=None, end_date=None):
+def get_n_steps(df):
+    """ Get a number of timesteps per hour. """
+    timedelta = df.index[1] - df.index[0]
+    return 3600 / timedelta.seconds
+
+
+def rate_to_energy(df, interval, n_days=None):
     """ Convert 'rate' outputs to 'energy'. """
-    if isinstance(data_set, Hourly):
-        conv_ratio = 1 / 3600
-    elif isinstance(data_set, Timestep):
-        n_steps = data_set.get_n_steps()
-        conv_ratio = n_steps / 3600
-    elif isinstance(data_set, Daily):
-        conv_ratio = 1 / (24 * 3600)
+    if interval == H or interval == TS:
+        n_steps = get_n_steps(df)
+        conversion_ratio = n_steps / 3600
+    elif interval == D:
+        conversion_ratio = 1 / (24 * 3600)
     else:
-        sr = data_set.get_number_of_days(start_date=start_date, end_date=end_date)
-        conv_ratio = 1 / (sr * 24 * 3600)
+        try:
+            conversion_ratio = 1 / (n_days * 24 * 3600)
+        except TypeError:
+            print("Cannot convert rate to energy!"
+                  "\n'n days' column is not available.")
+            return df
 
     orig_units = ("W", "W/m2")
     new_units = ("J", "J/m2")
-    conv_ratios = (conv_ratio, conv_ratio)  # ratios are the same
 
-    return apply_conversion(df, orig_units, new_units, conv_ratios)
+    # ratios are the same for standard and normalized units
+    conversion_ratios = (conversion_ratio, conversion_ratio)
+
+    return apply_conversion(df, orig_units, new_units, conversion_ratios)
