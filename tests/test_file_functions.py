@@ -26,6 +26,7 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(self.ef.complete)
         self.assertIsNone(self.ef.peak_outputs)
 
+    def test_peak_complete(self):
         self.assertTrue(self.ef_peaks.complete)
         self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
