@@ -20,7 +20,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(self.ef.all_ids), 114)
 
     def test_created(self):
-        self.assertEqual(self.ef.created, datetime(2020, 1, 8, 16, 8, 20, 677786))
+        self.assertTrue(isinstance(self.ef.created, datetime))
 
     def test_complete(self):
         self.assertTrue(self.ef.complete)
