@@ -6,16 +6,17 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="esofile_reader",
-    version="0.0.1",
+    version="0.1.0",
     author="Vojtech Panek",
     author_email="vojtechpanek@seznam.cz",
-    description="A package to read and process E+ output files.",
+    description="Package to read and process E+ output files.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/voightp/esofile-reader.git",
     packages=setuptools.find_packages(),
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "License :: ",
         "Operating System :: Windows",
     ],
