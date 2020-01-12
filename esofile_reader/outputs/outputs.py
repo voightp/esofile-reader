@@ -25,7 +25,11 @@ def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
     def get_timestamps(sr):
         def parse_vals(val):
             if val is not np.NaN:
-                ts = parse_result_dt(date, val, month_ix, day_ix, hour_ix, end_min_ix)
+                month = val[month_ix] if month_ix else None
+                day = val[day_ix] if day_ix else None
+                hour = val[hour_ix]
+                end_min = val[end_min_ix]
+                ts = parse_result_dt(date, month, day, hour, end_min)
                 return ts
             else:
                 return np.NaN

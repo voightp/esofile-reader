@@ -2,6 +2,7 @@ import datetime as dt
 import pandas as pd
 from esofile_reader.constants import TS, H, D, M, A, RP
 from esofile_reader.constants import YEAR
+from esofile_reader.utils.utils import list_not_empty, slice_dict
 
 
 class IntervalNotAvailable(KeyError):
@@ -11,6 +12,7 @@ class IntervalNotAvailable(KeyError):
 
 class CannotFindEnvironment(Exception):
     """ Raise and exception when there isn't any suitable interval to find environment dates. """
+    pass
 
 
 def datetime_helper(month, day, hour, end_minute):
@@ -27,54 +29,43 @@ def datetime_helper(month, day, hour, end_minute):
     (or datetime like) module.
     """
 
-    # Convert last step in month or of the year
     if is_end_day(month, day) and hour == 24 and end_minute == 60:
+        # Convert last step in month or of the year
         return (month + 1, 1, 0, 0) if month != 12 else (1, 1, 0, 0)
 
-    # Convert last step in day
     elif hour == 24 and end_minute == 60:
+        # Convert last step in day
         return month, day + 1, 0, 0
 
-    # Convert last hour
-    elif hour == 24:
-        return month, day, hour - 1, end_minute
-
-    # Convert last timestep of an hour
     elif end_minute == 60:
+        # Convert last timestep of an hour
         return month, day, hour, 0
     else:
         return month, day, hour - 1, end_minute
 
 
-def parse_result_dt(date, res_tup, month_ix, day_ix, hour_ix, end_min_ix):
+def parse_result_dt(date, month, day, hour, end_min):
     """ Combine index date and peak occurrence date to return an appropriate peak timestamp. """
 
-    # Runperiod results, all the timestamp information is
-    # available in the output tuple
-    if month_ix is not None:
-        m, d, h, min = datetime_helper(res_tup[month_ix], res_tup[day_ix],
-                                       res_tup[hour_ix], res_tup[end_min_ix])
-        return date.replace(month=m, day=d, hour=h, minute=min)
+    if month is not None:
+        # Runperiod results, all the timestamp information is
+        # available in the output tuple
+        m, d, h, min = datetime_helper(month, day, hour, end_min)
 
-    # Monthly results, month needs to be extracted from the
-    # datetime index of the output, other line is available
-    # in the output tuple
-    elif day_ix is not None:
-        m, d, h, min = datetime_helper(date.month, res_tup[day_ix],
-                                       res_tup[hour_ix], res_tup[end_min_ix])
-        return date.replace(month=m, day=d, hour=h, minute=min)
+    elif day is not None:
+        # Monthly results, month needs to be extracted from the datetime
+        # index of the output, other line is available in the output tuple
+        m, d, h, min = datetime_helper(date.month, day, hour, end_min)
 
-    # Daily outputs, month and day is extracted from the
-    # datetime index, hour and end minute is is taken from
-    # the output tuple
     else:
-        timestamp = datetime_helper(date.month, date.day, res_tup[hour_ix],
-                                    res_tup[end_min_ix])
+        # Daily outputs, month and day is extracted from the datetime
+        # index, hour and end minute is is taken from the output tuple
+        m, d, h, min = datetime_helper(date.month, date.day, hour, end_min)
 
-        # Daily interval peak value might overlap to next year
-        year = date.year + 1 if timestamp == (1, 1, 0, 0) else date.year
-        m, d, h, min = timestamp
-        return date.replace(year=year, month=m, day=d, hour=h, minute=min)
+    # interval peak value might overlap to next year
+    year = date.year + 1 if (m, d, h, min) == (1, 1, 0, 0) else date.year
+
+    return date.replace(year=year, month=m, day=d, hour=h, minute=min)
 
 
 def is_end_day(month, day):
@@ -140,44 +131,12 @@ def get_num_of_days(cumulative_days):
     return num_of_days
 
 
-def num_days_in_month(date):
-    """ Return number of days for a given month (as int). """
-    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
-    return months[date.month]
-
-
 def month_end_date(date):
     """ Return month end date of a given date. """
-    end_date = date.replace(day=num_days_in_month(date))  # find last day
+    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+    end_date = date.replace(day=months[date.month])
     return end_date
-
-
-def dict_not_empty(dct):
-    """ Check if dict and its sub-dicts hold populated lists. """
-    if isinstance(dct, dict):
-        return any(map(dict_not_empty, dct.values()))
-    elif isinstance(dct, list):
-        return list_not_empty(dct)
-    else:
-        return False
-
-
-def list_not_empty(lst):
-    """ Check if list or its sub-lists are empty. """
-    if isinstance(lst, list):
-        return any(map(list_not_empty, lst))
-    return True
-
-
-def slice_dict(dct, keys):
-    """ Slice dictionary using given keys. """
-    return {key: dct[key] for key in keys if key in dct}
-
-
-def incr_year_envs(previous_env_start, current_env_start):
-    """ Check if year value should be incremented between environments. """
-    return previous_env_start == current_env_start
 
 
 def incr_year_env(first_step_data, current_step_data, previous_step_data):
@@ -202,14 +161,14 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
         return False
 
 
-def _to_timestamp(year, tmstmp):
+def _to_timestamp(year, interval_tuple):
     """ Convert a raw E+ date to pandas.Timestamp format. """
-    if tmstmp.hour == 0:
+    if interval_tuple.hour == 0:
         # Monthly+ interval
-        month, day, hour, end_minute = tmstmp
+        month, day, hour, end_minute = interval_tuple
     else:
         # Process raw EnergyPlus tiem and date information
-        month, day, hour, end_minute = datetime_helper(*tmstmp)
+        month, day, hour, end_minute = datetime_helper(*interval_tuple)
     return pd.Timestamp(year, month, day, hour, end_minute)
 
 
@@ -223,7 +182,7 @@ def _gen_dt(envs, year):
 
         # Increment year if there could be duplicate date
         if prev_env_start:
-            if incr_year_envs(new_env, prev_env_start):
+            if new_env == prev_env_start:
                 year += 1
         prev_env_start = new_env
 
