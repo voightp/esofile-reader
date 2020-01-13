@@ -159,7 +159,50 @@ class TestIntervalProcessing(unittest.TestCase):
         self.assertEqual(ts, datetime(2002, 1, 1, 0, 30))
 
     def test__gen_dt(self):
-        pass
+        envs = [[
+            IntervalTuple(1, 1, 0, 0),
+            IntervalTuple(2, 1, 0, 0),
+            IntervalTuple(3, 1, 0, 0),
+        ], [
+            IntervalTuple(1, 1, 0, 0),
+            IntervalTuple(2, 1, 0, 0),
+            IntervalTuple(3, 1, 0, 0),
+        ], [
+            IntervalTuple(1, 1, 0, 0),
+            IntervalTuple(2, 1, 0, 0),
+            IntervalTuple(3, 1, 0, 0),
+        ]]
+        dt_envs = _gen_dt(envs, 2002)
+        self.assertEqual(dt_envs,
+                         [[datetime(2002, 1, 1, 0, 0, 0), datetime(2002, 2, 1, 0, 0, 0),
+                           datetime(2002, 3, 1, 0, 0, 0)],
+                          [datetime(2003, 1, 1, 0, 0, 0), datetime(2003, 2, 1, 0, 0, 0),
+                           datetime(2003, 3, 1, 0, 0, 0)],
+                          [datetime(2004, 1, 1, 0, 0, 0), datetime(2004, 2, 1, 0, 0, 0),
+                           datetime(2004, 3, 1, 0, 0, 0)]])
+
+    def test__gen_dt_span_year(self):
+        envs = [[
+            IntervalTuple(12, 31, 23, 60),
+            IntervalTuple(12, 31, 24, 60),
+            IntervalTuple(1, 1, 1, 60),
+        ], [
+            IntervalTuple(12, 31, 23, 60),
+            IntervalTuple(12, 31, 24, 60),
+            IntervalTuple(1, 1, 1, 60),
+        ], [
+            IntervalTuple(12, 31, 23, 60),
+            IntervalTuple(12, 31, 24, 60),
+            IntervalTuple(1, 1, 1, 60),
+        ]]
+        dt_envs = _gen_dt(envs, 2002)
+        self.assertEqual(dt_envs,
+                         [[datetime(2002, 12, 31, 23, 00, 00), datetime(2003, 1, 1, 00, 00, 00),
+                           datetime(2003, 1, 1, 1, 00, 00)],
+                          [datetime(2004, 12, 31, 23, 00, 00), datetime(2005, 1, 1, 00, 00, 00),
+                           datetime(2005, 1, 1, 1, 00, 00)],
+                          [datetime(2006, 12, 31, 23, 00, 00), datetime(2007, 1, 1, 00, 00, 00),
+                           datetime(2007, 1, 1, 1, 00, 00)]])
 
     def test_convert_to_dt_index(self):
         pass

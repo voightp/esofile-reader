@@ -1,7 +1,6 @@
 import datetime as dt
 import pandas as pd
 from esofile_reader.constants import TS, H, D, M, A, RP
-from esofile_reader.constants import YEAR
 from esofile_reader.utils.utils import list_not_empty, slice_dict
 
 
@@ -177,25 +176,20 @@ def _gen_dt(envs, year):
     new_envs = []
     prev_env_start = None
     for env in envs:
-        # Store first timestamp of the interval
-        new_env = [_to_timestamp(year, env[0])]
-
-        # Increment year if there could be duplicate date
         if prev_env_start:
-            if new_env == prev_env_start:
+            # increment year if there could be duplicate date
+            if env[0] == prev_env_start:
                 year += 1
-        prev_env_start = new_env
+        prev_env_start = env[0]
 
-        # Loop through the interval list
-        # to generate datetime like index
+        new_env = [_to_timestamp(year, env[0])]
         for i in range(1, len(env)):
 
-            # Based on the first, current and previous
+            # based on the first, current and previous
             # steps decide if the year should be incremented
             if incr_year_env(env[0], env[i], env[-1]):
                 year += 1
 
-            # Create timestamp object
             date = _to_timestamp(year, env[i])
             new_env.append(date)
 
@@ -205,11 +199,7 @@ def _gen_dt(envs, year):
 
 
 def convert_to_dt_index(env_dict, year):
-    """
-    Replace raw date information with datetime like object.
-
-    If there isn't any data in the interval, set interval value to None.
-    """
+    """ Replace raw date information with datetime like object. """
     for interval, value in env_dict.items():
         env_dict[interval] = _gen_dt(value, year)
 
@@ -357,7 +347,7 @@ def flat_values(nested_env_dict):
     return nested_env_dict
 
 
-def interval_processor(all_envs, cumulative_days):
+def interval_processor(all_envs, cumulative_days, year):
     """
     Process E+ raw date and time line.
 
@@ -375,7 +365,6 @@ def interval_processor(all_envs, cumulative_days):
     to be consistent with output data.
     """
 
-    year = YEAR
     num_of_days = {}
     m_to_rp = {k: v for k, v in all_envs.items() if k in (M, A, RP)}
 

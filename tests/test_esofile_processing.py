@@ -251,7 +251,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             (_, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
-        environments, dates, n_days = interval_processor(dates, cumulative_days)
+        environments, dates, n_days = interval_processor(dates, cumulative_days, 2002)
 
         outputs = generate_peak_outputs(raw_peak_outputs, dates)
 
@@ -278,7 +278,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             (raw_outputs, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
-        environments, dates, n_days = interval_processor(dates, cumulative_days)
+        environments, dates, n_days = interval_processor(dates, cumulative_days, 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
         outputs = generate_outputs(raw_outputs, dates, other_data)
