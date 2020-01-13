@@ -206,16 +206,15 @@ def convert_to_dt_index(env_dict, year):
     return env_dict
 
 
-def _set_start_date(to_be_set_envs, ts_to_m_envs):
-    """ Set interval start dates for given interval. """
-    for envs in ts_to_m_envs.values():
-        for r_env, o_env in zip(to_be_set_envs, envs):
-            r_env[0] = o_env[0].replace(hour=0, minute=0)
-        return to_be_set_envs
-
-
 def update_start_dates(env_dict):
     """ Set accurate first date for monthly+ intervals. """
+
+    def _set_start_date(to_be_set_envs, reference):
+        for envs in reference.values():
+            for r_env, o_env in zip(to_be_set_envs, envs):
+                r_env[0] = o_env[0].replace(hour=0, minute=0)
+            return to_be_set_envs
+
     ts_to_m_envs = slice_dict(env_dict, [TS, H, D, M])
     if ts_to_m_envs:
         if M in env_dict:
@@ -233,13 +232,11 @@ def _env_ts_d_h(envs):
     environment = []
 
     for env in envs:
-        # For 'Daily' outputs, end day is the last item
-        # in the list
+        # for 'D' outputs, end day is the last item in the list
         if env[1] - env[0] == 86400:
             start_date = env[0]
             end_date = env[-1]
-        # For 'TS' and 'Hourly' outputs, the last item
-        # in the list is next day
+        # For 'TS' and 'H' outputs, the last item in the list is next day
         else:
             start_date = env[0].date()
             end_date = env[-2].date()

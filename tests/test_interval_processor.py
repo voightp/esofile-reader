@@ -2,8 +2,7 @@ import unittest
 import pandas as pd
 from esofile_reader.processing.interval_processor import *
 from esofile_reader.processing.interval_processor import (_to_timestamp, _gen_dt,
-                                                          _set_start_date, _env_ts_d_h,
-                                                          _env_r)
+                                                          _env_ts_d_h, _env_r)
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import IntervalTuple
 from datetime import datetime
@@ -205,10 +204,50 @@ class TestIntervalProcessing(unittest.TestCase):
                            datetime(2007, 1, 1, 1, 00, 00)]])
 
     def test_convert_to_dt_index(self):
-        pass
+        env_dct = {
+            "hourly": [[
+                IntervalTuple(12, 31, 23, 60),
+                IntervalTuple(12, 31, 24, 60),
+                IntervalTuple(1, 1, 1, 60),
+            ], [
+                IntervalTuple(12, 31, 23, 60),
+                IntervalTuple(12, 31, 24, 60),
+                IntervalTuple(1, 1, 1, 60)
+            ]],
+            "monthly": [[
+                IntervalTuple(1, 1, 0, 0),
+                IntervalTuple(2, 1, 0, 0),
+                IntervalTuple(3, 1, 0, 0),
+            ], [
+                IntervalTuple(1, 1, 0, 0),
+                IntervalTuple(2, 1, 0, 0),
+                IntervalTuple(3, 1, 0, 0),
+            ]]
+        }
+        dates = convert_to_dt_index(env_dct, 2002)
+        self.assertEqual(dates, {
+            "hourly": [[datetime(2002, 12, 31, 23, 00, 00), datetime(2003, 1, 1, 00, 00, 00),
+                        datetime(2003, 1, 1, 1, 00, 00)],
+                       [datetime(2004, 12, 31, 23, 00, 00), datetime(2005, 1, 1, 00, 00, 00),
+                        datetime(2005, 1, 1, 1, 00, 00)]],
+            "monthly": [[datetime(2002, 1, 1, 0, 0, 0), datetime(2002, 2, 1, 0, 0, 0),
+                         datetime(2002, 3, 1, 0, 0, 0)],
+                        [datetime(2003, 1, 1, 0, 0, 0), datetime(2003, 2, 1, 0, 0, 0),
+                         datetime(2003, 3, 1, 0, 0, 0)]]
+        })
 
     def test__set_start_date(self):
-        pass
+        env_dct = {
+            "hourly": [[datetime(2002, 5, 26, 0, 0), datetime(2002, 5, 26, 1, 0)]],
+            "monthly": [[datetime(2002, 5, 1, 0, 0)]],
+            "annual": [[datetime(2002, 1, 1, 0, 0)]],
+            "runperiod": [[datetime(2002, 1, 1, 0, 0)]],
+        }
+        update_start_dates(env_dct)
+        self.assertEqual(env_dct, {"hourly": [[datetime(2002, 5, 26, 0, 0), datetime(2002, 5, 26, 1, 0)]],
+                                   "monthly": [[datetime(2002, 5, 26, 0, 0)]],
+                                   "annual": [[datetime(2002, 5, 26, 0, 0)]],
+                                   "runperiod": [[datetime(2002, 5, 26, 0, 0)]]})
 
     def test_update_start_dates(self):
         pass
