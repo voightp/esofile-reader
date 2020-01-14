@@ -1,6 +1,7 @@
 import datetime as dt
 import pandas as pd
-from esofile_reader.constants import TS, H, D, M, A, RP
+import numpy as np
+from esofile_reader.constants import *
 from esofile_reader.utils.utils import list_not_empty, slice_dict
 
 
@@ -12,6 +13,24 @@ class IntervalNotAvailable(KeyError):
 class CannotFindEnvironment(Exception):
     """ Raise and exception when there isn't any suitable interval to find environment dates. """
     pass
+
+
+def update_dt_format(df, timestamp_format):
+    """ Set specified 'datetime' str format. """
+    if TIMESTAMP_COLUMN in df.index.names:
+        ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
+
+        if isinstance(ts_index, pd.DatetimeIndex):
+            new_index = ts_index.strftime(timestamp_format)
+            if isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.Index(new_index, name=TIMESTAMP_COLUMN)
+            else:
+                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
+
+    cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
+    df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
+
+    return df
 
 
 def datetime_helper(month, day, hour, end_minute):

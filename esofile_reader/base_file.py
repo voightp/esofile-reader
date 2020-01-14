@@ -1,11 +1,9 @@
-import os
-import time
 import pandas as pd
-import numpy as np
 
 from random import randint
 from datetime import datetime
 from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
+from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
 
@@ -93,8 +91,8 @@ class BaseFile:
 
     def __repr__(self):
         return f"File: {self.file_name}" \
-               f"\nPath: {self.file_path}" \
-               f"\nCreated: {self.created}"
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
@@ -130,21 +128,6 @@ class BaseFile:
         df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
 
-    @classmethod
-    def _update_dt_format(cls, df, timestamp_format):
-        """ Set specified 'datetime' str format. """
-        if TIMESTAMP_COLUMN in df.index.names:
-            ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
-
-            if isinstance(ts_index, pd.DatetimeIndex):
-                new_index = ts_index.strftime(timestamp_format)
-                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
-
-        cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
-        df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
-
-        return df
-
     def rename(self, name):
         """ Set a new file name. """
         self.file_name = name
@@ -163,7 +146,7 @@ class BaseFile:
                 df = self._add_file_name(df, add_file_name)
 
             if timestamp_format != "default":
-                df = self._update_dt_format(df, timestamp_format)
+                df = update_dt_format(df, timestamp_format)
 
             return df
         else:
@@ -241,7 +224,7 @@ class BaseFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                  f"kwarg must be one of '{', '.join(res.keys())}'."
+                f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
