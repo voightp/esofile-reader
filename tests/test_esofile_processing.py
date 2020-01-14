@@ -1,9 +1,10 @@
 import unittest
 import datetime
 import numpy as np
+import os
 
-from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.esofile_processor import *
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
                                                          _last_standard_item_id, _process_raw_line,
                                                          _process_interval_line, _process_result_line)
@@ -13,6 +14,14 @@ from esofile_reader.constants import *
 
 
 class TestEsoFileProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isdir("./tests"):
+            cls.header_pth = "./tests/eso_files/header.txt"
+            cls.body_pth = "./tests/eso_files/body.txt"
+        else:
+            cls.header_pth = "../tests/eso_files/header.txt"
+            cls.body_pth = "../tests/eso_files/body.txt"
 
     def test_esofile_statement(self):
         line = "Program Version,EnergyPlus, " \
@@ -83,7 +92,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             read_header(g)
 
     def test_read_header3(self):
-        with open("./tests/eso_files/header.txt", "r") as f:
+        with open(self.header_pth, "r") as f:
             header, init_outputs = read_header(f)
             self.assertEqual(header.keys(), init_outputs.keys())
 
@@ -164,10 +173,10 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(l0b[1], [0.0, 10, 60, 160.3332731467023, 7, 60])
 
     def test_read_body(self):
-        with open("./tests/eso_files/header.txt", "r") as f:
+        with open(self.header_pth, "r") as f:
             _, init_outputs = read_header(f)
 
-        with open("./tests/eso_files/body.txt", "r") as f:
+        with open(self.body_pth, "r") as f:
             (raw_outputs, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
@@ -244,10 +253,10 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
-        with open("./tests/eso_files/header.txt", "r") as f:
+        with open(self.header_pth, "r") as f:
             _, init_outputs = read_header(f)
 
-        with open("./tests/eso_files/body.txt", "r") as f:
+        with open(self.body_pth, "r") as f:
             (_, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
@@ -271,10 +280,10 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(max_outputs["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
-        with open("./tests/eso_files/header.txt", "r") as f:
+        with open(self.header_pth, "r") as f:
             _, init_outputs = read_header(f)
 
-        with open("./tests/eso_files/body.txt", "r") as f:
+        with open(self.body_pth, "r") as f:
             (raw_outputs, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
@@ -293,7 +302,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertEqual(set(df.loc[:, ~cond].dtypes), {np.dtype("float64")})
 
     def test_create_tree(self):
-        with open("./tests/eso_files/header.txt", "r") as f:
+        with open(self.header_pth, "r") as f:
             header, init_outputs = read_header(f)
             tree, dup_ids = create_tree(header)
 
@@ -325,5 +334,5 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_read_file(self):
         pass
 
-    if __name__ == "__main__":
-        unittest.main()
+if __name__ == "__main__":
+    unittest.main()

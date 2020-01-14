@@ -9,6 +9,23 @@ from datetime import datetime
 
 
 class TestIntervalProcessing(unittest.TestCase):
+    def test_update_dt_format_index(self):
+        index = pd.date_range(start="1/1/2018", freq="d", periods=3, name=TIMESTAMP_COLUMN)
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}, index=index)
+        df = update_dt_format(df, "%Y-%m---%d")
+
+        self.assertListEqual(df.index.to_list(), ['2018-01---01', '2018-01---02', '2018-01---03'])
+        self.assertEqual(df.index.name, TIMESTAMP_COLUMN)
+
+    def test_update_dt_format_column(self):
+        dates = [datetime(2018, 1, 1), datetime(2018, 1, 2), datetime(2018, 1, 3)]
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": dates})
+        df = update_dt_format(df, "%Y-%m---%d")
+
+        self.assertListEqual(df["b"].to_list(), ['2018-01---01', '2018-01---02', '2018-01---03'])
+
     def test_datetime_helper_year_end(self):
         d = (12, 31, 24, 60)
         self.assertEqual(datetime_helper(*d), (1, 1, 0, 0))

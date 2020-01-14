@@ -7,7 +7,10 @@ from datetime import datetime
 class TestStandardResults(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso")
+        try:
+            cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso")
+        except FileNotFoundError:
+            cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso")
 
     def test_basic_standard_results(self):
         v = Variable(None, None, None, None)
@@ -175,6 +178,10 @@ class TestStandardResults(unittest.TestCase):
 
             r = self.ef.get_results(variables, timestamp_format="%Y-%m-%d-%H-%M",
                                     include_interval=True, include_day=True)
+            self.assertEqual(r.index.get_level_values("timestamp")[0], f)
+
+            r = self.ef.get_results(variables, timestamp_format="%Y-%m-%d-%H-%M",
+                                    include_interval=True, add_file_name=None)
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)
 
 
