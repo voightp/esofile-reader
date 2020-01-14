@@ -1,0 +1,1 @@
+cd ..\venv\scripts & activate & cd ..\.. & python setup.py sdist bdist
