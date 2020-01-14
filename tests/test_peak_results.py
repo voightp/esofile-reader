@@ -9,7 +9,7 @@ class TestPeakResults(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pd.set_option("display.max_columns", 10)
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso",
+        cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso",
                          ignore_peaks=False)
 
     def test_global_max_results(self):

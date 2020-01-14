@@ -7,7 +7,7 @@ from datetime import datetime
 class TestStandardResults(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso")
+        cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso")
 
     def test_basic_standard_results(self):
         v = Variable(None, None, None, None)

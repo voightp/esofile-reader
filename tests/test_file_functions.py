@@ -8,8 +8,8 @@ from esofile_reader import Variable
 class MyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=True)
-        cls.ef_peaks = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False)
+        cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=True)
+        cls.ef_peaks = EsoFile("./tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False)
 
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,
