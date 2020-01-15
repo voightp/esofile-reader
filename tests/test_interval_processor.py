@@ -84,6 +84,11 @@ class TestIntervalProcessing(unittest.TestCase):
         out = month_act_days(m_envs)
         self.assertEqual(out, [[31, 28, 31, 7], [6, 24, 22, 18, 1]])
 
+    def test_month_act_days_single_env(self):
+        m_envs = [[31]]
+        out = month_act_days(m_envs)
+        self.assertEqual(out, [[31]])
+
     def test_find_num_of_days_annual(self):
         ann_num_days = [[1], [1, 2]]
         rp_num_days = [[365], [700]]
@@ -266,10 +271,8 @@ class TestIntervalProcessing(unittest.TestCase):
                                    "runperiod": [[datetime(2002, 5, 26, 0, 0)]]})
 
     def test_flat_values(self):
-        pass
-
-    def test_interval_processor(self):
-        pass
+        dct = {"a": [[1, 2, 3], [4, 5, 6]]}
+        self.assertDictEqual(flat_values(dct), {"a": [1, 2, 3, 4, 5, 6]})
 
 
 if __name__ == "__main__":
