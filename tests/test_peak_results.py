@@ -1,16 +1,17 @@
 import unittest
+import os
 import pandas as pd
 from esofile_reader import EsoFile, Variable
 from datetime import datetime
-from openpyxl import writer
+from tests import ROOT
 
 
 class TestPeakResults(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pd.set_option("display.max_columns", 10)
-        cls.ef = EsoFile("./tests/eso_files/eplusout_all_intervals.eso",
-                         ignore_peaks=False)
+        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
+        cls.ef = EsoFile(file_path, ignore_peaks=False, report_progress=False)
 
     def test_global_max_results(self):
         results = [

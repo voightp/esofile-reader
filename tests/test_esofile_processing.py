@@ -1,8 +1,8 @@
 import unittest
 import datetime
-import numpy as np
 import os
 
+from tests import ROOT
 from esofile_reader.processing.esofile_processor import *
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
@@ -16,12 +16,8 @@ from esofile_reader.constants import *
 class TestEsoFileProcessing(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if os.path.isdir("./tests"):
-            cls.header_pth = "./tests/eso_files/header.txt"
-            cls.body_pth = "./tests/eso_files/body.txt"
-        else:
-            cls.header_pth = "../tests/eso_files/header.txt"
-            cls.body_pth = "../tests/eso_files/body.txt"
+        cls.header_pth = os.path.join(ROOT, "eso_files/header.txt")
+        cls.body_pth = os.path.join(ROOT, "eso_files/body.txt")
 
     def test_esofile_statement(self):
         line = "Program Version,EnergyPlus, " \
@@ -333,6 +329,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_read_file(self):
         pass
+
 
 if __name__ == "__main__":
     unittest.main()
