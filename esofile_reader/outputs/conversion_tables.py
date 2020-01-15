@@ -4,7 +4,7 @@ def si_to_ip(orig_units):
 
     Conversion table:
 
-        m           ->
+        m           ->      ft          /       0.30479999953
         m2          ->
         m3          ->
         deltaC      ->      deltaF
@@ -48,6 +48,7 @@ def si_to_ip(orig_units):
         return val * 1.8 + 32
 
     table = {
+        "m": ("m", "ft", 0.30479999953),
         "kg/s": ("kg/s", "lb/min", 0.007559),  # TODO add IP line, finish docstrings
         "c": ("C", "F", c_to_fahrenheit),
     }

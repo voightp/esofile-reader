@@ -43,5 +43,6 @@ class TestFileGeneration(unittest.TestCase):
         df = tf.generate_diff(self.ef)
         self.assertTrue(df.complete)
 
+
 if __name__ == "__main__":
     unittest.main()
