@@ -60,7 +60,6 @@ class EsoFile(BaseFile):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-        self.environments = None
         self.populate_content(monitor=monitor,
                               report_progress=report_progress,
                               ignore_peaks=ignore_peaks,
@@ -85,7 +84,6 @@ class EsoFile(BaseFile):
         if content:
             self._complete = True
             (
-                self.environments,
                 self.header,
                 self.outputs,
                 self.peak_outputs,

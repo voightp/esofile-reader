@@ -1,8 +1,7 @@
 import unittest
 import pandas as pd
 from esofile_reader.processing.interval_processor import *
-from esofile_reader.processing.interval_processor import (_to_timestamp, _gen_dt,
-                                                          _env_ts_d_h, _env_r)
+from esofile_reader.processing.interval_processor import (_to_timestamp, _gen_dt)
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import IntervalTuple
 from datetime import datetime
@@ -253,7 +252,7 @@ class TestIntervalProcessing(unittest.TestCase):
                          datetime(2003, 3, 1, 0, 0, 0)]]
         })
 
-    def test__set_start_date(self):
+    def test_update_start_dates(self):
         env_dct = {
             "hourly": [[datetime(2002, 5, 26, 0, 0), datetime(2002, 5, 26, 1, 0)]],
             "monthly": [[datetime(2002, 5, 1, 0, 0)]],
@@ -265,27 +264,6 @@ class TestIntervalProcessing(unittest.TestCase):
                                    "monthly": [[datetime(2002, 5, 26, 0, 0)]],
                                    "annual": [[datetime(2002, 5, 26, 0, 0)]],
                                    "runperiod": [[datetime(2002, 5, 26, 0, 0)]]})
-
-    def test_update_start_dates(self):
-        pass
-
-    def test__env_ts_d_h(self):
-        pass
-
-    def test_find_env_ts_to_d(self):
-        pass
-
-    def test__env_m(self):
-        pass
-
-    def test__env_r(self):
-        pass
-
-    def test_find_env_m_to_rp(self):
-        pass
-
-    def test_find_environment(self):
-        pass
 
     def test_flat_values(self):
         pass

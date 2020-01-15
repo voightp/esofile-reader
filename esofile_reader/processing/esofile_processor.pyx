@@ -420,7 +420,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
     monitor.body_finished()
 
     # Sort interval line into relevant dictionaries
-    environments, dates, n_days = interval_processor(dates, cumulative_days, year)
+    dates, n_days = interval_processor(dates, cumulative_days, year)
     monitor.intervals_finished()
 
     if not ignore_peaks:
@@ -443,7 +443,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     monitor.processing_finished()
 
-    return environments, header, outputs, peak_outputs, tree
+    return header, outputs, peak_outputs, tree
 
 
 def read_file(file_path, monitor=None, report_progress=False,

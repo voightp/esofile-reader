@@ -246,114 +246,6 @@ def update_start_dates(env_dict):
             env_dict[RP] = _set_start_date(env_dict[RP], ts_to_m_envs)
 
 
-def _env_ts_d_h(envs):
-    """ Find start and end date for a single environment based on daily, hourly or timestep data. """
-    environment = []
-
-    for env in envs:
-        # for 'D' outputs, end day is the last item in the list
-        if env[1] - env[0] == 86400:
-            start_date = env[0]
-            end_date = env[-1]
-        # For 'TS' and 'H' outputs, the last item in the list is next day
-        else:
-            start_date = env[0].date()
-            end_date = env[-2].date()
-
-        environment.append((start_date, end_date))
-
-    return environment
-
-
-def find_env_ts_to_d(interval):
-    """ Find start and end date for all environments based on daily, hourly or timestep data. """
-    for envs in interval.values():
-        if envs is not None:
-            return _env_ts_d_h(envs)  # Return data based on first not empty interval
-
-
-def _env_m(m_act_days, num_of_days):
-    """
-    Find start and end date for a single environment based on monthly data.
-
-    Note
-    ----
-    For interval with more than one month, start day of first month and end day of
-    last month is calculated and should be accurate. When there is only a one month
-    in interval, start date is set as a first day of month and last day is calculated.
-    """
-    environment = []
-
-    for env, days in zip(m_act_days, num_of_days):
-        # If there is multiple months included,
-        # calculate start and end date precisely
-        if len(env) > 1:
-            f_num_days, f_date = days[0], env[0]
-            l_num_days, l_date = days[-1], env[-1]
-            start_date = (month_end_date(f_date) - dt.timedelta(days=f_num_days - 1))
-            end_date = l_date + dt.timedelta(l_num_days - 1)
-            environment.append((start_date, end_date))
-
-        # For a single month environment start date is
-        # left as first day of month
-        else:
-            f_num_days, f_date = days[0], env[0]
-            environment.append((f_date, (f_date + dt.timedelta(days=f_num_days - 1))))
-
-    return environment
-
-
-def _env_r(runperiods, num_of_days):
-    """ Find start and end date for a single environment based on runperiod data. """
-    environment = []
-
-    for r, num in zip(runperiods, num_of_days):
-        environment.append((r[0], r[0] + dt.timedelta(days=(num[0] - 1))))
-
-    return environment
-
-
-def find_env_m_to_rp(env_dict, num_of_days_dict):
-    """ Find start and end date for all environments based on monthly or runperiod data. """
-    if list_not_empty(env_dict[M]):
-        environment = _env_m(env_dict[M], num_of_days_dict[M])
-        return environment
-
-    elif list_not_empty(env_dict[RP]):
-        environment = _env_r(env_dict[RP], num_of_days_dict[RP])
-        return environment
-
-    else:
-        print("Not enough data to find environment!")
-
-
-def find_environment(all_envs_dates, monthly_to_rp_cd):
-    """
-    Find start and end date for each environment.
-
-    Note
-    ----
-    Primary, the start and end date is based on daily, timestep or
-    hourly data. If any of these is not available, monthly or runperiod
-    data is used. Environment based on interval greater than monthly
-    might not give a precise start date.
-    """
-    ts_to_daily_envs = slice_dict(all_envs_dates, [TS, H, D])
-    monthly_rp_envs = slice_dict(all_envs_dates, [M, RP])
-
-    if ts_to_daily_envs:
-        # find environments using timestep or hourly interval
-        return find_env_ts_to_d(ts_to_daily_envs)
-
-    elif monthly_rp_envs:
-        # find environments using monthly or runperiod interval
-        return find_env_m_to_rp(monthly_rp_envs, monthly_to_rp_cd)
-
-    else:
-        raise CannotFindEnvironment("Cannot find environment!\n"
-                                    "Include at least one TS, H, D, M, RP output.")
-
-
 def flat_values(nested_env_dict):
     """ Transform dictionary nested list values into flat lists. """
     if nested_env_dict:
@@ -395,11 +287,7 @@ def interval_processor(all_envs, cumulative_days, year):
     # shorter interval line
     update_start_dates(dates)
 
-    # Find start and end dates for all environments
-    all_environment_dates = find_environment(dates, num_of_days)
-
     return (
-        all_environment_dates,
         flat_values(dates),
         flat_values(num_of_days)
     )
