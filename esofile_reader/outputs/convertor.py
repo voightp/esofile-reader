@@ -4,20 +4,20 @@ from esofile_reader.constants import *
 import pandas as pd
 
 
-def apply_conversion(df, orig_units, new_units, conv_ratios):
+def apply_conversion(df, orig_units, new_units, conversion_ratios):
     """ Convert values for columns using specified units. """
-    for old, new, conv in zip(orig_units, new_units, conv_ratios):
+    for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
         cnd = df.columns.get_level_values("units") == old
 
         if "data" in df.columns.names:
             cnd = cnd & (df.columns.get_level_values("data") == "value")
 
-        if isinstance(conv, (float, int)):
-            df.loc[:, cnd] = df.loc[:, cnd] / conv
-        elif callable(conv):
-            df.loc[:, cnd] = df.loc[:, cnd].applymap(conv)
+        if isinstance(ratio, (float, int)):
+            df.loc[:, cnd] = df.loc[:, cnd] / ratio
+        elif callable(ratio):
+            df.loc[:, cnd] = df.loc[:, cnd].applymap(ratio)
         else:
-            df.loc[:, cnd] = df.loc[:, cnd].div(conv, axis=0)
+            df.loc[:, cnd] = df.loc[:, cnd].div(ratio, axis=0)
 
     update_multiindex(df, "units", orig_units, new_units)
 
@@ -105,21 +105,21 @@ def rate_to_energy(df, interval, n_days=None):
     """ Convert 'rate' outputs to 'energy'. """
     if interval == H or interval == TS:
         n_steps = get_n_steps(df)
-        conversion_ratio = n_steps / 3600
+        ratio = n_steps / 3600
     elif interval == D:
-        conversion_ratio = 1 / (24 * 3600)
+        ratio = 1 / (24 * 3600)
     else:
         try:
-            conversion_ratio = 1 / (n_days * 24 * 3600)
+            ratio = 1 / (n_days * 24 * 3600)
         except TypeError:
-            print("Cannot convert rate to energy!"
-                  "\n'n days' column is not available.")
+            print(f"Cannot convert rate to energy!"
+                  f"\n'{N_DAYS_COLUMN}' column is not available.")
             return df
 
     orig_units = ("W", "W/m2")
     new_units = ("J", "J/m2")
 
     # ratios are the same for standard and normalized units
-    conversion_ratios = (conversion_ratio, conversion_ratio)
+    conversion_ratios = (ratio, ratio)
 
     return apply_conversion(df, orig_units, new_units, conversion_ratios)
