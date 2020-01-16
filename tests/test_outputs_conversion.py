@@ -92,8 +92,23 @@ class TestOutputsConversion(unittest.TestCase):
         test_df = pd.DataFrame([[1 / 0.30479999953, 1], [2 / 0.30479999953, 2]], columns=test_mi)
         assert_frame_equal(out, test_df)
 
-    def test_update_multiindex(self):
-        pass
+    def test_update_multiindex_axis0(self):
+        columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
+        index = pd.Index(["a", "b"], name="dt")
+        df = pd.DataFrame([[1, 1], [2, 2]], index=index, columns=columns)
+
+        update_multiindex(df, "dt", ["a"], ["c"], axis=0)
+
+        self.assertListEqual(df.index.tolist(), [("c",), ("b",)])
+
+    def test_update_multiindex_axis1(self):
+        columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
+        index = pd.Index(["a", "b"], name="dt")
+        df = pd.DataFrame([[1, 1], [2, 2]], index=index, columns=columns)
+
+        update_multiindex(df, "units", ["m"], ["ft"], axis=1)
+
+        self.assertListEqual(df.columns.tolist(), [(1, "ft"), (2, "W/m2")])
 
     def test_verify_units(self):
         pass

@@ -26,7 +26,7 @@ def apply_conversion(df, orig_units, new_units, conversion_ratios):
 
 def convert_units(df, units_system, rate_units, energy_units):
     """ Convert raw E+ results to use requested units. """
-    conv_input = []
+    conversion_inputs = []
 
     for units in set(df.columns.get_level_values("units")):
         inp = None
@@ -44,15 +44,15 @@ def convert_units(df, units_system, rate_units, energy_units):
 
         if inp:
             assert units == inp[0], "Original units do not match!"  # TODO remove for distribution
-            conv_input.append(inp)
+            conversion_inputs.append(inp)
 
-    if not conv_input:
+    if not conversion_inputs:
         # there's nothing to convert
         return df
 
-    orig_units, new_units, conv_ratios = zip(*conv_input)
+    orig_units, new_units, conversion_ratios = zip(*conversion_inputs)
 
-    return apply_conversion(df, orig_units, new_units, conv_ratios)
+    return apply_conversion(df, orig_units, new_units, conversion_ratios)
 
 
 def update_multiindex(df, level, old_vals, new_vals, axis=1):

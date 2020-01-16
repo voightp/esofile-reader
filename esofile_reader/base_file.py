@@ -469,6 +469,7 @@ class BaseFile:
         variables = mi.get_level_values("variable").tolist()
         units = mi.get_level_values("units").tolist()
 
+        # outputs can only be aggregated if
         units = verify_units(units)
 
         if not units:
