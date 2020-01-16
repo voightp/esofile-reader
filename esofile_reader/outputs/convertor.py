@@ -1,13 +1,18 @@
 from esofile_reader.outputs.conversion_tables import energy_table, rate_table, si_to_ip
 from esofile_reader.constants import *
+from typing import List, Union, Callable
 
 import pandas as pd
 
 
-def apply_conversion(df, orig_units, new_units, conversion_ratios):
+def apply_conversion(df: pd.DataFrame, orig_units: List[str], new_units: List[str],
+                     conversion_ratios: List[Union[float, int, Callable, pd.Series]]) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
         cnd = df.columns.get_level_values("units") == old
+        if all(map(lambda x: not x, cnd)):
+            # no applicable units
+            continue
 
         if "data" in df.columns.names:
             cnd = cnd & (df.columns.get_level_values("data") == "value")
@@ -16,6 +21,8 @@ def apply_conversion(df, orig_units, new_units, conversion_ratios):
             df.loc[:, cnd] = df.loc[:, cnd] / ratio
         elif callable(ratio):
             df.loc[:, cnd] = df.loc[:, cnd].applymap(ratio)
+        elif isinstance(ratio, pd.Series):
+            df.loc[:, cnd] = df.loc[:, cnd].div(ratio.values, axis=0)
         else:
             df.loc[:, cnd] = df.loc[:, cnd].div(ratio, axis=0)
 
@@ -24,7 +31,7 @@ def apply_conversion(df, orig_units, new_units, conversion_ratios):
     return df
 
 
-def convert_units(df, units_system, rate_units, energy_units):
+def convert_units(df: pd.DataFrame, units_system: str, rate_units: str, energy_units) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
 
@@ -55,7 +62,8 @@ def convert_units(df, units_system, rate_units, energy_units):
     return apply_conversion(df, orig_units, new_units, conversion_ratios)
 
 
-def update_multiindex(df, level, old_vals, new_vals, axis=1):
+def update_multiindex(df: pd.DataFrame, level: Union[str, int], old_vals: List[str],
+                      new_vals: List[str], axis: int = 1) -> None:
     """ Replace multiindex values on a specific level inplace. """
 
     def replace(val):
@@ -82,44 +90,32 @@ def update_multiindex(df, level, old_vals, new_vals, axis=1):
         df.index = new_mi
 
 
-def verify_units(units):
-    """ Check if the variables can be aggregated. """
-    if all(map(lambda x: x == units[0], units)):
-        # all units are the same
-        return units[0]
-    elif all(map(lambda x: x in ("J", "W"), units)):
-        # rate will be converted to energy
-        return units
-    elif all(map(lambda x: x in ("J/m2", "W/m2"), units)):
-        # rate will be converted to energy
-        return units
+def rate_and_energy_units(units: List[str]) -> bool:
+    """ Check if all units are rate and energy. """
+    return all(map(lambda x: x in ("J", "W"), units)) \
+           or all(map(lambda x: x in ("J/m2", "W/m2"), units))
 
 
-def get_n_steps(df):
+def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     """ Get a number of timesteps per hour. """
-    timedelta = df.index[1] - df.index[0]
+    timedelta = dt_index[1] - dt_index[0]
     return 3600 / timedelta.seconds
 
 
-def rate_to_energy(df, interval, n_days=None):
+def convert_rate_to_energy(df: pd.DataFrame, interval: str, n_days: int = None) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
     if interval == H or interval == TS:
-        n_steps = get_n_steps(df)
+        n_steps = get_n_steps(df.index)
         ratio = n_steps / 3600
     elif interval == D:
         ratio = 1 / (24 * 3600)
     else:
-        try:
-            ratio = 1 / (n_days * 24 * 3600)
-        except TypeError:
-            print(f"Cannot convert rate to energy!"
-                  f"\n'{N_DAYS_COLUMN}' column is not available.")
-            return df
+        ratio = 1 / (n_days * 24 * 3600)
 
-    orig_units = ("W", "W/m2")
-    new_units = ("J", "J/m2")
+    orig_units = ["W", "W/m2"]
+    new_units = ["J", "J/m2"]
 
     # ratios are the same for standard and normalized units
-    conversion_ratios = (ratio, ratio)
+    conversion_ratios = [ratio, ratio]
 
     return apply_conversion(df, orig_units, new_units, conversion_ratios)
