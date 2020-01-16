@@ -169,7 +169,6 @@ def si_to_ip(orig_units):
         'pa-s': ('Pa-s', 'lbf-s/ft2 (dynamic viscosity m)', 47.88026),
         'w/(m-k)': ('W/(m-K)', 'Btu-ft/h-ft2-°F', 1.730735),
         'w/(m2-k)': ('W/(m2-K)', 'Btu/h-ft2-°F (overall heat transfer coefficient U)', 5.678263),
-        'w/m2': ('W/m2', 'Btu/h-ft2', 3.154591),
         "c": ("C", "F", c_to_fahrenheit),
     }
 
@@ -244,5 +243,6 @@ def si_to_ip(orig_units):
 # 'w/(m·k)': ('W/(m·K)', 'Btu·in/h·ft2·°F (thermal conductivity k) .', 0.1442279),
 # 'w/m2': ('W/m2', 'met', 58.15),
 # 'w/m2': ('W/m2', 'watt per square foot', 10.76),
+# 'w/m2': ('W/m2', 'Btu/h-ft2', 3.154591),
 
 # }
