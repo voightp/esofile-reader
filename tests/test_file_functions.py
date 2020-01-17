@@ -1,15 +1,18 @@
 import unittest
+import os
 from datetime import datetime
 from esofile_reader import EsoFile
 from esofile_reader import TotalsFile
 from esofile_reader import Variable
+from tests import ROOT
 
 
 class MyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=True)
-        cls.ef_peaks = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False)
+        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
+        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,

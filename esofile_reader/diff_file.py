@@ -75,8 +75,8 @@ class DiffFile(BaseFile):
             return Variable(sr.interval, sr.key, sr.variable, sr.units)
 
         # drop special columns, those are included on outputs df
-        header_df = header_df[(header_df.id != N_DAYS_COLUMN)
-                              & (header_df.id != DAY_COLUMN)]
+        cond = [id_ not in (DAY_COLUMN, N_DAYS_COLUMN) for id_ in header_df.id]
+        header_df = header_df.loc[cond, :]
 
         header_df.set_index(keys="id", inplace=True)
         header_df = header_df.apply(header_vars, axis=1)

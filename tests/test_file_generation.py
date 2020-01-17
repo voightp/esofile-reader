@@ -1,13 +1,15 @@
 import unittest
+import os
 from esofile_reader import EsoFile, DiffFile, TotalsFile
+from tests import ROOT
 
 
 class TestFileGeneration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=True, report_progress=False)
-        cls.ef_peaks = EsoFile("../tests/eso_files/eplusout_all_intervals.eso", ignore_peaks=False,
-                               report_progress=False)
+        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
+        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False, report_progress=False)
 
     def test_eso_file(self):
         self.assertTrue(self.ef.complete)
@@ -40,3 +42,7 @@ class TestFileGeneration(unittest.TestCase):
         tf = self.ef.generate_totals()
         df = tf.generate_diff(self.ef)
         self.assertTrue(df.complete)
+
+
+if __name__ == "__main__":
+    unittest.main()

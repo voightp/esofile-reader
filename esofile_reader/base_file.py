@@ -1,11 +1,9 @@
-import os
-import time
 import pandas as pd
-import numpy as np
 
 from random import randint
 from datetime import datetime
-from esofile_reader.outputs.convertor import verify_units, rate_to_energy, convert_units
+from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
+from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
 
@@ -22,6 +20,11 @@ class InvalidOutputType(Exception):
 
 class IncompleteFile(Exception):
     """ Exception raised when the file is not complete. """
+    pass
+
+
+class CannotAggregateVariables(Exception):
+    """ Exception raised when variables cannot be aggregated. """
     pass
 
 
@@ -93,8 +96,8 @@ class BaseFile:
 
     def __repr__(self):
         return f"File: {self.file_name}" \
-               f"\nPath: {self.file_path}" \
-               f"\nCreated: {self.created}"
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {self.created}"
 
     @property
     def available_intervals(self):
@@ -130,21 +133,6 @@ class BaseFile:
         df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
 
-    @classmethod
-    def _update_dt_format(cls, df, timestamp_format):
-        """ Set specified 'datetime' str format. """
-        if TIMESTAMP_COLUMN in df.index.names:
-            ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
-
-            if isinstance(ts_index, pd.DatetimeIndex):
-                new_index = ts_index.strftime(timestamp_format)
-                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
-
-        cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
-        df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
-
-        return df
-
     def rename(self, name):
         """ Set a new file name. """
         self.file_name = name
@@ -163,7 +151,7 @@ class BaseFile:
                 df = self._add_file_name(df, add_file_name)
 
             if timestamp_format != "default":
-                df = self._update_dt_format(df, timestamp_format)
+                df = update_dt_format(df, timestamp_format)
 
             return df
         else:
@@ -241,7 +229,7 @@ class BaseFile:
 
         if output_type not in res:
             msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                  f"kwarg must be one of '{', '.join(res.keys())}'."
+                f"kwarg must be one of '{', '.join(res.keys())}'."
             raise InvalidOutputType(msg)
 
         frames = []
@@ -265,7 +253,7 @@ class BaseFile:
                 except KeyError:
                     n_days = None
 
-                df = rate_to_energy(df, interval, n_days)
+                df = convert_rate_to_energy(df, interval, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -472,13 +460,10 @@ class BaseFile:
         """
         groups = self._find_pairs(variables, part_match=part_match)
 
-        if not groups:
-            print("There are no variables to sum!")
-            return
-
-        if len(groups.keys()) > 1:
-            print("Cannot sum variables from multiple intervals!")
-            return
+        if not groups or len(groups.keys()) > 1:
+            raise CannotAggregateVariables("Cannot aggregate variables. "
+                                           "Variables are not available or "
+                                           "are from different intervals!")
 
         interval, ids = list(groups.items())[0]
 
@@ -486,30 +471,31 @@ class BaseFile:
         variables = mi.get_level_values("variable").tolist()
         units = mi.get_level_values("units").tolist()
 
-        units = verify_units(units)
-
-        if not units:
-            print("Cannot sum variables using different units!")
-            return
-
         data_set = self.outputs[interval]
         df = data_set.get_results(ids)
 
-        if isinstance(units, list):
+        if len(set(units)) == 1:
+            # no processing required
+            pass
+
+        elif rate_and_energy_units(units):
             # it's needed to assign multi index to convert energy
             df.columns = mi
 
             try:
                 n_days = data_set.get_number_of_days()
-            except AttributeError:
+            except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:
-                    print("Cannot sum rate and energy variables!"
-                          "\nN days column is not available!")
-                    return
+                    raise CannotAggregateVariables(f"Cannot aggregate variables. "
+                                                   f"'{N_DAYS_COLUMN}' is not available!")
 
-            df = rate_to_energy(df, interval, n_days)
+            df = convert_rate_to_energy(df, interval, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
+
+        else:
+            raise CannotAggregateVariables("Cannot aggregate variables. "
+                                           "Variables use different units!")
 
         sr = df.aggregate(func, axis=1)
 

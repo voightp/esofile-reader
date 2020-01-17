@@ -56,18 +56,18 @@ class EsoFile(BaseFile):
     """
 
     def __init__(self, file_path, monitor=None, report_progress=True,
-                 ignore_peaks=True, suppress_errors=False):
+                 ignore_peaks=True, suppress_errors=False, year=2002):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-        self.environments = None
         self.populate_content(monitor=monitor,
                               report_progress=report_progress,
                               ignore_peaks=ignore_peaks,
-                              suppress_errors=suppress_errors)
+                              suppress_errors=suppress_errors,
+                              year=year)
 
     def populate_content(self, monitor=None, report_progress=True,
-                         ignore_peaks=True, suppress_errors=False):
+                         ignore_peaks=True, suppress_errors=False, year=2002):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
         self.file_timestamp = os.path.getctime(self.file_path)
@@ -77,13 +77,13 @@ class EsoFile(BaseFile):
             monitor=monitor,
             report_progress=report_progress,
             ignore_peaks=ignore_peaks,
-            suppress_errors=suppress_errors
+            suppress_errors=suppress_errors,
+            year=year
         )
 
         if content:
             self._complete = True
             (
-                self.environments,
                 self.header,
                 self.outputs,
                 self.peak_outputs,

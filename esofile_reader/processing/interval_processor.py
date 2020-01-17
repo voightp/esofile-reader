@@ -1,7 +1,8 @@
 import datetime as dt
 import pandas as pd
-from esofile_reader.constants import TS, H, D, M, A, RP
-from esofile_reader.constants import YEAR
+import numpy as np
+from esofile_reader.constants import *
+from esofile_reader.utils.utils import list_not_empty, slice_dict
 
 
 class IntervalNotAvailable(KeyError):
@@ -11,6 +12,25 @@ class IntervalNotAvailable(KeyError):
 
 class CannotFindEnvironment(Exception):
     """ Raise and exception when there isn't any suitable interval to find environment dates. """
+    pass
+
+
+def update_dt_format(df, timestamp_format):
+    """ Set specified 'datetime' str format. """
+    if TIMESTAMP_COLUMN in df.index.names:
+        ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
+
+        if isinstance(ts_index, pd.DatetimeIndex):
+            new_index = ts_index.strftime(timestamp_format)
+            if isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.Index(new_index, name=TIMESTAMP_COLUMN)
+            else:
+                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
+
+    cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
+    df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
+
+    return df
 
 
 def datetime_helper(month, day, hour, end_minute):
@@ -27,54 +47,43 @@ def datetime_helper(month, day, hour, end_minute):
     (or datetime like) module.
     """
 
-    # Convert last step in month or of the year
     if is_end_day(month, day) and hour == 24 and end_minute == 60:
+        # Convert last step in month or of the year
         return (month + 1, 1, 0, 0) if month != 12 else (1, 1, 0, 0)
 
-    # Convert last step in day
     elif hour == 24 and end_minute == 60:
+        # Convert last step in day
         return month, day + 1, 0, 0
 
-    # Convert last hour
-    elif hour == 24:
-        return month, day, hour - 1, end_minute
-
-    # Convert last timestep of an hour
     elif end_minute == 60:
+        # Convert last timestep of an hour
         return month, day, hour, 0
     else:
         return month, day, hour - 1, end_minute
 
 
-def parse_result_dt(date, res_tup, month_ix, day_ix, hour_ix, end_min_ix):
+def parse_result_dt(date, month, day, hour, end_min):
     """ Combine index date and peak occurrence date to return an appropriate peak timestamp. """
 
-    # Runperiod results, all the timestamp information is
-    # available in the output tuple
-    if month_ix is not None:
-        m, d, h, min = datetime_helper(res_tup[month_ix], res_tup[day_ix],
-                                       res_tup[hour_ix], res_tup[end_min_ix])
-        return date.replace(month=m, day=d, hour=h, minute=min)
+    if month is not None:
+        # Runperiod results, all the timestamp information is
+        # available in the output tuple
+        m, d, h, min = datetime_helper(month, day, hour, end_min)
 
-    # Monthly results, month needs to be extracted from the
-    # datetime index of the output, other line is available
-    # in the output tuple
-    elif day_ix is not None:
-        m, d, h, min = datetime_helper(date.month, res_tup[day_ix],
-                                       res_tup[hour_ix], res_tup[end_min_ix])
-        return date.replace(month=m, day=d, hour=h, minute=min)
+    elif day is not None:
+        # Monthly results, month needs to be extracted from the datetime
+        # index of the output, other line is available in the output tuple
+        m, d, h, min = datetime_helper(date.month, day, hour, end_min)
 
-    # Daily outputs, month and day is extracted from the
-    # datetime index, hour and end minute is is taken from
-    # the output tuple
     else:
-        timestamp = datetime_helper(date.month, date.day, res_tup[hour_ix],
-                                    res_tup[end_min_ix])
+        # Daily outputs, month and day is extracted from the datetime
+        # index, hour and end minute is is taken from the output tuple
+        m, d, h, min = datetime_helper(date.month, date.day, hour, end_min)
 
-        # Daily interval peak value might overlap to next year
-        year = date.year + 1 if timestamp == (1, 1, 0, 0) else date.year
-        m, d, h, min = timestamp
-        return date.replace(year=year, month=m, day=d, hour=h, minute=min)
+    # interval peak value might overlap to next year
+    year = date.year + 1 if (m, d, h, min) == (1, 1, 0, 0) else date.year
+
+    return date.replace(year=year, month=m, day=d, hour=h, minute=min)
 
 
 def is_end_day(month, day):
@@ -140,44 +149,12 @@ def get_num_of_days(cumulative_days):
     return num_of_days
 
 
-def num_days_in_month(date):
-    """ Return number of days for a given month (as int). """
-    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
-    return months[date.month]
-
-
 def month_end_date(date):
     """ Return month end date of a given date. """
-    end_date = date.replace(day=num_days_in_month(date))  # find last day
+    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+    end_date = date.replace(day=months[date.month])
     return end_date
-
-
-def dict_not_empty(dct):
-    """ Check if dict and its sub-dicts hold populated lists. """
-    if isinstance(dct, dict):
-        return any(map(dict_not_empty, dct.values()))
-    elif isinstance(dct, list):
-        return list_not_empty(dct)
-    else:
-        return False
-
-
-def list_not_empty(lst):
-    """ Check if list or its sub-lists are empty. """
-    if isinstance(lst, list):
-        return any(map(list_not_empty, lst))
-    return True
-
-
-def slice_dict(dct, keys):
-    """ Slice dictionary using given keys. """
-    return {key: dct[key] for key in keys if key in dct}
-
-
-def incr_year_envs(previous_env_start, current_env_start):
-    """ Check if year value should be incremented between environments. """
-    return previous_env_start == current_env_start
 
 
 def incr_year_env(first_step_data, current_step_data, previous_step_data):
@@ -191,25 +168,23 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
         else:
             return False
 
-    elif len(current_step_data) == 4:
+    else:
         if current_step_data == (12, 31, 24, 60):
             return True
         elif first_step_data == current_step_data and previous_step_data != (12, 31, 24, 60):
             return True  # duplicate date -> increment year
         else:
             return False
-    else:
-        return False
 
 
-def _to_timestamp(year, tmstmp):
+def _to_timestamp(year, interval_tuple):
     """ Convert a raw E+ date to pandas.Timestamp format. """
-    if tmstmp.hour == 0:
+    if interval_tuple.hour == 0:
         # Monthly+ interval
-        month, day, hour, end_minute = tmstmp
+        month, day, hour, end_minute = interval_tuple
     else:
         # Process raw EnergyPlus tiem and date information
-        month, day, hour, end_minute = datetime_helper(*tmstmp)
+        month, day, hour, end_minute = datetime_helper(*interval_tuple)
     return pd.Timestamp(year, month, day, hour, end_minute)
 
 
@@ -218,25 +193,20 @@ def _gen_dt(envs, year):
     new_envs = []
     prev_env_start = None
     for env in envs:
-        # Store first timestamp of the interval
-        new_env = [_to_timestamp(year, env[0])]
-
-        # Increment year if there could be duplicate date
         if prev_env_start:
-            if incr_year_envs(new_env, prev_env_start):
+            # increment year if there could be duplicate date
+            if env[0] == prev_env_start:
                 year += 1
-        prev_env_start = new_env
+        prev_env_start = env[0]
 
-        # Loop through the interval list
-        # to generate datetime like index
+        new_env = [_to_timestamp(year, env[0])]
         for i in range(1, len(env)):
 
-            # Based on the first, current and previous
+            # based on the first, current and previous
             # steps decide if the year should be incremented
             if incr_year_env(env[0], env[i], env[-1]):
                 year += 1
 
-            # Create timestamp object
             date = _to_timestamp(year, env[i])
             new_env.append(date)
 
@@ -246,27 +216,22 @@ def _gen_dt(envs, year):
 
 
 def convert_to_dt_index(env_dict, year):
-    """
-    Replace raw date information with datetime like object.
-
-    If there isn't any data in the interval, set interval value to None.
-    """
+    """ Replace raw date information with datetime like object. """
     for interval, value in env_dict.items():
         env_dict[interval] = _gen_dt(value, year)
 
     return env_dict
 
 
-def _set_start_date(to_be_set_envs, ts_to_m_envs):
-    """ Set interval start dates for given interval. """
-    for envs in ts_to_m_envs.values():
-        for r_env, o_env in zip(to_be_set_envs, envs):
-            r_env[0] = o_env[0].replace(hour=0, minute=0)
-        return to_be_set_envs
-
-
 def update_start_dates(env_dict):
     """ Set accurate first date for monthly+ intervals. """
+
+    def _set_start_date(to_be_set_envs, reference):
+        for envs in reference.values():
+            for r_env, o_env in zip(to_be_set_envs, envs):
+                r_env[0] = o_env[0].replace(hour=0, minute=0)
+            return to_be_set_envs
+
     ts_to_m_envs = slice_dict(env_dict, [TS, H, D, M])
     if ts_to_m_envs:
         if M in env_dict:
@@ -279,116 +244,6 @@ def update_start_dates(env_dict):
             env_dict[RP] = _set_start_date(env_dict[RP], ts_to_m_envs)
 
 
-def _env_ts_d_h(envs):
-    """ Find start and end date for a single environment based on daily, hourly or timestep data. """
-    environment = []
-
-    for env in envs:
-        # For 'Daily' outputs, end day is the last item
-        # in the list
-        if env[1] - env[0] == 86400:
-            start_date = env[0]
-            end_date = env[-1]
-        # For 'TS' and 'Hourly' outputs, the last item
-        # in the list is next day
-        else:
-            start_date = env[0].date()
-            end_date = env[-2].date()
-
-        environment.append((start_date, end_date))
-
-    return environment
-
-
-def find_env_ts_to_d(interval):
-    """ Find start and end date for all environments based on daily, hourly or timestep data. """
-    for envs in interval.values():
-        if envs is not None:
-            return _env_ts_d_h(envs)  # Return data based on first not empty interval
-
-
-def _env_m(m_act_days, num_of_days):
-    """
-    Find start and end date for a single environment based on monthly data.
-
-    Note
-    ----
-    For interval with more than one month, start day of first month and end day of
-    last month is calculated and should be accurate. When there is only a one month
-    in interval, start date is set as a first day of month and last day is calculated.
-    """
-    environment = []
-
-    for env, days in zip(m_act_days, num_of_days):
-        # If there is multiple months included,
-        # calculate start and end date precisely
-        if len(env) > 1:
-            f_num_days, f_date = days[0], env[0]
-            l_num_days, l_date = days[-1], env[-1]
-            start_date = (month_end_date(f_date) - dt.timedelta(days=f_num_days - 1))
-            end_date = l_date + dt.timedelta(l_num_days - 1)
-            environment.append((start_date, end_date))
-
-        # For a single month environment start date is
-        # left as first day of month
-        else:
-            f_num_days, f_date = days[0], env[0]
-            environment.append((f_date, (f_date + dt.timedelta(days=f_num_days - 1))))
-
-    return environment
-
-
-def _env_r(runperiods, num_of_days):
-    """ Find start and end date for a single environment based on runperiod data. """
-    environment = []
-
-    for r, num in zip(runperiods, num_of_days):
-        environment.append((r[0], r[0] + dt.timedelta(days=(num[0] - 1))))
-
-    return environment
-
-
-def find_env_m_to_rp(env_dict, num_of_days_dict):
-    """ Find start and end date for all environments based on monthly or runperiod data. """
-    if list_not_empty(env_dict[M]):
-        environment = _env_m(env_dict[M], num_of_days_dict[M])
-        return environment
-
-    elif list_not_empty(env_dict[RP]):
-        environment = _env_r(env_dict[RP], num_of_days_dict[RP])
-        return environment
-
-    else:
-        print("Not enough data to find environment!")
-
-
-def find_environment(all_envs_dates, monthly_to_rp_cd):
-    """
-    Find start and end date for each environment.
-
-    Note
-    ----
-    Primary, the start and end date is based on daily, timestep or
-    hourly data. If any of these is not available, monthly or runperiod
-    data is used. Environment based on interval greater than monthly
-    might not give a precise start date.
-    """
-    ts_to_daily_envs = slice_dict(all_envs_dates, [TS, H, D])
-    monthly_rp_envs = slice_dict(all_envs_dates, [M, RP])
-
-    if ts_to_daily_envs:
-        # find environments using timestep or hourly interval
-        return find_env_ts_to_d(ts_to_daily_envs)
-
-    elif monthly_rp_envs:
-        # find environments using monthly or runperiod interval
-        return find_env_m_to_rp(monthly_rp_envs, monthly_to_rp_cd)
-
-    else:
-        raise CannotFindEnvironment("Cannot find environment!\n"
-                                    "Include at least one TS, H, D, M, RP output.")
-
-
 def flat_values(nested_env_dict):
     """ Transform dictionary nested list values into flat lists. """
     if nested_env_dict:
@@ -398,7 +253,7 @@ def flat_values(nested_env_dict):
     return nested_env_dict
 
 
-def interval_processor(all_envs, cumulative_days):
+def interval_processor(all_envs, cumulative_days, year):
     """
     Process E+ raw date and time line.
 
@@ -416,7 +271,6 @@ def interval_processor(all_envs, cumulative_days):
     to be consistent with output data.
     """
 
-    year = YEAR
     num_of_days = {}
     m_to_rp = {k: v for k, v in all_envs.items() if k in (M, A, RP)}
 
@@ -431,11 +285,7 @@ def interval_processor(all_envs, cumulative_days):
     # shorter interval line
     update_start_dates(dates)
 
-    # Find start and end dates for all environments
-    all_environment_dates = find_environment(dates, num_of_days)
-
     return (
-        all_environment_dates,
         flat_values(dates),
         flat_values(num_of_days)
     )

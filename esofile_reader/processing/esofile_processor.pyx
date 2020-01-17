@@ -403,7 +403,7 @@ def remove_duplicates(ids, header_dct, outputs_dct):
                     pass
 
 
-def process_file(file, monitor, ignore_peaks=True):
+def process_file(file, monitor, year, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
     # process first few standard lines, ignore timestamp
     last_standard_item_id, _ = process_standard_lines(file)
@@ -420,7 +420,7 @@ def process_file(file, monitor, ignore_peaks=True):
     monitor.body_finished()
 
     # Sort interval line into relevant dictionaries
-    environments, dates, n_days = interval_processor(dates, cumulative_days)
+    dates, n_days = interval_processor(dates, cumulative_days, year)
     monitor.intervals_finished()
 
     if not ignore_peaks:
@@ -443,11 +443,11 @@ def process_file(file, monitor, ignore_peaks=True):
 
     monitor.processing_finished()
 
-    return environments, header, outputs, peak_outputs, tree
+    return header, outputs, peak_outputs, tree
 
 
 def read_file(file_path, monitor=None, report_progress=False,
-              ignore_peaks=True, suppress_errors=False):
+              ignore_peaks=True, suppress_errors=False, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)
@@ -462,7 +462,7 @@ def read_file(file_path, monitor=None, report_progress=False,
 
     try:
         with open(file_path, "r") as file:
-            return process_file(file, monitor, ignore_peaks=ignore_peaks)
+            return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
 
     except BlankLineError:
         msg = f"There's a blank line in file '{file_path}'."
