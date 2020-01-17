@@ -31,13 +31,13 @@ def energy_table(new_units, per_area=False):
     table_pa = {
         "wh": ("J/m2", "Wh/m2", 3600),
         "kwh": ("J/m2", "kWh/m2", 3600000),
-        "mwh": ("MWh/m2", 3600000000),
+        "mwh": ("J/m2", "MWh/m2", 3600000000),
         "kj": ("J/m2", "kJ/m2", 1000),
         "mj": ("J/m2", "MJ/m2", 1000000),
         "gj": ("J/m2", "GJ/m2", 1000000000),
-        "btu": ("J/m2", "Btu/f2", 1055.056 / 10.76391),  # TODO verify this!
-        "kbtu": ("J/m2", "kBtu/f2", 1055056 / 10.76391),
-        "mbtu": ("J/m2", "MBtu/f2", 1055056000 / 10.76391),
+        "btu": ("J/m2", "Btu/f2", 1055.056 * 10.76391),  # TODO verify this!
+        "kbtu": ("J/m2", "kBtu/f2", 1055056 * 10.76391),
+        "mbtu": ("J/m2", "MBtu/f2", 1055056000 * 10.76391),
     }
 
     request = new_units.lower()
@@ -74,16 +74,14 @@ def rate_table(new_units, per_area=False):
     table_pa = {
         "kw": ("W/m2", "kW/m2", 1000),
         "mw": ("W/m2", "MW/m2", 1000000),
-        "btu/h": ("W/m2", "Btu/h-ft2", 0.2930711 / 10.76391),  # TODO verify this!
-        "kbtu/h": ("W/m2", "kBtu/h-ft2", 293.0711 / 10.76391),
-        "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 / 10.76391),
+        "btu/h": ("W/m2", "Btu/h-ft2", 0.2930711 * 10.76391),  # TODO verify this!
+        "kbtu/h": ("W/m2", "kBtu/h-ft2", 293.0711 * 10.76391),
+        "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 * 10.76391),
     }
-
-    request = new_units.lower()
 
     try:
         tbl = table_pa if per_area else table
-        return tbl[request]
+        return tbl[new_units]
     except KeyError:
         print("Specified rate units [{}] not applicable!".format(new_units))
 
@@ -109,73 +107,76 @@ def si_to_ip(orig_units):
 
     """
 
+    # TODO review E+ IP units
+
     def c_to_fahrenheit(val):
         return val * 1.8 + 32
 
+    def delta_c_to_fahrenheit(val):
+        return val * 1.8
+
     table = {
-        'cop': ('COP', 'EER', 0.293),
-        'ej': ('EJ', 'quad (1015 Btu)', 1.055),
-        'g': ('g', 'grain (1/7000 lb)', 0.0648),
-        'g/kg': ('g/kg', 'gr/lb', 0.143),
-        'g/m3': ('g/m3', 'gr/gal', 17.1),
-        'ha': ('ha', 'acre (43,560 ft2)', 0.4047),
-        'j': ('J', 'Btu (International Table)', 1055.056),
-        'j/kg': ('J/kg', 'ft-lbf/lb (specific energy)', 2.99),
-        'j/m2': ('J/m2', 'Btu/ft2 (International Table)', 11356.53),
-        'j/m3': ('J/m3', 'Btu/ft3 (International Table)', 37258.951),
-        'kg': ('kg', 'lb (avoirdupois, mass)', 0.453592),
-        'kg/(pa-s-m)': ('kg/(Pa-s-m)', 'perm inch (permeability at 32°F)', 1.45362e-12),
-        'kg/(pa-s-m2)': ('kg/(Pa-s-m2)', 'perm (permeance at 32°F)', 5.72135e-11),
-        'kg/m2': ('kg/m2', 'lb/ft2', 4.88),
-        'kg/m3': ('kg/m3', 'lb/ft3 (density r)', 16.0),
-        'kg/s': ('kg/s', 'lb/min', 0.007559),
-        'kj/(kg-k)': ('kJ/(kg-K)', 'Btu/lb-°F (specific heat cp)', 4.1868),
-        'kj/kg': ('kJ/kg', 'Btu/lb', 2.326),
-        'kj/m3': ('kJ/m3', 'kW/1000 cfm', 2.11888),
-        'km': ('km', 'mile', 1.609),
-        'km/h': ('km/h', 'mile per hour (mph)', 1.609344),
-        'kn': ('kN', 'kip (1000 lbf)', 4.45),
-        'kpa': ('kPa', 'psi', 6.895),
-        'l': ('L', 'ft3', 28.316846),
-        'l/(s-m2)': ('L/(s-m2)', 'gpm/ft2', 0.6791),
-        'l/s': ('L/s', 'ft3/min, cfm', 0.471947),
-        'lx': ('lx', 'footcandle', 10.76391),
-        'm': ('m', 'ft', 0.3048),
-        'm/s': ('m/s', 'ft/min, fpm', 0.00508),
-        'm2': ('m2', 'ft2', 0.092903),
-        'm2 ': ('m2', 'acre (43,560 ft2)', 4046.873),
-        '(m2-k)/w': ('(m2-K)/W', 'ft2-h-°F/Btu (thermal resistance R)', 0.17611),
-        'm3': ('m3', 'ft3', 0.02832),
-        'mg': ('Mg', 'ton, long (2240 lb)', 1.016046),
-        'mg/kg': ('mg/kg', 'ppm (by mass)', 1.0),
-        'mg; t (tonne)': ('Mg; t (tonne)', 'ton, short (2000 lb)', 0.907184),
-        'ml': ('mL', 'ounce (liquid, U.S.)', 29.6),
-        'ml/j': ('mL/J', 'gpm/ton refrigeration', 0.0179),
-        'ml/s': ('mL/s', 'gph', 1.05),
-        'mm': ('mm', 'inch', 25.4),
-        'mm/m': ('mm/m', 'in/100 ft, thermal expansion coefficient', 0.833),
-        'mm2': ('mm2', 'in2', 645.16),
-        'mm2/s': ('mm2/s', 'ft2/s (kinematic viscosity n)', 92900.0),
-        'mm3': ('mm3', 'in3 (section modulus)', 16387.0),
-        'mm4': ('mm4', 'in4 (section moment)', 416231.0),
-        'mn-m': ('mN-m', 'in-lbf (torque or moment)', 113.0),
-        'mpa': ('MPa', 'kip/in2 (ksi)', 6.895),
-        'mpa-s': ('mPa-s', 'lb/ft-h (dynamic viscosity m)', 0.4134),
-        'n': ('N', 'kilopond (kg force)', 9.81),
-        'n/m': ('N/m', 'lbf/ft (uniform load)', 14.5939),
-        'n-m': ('N-m', 'ft-lbf (torque or moment)', 1.355818),
-        'pa': ('Pa', 'in. of water (60°F)', 248.84),
-        'pa/m': ('Pa/m', 'ft of water per 100 ft pipe', 98.1),
-        'pa-s': ('Pa-s', 'lbf-s/ft2 (dynamic viscosity m)', 47.88026),
-        'w/(m-k)': ('W/(m-K)', 'Btu-ft/h-ft2-°F', 1.730735),
-        'w/(m2-k)': ('W/(m2-K)', 'Btu/h-ft2-°F (overall heat transfer coefficient U)', 5.678263),
-        "c": ("C", "F", c_to_fahrenheit),
+        'COP': ('EER', 0.293),
+        'EJ': ('quad (1015 Btu)', 1.055),
+        'g': ('grain (1/7000 lb)', 0.0648),
+        'g/kg': ('gr/lb', 0.143),
+        'g/m3': ('gr/gal', 17.1),
+        'ha': ('acre (43,560 ft2)', 0.4047),
+        'J': ('Btu (International Table)', 1055.056),
+        'J/kg': ('ft-lbf/lb (specific energy)', 2.99),
+        'J/m2': ('Btu/ft2 (International Table)', 11356.53),
+        'J/m3': ('Btu/ft3 (International Table)', 37258.951),
+        'kg': ('lb (avoirdupois, mass)', 0.453592),
+        'kg/(Pa-s-m)': ('perm inch (permeability at 32°F)', 1.45362e-12),
+        'kg/(Pa-s-m2)': ('perm (permeance at 32°F)', 5.72135e-11),
+        'kg/m2': ('lb/ft2', 4.88),
+        'kg/m3': ('lb/ft3 (density r)', 16.0),
+        'kg/s': ('lb/min', 0.007559),
+        'kJ/(kg-K)': ('Btu/lb-°F (specific heat cp)', 4.1868),
+        'kJ/kg': ('Btu/lb', 2.326),
+        'kJ/m3': ('kW/1000 cfm', 2.11888),
+        'km': ('mile', 1.609),
+        'km/h': ('mile per hour (mph)', 1.609344),
+        'kN': ('kip (1000 lbf)', 4.45),
+        'kPa': ('psi', 6.895),
+        'L': ('ft3', 28.316846),
+        'L/s-m2': ('gpm/ft2', 0.6791),
+        'L/s': ('ft3/min, cfm', 0.471947),
+        'lx': ('footcandle', 10.76391),
+        'm': ('ft', 0.3048),
+        'm/s': ('ft/min, fpm', 0.00508),
+        'm2': ('ft2', 0.092903),
+        'm2-K/W': ('ft2-h-°F/Btu (thermal resistance R)', 0.17611),
+        'm3': ('ft3', 0.02832),
+        'Mg': ('ton, long (2240 lb)', 1.016046),
+        'mg/kg': ('ppm (by mass)', 1.0),
+        't': ('ton, short (2000 lb)', 0.907184),
+        'mL': ('ounce (liquid, U.S.)', 29.6),
+        'mL/J': ('gpm/ton refrigeration', 0.0179),
+        'mL/s': ('gph', 1.05),
+        'mm': ('inch', 25.4),
+        'mm/m': ('in/100 ft, thermal expansion coefficient', 0.833),
+        'mm2': ('in2', 645.16),
+        'mm2/s': ('ft2/s (kinematic viscosity n)', 92900.0),
+        'mm3': ('in3 (section modulus)', 16387.0),
+        'mm4': ('in4 (section moment)', 416231.0),
+        'mN-m': ('in-lbf (torque or moment)', 113.0),
+        'MPa': ('kip/in2 (ksi)', 6.895),
+        'mPa-s': ('lb/ft-h (dynamic viscosity m)', 0.4134),
+        'N': ('kilopond (kg force)', 9.81),
+        'N/m': ('lbf/ft (uniform load)', 14.5939),
+        'N-m': ('ft-lbf (torque or moment)', 1.355818),
+        'Pa': ('in. of water (60°F)', 248.84),
+        'Pa/m': ('ft of water per 100 ft pipe', 98.1),
+        'Pa-s': ('lbf-s/ft2 (dynamic viscosity m)', 47.88026),
+        'W/m-K': ('Btu-ft/h-ft2-°F', 1.730735),
+        'W/m2-K': ('Btu/h-ft2-°F (overall heat transfer coefficient U)', 5.678263),
+        "C": ("F", c_to_fahrenheit),
+        "deltaC": ("deltaF", delta_c_to_fahrenheit),
     }
 
-    request = orig_units.lower()
-
     try:
-        return table[request]
+        return (orig_units, *table[orig_units])
 
     except KeyError:
         print("Cannot convert to IP, original units [{}] left!".format(orig_units))
