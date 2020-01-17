@@ -476,7 +476,7 @@ class BaseFile:
 
         if len(set(units)) == 1:
             # no processing required
-            pass
+            units = units[0]
 
         elif rate_and_energy_units(units):
             # it's needed to assign multi index to convert energy
