@@ -40,11 +40,9 @@ def energy_table(new_units, per_area=False):
         "mbtu": ("J/m2", "MBtu/f2", 1055056000 * 10.76391),
     }
 
-    request = new_units.lower()
-
     try:
         tbl = table_pa if per_area else table
-        return tbl[request]
+        return tbl[new_units.lower()]
     except KeyError:
         print("Specified energy units [{}] not applicable!".format(new_units))
 
@@ -81,7 +79,7 @@ def rate_table(new_units, per_area=False):
 
     try:
         tbl = table_pa if per_area else table
-        return tbl[new_units]
+        return tbl[new_units.lower()]
     except KeyError:
         print("Specified rate units [{}] not applicable!".format(new_units))
 

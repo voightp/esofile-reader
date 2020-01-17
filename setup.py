@@ -23,4 +23,16 @@ setuptools.setup(
     ext_modules=cythonize("./esofile_reader/processing/esofile_processor.pyx",
                           annotate=False, compiler_directives={'language_level': "3"}),
     zip_safe=False,
+    install_requires=[
+        "Cython >= 0.29.14",
+        "et - xmlfile >= 1.0.1",
+        "jdcal >= 1.4.1",
+        "numpy >= 1.18.0",
+        "openpyxl >= 3.0.2",
+        "pandas >= 0.25.3",
+        "python - dateutil >= 2.8.1",
+        "pytz >= 2019.3",
+        "six >= 1.13.0",
+        "coverage >= 5.0.3"
+    ]
 )
