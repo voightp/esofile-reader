@@ -524,21 +524,24 @@ class BaseFile:
             if self.outputs[interval].empty:
                 del self.outputs[interval]
         except KeyError:
-            print(f"Invalid interval: '{interval}' specified!")
+            raise KeyError(f"Invalid interval: '{interval}' specified!")
 
     def _remove_header_variables(self, interval: str, ids: Union[int, List[int]]):
         """ Remove header variable from header. """
         ids = ids if isinstance(ids, list) else [ids]
 
         for id_ in ids:
-            self.header_tree.remove_variables([self.header[interval][id_]])
+
             try:
-                del self.header[interval][id_]
-                if not self.header[interval]:
-                    del self.header[interval]
+                variable = self.header[interval][id_]
             except KeyError:
-                print(f"Cannot remove id: {id_} from {interval}."
-                      f"\nGiven id or interval is not valid.")
+                raise KeyError(f"Cannot remove id: {id_} from {interval}."
+                               f"\nInvalid interval or id specified.")
+
+            self.header_tree.remove_variables([variable])
+            del self.header[interval][id_]
+            if not self.header[interval]:
+                del self.header[interval]
 
     def remove_outputs(self, variables: Union[Variable, List[Variable]]) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """

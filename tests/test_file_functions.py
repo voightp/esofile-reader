@@ -169,6 +169,14 @@ class MyTestCase(unittest.TestCase):
         self.ef._remove_header_variables("foo", [-1, -2])
         self.ef._remove_header_variables("fo", [-3])
 
+    def test_remove_header_variable_invalid(self):
+        with self.assertRaises(KeyError):
+            self.ef._remove_header_variables("foo", [-1, -2])
+
+    def test_remove_output_variable_invalid(self):
+        with self.assertRaises(KeyError):
+            self.ef._remove_header_variables("foo", [-1, -2])
+
     def test_rename_variable(self):
         v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
         self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
