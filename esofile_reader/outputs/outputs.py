@@ -186,7 +186,7 @@ class Outputs(BaseOutputs):
 
         if not valid:
             print(f"New variable contains {length} values, df length is {df_length}!"
-                  "\n\t Variable will not be added to the file.")
+                  "\nVariable cannot be added.")
 
         return valid
 

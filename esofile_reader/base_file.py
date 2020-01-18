@@ -6,6 +6,7 @@ from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate
 from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
+from typing import List, Dict, Union, Tuple, Sequence, Callable
 
 
 class VariableNotFound(Exception):
@@ -100,12 +101,12 @@ class BaseFile:
             f"\nCreated: {self.created}"
 
     @property
-    def available_intervals(self):
+    def available_intervals(self) -> List[str]:
         """ Return a list of available intervals. """
         return list(self.header.keys())
 
     @property
-    def all_ids(self):
+    def all_ids(self) -> List[int]:
         """ Return a list of all ids (regardless the interval). """
         ids = []
         for interval, data in self.header.items():
@@ -114,17 +115,17 @@ class BaseFile:
         return ids
 
     @property
-    def created(self):
+    def created(self) -> datetime:
         """ Return a timestamp of the file system creation. """
         return datetime.fromtimestamp(self.file_timestamp)
 
     @property
-    def complete(self):
+    def complete(self) -> bool:
         """ Check if the file has been populated and complete. """
         return self._complete
 
     @property
-    def header_df(self):
+    def header_df(self) -> pd.DataFrame:
         """ Get pd.DataFrame like header (index: mi(interval, id). """
         rows = []
         for interval, variables in self.header.items():
@@ -133,7 +134,7 @@ class BaseFile:
         df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
         return df
 
-    def rename(self, name):
+    def rename(self, name: str) -> None:
         """ Set a new file name. """
         self.file_name = name
 
@@ -141,7 +142,20 @@ class BaseFile:
         """ Populate instance attributes. """
         pass
 
-    def _merge_frame(self, frames, timestamp_format="default", add_file_name=False):
+    def _add_file_name(self, df: pd.DataFrame, name_position: str):
+        """ Add file name to index. """
+        pos = ["row", "column", "None"]  # 'None' is here only to inform
+        if name_position not in pos:
+            name_position = "row"
+            print(f"Invalid name position!\n'add_file_name' kwarg must "
+                  f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
+
+        axis = 0 if name_position == "row" else 1
+
+        return pd.concat([df], axis=axis, keys=[self.file_name], names=["file"])
+
+    def _merge_frame(self, frames: List[pd.DataFrame], timestamp_format: str = "default",
+                     add_file_name: str = "row") -> pd.DataFrame:
         """ Merge result DataFrames into a single one. """
         if frames:
             # Catch empty frames exception
@@ -158,13 +172,98 @@ class BaseFile:
             print(f"Any of requested variables is not "
                   f"included in the Eso file '{self.file_name}'.")
 
+    def find_ids(self, variables: Union[Variable, List[Variable]],
+                 part_match: bool = False) -> List[int]:
+        """ Find ids for a list of 'Variables'. """
+        variables = variables if isinstance(variables, list) else [variables]
+        out = []
+
+        for request in variables:
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
+            ids = self.header_tree.get_ids(interval=interval, key=key, variable=var,
+                                           units=units, part_match=part_match)
+            if not ids:
+                continue
+
+            out.extend(ids)
+
+        return out
+
+    def _find_pairs(self, variables: Union[Variable, List[Variable]],
+                    part_match: bool = False) -> Dict[str, List[int]]:
+        """
+        Find variable ids for a list of 'Variables'.
+
+        Parameters
+        ----------
+        variables : list of Variable
+            A list of 'Variable' named tuples.
+        part_match : bool
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
+
+        Returns
+        -------
+        dct
+            A dictionary with 'intervals' as keys and lists of
+            ids as values.
+
+        """
+        variables = variables if isinstance(variables, list) else [variables]
+        out = {}
+
+        for request in variables:
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
+
+            pairs = self.header_tree.get_pairs(interval=interval, key=key, variable=var,
+                                               units=units, part_match=part_match)
+            if not pairs:
+                continue
+
+            for k, v in pairs.items():
+                if k in out.keys():
+                    out[k].extend(pairs[k])
+                else:
+                    out[k] = pairs[k]
+
+        return out
+
+    def _create_header_mi(self, interval: str, ids: Union[List[int], pd.MultiIndex]) -> pd.MultiIndex:
+        """ Create a header pd.DataFrame for given ids and interval. """
+
+        def fetch_var():
+            try:
+                return self.header[interval][id_]
+            except KeyError:
+                raise KeyError(f"Id '{id_}' or '{interval}' interval "
+                               f"was not found in the header!")
+
+        tuples = []
+        names = ["id", "interval", "key", "variable", "units"]
+        if isinstance(ids, pd.MultiIndex):
+            names.append("data")
+            for id_, data in ids:
+                var = fetch_var()
+                if var:
+                    tuples.append((str(id_), interval, var.key,
+                                   var.variable, var.units, data))
+        else:
+            for id_ in ids:
+                var = fetch_var()
+                if var:
+                    tuples.append((str(id_), interval, var.key,
+                                   var.variable, var.units))
+
+        return pd.MultiIndex.from_tuples(tuples, names=names)
+
     def get_results(
-            self, variables, start_date=None, end_date=None, output_type="standard",
-            add_file_name="row", include_interval=False, include_day=False,
-            include_id=False, part_match=False, units_system="SI",
-            rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
-            energy_units="J", timestamp_format="default"
-    ):
+            self, variables: Union[Variable, List[Variable]], start_date: datetime = None,
+            end_date: datetime = None, output_type: str = "standard", add_file_name: str = "row",
+            include_interval: bool = False, include_day: bool = False, include_id: bool = False,
+            part_match: bool = False, units_system: str = "SI", rate_units: str = "W",
+            energy_units: str = "J", timestamp_format: str = "default",
+            rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+    ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
 
@@ -268,105 +367,8 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def find_ids(self, variables, part_match=False):
-        """ Find ids for a list of 'Variables'. """
-        out = []
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        for request in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-
-            ids = self.header_tree.get_ids(interval=interval, key=key, variable=var,
-                                           units=units, part_match=part_match)
-            if not ids:
-                continue
-
-            out.extend(ids)
-
-        return out
-
-    def _find_pairs(self, variables, part_match=False):
-        """
-        Find variable ids for a list of 'Variables'.
-
-        Parameters
-        ----------
-        variables : list of Variable
-            A list of 'Variable' named tuples.
-        part_match : bool
-            Only substring of the part of variable is enough
-            to match when searching for variables if this is True.
-
-        Returns
-        -------
-        dct
-            A dictionary with 'intervals' as keys and lists of
-            ids as values.
-
-        """
-        out = {}
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        for request in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-
-            pairs = self.header_tree.get_pairs(interval=interval, key=key, variable=var,
-                                               units=units, part_match=part_match)
-            if not pairs:
-                continue
-
-            for k, v in pairs.items():
-                if k in out.keys():
-                    out[k].extend(pairs[k])
-                else:
-                    out[k] = pairs[k]
-
-        return out
-
-    def _create_header_mi(self, interval, ids):
-        """ Create a header pd.DataFrame for given ids and interval. """
-
-        def fetch_var():
-            try:
-                return self.header[interval][id_]
-            except KeyError:
-                print(f"Id '{id_}' was not found in the header!")
-
-        tuples = []
-        names = ["id", "interval", "key", "variable", "units"]
-        if isinstance(ids, pd.MultiIndex):
-            names.append("data")
-            for id_, data in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units, data))
-        else:
-            for id_ in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units))
-
-        return pd.MultiIndex.from_tuples(tuples, names=names)
-
-    def _add_file_name(self, results, name_position):
-        """ Add file name to index. """
-        pos = ["row", "column", "None"]  # 'None' is here only to inform
-        if name_position not in pos:
-            name_position = "row"
-            print(f"Invalid name position!\n'add_file_name' kwarg must "
-                  f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
-
-        axis = 0 if name_position == "row" else 1
-
-        return pd.concat([results], axis=axis, keys=[self.file_name], names=["file"])
-
-    def _add_header_variable(self, id_, interval, key, var, units):
+    def _add_header_variable(self, id_: int, interval: str, key: str, var: str,
+                             units: str) -> Variable:
         """ Create a unique header variable. """
 
         def add_num():
@@ -385,48 +387,51 @@ class BaseFile:
 
         return variable
 
-    def rename_variable(self, variable, var_nm="", key_nm=""):
+    def rename_variable(self, variable: Variable, var_name: str = "",
+                        key_name: str = "") -> Tuple[int, Variable]:
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
         interval, key, var, units = variable
 
-        if not var_nm:
-            var_nm = var
+        if not var_name:
+            var_name = var
 
-        if not key_nm:
-            key_nm = key
+        if not key_name:
+            key_name = key
 
         if ids:
             # remove current item to avoid item duplicity
-            self._remove_header_variables(interval, ids)
+            self._remove_header_variables(interval, ids[0])
 
             # create a new header variable
             new_var = self._add_header_variable(ids[0], interval,
-                                                key_nm, var_nm, units)
+                                                key_name, var_name, units)
 
             return ids[0], new_var
 
-    def add_output(self, interval, key_nm, var_nm, units, array):
+    def add_output(self, interval: str, key_name: str, var_name: str, units: str,
+                   array: Sequence) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         # generate a unique identifier, custom ids use '-' sign
         id_ = gen_id(self.all_ids, negative=True)
 
-        # add variable data to the output df
         try:
             is_valid = self.outputs[interval].add_column(id_, array)
         except KeyError:
             is_valid = False
             print(f"Cannot add variable: "
-                  f"'{key_nm} : {var_nm} : {units}'into outputs."
+                  f"'{key_name} : {var_name} : {units}' into outputs."
                   f"\nInterval is not included in file '{self.file_name}'")
 
         if is_valid:
             new_var = self._add_header_variable(id_, interval,
-                                                key_nm, var_nm, units)
+                                                key_name, var_name, units)
             return id_, new_var
 
-    def aggregate_variables(self, variables, func, key_nm="Custom Key",
-                            var_nm="Custom Variable", part_match=False):
+    def aggregate_variables(self, variables: Union[Variable, List[Variable]],
+                            func: Union[str, Callable], key_name: str = "Custom Key",
+                            var_name: str = "Custom Variable",
+                            part_match: bool = False) -> Tuple[int, Variable]:
         """
         Aggregate given variables using given function.
 
@@ -440,10 +445,10 @@ class BaseFile:
         func: func, func name
             Function to use for aggregating the data.
             It can be specified as np.mean, 'mean', 'sum', etc.
-        key_nm: str, default 'Custom Key'
+        key_name: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
             unique, unique number is added automatically.
-        var_nm: str, default 'Custom Variable'
+        var_name: str, default 'Custom Variable'
             Specific variable name for a new variable. If all the
             input 'Variables' share the same variable name, this
             will be used if nto specified otherwise.
@@ -499,20 +504,20 @@ class BaseFile:
 
         sr = df.aggregate(func, axis=1)
 
-        if var_nm == "Custom Variable":
+        if var_name == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
-                var_nm = variables[0]
+                var_name = variables[0]
 
-        if key_nm == "Custom Key":
+        if key_name == "Custom Key":
             func_name = func.__name__ if callable(func) else func
-            key_nm = f"{key_nm} - {func_name}"
+            key_name = f"{key_name} - {func_name}"
 
         # results can be either tuple (id, Variable) or None
-        out = self.add_output(interval, key_nm, var_nm, units, sr)
+        out = self.add_output(interval, key_name, var_name, units, sr)
 
         return out
 
-    def _remove_output_variables(self, interval, ids):
+    def _remove_output_variables(self, interval: str, ids: List[int]) -> None:
         """ Remove output data from the file. """
         try:
             self.outputs[interval].remove_columns(ids)
@@ -521,7 +526,7 @@ class BaseFile:
         except KeyError:
             print(f"Invalid interval: '{interval}' specified!")
 
-    def _remove_header_variables(self, interval, ids):
+    def _remove_header_variables(self, interval: str, ids: Union[int, List[int]]):
         """ Remove header variable from header. """
         ids = ids if isinstance(ids, list) else [ids]
 
@@ -535,7 +540,7 @@ class BaseFile:
                 print(f"Cannot remove id: {id_} from {interval}."
                       f"\nGiven id or interval is not valid.")
 
-    def remove_outputs(self, variables):
+    def remove_outputs(self, variables: Union[Variable, List[Variable]]) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
         groups = self._find_pairs(variables)
 
@@ -545,7 +550,7 @@ class BaseFile:
 
         return groups
 
-    def as_df(self, interval):
+    def as_df(self, interval: str):
         """ Return the file as a single DataFrame. """
         try:
             df = self.outputs[interval].get_all_results(drop_special=True)
