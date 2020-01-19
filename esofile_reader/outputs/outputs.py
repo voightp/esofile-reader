@@ -139,6 +139,16 @@ class Outputs(BaseOutputs):
     def __init__(self, data, **kwargs):
         super(Outputs, self).__init__(data, **kwargs)
 
+    @property
+    def header_df(self):
+        """ Get columns as pd.DataFrame. """
+        return self.columns.to_frame(index=False)
+
+    @property
+    def header_variables(self):
+        """ Get a list of all header variables. """
+        pass
+
     def get_all_results(self, transposed=False, drop_special=True):
         """ Get df with only 'standard' numeric outputs. """
         try:
@@ -216,6 +226,11 @@ class Outputs(BaseOutputs):
                     self.drop(s, axis=1, inplace=True)
                 except KeyError:
                     pass
+
+    def get_ids(self):
+        """ Get all variable ids. """
+        ids = self.columns.get_level_values("id")
+        return list(filter(lambda x: x not in [N_DAYS_COLUMN, DAY_COLUMN], ids))
 
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """

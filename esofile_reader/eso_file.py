@@ -84,7 +84,6 @@ class EsoFile(BaseFile):
         if content:
             self._complete = True
             (
-                self.header,
                 self.outputs,
                 self.peak_outputs,
                 self.header_tree,

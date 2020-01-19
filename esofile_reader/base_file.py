@@ -91,7 +91,6 @@ class BaseFile:
         self._complete = False
 
         self.file_timestamp = None
-        self.header = None
         self.outputs = None
         self.header_tree = None
 
@@ -103,15 +102,14 @@ class BaseFile:
     @property
     def available_intervals(self) -> List[str]:
         """ Return a list of available intervals. """
-        return list(self.header.keys())
+        return list(self.outputs.keys())
 
     @property
     def all_ids(self) -> List[int]:
         """ Return a list of all ids (regardless the interval). """
         ids = []
-        for interval, data in self.header.items():
-            keys = data.keys()
-            ids.extend(keys)
+        for data_set in self.outputs.values():
+            ids.extend(data_set.get_ids())
         return ids
 
     @property
@@ -127,12 +125,10 @@ class BaseFile:
     @property
     def header_df(self) -> pd.DataFrame:
         """ Get pd.DataFrame like header (index: mi(interval, id). """
-        rows = []
-        for interval, variables in self.header.items():
-            for id_, var in variables.items():
-                rows.append((id_, *var))
-        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
-        return df
+        frames = []
+        for data_set in self.outputs.values():
+            frames.append(data_set.header_df)
+        return pd.concat(frames)
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -228,34 +224,6 @@ class BaseFile:
 
         return out
 
-    def _create_header_mi(self, interval: str, ids: Union[List[int], pd.MultiIndex]) -> pd.MultiIndex:
-        """ Create a header pd.DataFrame for given ids and interval. """
-
-        def fetch_var():
-            try:
-                return self.header[interval][id_]
-            except KeyError:
-                raise KeyError(f"Id '{id_}' or '{interval}' interval "
-                               f"was not found in the header!")
-
-        tuples = []
-        names = ["id", "interval", "key", "variable", "units"]
-        if isinstance(ids, pd.MultiIndex):
-            names.append("data")
-            for id_, data in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units, data))
-        else:
-            for id_ in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units))
-
-        return pd.MultiIndex.from_tuples(tuples, names=names)
-
     def get_results(
             self, variables: Union[Variable, List[Variable]], start_date: datetime = None,
             end_date: datetime = None, output_type: str = "standard", add_file_name: str = "row",
@@ -343,8 +311,6 @@ class BaseFile:
                       f"'{interval}' interval. \n\tignoring the request...")
                 continue
 
-            df.columns = self._create_header_mi(interval, df.columns)
-
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct[interval]:
                 try:
@@ -378,7 +344,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        while variable in self.header[interval].values():
+        while variable in self.outputs[interval].header_variables:
             i += 1
             variable = add_num()
 

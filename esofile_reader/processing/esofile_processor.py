@@ -6,6 +6,7 @@ import numpy as np
 from functools import partial
 from collections import defaultdict
 from copy import deepcopy
+from typing import Dict, List
 
 from esofile_reader.outputs.outputs import Outputs, create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
@@ -352,6 +353,27 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     return outputs, peak_outputs, dates, cumulative_days, days_of_week
 
 
+def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.DataFrame:
+    """ Create a raw values pd.DataFrame for given interval. """
+    df = pd.DataFrame(outputs_dct)
+    df = df.T
+    df.index.set_names(index_name, inplace=True)
+    return df
+
+
+def create_header_df(header_dct: Dict[int, Variable], interval: str,
+                     index_name: str, columns: List[str]) -> pd.DataFrame:
+    """ Create a raw header pd.DataFrame for given interval. """
+    rows = []
+    index = []
+
+    for id_, var in header_dct.items():
+        rows.append([interval, var.key, var.variable, var.units])
+        index.append(id_)
+
+    return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
+
+
 def generate_peak_outputs(raw_peak_outputs, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     peak_outputs = {"local_min": {}, "local_max": {}}
@@ -362,14 +384,23 @@ def generate_peak_outputs(raw_peak_outputs, dates):
     return peak_outputs
 
 
-def generate_outputs(raw_outputs, dates, other_data):
+def generate_outputs(raw_outputs, header, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     outputs = {}
-    for interval, data in raw_outputs.items():
-        index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
+    column_names = ["id", "interval", "key", "variable", "units"]
+    for interval, values in raw_outputs.items():
+        df_values = create_values_df(values, column_names[0])
+        df_header = create_header_df(header[interval], interval, column_names[0],
+                                     column_names[1:])
 
-        out = Outputs(data, index=index, dtype=np.float)
-        out.columns.set_names(["id"])
+        df = pd.merge(df_header, df_values, sort=False,
+                      left_index=True, right_index=True)
+
+        df.set_index(keys=column_names[1:], append=True, inplace=True)
+        df = df.T
+        df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
+
+        out = Outputs(df, dtype=np.float)
 
         for k, v in other_data.items():
             try:
@@ -423,6 +454,14 @@ def process_file(file, monitor, year, ignore_peaks=True):
     dates, n_days = interval_processor(dates, cumulative_days, year)
     monitor.intervals_finished()
 
+    # Create a 'search tree' to allow searching for variables
+    tree, dup_ids = create_tree(header)
+    monitor.header_tree_finished()
+
+    if dup_ids:
+        # remove duplicates from header and outputs
+        remove_duplicates(dup_ids, header, raw_outputs)
+
     if not ignore_peaks:
         peak_outputs = generate_peak_outputs(raw_peak_outputs, dates)
     else:
@@ -430,20 +469,12 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     # transform standard dictionaries into DataFrame like Output classes
     other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
-    outputs = generate_outputs(raw_outputs, dates, other_data)
+    outputs = generate_outputs(raw_outputs, header, dates, other_data)
     monitor.output_cls_gen_finished()
-
-    # Create a 'search tree' to allow searching for variables
-    tree, dup_ids = create_tree(header)
-    monitor.header_tree_finished()
-
-    if dup_ids:
-        # remove duplicates from header and outputs
-        remove_duplicates(dup_ids, header, outputs)
 
     monitor.processing_finished()
 
-    return header, outputs, peak_outputs, tree
+    return outputs, peak_outputs, tree
 
 
 def read_file(file_path, monitor=None, report_progress=False,
