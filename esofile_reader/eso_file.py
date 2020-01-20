@@ -144,6 +144,9 @@ class EsoFile(BaseFile):
             include_interval : bool
                 Decide if 'interval' information should be included on
                 the results df.
+            include_day : bool
+                Add day of week into index, this is applicable only for 'timestep',
+                'hourly' and 'daily' outputs.
             include_id : bool
                 Decide if variable 'id' should be included on the results df.
             part_match : bool
@@ -169,7 +172,7 @@ class EsoFile(BaseFile):
         if output_type in ["local_max", "local_min"]:
             if self.peak_outputs:
                 ignore = ["units_system", "rate_to_energy_dct",
-                          "rate_units", "energy_units"]
+                          "rate_units", "energy_units", "include_day"]
                 kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
                 df = self._get_peak_results(variables, output_type, **kwargs)
 

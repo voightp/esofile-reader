@@ -1,6 +1,9 @@
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.base_file import BaseFile
+from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.constants import *
+from datetime import datetime
+from typing import Union, List, Dict
 import pandas as pd
 
 
@@ -9,11 +12,13 @@ class NoResults(Exception):
     pass
 
 
-def get_results(files, variables, start_date=None, end_date=None, output_type="standard",
-                add_file_name="row", include_interval=False, include_id=False,
-                units_system="SI", rate_to_energy_dct=RATE_TO_ENERGY_DCT, rate_units="W",
-                energy_units="J", timestamp_format="default", report_progress=True,
-                part_match=False, ignore_peaks=True, suppress_errors=False):
+def get_results(files, variables: Union[Variable, List[Variable]], start_date: datetime = None,
+                end_date: datetime = None, output_type: str = "standard", add_file_name: str = "row",
+                include_interval: bool = False, include_day: bool = False, include_id: bool = False,
+                part_match: bool = False, units_system: str = "SI", rate_units: str = "W",
+                energy_units: str = "J", timestamp_format: str = "default",
+                rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT, report_progress: bool = True,
+                ignore_peaks: bool = True, suppress_errors: bool = False):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -25,45 +30,48 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
 
      Parameters
      ----------
-     files : {str, EsoFile} or list of ({str, EsoFile})
-        Eso files defined as 'EsoFile' objects or using path like objects.
-     variables : Variable or list of (Variable)
-        Requested variables..
-     start_date : datetime like object, default None
-        A start date for requested results.
-     end_date : datetime like object, default None
-        An end date for requested results.
-     output_type : {
-            'standard', 'local_max',' global_max', 'timestep_max',
-            'local_min', 'global_min', 'timestep_min'
-            }
-        Requested type of results.
-     add_file_name : ('row','column',None)
-        Specify if file name should be added into results df.
-     include_interval : bool
-        Decide if 'interval' information should be included on
-        the results df.
-     include_id : bool
-        Decide if variable 'id' should be included on the results df.
-     part_match : bool
-        Only substring of the part of variable is enough
-        to match when searching for variables if this is True.
-     units_system : {'SI', 'IP'}
-        Selected units type for requested outputs.
-     rate_to_energy_dct : dct
-        Defines if 'rate' will be converted to energy.
-     rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
-        Convert default 'Rate' outputs to requested units.
-     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
-        Convert default 'Energy' outputs to requested units
-     timestamp_format : str
-        Specified str format of a datetime timestamp.
-     report_progress : bool, default True
-        Processing progress is reported in terminal when set as 'True'.
-     ignore_peaks : bool, default: True
-        Ignore peak values from 'Daily'+ intervals.
-     suppress_errors: bool, default False
-        Do not raise IncompleteFile exceptions when processing fails
+         files : {str, EsoFile} or list of ({str, EsoFile})
+            Eso files defined as 'EsoFile' objects or using path like objects.
+         variables : Variable or list of (Variable)
+            Requested variables..
+         start_date : datetime like object, default None
+            A start date for requested results.
+         end_date : datetime like object, default None
+            An end date for requested results.
+         output_type : {
+                'standard', 'local_max',' global_max', 'timestep_max',
+                'local_min', 'global_min', 'timestep_min'
+                }
+            Requested type of results.
+         add_file_name : ('row','column',None)
+            Specify if file name should be added into results df.
+         include_interval : bool
+            Decide if 'interval' information should be included on
+            the results df.
+         include_id : bool
+            Decide if variable 'id' should be included on the results df.
+         include_day : bool
+            Add day of week into index, this is applicable only for 'timestep',
+            'hourly' and 'daily' outputs.
+         part_match : bool
+            Only substring of the part of variable is enough
+            to match when searching for variables if this is True.
+         units_system : {'SI', 'IP'}
+            Selected units type for requested outputs.
+         rate_to_energy_dct : dct
+            Defines if 'rate' will be converted to energy.
+         rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
+            Convert default 'Rate' outputs to requested units.
+         energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
+            Convert default 'Energy' outputs to requested units
+         timestamp_format : str
+            Specified str format of a datetime timestamp.
+         report_progress : bool, default True
+            Processing progress is reported in terminal when set as 'True'.
+         ignore_peaks : bool, default: True
+            Ignore peak values from 'Daily'+ intervals.
+         suppress_errors: bool, default False
+            Do not raise IncompleteFile exceptions when processing fails
 
      Returns
      -------
@@ -77,6 +85,7 @@ def get_results(files, variables, start_date=None, end_date=None, output_type="s
         "add_file_name": add_file_name,
         "include_interval": include_interval,
         "include_id": include_id,
+        "include_day": include_day,
         "units_system": units_system,
         "rate_to_energy_dct": rate_to_energy_dct,
         "rate_units": rate_units,

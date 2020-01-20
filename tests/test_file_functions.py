@@ -136,6 +136,26 @@ class MyTestCase(unittest.TestCase):
         v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
         self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
 
+        v = Variable(interval='timestep', key='NEW', variable='VARIABLE', units='')
+        ids = self.ef.find_ids(v)
+        self.assertListEqual(ids, [13])
+
+    def test_rename_variable_invalid(self):
+        v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
+        self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+
+        v = Variable(interval='timestep', key='foo', variable='', units='')
+        out = self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        self.assertIsNone(out)
+
+    def test_rename_variable_invalid_names(self):
+        v = Variable(interval='timestep', key='BLOCK2:ZONE1', variable='Zone People Occupant Count', units='')
+        out = self.ef.rename_variable(v, key_name="", var_name="")
+        self.assertIsNone(out)
+
+        ids = self.ef.find_ids(v)
+        self.assertListEqual(ids, [19])
+
     def test_add_output(self):
         id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
