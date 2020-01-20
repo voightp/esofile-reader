@@ -93,7 +93,7 @@ class BaseFile:
         self._outputs = None
 
         self.file_timestamp = None
-        self.header_tree = None
+        self._search_tree = None
 
     def __repr__(self):
         return f"File: {self.file_name}" \
@@ -189,8 +189,8 @@ class BaseFile:
 
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-            ids = self.header_tree.get_ids(interval=interval, key=key, variable=var,
-                                           units=units, part_match=part_match)
+            ids = self._search_tree.get_ids(interval=interval, key=key, variable=var,
+                                            units=units, part_match=part_match)
             if not ids:
                 continue
 
@@ -224,8 +224,8 @@ class BaseFile:
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
 
-            pairs = self.header_tree.get_pairs(interval=interval, key=key, variable=var,
-                                               units=units, part_match=part_match)
+            pairs = self._search_tree.get_pairs(interval=interval, key=key, variable=var,
+                                                units=units, part_match=part_match)
             if not pairs:
                 continue
 
@@ -378,11 +378,11 @@ class BaseFile:
 
         if ids:
             # remove current item to avoid item duplicity
-            self.header_tree.remove_variables([variable])
+            self._search_tree.remove_variables([variable])
 
             # create new variable and add it into tree
             new_var = self._new_header_variable(interval, key_name, var_name, units)
-            self.header_tree.add_variable(ids[0], new_var)
+            self._search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
             self.data_set(interval).rename_variable(ids[0], new_var.key,
@@ -397,14 +397,14 @@ class BaseFile:
 
         # create new unique variable
         new_var = self._new_header_variable(interval, key_name, var_name, units)
-        unique = self.header_tree.add_variable(id_, new_var)
+        unique = self._search_tree.add_variable(id_, new_var)
 
         if unique:
             valid = self.data_set(interval).add_variable(id_, new_var, array)
             if valid:
                 return id_, new_var
             else:
-                self.header_tree.remove_variables(new_var)
+                self._search_tree.remove_variables(new_var)
 
     def aggregate_variables(self, variables: Union[Variable, List[Variable]],
                             func: Union[str, Callable], key_name: str = "Custom Key",
@@ -502,7 +502,7 @@ class BaseFile:
                 del self._outputs[interval]
 
         # clean up the tree
-        self.header_tree.remove_variables(variables)
+        self._search_tree.remove_variables(variables)
 
         return groups
 

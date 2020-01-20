@@ -108,4 +108,4 @@ class DiffFile(BaseFile):
         if content:
             self._complete = True
             (self._outputs,
-             self.header_tree) = content
+             self._search_tree) = content

@@ -86,7 +86,7 @@ class EsoFile(BaseFile):
             (
                 self._outputs,
                 self.peak_outputs,
-                self.header_tree,
+                self._search_tree,
             ) = content
 
         else:

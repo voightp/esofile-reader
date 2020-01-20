@@ -65,7 +65,7 @@ class DefaultMonitor:
     def intervals_finished(self):
         self.report_progress(5, "Interval processing finished!")
 
-    def header_tree_finished(self):
+    def search_tree_finished(self):
         self.report_progress(6, "Tree gen finished!")
 
     def output_cls_gen_finished(self):

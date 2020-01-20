@@ -466,7 +466,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     # Create a 'search tree' to allow searching for variables
     tree, dup_ids = create_tree(header)
-    monitor.header_tree_finished()
+    monitor.search_tree_finished()
 
     if dup_ids:
         # remove duplicates from header and outputs

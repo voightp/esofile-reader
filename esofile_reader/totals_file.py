@@ -188,7 +188,7 @@ class TotalsFile(BaseFile):
         if content:
             self._complete = True
             (self._outputs,
-             self.header_tree) = content
+             self._search_tree) = content
 
     def generate_diff(self, other_file):
         """ Generate a new 'Building' eso file. """
