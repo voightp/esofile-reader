@@ -250,7 +250,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_generate_peak_outputs(self):
         with open(self.header_pth, "r") as f:
-            _, init_outputs = read_header(f)
+            header, init_outputs = read_header(f)
 
         with open(self.body_pth, "r") as f:
             (_, raw_peak_outputs, dates,
@@ -258,7 +258,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
         dates, n_days = interval_processor(dates, cumulative_days, 2002)
 
-        outputs = generate_peak_outputs(raw_peak_outputs, dates)
+        outputs = generate_peak_outputs(raw_peak_outputs, header, dates)
 
         min_outputs = outputs["local_min"]
         max_outputs = outputs["local_max"]
@@ -277,7 +277,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_generate_outputs(self):
         with open(self.header_pth, "r") as f:
-            _, init_outputs = read_header(f)
+            header, init_outputs = read_header(f)
 
         with open(self.body_pth, "r") as f:
             (raw_outputs, raw_peak_outputs, dates,
@@ -286,7 +286,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         dates, n_days = interval_processor(dates, cumulative_days, 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
-        outputs = generate_outputs(raw_outputs, dates, other_data)
+        outputs = generate_outputs(raw_outputs, header, dates, other_data)
 
         for interval, df in outputs.items():
             if N_DAYS_COLUMN in df.columns:
@@ -294,7 +294,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             if DAY_COLUMN in df.columns:
                 self.assertEqual(df[DAY_COLUMN].dtype, np.dtype("object"))
 
-            cond = (df.columns == N_DAYS_COLUMN) | (df.columns == DAY_COLUMN)
+            cond = df.columns.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
             self.assertEqual(set(df.loc[:, ~cond].dtypes), {np.dtype("float64")})
 
     def test_create_tree(self):

@@ -46,7 +46,7 @@ def calculate_diff(first_file, other_file, absolute=False,
 
                     df.columns = pd.MultiIndex.from_frame(header_df)
 
-                diff[interval] = df
+                diff[interval] = Outputs(df)
 
         except MemoryError:
             raise MemoryError("Cannot subtract output DataFrames!"
@@ -54,8 +54,8 @@ def calculate_diff(first_file, other_file, absolute=False,
 
         for c in [N_DAYS_COLUMN, DAY_COLUMN]:
             try:
-                if other_file.outputs[interval][c].equals(first_file.outputs[interval][c]):
-                    df.insert(0, c, first_file.outputs[interval][c])
+                if other_file.data_set(interval)[c].equals(first_file.data_set(interval)[c]):
+                    df.insert(0, c, first_file.data_set(interval)[c])
             except KeyError:
                 pass
 
@@ -83,25 +83,19 @@ class DiffFile(BaseFile):
 
         return header_df.to_dict()
 
-    def process_diff(self, first_file, other_file):
+    @staticmethod
+    def process_diff(first_file, other_file):
         """ Create diff outputs. """
         header = {}
-        outputs = {}
+        outputs = calculate_diff(first_file, other_file, include_id=True, include_interval=True)
 
-        diff = calculate_diff(first_file, other_file, include_id=True,
-                              include_interval=True)
-
-        for interval, output_df in diff.items():
-            header_df = output_df.columns.to_frame(index=False)
-            header[interval] = self.build_header_dict(header_df)
-
-            output_df.columns = output_df.columns.get_level_values("id")
-            outputs[interval] = Outputs(output_df)
+        for interval, df in outputs.items():
+            header[interval] = df.header_variables_dct
 
         tree = Tree()
         tree.populate_tree(header)
 
-        return header, outputs, tree
+        return outputs, tree
 
     def populate_content(self, first_file, other_file):
         """ Populate file content. """
@@ -113,6 +107,5 @@ class DiffFile(BaseFile):
 
         if content:
             self._complete = True
-            (self.header,
-             self.outputs,
+            (self._outputs,
              self.header_tree) = content

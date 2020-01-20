@@ -2,18 +2,32 @@ import pandas as pd
 import numpy as np
 from esofile_reader.processing.interval_processor import parse_result_dt
 from esofile_reader.constants import *
+from esofile_reader.utils.mini_classes import Variable
 
 
-def _sort_peak_outputs(df):
+def _merge_peak_outputs(timestamp_df, values_df):
     """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
+    df = pd.concat({TIMESTAMP_COLUMN: timestamp_df, VALUE_COLUMN: values_df}, axis=1)
+    df.columns.set_names(names="data", level=0, inplace=True)
+
+    # move data index to lowest level
+    names = list(df.columns.names)
+    names.append(names.pop(0))
+    df.columns = df.columns.reorder_levels(names)
+
+    # create order to group value and timestamp
     length = len(df.columns)
     order = list(range(1, length, 2)) + list(range(0, length, 2))
     levels = [df.columns.get_level_values(i) for i in range(df.columns.nlevels)]
     levels.insert(0, pd.Index(order))
 
-    df.columns = pd.MultiIndex.from_arrays(levels, names=["order", "id", "data"])
+    # sort DataFrame by order column, order name must be specified
+    names = ["order", *df.columns.names]
+    df.columns = pd.MultiIndex.from_arrays(levels, names=names)
     df.sort_values(by="order", inplace=True, axis=1)
-    df.columns = df.columns.droplevel(0)
+
+    # drop order index
+    df.columns = df.columns.droplevel("order")
 
     return df
 
@@ -42,17 +56,13 @@ def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
     vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
     ixs = df.apply(get_timestamps, axis=1)
 
-    df = pd.concat({TIMESTAMP_COLUMN: ixs, VALUE_COLUMN: vals}, axis=1)
-    df.columns = df.columns.swaplevel(0, 1)
-    df = _sort_peak_outputs(df)
+    df = _merge_peak_outputs(ixs, vals)
 
     return PeakOutputs(df)
 
 
-def create_peak_outputs(data, interval, index, max_=True):
+def create_peak_outputs(df, interval, max_=True):
     """ Create DataFrame for peak minimums. """
-    df = pd.DataFrame(data)
-    df.index = index
 
     max_indexes = {
         D: {"val_ix": 3, "hour_ix": 4, "end_min_ix": 5},
@@ -140,35 +150,49 @@ class Outputs(BaseOutputs):
         super(Outputs, self).__init__(data, **kwargs)
 
     @property
-    def header_df(self):
-        """ Get columns as pd.DataFrame. """
-        return self.columns.to_frame(index=False)
+    def no_special_columns(self):
+        cond = self.columns.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
+        return self.loc[:, ~cond]
 
     @property
-    def header_variables(self):
+    def header_df(self):
+        """ Get columns as pd.DataFrame. """
+        return self.no_special_columns.columns.to_frame(index=False)
+
+    @property
+    def header_variables_dct(self):
         """ Get a list of all header variables. """
-        pass
+
+        def create_variable(sr):
+            return sr["id"], Variable(sr["interval"], sr["key"], sr["variable"], sr["units"])
+
+        var_df = self.header_df.apply(create_variable, axis=1, result_type="expand")
+        var_df.set_index(0, inplace=True)
+
+        return var_df.to_dict(orient="dict")[1]
+
+    def get_ids(self):
+        """ Get all variable ids. """
+        return self.no_special_columns.columns.get_level_values("id")
+
+    def rename_variable(self, id_, key_name, variable_name):
+        """ Rename variable. """
+        mi_df = self.columns.to_frame(index=False)
+        mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [key_name, variable_name]
+        self.columns = pd.MultiIndex.from_frame(mi_df)
 
     def get_all_results(self, transposed=False, drop_special=True):
         """ Get df with only 'standard' numeric outputs. """
         try:
-            df = self.copy()
+            if drop_special:
+                df = self.no_special_columns.copy()
+            else:
+                df = self.copy()
         except MemoryError:
             raise MemoryError("Cannot create outputs set copy!"
                               "\nRunning out of memory!")
 
-        if drop_special:
-            for s in [N_DAYS_COLUMN, DAY_COLUMN]:
-                try:
-                    df.drop(s, axis=1, inplace=True)
-                except KeyError:
-                    pass
-
-        if transposed:
-            df = df.T
-            df.index = df.index.set_names(["id"])  # reapply the name as it gets lost when combining with 'num_days'
-
-        return df
+        return df.T if transposed else df
 
     def get_results(self, ids, start_date=None, end_date=None, include_day=False):
         """ Return standard result. """
@@ -200,21 +224,22 @@ class Outputs(BaseOutputs):
 
         return valid
 
-    def add_column(self, id_, array):
+    def add_variable(self, id_, variable, array):
         """ Add output variable. """
         is_valid = self._validate(array)
+        interval, key, variable, units = variable
 
         if is_valid:
-            self[id_] = array
+            self[id_, interval, key, variable, units] = array
 
         return is_valid
 
-    def remove_columns(self, ids):
+    def remove_variables(self, ids):
         """ Remove output variable. """
         if not isinstance(ids, list):
             ids = [ids]
         try:
-            self.drop(columns=ids, inplace=True)
+            self.drop(columns=ids, inplace=True, level="id")
         except KeyError:
             strids = ", ".join(ids)
             print(f"Cannot remove ids: {strids}")
@@ -226,11 +251,6 @@ class Outputs(BaseOutputs):
                     self.drop(s, axis=1, inplace=True)
                 except KeyError:
                     pass
-
-    def get_ids(self):
-        """ Get all variable ids. """
-        ids = self.columns.get_level_values("id")
-        return list(filter(lambda x: x not in [N_DAYS_COLUMN, DAY_COLUMN], ids))
 
     def get_number_of_days(self, start_date=None, end_date=None):
         """ Return 'number of days' column. """
@@ -250,17 +270,11 @@ class Outputs(BaseOutputs):
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(ids, start_date, end_date)
 
-        vals = df.max() if max_ else df.min()
-        ixs = df.idxmax() if max_ else df.idxmin()
+        vals = pd.DataFrame(df.max() if max_ else df.min()).T
+        ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
 
-        vals = pd.DataFrame(vals)
-        ixs = pd.DataFrame(ixs)
-
-        df = pd.concat({TIMESTAMP_COLUMN: ixs.T, VALUE_COLUMN: vals.T}, axis=1)
+        df = _merge_peak_outputs(ixs, vals)
         df = df.iloc[[0]]  # report only first occurrence
-        df.columns = df.columns.swaplevel(0, 1)
-
-        df = _sort_peak_outputs(df)
 
         return df
 

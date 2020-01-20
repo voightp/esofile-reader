@@ -364,9 +364,7 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
 def create_header_df(header_dct: Dict[int, Variable], interval: str,
                      index_name: str, columns: List[str]) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
-    rows = []
-    index = []
-
+    rows, index = [], []
     for id_, var in header_dct.items():
         rows.append([interval, var.key, var.variable, var.units])
         index.append(id_)
@@ -374,13 +372,25 @@ def create_header_df(header_dct: Dict[int, Variable], interval: str,
     return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
 
 
-def generate_peak_outputs(raw_peak_outputs, dates):
+def generate_peak_outputs(raw_peak_outputs, header, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     peak_outputs = {"local_min": {}, "local_max": {}}
-    for interval, data in raw_peak_outputs.items():
-        index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-        peak_outputs["local_min"][interval] = create_peak_outputs(data, interval, index, max_=False)
-        peak_outputs["local_max"][interval] = create_peak_outputs(data, interval, index)
+    column_names = ["id", "interval", "key", "variable", "units"]
+    for interval, values in raw_peak_outputs.items():
+        df_values = create_values_df(values, column_names[0])
+        df_header = create_header_df(header[interval], interval, column_names[0],
+                                     column_names[1:])
+
+        df = pd.merge(df_header, df_values, sort=False,
+                      left_index=True, right_index=True)
+
+        df.set_index(keys=column_names[1:], append=True, inplace=True)
+        df = df.T
+        df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
+
+        peak_outputs["local_min"][interval] = create_peak_outputs(df, interval, max_=False)
+        peak_outputs["local_max"][interval] = create_peak_outputs(df, interval)
+
     return peak_outputs
 
 
@@ -463,7 +473,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
         remove_duplicates(dup_ids, header, raw_outputs)
 
     if not ignore_peaks:
-        peak_outputs = generate_peak_outputs(raw_peak_outputs, dates)
+        peak_outputs = generate_peak_outputs(raw_peak_outputs, header, dates)
     else:
         peak_outputs = None
 

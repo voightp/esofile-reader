@@ -76,10 +76,11 @@ class TotalsFile(BaseFile):
         self.populate_content(eso_file)
 
     @staticmethod
-    def calculate_totals(df):
+    def _calculate_totals(df):
         """ Calculate 'building totals'."""
-        cnd = df["units"].isin(AVERAGED_UNITS)
-        df.drop(["id", "key", "variable", "units"], inplace=True, axis=1)
+        cnd = df.index.get_level_values("units").isin(AVERAGED_UNITS)
+        mi_df = df.index.to_frame(index=False)
+        mi_df.drop_duplicates(inplace=True)
 
         # split df into averages and sums
         avg_df = df.loc[cnd]
@@ -89,19 +90,22 @@ class TotalsFile(BaseFile):
         avg_df = avg_df.groupby(by="group_id", sort=False).mean()
         sum_df = sum_df.groupby(by="group_id", sort=False).sum()
 
-        # merge data having ids as columns
-        df = pd.concat([avg_df.T, sum_df.T], axis=1)
+        # index gets lost in 'groupby'
+        df = pd.concat([avg_df, sum_df])
+        df.reset_index(inplace=True, drop=False)
+        df = pd.merge(mi_df, df, on="group_id")
+        df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
 
-        df.columns.set_names("id", inplace=True)
-        df.index.set_names("timestamp", inplace=True)
+        df.index.set_names("id", level="group_id", inplace=True)
+        df.columns.set_names("timestamp", inplace=True)
 
-        return df
+        return df.T
 
     @staticmethod
-    def get_grouped_vars(id_gen, variables):
+    def _get_grouped_vars(id_gen, variables):
         """ Group header variables. """
         groups = {}
-        rows = []
+        rows, index = [], []
         for id_, var in variables.items():
             interval, key, variable, units = var
 
@@ -136,67 +140,42 @@ class TotalsFile(BaseFile):
             else:
                 group_id = next(id_gen)
 
-            rows.append((group_id, id_, interval, key, variable, units))
+            index.append(id_)
+            rows.append((group_id, interval, key, variable, units))
 
-        cols = ["group_id", "id", "interval", "key", "variable", "units"]
-        return pd.DataFrame(rows, columns=cols)
+        cols = ["group_id", "interval", "key", "variable", "units"]
 
-    @staticmethod
-    def build_header_dct(header_df):
-        """ Reduce the header df to get totals. """
+        return pd.DataFrame(rows, columns=cols, index=index)
 
-        def merge_vars(df):
-            if len(df.index) > 1:
-                sr = df.iloc[0]
-                return sr
-            return df.iloc[0]
-
-        def header_vars(sr):
-            return Variable(sr.interval, sr.key, sr.variable, sr.units)
-
-        header_df.drop("id", axis=1, inplace=True)
-        header_df = header_df.groupby(by="group_id")
-        header_df = header_df.apply(merge_vars)
-        header_df = header_df.apply(header_vars, axis=1)
-
-        return header_df.to_dict()
-
-    def _group_outputs(self, grouped_ids, outputs):
-        """ Handle numeric outputs. """
-        outputs = outputs.get_all_results(transposed=True)
-        outputs.reset_index(inplace=True)
-
-        df = pd.merge(left=grouped_ids, right=outputs, on="id")
-        df = self.calculate_totals(df)
-
-        for s in [N_DAYS_COLUMN, DAY_COLUMN]:
-            try:
-                col = outputs[s]
-                df.insert(0, s, col)
-            except KeyError:
-                pass
-
-        return df
-
-    def process_totals(self, eso_file):
+    def process_totals(self, file):
         """ Create building outputs. """
-        header = {}
-        outputs = {}
+        header, outputs = {}, {}
         id_gen = incremental_id_gen()
 
-        for interval, variables in eso_file.header.items():
-            header_df = self.get_grouped_vars(id_gen, variables)
+        for interval in file.available_intervals:
+            header_df = self._get_grouped_vars(id_gen, file.data_set(interval).header_variables_dct)
 
-            out = eso_file.outputs[interval]
-            out = self._group_outputs(header_df, out)
+            out = file.data_set(interval).get_all_results(transposed=True)
+            out.index = out.index.droplevel(["interval", "key", "variable", "units"])
 
-            outputs[interval] = Outputs(out)
-            header[interval] = self.build_header_dct(header_df)
+            df = pd.merge(left=header_df, right=out, left_index=True, right_index=True)
+            df.reset_index(drop=True, inplace=True)
+            df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
+            df = self._calculate_totals(df)
+
+            for s in [N_DAYS_COLUMN, DAY_COLUMN]:
+                try:
+                    col = out[s]
+                    df.insert(0, s, col)
+                except KeyError:
+                    pass
+
+            outputs[interval] = Outputs(df)
 
         tree = Tree()
         tree.populate_tree(header)
 
-        return header, outputs, tree
+        return outputs, tree
 
     def populate_content(self, eso_file):
         """ Generate building related data based on input 'EsoFile'. """
@@ -208,8 +187,7 @@ class TotalsFile(BaseFile):
 
         if content:
             self._complete = True
-            (self.header,
-             self.outputs,
+            (self._outputs,
              self.header_tree) = content
 
     def generate_diff(self, other_file):

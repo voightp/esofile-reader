@@ -84,7 +84,7 @@ class EsoFile(BaseFile):
         if content:
             self._complete = True
             (
-                self.outputs,
+                self._outputs,
                 self.peak_outputs,
                 self.header_tree,
             ) = content
@@ -109,7 +109,6 @@ class EsoFile(BaseFile):
                 continue
 
             df = data_set.get_results(ids, start_date, end_date)
-            df.columns = self._create_header_mi(interval, df.columns)
 
             if not include_id:
                 df.columns = df.columns.droplevel("id")

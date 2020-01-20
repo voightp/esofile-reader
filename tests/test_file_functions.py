@@ -127,67 +127,43 @@ class MyTestCase(unittest.TestCase):
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
-    def test__create_header_mi(self):
-        m = pd.MultiIndex.from_tuples([(13, "value")], names=["id", "data"])
-        mi = self.ef._create_header_mi("timestep", m)
-        test_mi = pd.MultiIndex(
-            levels=[['13'], ['timestep'], ['BLOCK1:ZONE1'], ['Zone People Occupant Count'], [''], ["value"]],
-            codes=[[0], [0], [0], [0], [0], [0]],
-            names=["id", "interval", "key", "variable", "units", "data"]
-        )
-        assert_index_equal(mi, test_mi)
-
-    def test__create_header_mi_list(self):
-        mi = self.ef._create_header_mi("timestep", [13])
-        test_mi = pd.MultiIndex(
-            levels=[['13'], ['timestep'], ['BLOCK1:ZONE1'], ['Zone People Occupant Count'], ['']],
-            codes=[[0], [0], [0], [0], [0]],
-            names=["id", "interval", "key", "variable", "units"]
-        )
-        assert_index_equal(mi, test_mi)
-
-    def test__add_remove_header_variable(self):
-        v1 = self.ef._add_header_variable(-999, "timestep", "dummy", "variable", "foo")
-        v2 = self.ef._add_header_variable(-1000, "timestep", "dummy", "variable", "foo")
+    def test__new_header_variable(self):
+        v1 = self.ef._new_header_variable("timestep", "dummy", "variable", "foo")
 
         self.assertTupleEqual(v1, Variable(interval='timestep', key='dummy', variable='variable', units='foo'))
-        self.assertTupleEqual(v2, Variable(interval='timestep', key='dummy (1)', variable='variable', units='foo'))
-
-        self.ef._remove_header_variables("timestep", [-999, -1000])
-        with self.assertRaises(KeyError):
-            _ = self.ef.header["timestep"][-999]
-
-    def test_add_header_variable(self):
-        new_var0 = self.ef._add_header_variable(-1, "foo", "bar", "baz", "u")
-        new_var1 = self.ef._add_header_variable(-2, "foo", "bar", "baz", "u")
-        new_var2 = self.ef._add_header_variable(-3, "fo", "bar", "baz", "u")
-
-        self.assertTupleEqual(new_var0, Variable("foo", "bar", "baz", "u"))
-        self.assertTupleEqual(new_var1, Variable("foo", "bar (1)", "baz", "u"))
-        self.assertTupleEqual(new_var2, Variable("fo", "bar", "baz", "u"))
-
-        self.ef._remove_header_variables("foo", [-1, -2])
-        self.ef._remove_header_variables("fo", [-3])
-
-    def test_remove_header_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.ef._remove_header_variables("foo", [-1, -2])
-
-    def test_remove_output_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.ef._remove_header_variables("foo", [-1, -2])
 
     def test_rename_variable(self):
         v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
         self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+
+    def test_add_output(self):
+        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+        self.ef.remove_outputs(var)
+
+    def test_add_output_test_tree(self):
+        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+
+        ids = self.ef.header_tree.get_ids(*var)
+        self.assertIsNot(ids, [])
+        self.assertEqual(len(ids), 1)
+
+        self.ef.remove_outputs(var)
+        ids = self.ef.header_tree.get_ids(*var)
+        self.assertEqual(ids, [])
+
+    def test_add_output_duplicate(self):
+        out = self.ef.add_output("timestep", "new", "variable", "C", [1])
+        self.assertIsNone(out)
 
     def test_add_output_invalid(self):
         out = self.ef.add_output("timestep", "new", "variable", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_interval(self):
-        out = self.ef.add_output("foo", "new", "variable", "C", [1])
-        self.assertIsNone(out)
+        with self.assertRaises(KeyError):
+            _ = self.ef.add_output("foo", "new", "variable", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(interval='hourly', key=None, variable='Zone People Occupant Count', units='')
