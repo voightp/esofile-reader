@@ -7,7 +7,8 @@ from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.utils.tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, SUMMED_UNITS
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
+    SUMMED_UNITS, IGNORED_UNITS
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
@@ -84,7 +85,7 @@ class TotalsFile(BaseFile):
 
         # split df into averages and sums
         avg_df = df.loc[cnd]
-        sum_df = df.loc[[not b for b in cnd]]
+        sum_df = df.loc[~cnd]
 
         # group variables and apply functions
         avg_df = avg_df.groupby(by="group_id", sort=False).mean()
@@ -153,9 +154,10 @@ class TotalsFile(BaseFile):
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            header_df = self._get_grouped_vars(id_gen, file.data_set(interval).header_variables_dct)
+            variable_dct = file.data_set(interval).header_variables_dct
+            header_df = self._get_grouped_vars(id_gen, variable_dct)
 
-            out = file.data_set(interval).get_all_results(transposed=True)
+            out = file.data_set(interval).get_all_results(transposed=True, ignore_units=IGNORED_UNITS)
             out.index = out.index.droplevel(["interval", "key", "variable", "units"])
 
             df = pd.merge(left=header_df, right=out, left_index=True, right_index=True)

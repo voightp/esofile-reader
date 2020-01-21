@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import traceback
 from esofile_reader.processing.interval_processor import parse_result_dt
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
@@ -150,14 +151,14 @@ class Outputs(BaseOutputs):
         super(Outputs, self).__init__(data, **kwargs)
 
     @property
-    def no_special_columns(self):
+    def only_numeric(self):
         cond = self.columns.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
         return self.loc[:, ~cond]
 
     @property
     def header_df(self):
         """ Get columns as pd.DataFrame. """
-        return self.no_special_columns.columns.to_frame(index=False)
+        return self.only_numeric.columns.to_frame(index=False)
 
     @property
     def header_variables_dct(self):
@@ -173,7 +174,7 @@ class Outputs(BaseOutputs):
 
     def get_ids(self):
         """ Get all variable ids. """
-        return self.no_special_columns.columns.get_level_values("id")
+        return self.only_numeric.columns.get_level_values("id")
 
     def rename_variable(self, id_, key_name, variable_name):
         """ Rename variable. """
@@ -181,18 +182,19 @@ class Outputs(BaseOutputs):
         mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [key_name, variable_name]
         self.columns = pd.MultiIndex.from_frame(mi_df)
 
-    def get_all_results(self, transposed=False, drop_special=True):
+    def get_all_results(self, transposed=False, drop_special=True, ignore_units=None):
         """ Get df with only 'standard' numeric outputs. """
-        try:
-            if drop_special:
-                df = self.no_special_columns.copy()
-            else:
-                df = self.copy()
-        except MemoryError:
-            raise MemoryError("Cannot create outputs set copy!"
-                              "\nRunning out of memory!")
+        df = self.only_numeric if drop_special else self
 
-        return df.T if transposed else df
+        if ignore_units:
+            cnd = df.columns.get_level_values("units").isin(ignore_units)
+            df = df.loc[:, ~cnd]
+
+        try:
+            return df.T.copy() if transposed else df.copy()
+        except MemoryError:
+            raise MemoryError(f"Cannot create outputs set copy!"
+                              f"\nRunning out of memory!{traceback.format_exc()}")
 
     def get_results(self, ids, start_date=None, end_date=None, include_day=False):
         """ Return standard result. """
