@@ -6,6 +6,7 @@ from datetime import datetime
 from esofile_reader import EsoFile
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader import Variable
+from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
 
@@ -203,6 +204,43 @@ class MyTestCase(unittest.TestCase):
         id_, var = self.ef.aggregate_variables(v, "sum", key_name="foo", var_name="bar")
         self.assertEqual(var, Variable(interval='hourly', key='foo', variable='bar', units=''))
         self.ef.remove_outputs(var)
+
+    def test_aggregate_energy_rate(self):
+        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+
+        id_, var = self.ef.aggregate_variables([v1, v2], "sum")
+        df = self.ef.get_results(var)
+
+        test_mi = pd.MultiIndex.from_tuples([("Custom Key - sum", "Custom Variable", "J")],
+                                            names=["key", "variable", "units"])
+        test_index = pd.MultiIndex.from_product([["eplusout_all_intervals"],
+                                                 [pd.datetime(2002, i, 1) for i in range(1, 13)]],
+                                                names=["file", "timestamp"])
+        test_df = pd.DataFrame([[5.164679e+08],
+                                [1.318966e+09],
+                                [3.610323e+09],
+                                [5.146479e+09],
+                                [7.525772e+09],
+                                [7.119410e+09],
+                                [1.018732e+10],
+                                [8.958836e+09],
+                                [6.669166e+09],
+                                [5.231315e+09],
+                                [2.971484e+09],
+                                [3.891442e+08]], index=test_index, columns=test_mi)
+        assert_frame_equal(df, test_df)
+        self.ef.remove_outputs(var)
+
+    def test_aggregate_energy_rate_invalid(self):
+        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
+        ef._outputs["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+
+        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+
+        with self.assertRaises(CannotAggregateVariables):
+            _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
         v = Variable(interval='hourly', key="BLOCK1:ZONE1", variable=None, units=None)
