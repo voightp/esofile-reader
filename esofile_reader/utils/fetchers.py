@@ -145,9 +145,8 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
         else:
             request_str = variables
 
-        print("Any of requested variables was not found!\n"
-              "Requested variables: '{}'\n"
-              "Files: '{}'".format(request_str, ", ".join(file_list)))
+        print(f"Any of requested variables was not found!\n"
+              f"Requested variables: '{request_str}'")
         return
 
     return res

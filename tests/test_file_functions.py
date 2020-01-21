@@ -216,6 +216,9 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
 
+    def print_tree(self):
+        print(self.ef._search_tree)
+
 
 if __name__ == '__main__':
     unittest.main()

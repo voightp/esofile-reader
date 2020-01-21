@@ -4,7 +4,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader import EsoFile, get_results
-from esofile_reader.eso_file import PeaksNotIncluded
+from esofile_reader.eso_file import PeaksNotIncluded, IncompleteFile
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader import Variable
 from tests import ROOT
@@ -283,7 +283,6 @@ class MyTestCase(unittest.TestCase):
             Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
         ]
         df = get_results(self.ef1, v, units_system="IP")
-        df.to_excel("test.xlsx")
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples([("BLOCK1:ZONEA", "Zone Mean Air Temperature", "F"),
@@ -317,28 +316,106 @@ class MyTestCase(unittest.TestCase):
             _ = get_results(self.ef1, v, units_system="FOO")
 
     def test_get_results_rate_to_energy(self):
-        pass
+        rate_to_energy = {
+            "timestep": True,
+            "hourly": True,
+            "daily": True,
+            "monthly": True,
+            "annual": True,
+            "runperiod": True
+        }
+
+        v = [
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+            Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
+        ]
+        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy)
+
+        self.assertListEqual(df.columns.get_level_values("units").tolist(), ["J/m2", "J"] * 4)
+        self.assertAlmostEqual(df.iloc[7, 0], 217800, 5)
+        self.assertAlmostEqual(df.iloc[7, 1], 335583.6469868852, 5)
+        self.assertAlmostEqual(df.iloc[0, 2], 6253200, 5)
+        self.assertAlmostEqual(df.iloc[0, 3], 10918518.194915276, 5)
+        self.assertAlmostEqual(df.iloc[0, 4], 213833700, 5)
+        self.assertAlmostEqual(df.iloc[0, 5], 241058966.115303, 5)
+        self.assertAlmostEqual(df.iloc[0, 6], 1600326000, 5)
+        self.assertAlmostEqual(df.iloc[0, 7], 1415172751.05001, 5)
 
     def test_get_results_rate(self):
-        pass
+        rate_to_energy = {
+            "timestep": False,
+            "hourly": False,
+            "daily": False,
+            "monthly": False,
+            "annual": False,
+            "runperiod": False
+        }
+
+        v = [
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+            Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
+        ]
+        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy, rate_units="kW")
+
+        self.assertListEqual(df.columns.get_level_values("units").tolist(), ["kW/m2", "kW"] * 4)
+        self.assertAlmostEqual(df.iloc[7, 0], 0.0605, 5)
+        self.assertAlmostEqual(df.iloc[7, 1], 0.0932176797185792, 5)
+        self.assertAlmostEqual(df.iloc[0, 2], 0.072375, 5)
+        self.assertAlmostEqual(df.iloc[0, 3], 0.126371738367075, 5)
+        self.assertAlmostEqual(df.iloc[0, 4], 0.0824975694444444, 5)
+        self.assertAlmostEqual(df.iloc[0, 5], 0.0930011443346075, 5)
+        self.assertAlmostEqual(df.iloc[0, 6], 0.10121470856102, 5)
+        self.assertAlmostEqual(df.iloc[0, 7], 0.0895044494440654, 5)
 
     def test_get_results_energy(self):
-        pass
+        rate_to_energy = {
+            "timestep": True,
+            "hourly": True,
+            "daily": True,
+            "monthly": True,
+            "annual": True,
+            "runperiod": True
+        }
+
+        v = [
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
+            Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
+        ]
+        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy, energy_units="MJ")
+
+        self.assertListEqual(df.columns.get_level_values("units").tolist(), ["MJ/m2", "MJ"] * 4)
+        self.assertAlmostEqual(df.iloc[7, 0], 0.21780, 5)
+        self.assertAlmostEqual(df.iloc[7, 1], 0.33558, 5)
+        self.assertAlmostEqual(df.iloc[0, 2], 6.2532, 5)
+        self.assertAlmostEqual(df.iloc[0, 3], 10.918518, 5)
+        self.assertAlmostEqual(df.iloc[0, 4], 213.8337, 5)
+        self.assertAlmostEqual(df.iloc[0, 5], 241.0589661, 5)
+        self.assertAlmostEqual(df.iloc[0, 6], 1600.3259999, 5)
+        self.assertAlmostEqual(df.iloc[0, 7], 1415.172751, 5)
 
     def test_get_results_timestamp_format(self):
-        pass
+        v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
+        df = get_results(self.ef1, v, add_file_name="", timestamp_format="%m-%d")
+
+        dates = ["04-01", "05-01", "06-01", "07-01", "08-01", "09-01"]
+        self.assertListEqual(df.index.tolist(), dates)
 
     def test_get_results_report_progress(self):
-        pass
+        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), report_progress=False)
 
     def test_get_results_ignore_peaks(self):
-        pass
+        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
+        self.assertIsNotNone(ef.peak_outputs)
 
     def test_suppress_errors(self):
-        pass
+        ef = EsoFile(os.path.join(ROOT, "eso_files/body.txt"), suppress_errors=True)
+        self.assertFalse(ef.complete)
 
-    def test_multiple_files(self):
-        pass
+    def test_suppress_errors_raises(self):
+        with self.assertRaises(IncompleteFile):
+            _ = EsoFile(os.path.join(ROOT, "eso_files/body.txt"), suppress_errors=False)
 
     def test_multiple_files_invalid_variable(self):
-        pass
+        files = [self.ef1, self.ef2]
+        v = Variable(None, "foo", "bar", "baz")
+        get_results(files, v)
