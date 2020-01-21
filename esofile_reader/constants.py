@@ -36,3 +36,7 @@ SUMMED_UNITS = [
     "J",
     "J/m2"
 ]
+
+IGNORED_UNITS = [
+    "kg/s"
+]

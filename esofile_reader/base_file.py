@@ -3,6 +3,7 @@ import pandas as pd
 from random import randint
 from datetime import datetime
 from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
+from esofile_reader.outputs.outputs import Outputs
 from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
@@ -16,6 +17,11 @@ class VariableNotFound(Exception):
 
 class InvalidOutputType(Exception):
     """ Exception raised when the output time is invalid. """
+    pass
+
+
+class InvalidUnitsSystem(Exception):
+    """ Exception raised when units system is invalid. """
     pass
 
 
@@ -74,7 +80,7 @@ class BaseFile:
     header : dict of {str : dict of {int : list of str}}
         A dictionary to store E+ header data
         {period : {ID : (key name, variable name, units)}}
-    outputs : dict of {str : Outputs subclass}
+    _outputs : dict of {str : Outputs subclass}
         A dictionary holding categorized outputs using pandas.DataFrame like classes.
 
     Notes
@@ -89,11 +95,10 @@ class BaseFile:
         self.file_path = None
         self.file_name = None
         self._complete = False
+        self._outputs = None
 
         self.file_timestamp = None
-        self.header = None
-        self.outputs = None
-        self.header_tree = None
+        self._search_tree = None
 
     def __repr__(self):
         return f"File: {self.file_name}" \
@@ -103,15 +108,19 @@ class BaseFile:
     @property
     def available_intervals(self) -> List[str]:
         """ Return a list of available intervals. """
-        return list(self.header.keys())
+        return list(self._outputs.keys())
+
+    @property
+    def all_data_sets(self) -> List[Outputs]:
+        """ Fetch all data sets. """
+        return self._outputs.values()
 
     @property
     def all_ids(self) -> List[int]:
         """ Return a list of all ids (regardless the interval). """
         ids = []
-        for interval, data in self.header.items():
-            keys = data.keys()
-            ids.extend(keys)
+        for data_set in self.all_data_sets:
+            ids.extend(data_set.get_ids())
         return ids
 
     @property
@@ -127,12 +136,17 @@ class BaseFile:
     @property
     def header_df(self) -> pd.DataFrame:
         """ Get pd.DataFrame like header (index: mi(interval, id). """
-        rows = []
-        for interval, variables in self.header.items():
-            for id_, var in variables.items():
-                rows.append((id_, *var))
-        df = pd.DataFrame(rows, columns=["id", "interval", "key", "variable", "units"])
-        return df
+        frames = []
+        for data_set in self._outputs.values():
+            frames.append(data_set.header_df)
+        return pd.concat(frames)
+
+    def data_set(self, interval: str) -> Outputs:
+        """ Fetch data set for given interval. """
+        try:
+            return self._outputs[interval]
+        except KeyError:
+            raise KeyError
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -142,7 +156,7 @@ class BaseFile:
         """ Populate instance attributes. """
         pass
 
-    def _add_file_name(self, df: pd.DataFrame, name_position: str):
+    def _add_file_name(self, df: pd.DataFrame, name_position: str) -> pd.DataFrame:
         """ Add file name to index. """
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
@@ -180,8 +194,8 @@ class BaseFile:
 
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-            ids = self.header_tree.get_ids(interval=interval, key=key, variable=var,
-                                           units=units, part_match=part_match)
+            ids = self._search_tree.get_ids(interval=interval, key=key, variable=var,
+                                            units=units, part_match=part_match)
             if not ids:
                 continue
 
@@ -215,8 +229,8 @@ class BaseFile:
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
 
-            pairs = self.header_tree.get_pairs(interval=interval, key=key, variable=var,
-                                               units=units, part_match=part_match)
+            pairs = self._search_tree.get_pairs(interval=interval, key=key, variable=var,
+                                                units=units, part_match=part_match)
             if not pairs:
                 continue
 
@@ -227,34 +241,6 @@ class BaseFile:
                     out[k] = pairs[k]
 
         return out
-
-    def _create_header_mi(self, interval: str, ids: Union[List[int], pd.MultiIndex]) -> pd.MultiIndex:
-        """ Create a header pd.DataFrame for given ids and interval. """
-
-        def fetch_var():
-            try:
-                return self.header[interval][id_]
-            except KeyError:
-                raise KeyError(f"Id '{id_}' or '{interval}' interval "
-                               f"was not found in the header!")
-
-        tuples = []
-        names = ["id", "interval", "key", "variable", "units"]
-        if isinstance(ids, pd.MultiIndex):
-            names.append("data")
-            for id_, data in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units, data))
-        else:
-            for id_ in ids:
-                var = fetch_var()
-                if var:
-                    tuples.append((str(id_), interval, var.key,
-                                   var.variable, var.units))
-
-        return pd.MultiIndex.from_tuples(tuples, names=names)
 
     def get_results(
             self, variables: Union[Variable, List[Variable]], start_date: datetime = None,
@@ -327,23 +313,21 @@ class BaseFile:
         }
 
         if output_type not in res:
-            msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                f"kwarg must be one of '{', '.join(res.keys())}'."
-            raise InvalidOutputType(msg)
+            raise InvalidOutputType(f"Invalid output type '{output_type}' "
+                                    f"requested.\n'output_type' kwarg must be"
+                                    f" one of '{', '.join(res.keys())}'.")
+
+        if units_system not in ["SI", "IP"]:
+            raise InvalidUnitsSystem(f"Invalid units system '{units_system}' "
+                                     f"requested.\n'output_type' kwarg must be"
+                                     f" one of '[SI, IP]'.")
 
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
-            data_set = self.outputs[interval]
+            data_set = self._outputs[interval]
             df = res[output_type]()
-
-            if df is None:
-                print(f"Results type '{output_type}' is not applicable for "
-                      f"'{interval}' interval. \n\tignoring the request...")
-                continue
-
-            df.columns = self._create_header_mi(interval, df.columns)
 
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct[interval]:
@@ -367,7 +351,7 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def _add_header_variable(self, id_: int, interval: str, key: str, var: str,
+    def _new_header_variable(self, interval: str, key: str, var: str,
                              units: str) -> Variable:
         """ Create a unique header variable. """
 
@@ -378,12 +362,10 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        while variable in self.header[interval].values():
+
+        while variable in self.data_set(interval).header_variables_dct.values():
             i += 1
             variable = add_num()
-
-        self.header[interval][id_] = variable
-        self.header_tree.add_branch(*variable, id_)
 
         return variable
 
@@ -393,21 +375,26 @@ class BaseFile:
         ids = self.find_ids(variable)
         interval, key, var, units = variable
 
-        if not var_name:
-            var_name = var
+        var_name = var if not var_name else var_name
+        key_name = key if not key_name else key_name
 
-        if not key_name:
-            key_name = key
-
-        if ids:
+        if (not var_name and not key_name) or (key == key_name and var == var_name):
+            print("Cannot rename variable! Variable and key names are"
+                  "not specified or are the same as original variable.")
+        elif ids:
             # remove current item to avoid item duplicity
-            self._remove_header_variables(interval, ids[0])
+            self._search_tree.remove_variables([variable])
 
-            # create a new header variable
-            new_var = self._add_header_variable(ids[0], interval,
-                                                key_name, var_name, units)
+            # create new variable and add it into tree
+            new_var = self._new_header_variable(interval, key_name, var_name, units)
+            self._search_tree.add_variable(ids[0], new_var)
 
+            # rename variable in data set
+            self.data_set(interval).rename_variable(ids[0], new_var.key,
+                                                    new_var.variable)
             return ids[0], new_var
+        else:
+            print("Cannot rename variable! Original variable not found!")
 
     def add_output(self, interval: str, key_name: str, var_name: str, units: str,
                    array: Sequence) -> Tuple[int, Variable]:
@@ -415,18 +402,16 @@ class BaseFile:
         # generate a unique identifier, custom ids use '-' sign
         id_ = gen_id(self.all_ids, negative=True)
 
-        try:
-            is_valid = self.outputs[interval].add_column(id_, array)
-        except KeyError:
-            is_valid = False
-            print(f"Cannot add variable: "
-                  f"'{key_name} : {var_name} : {units}' into outputs."
-                  f"\nInterval is not included in file '{self.file_name}'")
+        # create new unique variable
+        new_var = self._new_header_variable(interval, key_name, var_name, units)
+        unique = self._search_tree.add_variable(id_, new_var)
 
-        if is_valid:
-            new_var = self._add_header_variable(id_, interval,
-                                                key_name, var_name, units)
-            return id_, new_var
+        if unique:
+            valid = self.data_set(interval).add_variable(id_, new_var, array)
+            if valid:
+                return id_, new_var
+            else:
+                self._search_tree.remove_variables(new_var)
 
     def aggregate_variables(self, variables: Union[Variable, List[Variable]],
                             func: Union[str, Callable], key_name: str = "Custom Key",
@@ -472,12 +457,9 @@ class BaseFile:
 
         interval, ids = list(groups.items())[0]
 
-        mi = self._create_header_mi(interval, ids)
-        variables = mi.get_level_values("variable").tolist()
-        units = mi.get_level_values("units").tolist()
-
-        data_set = self.outputs[interval]
-        df = data_set.get_results(ids)
+        df = self.data_set(interval).get_results(ids)
+        variables = df.columns.get_level_values("variable").tolist()
+        units = df.columns.get_level_values("units").tolist()
 
         if len(set(units)) == 1:
             # no processing required
@@ -485,10 +467,8 @@ class BaseFile:
 
         elif rate_and_energy_units(units):
             # it's needed to assign multi index to convert energy
-            df.columns = mi
-
             try:
-                n_days = data_set.get_number_of_days()
+                n_days = self.data_set(interval).get_number_of_days()
             except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:
@@ -517,47 +497,26 @@ class BaseFile:
 
         return out
 
-    def _remove_output_variables(self, interval: str, ids: List[int]) -> None:
-        """ Remove output data from the file. """
-        try:
-            self.outputs[interval].remove_columns(ids)
-            if self.outputs[interval].empty:
-                del self.outputs[interval]
-        except KeyError:
-            raise KeyError(f"Invalid interval: '{interval}' specified!")
-
-    def _remove_header_variables(self, interval: str, ids: Union[int, List[int]]):
-        """ Remove header variable from header. """
-        ids = ids if isinstance(ids, list) else [ids]
-
-        for id_ in ids:
-
-            try:
-                variable = self.header[interval][id_]
-            except KeyError:
-                raise KeyError(f"Cannot remove id: {id_} from {interval}."
-                               f"\nInvalid interval or id specified.")
-
-            self.header_tree.remove_variables([variable])
-            del self.header[interval][id_]
-            if not self.header[interval]:
-                del self.header[interval]
-
     def remove_outputs(self, variables: Union[Variable, List[Variable]]) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
-        groups = self._find_pairs(variables)
+        variables = variables if isinstance(variables, list) else [variables]
 
-        for ivl, ids in groups.items():
-            self._remove_output_variables(ivl, ids)
-            self._remove_header_variables(ivl, ids)
+        groups = self._find_pairs(variables)
+        for interval, ids in groups.items():
+            self.data_set(interval).remove_variables(ids)
+
+            if self._outputs[interval].empty:
+                del self._outputs[interval]
+
+        # clean up the tree
+        self._search_tree.remove_variables(variables)
 
         return groups
 
     def as_df(self, interval: str):
         """ Return the file as a single DataFrame. """
         try:
-            df = self.outputs[interval].get_all_results(drop_special=True)
-            df.columns = self._create_header_mi(interval, df.columns)
+            df = self.data_set(interval).get_all_results(drop_special=True)
 
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.")

@@ -232,3 +232,8 @@ class Tree:
             for nd in self.root.children:
                 level = -1
                 self._rem_loop(nd, level, cond)
+
+    def add_variable(self, id_, variable):
+        """ Add new variable into the tree. """
+        duplicate_id = self.add_branch(*variable, id_)
+        return not bool(duplicate_id)

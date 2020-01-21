@@ -2,7 +2,7 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 from esofile_reader.constants import *
-from esofile_reader.utils.utils import list_not_empty, slice_dict
+from esofile_reader.utils.utils import slice_dict
 
 
 class IntervalNotAvailable(KeyError):

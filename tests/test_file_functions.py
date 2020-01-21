@@ -6,10 +6,11 @@ from datetime import datetime
 from esofile_reader import EsoFile
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader import Variable
+from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
 
-class MyTestCase(unittest.TestCase):
+class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
@@ -127,67 +128,72 @@ class MyTestCase(unittest.TestCase):
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
-    def test__create_header_mi(self):
-        m = pd.MultiIndex.from_tuples([(13, "value")], names=["id", "data"])
-        mi = self.ef._create_header_mi("timestep", m)
-        test_mi = pd.MultiIndex(
-            levels=[['13'], ['timestep'], ['BLOCK1:ZONE1'], ['Zone People Occupant Count'], [''], ["value"]],
-            codes=[[0], [0], [0], [0], [0], [0]],
-            names=["id", "interval", "key", "variable", "units", "data"]
-        )
-        assert_index_equal(mi, test_mi)
-
-    def test__create_header_mi_list(self):
-        mi = self.ef._create_header_mi("timestep", [13])
-        test_mi = pd.MultiIndex(
-            levels=[['13'], ['timestep'], ['BLOCK1:ZONE1'], ['Zone People Occupant Count'], ['']],
-            codes=[[0], [0], [0], [0], [0]],
-            names=["id", "interval", "key", "variable", "units"]
-        )
-        assert_index_equal(mi, test_mi)
-
-    def test__add_remove_header_variable(self):
-        v1 = self.ef._add_header_variable(-999, "timestep", "dummy", "variable", "foo")
-        v2 = self.ef._add_header_variable(-1000, "timestep", "dummy", "variable", "foo")
+    def test__new_header_variable(self):
+        v1 = self.ef._new_header_variable("timestep", "dummy", "variable", "foo")
 
         self.assertTupleEqual(v1, Variable(interval='timestep', key='dummy', variable='variable', units='foo'))
-        self.assertTupleEqual(v2, Variable(interval='timestep', key='dummy (1)', variable='variable', units='foo'))
-
-        self.ef._remove_header_variables("timestep", [-999, -1000])
-        with self.assertRaises(KeyError):
-            _ = self.ef.header["timestep"][-999]
-
-    def test_add_header_variable(self):
-        new_var0 = self.ef._add_header_variable(-1, "foo", "bar", "baz", "u")
-        new_var1 = self.ef._add_header_variable(-2, "foo", "bar", "baz", "u")
-        new_var2 = self.ef._add_header_variable(-3, "fo", "bar", "baz", "u")
-
-        self.assertTupleEqual(new_var0, Variable("foo", "bar", "baz", "u"))
-        self.assertTupleEqual(new_var1, Variable("foo", "bar (1)", "baz", "u"))
-        self.assertTupleEqual(new_var2, Variable("fo", "bar", "baz", "u"))
-
-        self.ef._remove_header_variables("foo", [-1, -2])
-        self.ef._remove_header_variables("fo", [-3])
-
-    def test_remove_header_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.ef._remove_header_variables("foo", [-1, -2])
-
-    def test_remove_output_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.ef._remove_header_variables("foo", [-1, -2])
 
     def test_rename_variable(self):
         v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
         self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+
+        v = Variable(interval='timestep', key='NEW', variable='VARIABLE', units='')
+        ids = self.ef.find_ids(v)
+        self.assertListEqual(ids, [13])
+
+    def test_rename_variable_invalid(self):
+        v = Variable(interval='timestep', key='BLOCK1:ZONE1', variable='Zone People Occupant Count', units='')
+        self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+
+        v = Variable(interval='timestep', key='foo', variable='', units='')
+        out = self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        self.assertIsNone(out)
+
+    def test_rename_variable_invalid_names(self):
+        v = Variable(interval='timestep', key='BLOCK2:ZONE1', variable='Zone People Occupant Count', units='')
+        out = self.ef.rename_variable(v, key_name="", var_name="")
+        self.assertIsNone(out)
+
+        ids = self.ef.find_ids(v)
+        self.assertListEqual(ids, [19])
+
+    def test_add_output(self):
+        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+        self.ef.remove_outputs(var)
+
+    def test_add_two_output(self):
+        id_, var1 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var1, Variable("runperiod", "new", "variable", "C"))
+
+        id_, var2 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "variable", "C"))
+        self.ef.remove_outputs(var1)
+        self.ef.remove_outputs(var2)
+
+    def test_add_output_test_tree(self):
+        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+
+        ids = self.ef._search_tree.get_ids(*var)
+        self.assertIsNot(ids, [])
+        self.assertEqual(len(ids), 1)
+
+        self.ef.remove_outputs(var)
+        ids = self.ef._search_tree.get_ids(*var)
+        self.assertEqual(ids, [])
+
+    def test_add_output_duplicate(self):
+        out = self.ef.add_output("timestep", "new", "variable", "C", [1])
+        self.assertIsNone(out)
 
     def test_add_output_invalid(self):
         out = self.ef.add_output("timestep", "new", "variable", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_interval(self):
-        out = self.ef.add_output("foo", "new", "variable", "C", [1])
-        self.assertIsNone(out)
+        with self.assertRaises(KeyError):
+            _ = self.ef.add_output("foo", "new", "variable", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(interval='hourly', key=None, variable='Zone People Occupant Count', units='')
@@ -198,6 +204,43 @@ class MyTestCase(unittest.TestCase):
         id_, var = self.ef.aggregate_variables(v, "sum", key_name="foo", var_name="bar")
         self.assertEqual(var, Variable(interval='hourly', key='foo', variable='bar', units=''))
         self.ef.remove_outputs(var)
+
+    def test_aggregate_energy_rate(self):
+        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+
+        id_, var = self.ef.aggregate_variables([v1, v2], "sum")
+        df = self.ef.get_results(var)
+
+        test_mi = pd.MultiIndex.from_tuples([("Custom Key - sum", "Custom Variable", "J")],
+                                            names=["key", "variable", "units"])
+        test_index = pd.MultiIndex.from_product([["eplusout_all_intervals"],
+                                                 [pd.datetime(2002, i, 1) for i in range(1, 13)]],
+                                                names=["file", "timestamp"])
+        test_df = pd.DataFrame([[5.164679e+08],
+                                [1.318966e+09],
+                                [3.610323e+09],
+                                [5.146479e+09],
+                                [7.525772e+09],
+                                [7.119410e+09],
+                                [1.018732e+10],
+                                [8.958836e+09],
+                                [6.669166e+09],
+                                [5.231315e+09],
+                                [2.971484e+09],
+                                [3.891442e+08]], index=test_index, columns=test_mi)
+        assert_frame_equal(df, test_df)
+        self.ef.remove_outputs(var)
+
+    def test_aggregate_energy_rate_invalid(self):
+        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
+        ef._outputs["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+
+        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+
+        with self.assertRaises(CannotAggregateVariables):
+            _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
         v = Variable(interval='hourly', key="BLOCK1:ZONE1", variable=None, units=None)
@@ -219,6 +262,9 @@ class MyTestCase(unittest.TestCase):
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
+
+    def test_print_tree(self):
+        print(self.ef._search_tree.__repr__)
 
 
 if __name__ == '__main__':

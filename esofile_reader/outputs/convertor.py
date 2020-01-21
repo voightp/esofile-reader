@@ -1,12 +1,12 @@
 from esofile_reader.outputs.conversion_tables import energy_table, rate_table, si_to_ip
 from esofile_reader.constants import *
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Sequence
 
 import pandas as pd
 
 
 def apply_conversion(df: pd.DataFrame, orig_units: List[str], new_units: List[str],
-                     conversion_ratios: List[Union[float, int, Callable, pd.Series]]) -> pd.DataFrame:
+                     conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]]) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
         cnd = df.columns.get_level_values("units") == old

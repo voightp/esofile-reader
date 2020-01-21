@@ -120,9 +120,7 @@ def si_to_ip(orig_units):
         'g/kg': ('gr/lb', 0.143),
         'g/m3': ('gr/gal', 17.1),
         'ha': ('acre (43,560 ft2)', 0.4047),
-        'J': ('Btu (International Table)', 1055.056),
         'J/kg': ('ft-lbf/lb (specific energy)', 2.99),
-        'J/m2': ('Btu/ft2 (International Table)', 11356.53),
         'J/m3': ('Btu/ft3 (International Table)', 37258.951),
         'kg': ('lb (avoirdupois, mass)', 0.453592),
         'kg/(Pa-s-m)': ('perm inch (permeability at 32°F)', 1.45362e-12),
@@ -243,5 +241,7 @@ def si_to_ip(orig_units):
 # 'w/m2': ('W/m2', 'met', 58.15),
 # 'w/m2': ('W/m2', 'watt per square foot', 10.76),
 # 'w/m2': ('W/m2', 'Btu/h-ft2', 3.154591),
+# 'J': ('Btu (International Table)', 1055.056),
+# 'J/m2': ('Btu/ft2 (International Table)', 11356.53),
 
 # }
