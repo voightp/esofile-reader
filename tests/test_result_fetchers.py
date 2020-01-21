@@ -213,8 +213,8 @@ class MyTestCase(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.ef1, v, add_file_name="")
 
-        test_names = ["interval", "key", "variable", "units"]
-        test_columns = pd.MultiIndex.from_tuples([("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature",
+        test_names = ["key", "variable", "units"]
+        test_columns = pd.MultiIndex.from_tuples([("BLOCK1:ZONEA", "Zone Mean Air Temperature",
                                                    "C")], names=test_names)
         dates = [pd.datetime(2002, 4, 1), pd.datetime(2002, 5, 1), pd.datetime(2002, 6, 1),
                  pd.datetime(2002, 7, 1), pd.datetime(2002, 8, 1), pd.datetime(2002, 9, 1)]
