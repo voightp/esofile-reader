@@ -161,6 +161,15 @@ class MyTestCase(unittest.TestCase):
         self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
         self.ef.remove_outputs(var)
 
+    def test_add_two_output(self):
+        id_, var1 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var1, Variable("runperiod", "new", "variable", "C"))
+
+        id_, var2 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
+        self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "variable", "C"))
+        self.ef.remove_outputs(var1)
+        self.ef.remove_outputs(var2)
+
     def test_add_output_test_tree(self):
         id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))

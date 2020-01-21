@@ -329,11 +329,6 @@ class BaseFile:
             data_set = self._outputs[interval]
             df = res[output_type]()
 
-            if df is None:
-                print(f"Results type '{output_type}' is not applicable for "
-                      f"'{interval}' interval. \n\tignoring the request...")
-                continue
-
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct[interval]:
                 try:
