@@ -20,6 +20,11 @@ class InvalidOutputType(Exception):
     pass
 
 
+class InvalidUnitsSystem(Exception):
+    """ Exception raised when units system is invalid. """
+    pass
+
+
 class IncompleteFile(Exception):
     """ Exception raised when the file is not complete. """
     pass
@@ -308,9 +313,14 @@ class BaseFile:
         }
 
         if output_type not in res:
-            msg = f"Invalid output type '{output_type}' requested.\n'output_type'" \
-                f"kwarg must be one of '{', '.join(res.keys())}'."
-            raise InvalidOutputType(msg)
+            raise InvalidOutputType(f"Invalid output type '{output_type}' "
+                                    f"requested.\n'output_type' kwarg must be"
+                                    f" one of '{', '.join(res.keys())}'.")
+
+        if units_system not in ["SI", "IP"]:
+            raise InvalidUnitsSystem(f"Invalid units system '{units_system}' "
+                                     f"requested.\n'output_type' kwarg must be"
+                                     f" one of '[SI, IP]'.")
 
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)

@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal
 from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader import EsoFile, get_results
 from esofile_reader.eso_file import PeaksNotIncluded
-from esofile_reader.base_file import InvalidOutputType
+from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader import Variable
 from tests import ROOT
 
@@ -246,13 +246,75 @@ class MyTestCase(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_units_system_si(self):
-        pass
+        v = [
+            Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+            Variable("runperiod", "Meter", "Electricity:Facility", "J"),
+            Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
+            Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
+        ]
+        df = get_results(self.ef1, v, units_system="SI")
+
+        test_names = ["key", "variable", "units"]
+        test_columns = pd.MultiIndex.from_tuples([("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+                                                  ("BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
+                                                  ("Meter", "Electricity:Facility", "J"),
+                                                  ("Meter", "InteriorLights:Electricity", "J")],
+                                                 names=test_names)
+
+        dates = [pd.datetime(2002, 4, 1), pd.datetime(2002, 5, 1), pd.datetime(2002, 6, 1),
+                 pd.datetime(2002, 7, 1), pd.datetime(2002, 8, 1), pd.datetime(2002, 9, 1)]
+        test_index = pd.MultiIndex.from_product([["eplusout1"], dates],
+                                                names=["file", "timestamp"])
+
+        test_df = pd.DataFrame([[22.592079, 42.1419698525608, 26409744634.6392, 9873040320],
+                                [24.163740, None, None, None],
+                                [25.406725, None, None, None],
+                                [26.177191, None, None, None],
+                                [25.619201, None, None, None],
+                                [23.862254, None, None, None]], columns=test_columns, index=test_index)
+
+        assert_frame_equal(df, test_df)
 
     def test_get_results_units_system_ip(self):
-        pass
+        v = [
+            Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+            Variable("runperiod", "Meter", "Electricity:Facility", "J"),
+            Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
+            Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
+        ]
+        df = get_results(self.ef1, v, units_system="IP")
+        df.to_excel("test.xlsx")
+
+        test_names = ["key", "variable", "units"]
+        test_columns = pd.MultiIndex.from_tuples([("BLOCK1:ZONEA", "Zone Mean Air Temperature", "F"),
+                                                  ("BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
+                                                  ("Meter", "Electricity:Facility", "J"),
+                                                  ("Meter", "InteriorLights:Electricity", "J")],
+                                                 names=test_names)
+
+        dates = [pd.datetime(2002, 4, 1), pd.datetime(2002, 5, 1), pd.datetime(2002, 6, 1),
+                 pd.datetime(2002, 7, 1), pd.datetime(2002, 8, 1), pd.datetime(2002, 9, 1)]
+        test_index = pd.MultiIndex.from_product([["eplusout1"], dates],
+                                                names=["file", "timestamp"])
+
+        test_df = pd.DataFrame([[72.6657414, 42.1419698525608, 26409744634.6392, 9873040320],
+                                [75.49473256, None, None, None],
+                                [77.73210562, None, None, None],
+                                [79.11894354, None, None, None],
+                                [78.11456209, None, None, None],
+                                [74.95205651, None, None, None]], columns=test_columns, index=test_index)
+
+        assert_frame_equal(df, test_df)
 
     def test_get_results_units_system_invalid(self):
-        pass
+        v = [
+            Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+            Variable("runperiod", "Meter", "Electricity:Facility", "J"),
+            Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
+            Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
+        ]
+        with self.assertRaises(InvalidUnitsSystem):
+            _ = get_results(self.ef1, v, units_system="FOO")
 
     def test_get_results_rate_to_energy(self):
         pass
