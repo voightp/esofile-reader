@@ -10,7 +10,7 @@ from esofile_reader import Variable
 from tests import ROOT
 
 
-class MyTestCase(unittest.TestCase):
+class TestResultFetching(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path1 = os.path.join(ROOT, "eso_files/eplusout1.eso")

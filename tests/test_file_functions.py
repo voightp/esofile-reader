@@ -10,7 +10,7 @@ from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
 
-class MyTestCase(unittest.TestCase):
+class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
@@ -263,8 +263,8 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
 
-    def print_tree(self):
-        print(self.ef._search_tree)
+    def test_print_tree(self):
+        print(self.ef._search_tree.__repr__)
 
 
 if __name__ == '__main__':
