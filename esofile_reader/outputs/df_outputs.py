@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Sequence, List
+from typing import Sequence, List, Dict, Union
 from esofile_reader.constants import *
-from esofile_reader import Variable
 from esofile_reader.outputs.base_outputs import BaseOutputs
 from esofile_reader.processing.interval_processor import parse_result_dt
 from esofile_reader.utils.utils import id_gen
+from esofile_reader.utils.mini_classes import Variable
 
 
 def _merge_peak_outputs(timestamp_df, values_df):
@@ -87,18 +87,20 @@ def create_peak_outputs(interval, df, max_=True):
 
 def slicer(df, ids, start_date=None, end_date=None):
     """ Slice df using indeterminate range. """
+    ids = ids if isinstance(ids, list) else [ids]
+    cond = df.columns.get_level_values("id").isin(ids)
     try:
         if start_date and end_date:
-            return df.loc[start_date:end_date, ids]
+            df = df.loc[start_date:end_date, cond]
         elif start_date:
-            return df.loc[start_date:, ids]
+            df = df.loc[start_date:, cond]
         elif end_date:
-            return df.loc[:end_date, ids]
+            df = df.loc[:end_date, cond]
         else:
-            return df.loc[:, ids]
+            df = df.loc[:, cond]
 
     except KeyError:
-        valid_ids = df.columns.intersection(ids)
+        valid_ids = df.columns.get_level_values("id").intersection(ids)
         ids = [str(ids)] if not isinstance(ids, list) else [str(i) for i in ids]
         print(f"Cannot slice df using requested inputs:"
               f"ids: '{', '.join(ids)}', start date: '{start_date}', end date: "
@@ -107,25 +109,28 @@ def slicer(df, ids, start_date=None, end_date=None):
         if valid_ids.empty:
             raise KeyError("Any of given ids is not included!")
 
-        return df.loc[:, valid_ids]
+        df = df.loc[:, valid_ids]
+
+    return df.copy()
 
 
 class DFOutputs(BaseOutputs):
     def __init__(self):
         self.tables = {}
 
+    def set_data(self, interval: str, df: pd.DataFrame):
+        self.tables[interval] = df
+
     def get_only_numeric_data(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
         cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
-        return self.tables[interval][:, ~cond]
-
-    def set_data(self, interval: str, df: pd.DataFrame):
-        self.tables[interval] = df
+        return self.tables[interval].loc[:, ~cond]
 
     def get_available_intervals(self) -> List[str]:
         return list(self.tables.keys())
 
-    def get_variables(self, interval: str) -> List[Variable]:
+    def get_variables(self, interval: str) -> Dict[int, Variable]:
+
         def create_variable(sr):
             return sr["id"], Variable(sr["interval"], sr["key"], sr["variable"], sr["units"])
 
@@ -136,7 +141,7 @@ class DFOutputs(BaseOutputs):
         return var_df.to_dict(orient="dict")[1]
 
     def get_variable_ids(self, interval: str) -> List[int]:
-        mi = self.tables[interval].get_level_values("id").tolist()
+        mi = self.tables[interval].columns.get_level_values("id").tolist()
         return list(filter(lambda x: x not in [N_DAYS_COLUMN, DAY_COLUMN], mi))
 
     def get_all_variable_ids(self) -> List[int]:
@@ -157,7 +162,7 @@ class DFOutputs(BaseOutputs):
         return pd.concat(frames)
 
     def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
-        mi_df = self.get_header_df(interval)
+        mi_df = self.tables[interval].columns.to_frame(index=False)
         mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [key_name, var_name]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
@@ -183,19 +188,26 @@ class DFOutputs(BaseOutputs):
             print(f"Cannot remove ids: {', '.join([str(id_) for id_ in ids])}")
             raise KeyError
 
-    def get_number_days(self, interval: str, start_date: datetime = None,
-                        end_date: datetime = None) -> List[int]:
-        if N_DAYS_COLUMN not in self.tables[interval].columns:
-            raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
+    def get_special_column(self, name: str, interval: str, start_date: datetime = None,
+                           end_date: datetime = None) -> pd.Series:
+        if name not in self.tables[interval].columns.get_level_values("id"):
+            raise KeyError(f"'{name}' column is not available "
                            f"on the given data set.")
-        return slicer(self.tables[interval], N_DAYS_COLUMN, start_date, end_date)
+
+        col = slicer(self.tables[interval], name, start_date, end_date)
+
+        if isinstance(col, pd.DataFrame):
+            col = col.iloc[:, 0]
+
+        return col
+
+    def get_number_of_days(self, interval: str, start_date: datetime = None,
+                           end_date: datetime = None) -> pd.Series:
+        return self.get_special_column(N_DAYS_COLUMN, interval, start_date, end_date)
 
     def get_days_of_week(self, interval: str, start_date: datetime = None,
-                         end_date: datetime = None) -> List[str]:
-        if N_DAYS_COLUMN not in self.tables[interval].columns:
-            raise KeyError(f"'{DAY_COLUMN}' column is not available "
-                           f"on the given data set.")
-        return slicer(self.tables[interval], DAY_COLUMN, start_date, end_date)
+                         end_date: datetime = None) -> pd.Series:
+        return self.get_special_column(DAY_COLUMN, interval, start_date, end_date)
 
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
@@ -216,11 +228,11 @@ class DFOutputs(BaseOutputs):
                 except AttributeError:
                     pass
 
-        return df.copy()
+        return df
 
-    def _global_peak(self, ids, start_date, end_date, max_=True):
+    def _global_peak(self, interval, ids, start_date, end_date, max_=True):
         """ Return maximum or minimum value and datetime of occurrence. """
-        df = self.get_results(ids, start_date, end_date)
+        df = self.get_results(interval, ids, start_date, end_date)
 
         vals = pd.DataFrame(df.max() if max_ else df.min()).T
         ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
@@ -228,12 +240,12 @@ class DFOutputs(BaseOutputs):
         df = _merge_peak_outputs(ixs, vals)
         df = df.iloc[[0]]  # report only first occurrence
 
-        return df.copy()
+        return df
 
     def get_global_max_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                                end_date: datetime = None) -> pd.DataFrame:
-        return self._global_peak(ids, start_date, end_date)
+        return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                                end_date: datetime = None) -> pd.DataFrame:
-        return self._global_peak(ids, start_date, end_date, max_=False)
+        return self._global_peak(interval, ids, start_date, end_date, max_=False)

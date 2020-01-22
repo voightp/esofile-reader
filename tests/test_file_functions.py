@@ -23,7 +23,7 @@ class TestFileFunctions(unittest.TestCase):
                               'monthly', 'runperiod', 'annual'])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.ef.all_ids), 114)
+        self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.created, datetime))
@@ -37,9 +37,9 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.header_df.columns.to_list(), ["id", "interval", "key",
-                                                               "variable", "units"])
-        self.assertEqual(len(self.ef.header_df.index), 114)
+        self.assertEqual(self.ef.data.get_all_header_dfs().columns.to_list(), ["id", "interval", "key",
+                                                                               "variable", "units"])
+        self.assertEqual(len(self.ef.data.get_all_header_dfs().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name
@@ -128,8 +128,8 @@ class TestFileFunctions(unittest.TestCase):
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
-    def test__new_header_variable(self):
-        v1 = self.ef._new_header_variable("timestep", "dummy", "variable", "foo")
+    def test_create_new_header_variable(self):
+        v1 = self.ef.create_header_variable("timestep", "dummy", "variable", "foo")
 
         self.assertTupleEqual(v1, Variable(interval='timestep', key='dummy', variable='variable', units='foo'))
 
@@ -162,7 +162,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
         self.ef.remove_outputs(var)
 
-    def test_add_two_output(self):
+    def test_add_two_outputs(self):
         id_, var1 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
         self.assertTupleEqual(var1, Variable("runperiod", "new", "variable", "C"))
 
@@ -234,7 +234,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef._outputs["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

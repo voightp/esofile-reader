@@ -263,17 +263,17 @@ class TestEsoFileProcessing(unittest.TestCase):
         min_outputs = outputs["local_min"]
         max_outputs = outputs["local_max"]
 
-        self.assertEqual(list(min_outputs.keys()), ["daily", "monthly", "runperiod"])
-        self.assertEqual(list(max_outputs.keys()), ["daily", "monthly", "runperiod"])
+        self.assertEqual(list(min_outputs.tables.keys()), ["daily", "monthly", "runperiod"])
+        self.assertEqual(list(max_outputs.tables.keys()), ["daily", "monthly", "runperiod"])
 
-        self.assertEqual(min_outputs["daily"].shape, (2, 42))
-        self.assertEqual(max_outputs["daily"].shape, (2, 42))
+        self.assertEqual(min_outputs.tables["daily"].shape, (2, 42))
+        self.assertEqual(max_outputs.tables["daily"].shape, (2, 42))
 
-        self.assertEqual(min_outputs["monthly"].shape, (2, 42))
-        self.assertEqual(max_outputs["monthly"].shape, (2, 42))
+        self.assertEqual(min_outputs.tables["monthly"].shape, (2, 42))
+        self.assertEqual(max_outputs.tables["monthly"].shape, (2, 42))
 
-        self.assertEqual(min_outputs["runperiod"].shape, (1, 42))
-        self.assertEqual(max_outputs["runperiod"].shape, (1, 42))
+        self.assertEqual(min_outputs.tables["runperiod"].shape, (1, 42))
+        self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
         with open(self.header_pth, "r") as f:
@@ -288,7 +288,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
         outputs = generate_outputs(raw_outputs, header, dates, other_data)
 
-        for interval, df in outputs.items():
+        for interval, df in outputs.tables.items():
             if N_DAYS_COLUMN in df.columns:
                 self.assertEqual(df[N_DAYS_COLUMN].dtype, np.dtype("int64"))
             if DAY_COLUMN in df.columns:

@@ -32,11 +32,9 @@ class EsoFile(BaseFile):
         A full path of the ESO file.
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
-    header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header line
+    data : {DFOutputs, SQLOutputs}
+        A class to store resutls data
         {period : {ID : (key name, variable name, units)}}
-    outputs : dict of {str : Outputs subclass}
-        A dictionary holding categorized outputs using pandas.DataFrame like classes.
 
     Parameters
     ----------
@@ -84,7 +82,7 @@ class EsoFile(BaseFile):
         if content:
             self._complete = True
             (
-                self._outputs,
+                self.data,
                 self.peak_outputs,
                 self._search_tree,
             ) = content
@@ -103,12 +101,10 @@ class EsoFile(BaseFile):
 
         for interval, ids in groups.items():
             try:
-                data_set = self.peak_outputs[output_type][interval]
+                df = self.peak_outputs[output_type].get_results(interval, ids, start_date, end_date)
             except KeyError:
                 print(f"There are no peak outputs stored for interval: '{interval}'.")
                 continue
-
-            df = data_set.get_results(ids, start_date, end_date)
 
             if not include_id:
                 df.columns = df.columns.droplevel("id")

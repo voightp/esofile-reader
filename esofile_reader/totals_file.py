@@ -4,7 +4,7 @@ import re
 from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.outputs.outputs import Outputs
+from esofile_reader.outputs.df_outputs import DFOutputs
 from esofile_reader.utils.tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
@@ -150,17 +150,19 @@ class TotalsFile(BaseFile):
 
     def process_totals(self, file):
         """ Create building outputs. """
-        header, outputs = {}, {}
+        header = {}
+        outputs = DFOutputs()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            variable_dct = file.data_set(interval).header_variables_dct
+            variable_dct = file.data.get_variables(interval)
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
-            out = file.data_set(interval).get_all_results(transposed=True, ignore_units=IGNORED_UNITS)
-            out.index = out.index.droplevel(["interval", "key", "variable", "units"])
+            out = file.data.get_only_numeric_data(interval)
+            out = out.loc[:, ~out.columns.get_level_values("units").isin(IGNORED_UNITS)]
+            out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
-            df = pd.merge(left=header_df, right=out, left_index=True, right_index=True)
+            df = pd.merge(left=header_df, right=out.T, left_index=True, right_index=True)
             df.reset_index(drop=True, inplace=True)
             df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
             df = self._calculate_totals(df)
@@ -172,7 +174,7 @@ class TotalsFile(BaseFile):
                 except KeyError:
                     pass
 
-            outputs[interval] = Outputs(df)
+            outputs.set_data(interval, df)
 
         tree = Tree()
         tree.populate_tree(header)
@@ -189,7 +191,7 @@ class TotalsFile(BaseFile):
 
         if content:
             self._complete = True
-            (self._outputs,
+            (self.data,
              self._search_tree) = content
 
     def generate_diff(self, other_file):

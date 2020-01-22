@@ -3,7 +3,7 @@ from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import incremental_id_gen
 from esofile_reader.utils.tree import Tree
-from esofile_reader.outputs.outputs import Outputs
+from esofile_reader.outputs.df_outputs import DFOutputs
 from datetime import datetime
 
 import pandas as pd
@@ -12,7 +12,7 @@ import pandas as pd
 def calculate_diff(first_file, other_file, absolute=False,
                    include_id=False, include_interval=False):
     """ Calculate difference between two results files. """
-    diff = {}
+    diff = DFOutputs()
     id_gen = incremental_id_gen()
 
     for interval in first_file.available_intervals:
@@ -46,18 +46,20 @@ def calculate_diff(first_file, other_file, absolute=False,
 
                     df.columns = pd.MultiIndex.from_frame(header_df)
 
-                diff[interval] = Outputs(df)
-
         except MemoryError:
             raise MemoryError("Cannot subtract output DataFrames!"
                               "\nRunning out of memory!")
 
         for c in [N_DAYS_COLUMN, DAY_COLUMN]:
             try:
-                if other_file.data_set(interval)[c].equals(first_file.data_set(interval)[c]):
-                    df.insert(0, c, first_file.data_set(interval)[c])
+                c1 = first_file.data.get_special_column(c, interval)
+                c2 = other_file.data.get_special_column(c, interval)
+                if c1.equals(c2):
+                    df.insert(0, c, c1)
             except KeyError:
                 pass
+
+        diff.set_data(interval, df)
 
     return diff
 
@@ -73,8 +75,8 @@ class DiffFile(BaseFile):
         header = {}
         outputs = calculate_diff(first_file, other_file, include_id=True, include_interval=True)
 
-        for interval, df in outputs.items():
-            header[interval] = df.header_variables_dct
+        for interval in outputs.get_available_intervals():
+            header[interval] = outputs.get_variables(interval)
 
         tree = Tree()
         tree.populate_tree(header)
@@ -91,5 +93,5 @@ class DiffFile(BaseFile):
 
         if content:
             self._complete = True
-            (self._outputs,
+            (self.data,
              self._search_tree) = content

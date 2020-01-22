@@ -398,8 +398,8 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
         max_peaks.set_data(interval, max_df)
 
     peak_outputs = {
-        "local_min": {min_peaks},
-        "local_max": {max_peaks}
+        "local_min": min_peaks,
+        "local_max": max_peaks
     }
 
     return peak_outputs

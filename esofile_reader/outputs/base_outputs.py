@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Sequence, List
+from typing import Sequence, List, Dict
 from datetime import datetime
-from esofile_reader import Variable
+from esofile_reader.utils.mini_classes import Variable
 import pandas as pd
 
 
@@ -17,7 +17,7 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def get_variables(self, interval: str) -> List[Variable]:
+    def get_variables(self, interval: str) -> Dict[int, Variable]:
         """ Get list of variables for given interval. """
         pass
 
@@ -52,13 +52,13 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def get_number_days(self, interval: str, start_date: datetime = None,
-                        end_date: datetime = None) -> List[int]:
+    def get_number_of_days(self, interval: str, start_date: datetime = None,
+                           end_date: datetime = None) -> pd.Series:
         pass
 
     @abstractmethod
     def get_days_of_week(self, interval: str, start_date: datetime = None,
-                         end_date: datetime = None) -> List[str]:
+                         end_date: datetime = None) -> pd.Series:
         pass
 
     @abstractmethod

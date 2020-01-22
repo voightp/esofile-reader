@@ -3,7 +3,7 @@ import pandas as pd
 from random import randint
 from datetime import datetime
 from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
-from esofile_reader.outputs.outputs import Outputs
+from esofile_reader.outputs.df_outputs import DFOutputs
 from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
@@ -103,6 +103,11 @@ class BaseFile:
     def complete(self) -> bool:
         """ Check if the file has been populated and complete. """
         return self._complete
+
+    @property
+    def available_intervals(self) -> List[str]:
+        """ Get all available intervals. """
+        return self.data.get_available_intervals()
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -257,10 +262,10 @@ class BaseFile:
             return data.get_results(interval, ids, start_date, end_date, include_day)
 
         def global_max():
-            return data.global_max(interval, ids, start_date, end_date)
+            return data.get_global_max_results(interval, ids, start_date, end_date)
 
         def global_min():
-            return data.global_min(interval, ids, start_date, end_date)
+            return data.get_global_min_results(interval, ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -318,7 +323,8 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        while variable in self.data.get_variables(interval):
+        variables = self.data.get_variables(interval)
+        while variable in variables.values():
             i += 1
             variable = add_num()
 
@@ -345,7 +351,7 @@ class BaseFile:
             self._search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data.rename_variable(ids[0], new_var.key, new_var.variable)
+            self.data.rename_variable(interval, ids[0], new_var.key, new_var.variable)
             return ids[0], new_var
         else:
             print("Cannot rename variable! Original variable not found!")
@@ -450,7 +456,7 @@ class BaseFile:
 
         groups = self._find_pairs(variables)
         for interval, ids in groups.items():
-            self.data.remove_variables(ids)
+            self.data.remove_variables(interval, ids)
 
         # clean up the tree
         self._search_tree.remove_variables(variables)
