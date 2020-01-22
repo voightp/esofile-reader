@@ -8,7 +8,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Dict, List
 
-from esofile_reader.outputs.outputs import Outputs, create_peak_outputs
+from esofile_reader.outputs.df_outputs import DFOutputs, create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.constants import *
@@ -374,8 +374,11 @@ def create_header_df(header_dct: Dict[int, Variable], interval: str,
 
 def generate_peak_outputs(raw_peak_outputs, header, dates):
     """ Transform processed peak output data into DataFrame like classes. """
-    peak_outputs = {"local_min": {}, "local_max": {}}
     column_names = ["id", "interval", "key", "variable", "units"]
+
+    min_peaks = DFOutputs()
+    max_peaks = DFOutputs()
+
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, column_names[0])
         df_header = create_header_df(header[interval], interval, column_names[0],
@@ -388,16 +391,25 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
-        peak_outputs["local_min"][interval] = create_peak_outputs(df, interval, max_=False)
-        peak_outputs["local_max"][interval] = create_peak_outputs(df, interval)
+        min_df = create_peak_outputs(interval, df, max_=False)
+        min_peaks.set_data(interval, min_df)
+
+        max_df = create_peak_outputs(interval, df)
+        max_peaks.set_data(interval, max_df)
+
+    peak_outputs = {
+        "local_min": {min_peaks},
+        "local_max": {max_peaks}
+    }
 
     return peak_outputs
 
 
 def generate_outputs(raw_outputs, header, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
-    outputs = {}
     column_names = ["id", "interval", "key", "variable", "units"]
+    outputs = DFOutputs()
+
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, column_names[0])
         df_header = create_header_df(header[interval], interval, column_names[0],
@@ -410,16 +422,17 @@ def generate_outputs(raw_outputs, header, dates, other_data):
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
-        out = Outputs(df, dtype=np.float)
+        # raw outputs are stored as strings
+        df = df.astype(np.float, copy=False)
 
+        # add other special columns
         for k, v in other_data.items():
             try:
                 column = v.pop(interval)
-                out.insert(0, k, column)
+                df.insert(0, k, column)
             except KeyError:
                 pass
-
-        outputs[interval] = out
+        outputs.set_data(interval, df)
 
     return outputs
 

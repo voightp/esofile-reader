@@ -35,15 +35,6 @@ class CannotAggregateVariables(Exception):
     pass
 
 
-def gen_id(checklist, negative=True):
-    """ ID generator. """
-    while True:
-        i = randint(1, 999999)
-        i = -i if negative else i
-        if i not in checklist:
-            return -randint(1, 999999)
-
-
 class BaseFile:
     """
     The AbstractEsoFile class works as a base for a 'physical' eso file and
@@ -77,11 +68,9 @@ class BaseFile:
         A full path of the ESO file.
     file_timestamp : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
-    header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
+    data : {DFOutputs, SQLOutputs}
+        A class to store resutls data
         {period : {ID : (key name, variable name, units)}}
-    _outputs : dict of {str : Outputs subclass}
-        A dictionary holding categorized outputs using pandas.DataFrame like classes.
 
     Notes
     -----
@@ -94,34 +83,16 @@ class BaseFile:
     def __init__(self):
         self.file_path = None
         self.file_name = None
-        self._complete = False
-        self._outputs = None
+        self.data = None
 
         self.file_timestamp = None
         self._search_tree = None
+        self._complete = False
 
     def __repr__(self):
         return f"File: {self.file_name}" \
             f"\nPath: {self.file_path}" \
             f"\nCreated: {self.created}"
-
-    @property
-    def available_intervals(self) -> List[str]:
-        """ Return a list of available intervals. """
-        return list(self._outputs.keys())
-
-    @property
-    def all_data_sets(self) -> List[Outputs]:
-        """ Fetch all data sets. """
-        return self._outputs.values()
-
-    @property
-    def all_ids(self) -> List[int]:
-        """ Return a list of all ids (regardless the interval). """
-        ids = []
-        for data_set in self.all_data_sets:
-            ids.extend(data_set.get_ids())
-        return ids
 
     @property
     def created(self) -> datetime:
@@ -132,21 +103,6 @@ class BaseFile:
     def complete(self) -> bool:
         """ Check if the file has been populated and complete. """
         return self._complete
-
-    @property
-    def header_df(self) -> pd.DataFrame:
-        """ Get pd.DataFrame like header (index: mi(interval, id). """
-        frames = []
-        for data_set in self._outputs.values():
-            frames.append(data_set.header_df)
-        return pd.concat(frames)
-
-    def data_set(self, interval: str) -> Outputs:
-        """ Fetch data set for given interval. """
-        try:
-            return self._outputs[interval]
-        except KeyError:
-            raise KeyError
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -186,23 +142,6 @@ class BaseFile:
             print(f"Any of requested variables is not "
                   f"included in the Eso file '{self.file_name}'.")
 
-    def find_ids(self, variables: Union[Variable, List[Variable]],
-                 part_match: bool = False) -> List[int]:
-        """ Find ids for a list of 'Variables'. """
-        variables = variables if isinstance(variables, list) else [variables]
-        out = []
-
-        for request in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-            ids = self._search_tree.get_ids(interval=interval, key=key, variable=var,
-                                            units=units, part_match=part_match)
-            if not ids:
-                continue
-
-            out.extend(ids)
-
-        return out
-
     def _find_pairs(self, variables: Union[Variable, List[Variable]],
                     part_match: bool = False) -> Dict[str, List[int]]:
         """
@@ -239,6 +178,23 @@ class BaseFile:
                     out[k].extend(pairs[k])
                 else:
                     out[k] = pairs[k]
+
+        return out
+
+    def find_ids(self, variables: Union[Variable, List[Variable]],
+                 part_match: bool = False) -> List[int]:
+        """ Find ids for a list of 'Variables'. """
+        variables = variables if isinstance(variables, list) else [variables]
+        out = []
+
+        for request in variables:
+            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
+            ids = self._search_tree.get_ids(interval=interval, key=key, variable=var,
+                                            units=units, part_match=part_match)
+            if not ids:
+                continue
+
+            out.extend(ids)
 
         return out
 
@@ -298,13 +254,13 @@ class BaseFile:
         """
 
         def standard():
-            return data_set.get_results(ids, start_date, end_date, include_day)
+            return data.get_results(interval, ids, start_date, end_date, include_day)
 
         def global_max():
-            return data_set.global_max(ids, start_date, end_date)
+            return data.global_max(interval, ids, start_date, end_date)
 
         def global_min():
-            return data_set.global_min(ids, start_date, end_date)
+            return data.global_min(interval, ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -326,13 +282,13 @@ class BaseFile:
         groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
-            data_set = self._outputs[interval]
+            data = self.data
             df = res[output_type]()
 
             # convert 'rate' or 'energy' when standard results are requested
             if output_type == "standard" and rate_to_energy_dct[interval]:
                 try:
-                    n_days = data_set.get_number_of_days(start_date, end_date)
+                    n_days = data.get_number_of_days(interval, start_date, end_date)
                 except KeyError:
                     n_days = None
 
@@ -351,9 +307,9 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def _new_header_variable(self, interval: str, key: str, var: str,
-                             units: str) -> Variable:
-        """ Create a unique header variable. """
+    def create_header_variable(self, interval: str, key: str, var: str,
+                               units: str) -> Variable:
+        """ Create unique header variable. """
 
         def add_num():
             new_key = f"{key} ({i})"
@@ -362,8 +318,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-
-        while variable in self.data_set(interval).header_variables_dct.values():
+        while variable in self.data.get_variables(interval):
             i += 1
             variable = add_num()
 
@@ -386,12 +341,11 @@ class BaseFile:
             self._search_tree.remove_variables([variable])
 
             # create new variable and add it into tree
-            new_var = self._new_header_variable(interval, key_name, var_name, units)
+            new_var = self.create_header_variable(interval, key_name, var_name, units)
             self._search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data_set(interval).rename_variable(ids[0], new_var.key,
-                                                    new_var.variable)
+            self.data.rename_variable(ids[0], new_var.key, new_var.variable)
             return ids[0], new_var
         else:
             print("Cannot rename variable! Original variable not found!")
@@ -399,19 +353,12 @@ class BaseFile:
     def add_output(self, interval: str, key_name: str, var_name: str, units: str,
                    array: Sequence) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
-        # generate a unique identifier, custom ids use '-' sign
-        id_ = gen_id(self.all_ids, negative=True)
+        new_var = self.create_header_variable(interval, key_name, var_name, units)
+        id_ = self.data.add_variable(new_var, array)
 
-        # create new unique variable
-        new_var = self._new_header_variable(interval, key_name, var_name, units)
-        unique = self._search_tree.add_variable(id_, new_var)
-
-        if unique:
-            valid = self.data_set(interval).add_variable(id_, new_var, array)
-            if valid:
-                return id_, new_var
-            else:
-                self._search_tree.remove_variables(new_var)
+        if id_:
+            self._search_tree.add_variable(id_, new_var)
+            return id_, new_var
 
     def aggregate_variables(self, variables: Union[Variable, List[Variable]],
                             func: Union[str, Callable], key_name: str = "Custom Key",
@@ -457,7 +404,7 @@ class BaseFile:
 
         interval, ids = list(groups.items())[0]
 
-        df = self.data_set(interval).get_results(ids)
+        df = self.data.get_results(interval, ids)
         variables = df.columns.get_level_values("variable").tolist()
         units = df.columns.get_level_values("units").tolist()
 
@@ -468,7 +415,7 @@ class BaseFile:
         elif rate_and_energy_units(units):
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.data_set(interval).get_number_of_days()
+                n_days = self.data.get_number_of_days(interval)
             except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:
@@ -503,10 +450,7 @@ class BaseFile:
 
         groups = self._find_pairs(variables)
         for interval, ids in groups.items():
-            self.data_set(interval).remove_variables(ids)
-
-            if self._outputs[interval].empty:
-                del self._outputs[interval]
+            self.data.remove_variables(ids)
 
         # clean up the tree
         self._search_tree.remove_variables(variables)
@@ -516,7 +460,7 @@ class BaseFile:
     def as_df(self, interval: str):
         """ Return the file as a single DataFrame. """
         try:
-            df = self.data_set(interval).get_all_results(drop_special=True)
+            df = self.data.get_only_numeric_data(interval)
 
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.")

@@ -1,31 +1,40 @@
 from uuid import uuid1
 from esofile_reader import EsoFile
+from esofile_reader.utils.utils import profile
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
     DateTime, Boolean, Sequence, Text, inspect, select
 import pandas as pd
+import contextlib
+from sqlalchemy import exc
+import sqlalchemy
+
+FILE_TABLE = "resultfiles"
 
 
-def set_up_db(path=None):
+def set_up_db(path=None, echo=True):
     path = path if path else ":memory:"
 
-    engine = create_engine(f'sqlite:///{path}', echo=True)
-    metadata = MetaData(engine)
+    engine = create_engine(f'sqlite:///{path}', echo=echo)
+    metadata = MetaData(engine, reflect=True)
 
-    file = Table(
-        "resultfiles", metadata,
-        Column("id", Integer, Sequence('db_id_seq'), primary_key=True),
-        Column("file_path", String(120)),
-        Column("file_name", String(50)),
-        Column("file_timestamp", DateTime),
-        Column("table_timestep", String(50)),
-        Column("table_hourly", String(50)),
-        Column("table_daily", String(50)),
-        Column("table_monthly", String(50)),
-        Column("table_annual", String(50)),
-        Column("table_runperiod", String(50))
-    )
+    if FILE_TABLE not in metadata.tables.keys():
+        file = Table(
+            FILE_TABLE, metadata,
+            Column("id", Integer, Sequence('db_id_seq'), primary_key=True),
+            Column("file_path", String(120)),
+            Column("file_name", String(50)),
+            Column("file_timestamp", DateTime),
+            Column("table_indexes", String(20)),
+            Column("table_timestep", String(20)),
+            Column("table_hourly", String(20)),
+            Column("table_daily", String(20)),
+            Column("table_monthly", String(20)),
+            Column("table_annual", String(20)),
+            Column("table_runperiod", String(20))
+        )
 
-    file.create()
+        with contextlib.suppress(exc.InvalidRequestError, exc.OperationalError):
+            file.create()
 
     return engine, metadata
 
@@ -37,12 +46,13 @@ def merge_df_values(df: pd.DataFrame, separator: str = " ") -> pd.Series:
     return str_df
 
 
+@profile
 def results_table_generator(metadata, file_id, interval, df):
     name = f"outputs-{interval}-{file_id}]"
 
     table = Table(
         name, metadata,
-        Column("id", Integer, primary_key=True, index=True),
+        Column("id", Integer, primary_key=True, index=True, autoincrement=True),
         Column("interval", String(50)),
         Column("key", String(50)),
         Column("variable", String(50)),
@@ -70,12 +80,24 @@ def results_table_generator(metadata, file_id, interval, df):
     return name, ins
 
 
-def timestamps_table_generator(metadata, file_id, interval, date_range):
+@profile
+def dates_table_generator(metadata, file_id, interval, date_range):
     name = f"index-{interval}-{file_id}]"
 
     table = Table(
         name, metadata,
-        Column("timestamps", Text),
+        Column("timestep_dates", Text),
+        Column("hourly_dates", Text),
+        Column("daily_dates", Text),
+        Column("monthly_dates", Text),
+        Column("annual_dates", Text),
+        Column("runperiod_dates", Text),
+        Column("timestep_days", Text),
+        Column("hourly_days", Text),
+        Column("daily_days", Text),
+        Column("monthly_n_days", Text),
+        Column("annual_n_days", Text),
+        Column("runperiod_n_days", Text),
     )
 
     table.create()
@@ -86,20 +108,20 @@ def timestamps_table_generator(metadata, file_id, interval, date_range):
     return name, ins
 
 
-def store_file(id_, result_file, engine, metadata):
+@profile
+def store_file(result_file, engine, metadata):
     f = metadata.tables["resultfiles"]
     ins = f.insert().values(
-        id=id_,
         file_path=result_file.file_path,
         file_name=result_file.file_name,
         file_timestamp=result_file.created
     )
     with engine.connect() as conn:
-        conn.execute(ins)
+        id_ = conn.execute(ins).inserted_primary_key[0]
 
     for interval, df in result_file._outputs.items():
         results_name, results_ins = results_table_generator(metadata, id_, interval, df.only_numeric)
-        timestamp_name, timestamp_ins = timestamps_table_generator(metadata, id_, interval, df.index)
+        timestamp_name, timestamp_ins = dates_table_generator(metadata, id_, interval, df.index)
 
         with engine.connect() as conn:
             conn.execute(metadata.tables[results_name].insert(), results_ins)
@@ -107,9 +129,13 @@ def store_file(id_, result_file, engine, metadata):
 
 
 if __name__ == "__main__":
-    ef = EsoFile(r"C:\Users\vojte\Desktop\Python\eso_reader\tests\eso_files\eplusout1.eso",
-                 report_progress=False)
+    ef = EsoFile(r"C:\Users\vojtechp1\AppData\Local\DesignBuilder\EnergyPlus\eplusout.eso",
+                 report_progress=True)
 
-    eng, meta = set_up_db()
+    eng, meta = set_up_db(echo=False)
 
-    store_file(1, ef, eng, meta)
+    store_file(ef, eng, meta)
+
+    eng, meta = set_up_db("test.db", echo=False)
+
+    store_file(ef, eng, meta)
