@@ -31,44 +31,9 @@ subgroups = {
 }
 
 
-def get_group_key(string, groups):
-    for g in groups:
-        if re.match(f"^{g}.*", string):
-            return g
-    else:
-        print(f"{string} not found!")
-
-
-def get_keyword(string, keywords):
-    """ Return value if key is included in 'word'. """
-    if any(map(lambda x: x in string, keywords)):
-        return next(v for k, v in keywords.items() if k in string)
-
-
 class TotalsFile(BaseFile):
     """
-    This class holds aggregated results from EsoFile class.
-
-    Attributes
-    ----------
-    file_path : str
-        A full path of the ESO file.
-    file_timestamp : datetime.datetime
-        Time and date when the ESO file has been generated (extracted from original Eso file).
-    header : dict of {str : dict of {int : list of str}}
-        A dictionary to store E+ header data
-        {period : {ID : (key name, variable name, units)}}
-    outputs : dict of {str : Outputs subclass}
-        A dictionary holding categorized outputs using pandas.DataFrame like classes.
-
-    Parameters
-    ----------
-    eso_file : EsoFile
-        A processed E+ ESO file.
-
-    Raises
-    ------
-    IncompleteFile
+    This class handles 'Totals' generation.
 
     """
 
@@ -77,8 +42,23 @@ class TotalsFile(BaseFile):
         self.populate_content(eso_file)
 
     @staticmethod
+    def _get_group_key(string, groups):
+        """ """
+        for g in groups:
+            if re.match(f"^{g}.*", string):
+                return g
+        else:
+            print(f"{string} not found!")
+
+    @staticmethod
+    def _get_keyword(string, keywords):
+        """ Return value if key is included in 'word'. """
+        if any(map(lambda x: x in string, keywords)):
+            return next(v for k, v in keywords.items() if k in string)
+
+    @staticmethod
     def _calculate_totals(df):
-        """ Calculate 'building totals'."""
+        """ Handle totals generation."""
         cnd = df.index.get_level_values("units").isin(AVERAGED_UNITS)
         mi_df = df.index.to_frame(index=False)
         mi_df.drop_duplicates(inplace=True)
@@ -102,8 +82,7 @@ class TotalsFile(BaseFile):
 
         return df.T
 
-    @staticmethod
-    def _get_grouped_vars(id_gen, variables):
+    def _get_grouped_vars(self, id_gen, variables):
         """ Group header variables. """
         groups = {}
         rows, index = [], []
@@ -115,7 +94,7 @@ class TotalsFile(BaseFile):
 
             # init group string to be the same as variable
             gr_str = variable
-            w = get_keyword(key, subgroups)
+            w = self._get_keyword(key, subgroups)
 
             if key == "Cumulative Meter" or key == "Meter":
                 if "#" in variable:
@@ -129,7 +108,7 @@ class TotalsFile(BaseFile):
                 # assign key based on 'Variable' category
                 # the category is missing, use a first word in 'Variable' string
                 if group:
-                    key = get_group_key(variable, variable_groups)
+                    key = self._get_group_key(variable, variable_groups)
                     if not key:
                         key = variable.split(maxsplit=1)[0]
 
@@ -149,7 +128,7 @@ class TotalsFile(BaseFile):
         return pd.DataFrame(rows, columns=cols, index=index)
 
     def process_totals(self, file):
-        """ Create building outputs. """
+        """ Process 'Totals' outputs. """
         header = {}
         outputs = DFOutputs()
         id_gen = incremental_id_gen()
@@ -182,7 +161,7 @@ class TotalsFile(BaseFile):
         return outputs, tree
 
     def populate_content(self, eso_file):
-        """ Generate building related data based on input 'EsoFile'. """
+        """ Generate 'Totals' related data based on input 'ResultFile'. """
         self.file_path = eso_file.file_path
         self.file_name = f"{eso_file.file_name} - totals"
         self.file_timestamp = eso_file.file_timestamp  # use base file timestamp
@@ -195,9 +174,9 @@ class TotalsFile(BaseFile):
              self._search_tree) = content
 
     def generate_diff(self, other_file):
-        """ Generate a new 'Building' eso file. """
+        """ Generate 'Diff' results file. """
         if self.complete:
             return DiffFile(self, other_file)
         else:
-            raise IncompleteFile(f"Cannot generate totals, "
+            raise IncompleteFile(f"Cannot generate 'Diff' file, "
                                  f"file {self.file_path} is not complete!")

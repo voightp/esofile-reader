@@ -19,8 +19,6 @@ RATE_TO_ENERGY_DCT = {TS: False,
 
 ALL_INTERVALS = ["timestep", "hourly", "daily", "monthly", "annual", "runperiod"]
 
-# AVERAGED_VARIABLES = ["C", "F", "W", "ach", "ppm", "%", "", " ", "kgWater/kgDryAir"]
-
 AVERAGED_UNITS = [
     "W",
     "W/m2",

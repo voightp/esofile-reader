@@ -1,120 +1,59 @@
 import pandas as pd
-import numpy as np
 from datetime import datetime
-from typing import Sequence, List, Dict, Union
+from typing import Sequence, List, Dict
 from esofile_reader.constants import *
 from esofile_reader.outputs.base_outputs import BaseOutputs
-from esofile_reader.processing.interval_processor import parse_result_dt
+from esofile_reader.outputs.df_outputs_functions import merge_peak_outputs, slicer
+
 from esofile_reader.utils.utils import id_gen
 from esofile_reader.utils.mini_classes import Variable
 
 
-def _merge_peak_outputs(timestamp_df, values_df):
-    """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
-    df = pd.concat({TIMESTAMP_COLUMN: timestamp_df, VALUE_COLUMN: values_df}, axis=1)
-    df.columns.set_names(names="data", level=0, inplace=True)
-
-    # move data index to lowest level
-    names = list(df.columns.names)
-    names.append(names.pop(0))
-    df.columns = df.columns.reorder_levels(names)
-
-    # create order to group value and timestamp
-    length = len(df.columns)
-    order = list(range(1, length, 2)) + list(range(0, length, 2))
-    levels = [df.columns.get_level_values(i) for i in range(df.columns.nlevels)]
-    levels.insert(0, pd.Index(order))
-
-    # sort DataFrame by order column, order name must be specified
-    names = ["order", *df.columns.names]
-    df.columns = pd.MultiIndex.from_arrays(levels, names=names)
-    df.sort_values(by="order", inplace=True, axis=1)
-
-    # drop order index
-    df.columns = df.columns.droplevel("order")
-
-    return df
-
-
-def _local_peaks(df, val_ix=None, month_ix=None, day_ix=None,
-                 hour_ix=None, end_min_ix=None):
-    """ Return value and datetime of occurrence. """
-
-    def get_timestamps(sr):
-        def parse_vals(val):
-            if val is not np.NaN:
-                month = val[month_ix] if month_ix else None
-                day = val[day_ix] if day_ix else None
-                hour = val[hour_ix]
-                end_min = val[end_min_ix]
-                ts = parse_result_dt(date, month, day, hour, end_min)
-                return ts
-            else:
-                return np.NaN
-
-        date = sr.name
-        sr = sr.apply(parse_vals)
-
-        return sr
-
-    vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
-    ixs = df.apply(get_timestamps, axis=1)
-
-    df = _merge_peak_outputs(ixs, vals)
-
-    return df
-
-
-def create_peak_outputs(interval, df, max_=True):
-    """ Create DataFrame for peak minimums. """
-
-    max_indexes = {
-        D: {"val_ix": 3, "hour_ix": 4, "end_min_ix": 5},
-        M: {"val_ix": 4, "day_ix": 5, "hour_ix": 6, "end_min_ix": 7},
-        A: {"val_ix": 5, "month_ix": 6, "day_ix": 7, "hour_ix": 8, "end_min_ix": 9},
-        RP: {"val_ix": 5, "month_ix": 6, "day_ix": 7, "hour_ix": 8, "end_min_ix": 9}
-    }
-    min_indexes = {
-        D: {"val_ix": 0, "hour_ix": 1, "end_min_ix": 2},
-        M: {"val_ix": 0, "day_ix": 1, "hour_ix": 2, "end_min_ix": 3},
-        A: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
-        RP: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
-    }
-    indexes = max_indexes if max_ else min_indexes
-
-    return _local_peaks(df, **indexes[interval])
-
-
-def slicer(df, ids, start_date=None, end_date=None):
-    """ Slice df using indeterminate range. """
-    ids = ids if isinstance(ids, list) else [ids]
-    cond = df.columns.get_level_values("id").isin(ids)
-    try:
-        if start_date and end_date:
-            df = df.loc[start_date:end_date, cond]
-        elif start_date:
-            df = df.loc[start_date:, cond]
-        elif end_date:
-            df = df.loc[:end_date, cond]
-        else:
-            df = df.loc[:, cond]
-
-    except KeyError:
-        valid_ids = df.columns.get_level_values("id").intersection(ids)
-        ids = [str(ids)] if not isinstance(ids, list) else [str(i) for i in ids]
-        print(f"Cannot slice df using requested inputs:"
-              f"ids: '{', '.join(ids)}', start date: '{start_date}', end date: "
-              f"'{end_date}'.\nTrying to use ids: '{valid_ids}' with all rows.")
-
-        if valid_ids.empty:
-            raise KeyError("Any of given ids is not included!")
-
-        df = df.loc[:, valid_ids]
-
-    return df.copy()
-
-
 class DFOutputs(BaseOutputs):
+    """
+    The results are stored in a dictionary using string interval identifiers
+    as keys and pandas.DataFrame classes as values.
+
+    Attributes
+    ----------
+    tables : dict
+        A dictionary to store result pd.DataFrames
+
+    Notes
+    -----
+    A structure for data bins is as follows:
+
+    outputs = {
+        TS : pd.DataFrame,
+        H : pd.DataFrame,
+        D : pd.DataFrame,
+        M : pd.DataFrame,
+        A : pd.DataFrame,
+        RP : pd.DataFrame,
+    }
+
+    pd.DataFrame:
+
+        id                         54898                  54902    \
+        interval                   daily                  daily
+        key              GROUND:CORRIDOR            GROUND:FLAT
+        variable    Air Changes per Hour   Air Changes per Hour
+        units                        ach                    ach
+        timestamp
+        2002-01-01              0.359897               0.112835
+        2002-01-02              0.505683               0.148829
+        2002-01-03              0.869096               0.217162
+        2002-01-04              0.671173               0.276128
+        2002-01-05              0.000000               0.000000
+        ...                          ...                    ...
+
+
+    There can be some special columns with predefined getters:
+        get_number_of_days(interval)
+        get_days_of_week(interval)
+
+    """
+
     def __init__(self):
         self.tables = {}
 
@@ -237,7 +176,7 @@ class DFOutputs(BaseOutputs):
         vals = pd.DataFrame(df.max() if max_ else df.min()).T
         ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
 
-        df = _merge_peak_outputs(ixs, vals)
+        df = merge_peak_outputs(ixs, vals)
         df = df.iloc[[0]]  # report only first occurrence
 
         return df

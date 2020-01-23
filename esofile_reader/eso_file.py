@@ -21,9 +21,6 @@ class EsoFile(BaseFile):
     """
     The ESO class holds processed EnergyPlus output ESO file data.
 
-    The results are stored in a dictionary using string interval identifiers
-    as keys and pandas.DataFrame like classes as values.
-
     A structure for data bins is works as for 'BaseFile'.
 
     Attributes
@@ -95,7 +92,7 @@ class EsoFile(BaseFile):
     def _get_peak_results(self, variables, output_type, start_date=None, end_date=None,
                           add_file_name="row", include_interval=False,
                           include_id=False, part_match=False, timestamp_format="default"):
-        """ Return peak results. """
+        """ Return local peak results. """
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)
 
@@ -182,7 +179,7 @@ class EsoFile(BaseFile):
         return df
 
     def generate_totals(self):
-        """ Generate a new 'Totals' file. """
+        """ Generate 'Totals' file. """
         if self.complete:
             return TotalsFile(self)
         else:
@@ -190,7 +187,7 @@ class EsoFile(BaseFile):
                                  f"file {self.file_path} is not complete!")
 
     def generate_diff(self, other_file):
-        """ Generate a new 'Building' eso file. """
+        """ Generate 'Diff' file. """
         if self.complete:
             return DiffFile(self, other_file)
         else:

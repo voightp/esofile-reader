@@ -37,46 +37,28 @@ class CannotAggregateVariables(Exception):
 
 class BaseFile:
     """
-    The AbstractEsoFile class works as a base for a 'physical' eso file and
-    totals file.
+    A base class works as a base for various result file formats.
 
-    The results are stored in a dictionary using string interval identifiers
-    as keys and pandas.DataFrame like classes as values.
-
-    A structure for data bins is as follows:
-    header_dict = {
-        TS : {(int)ID : ('Key','Variable','Units')},
-        H : {(int)ID : ('Key','Variable','Units')},
-        D : {(int)ID : ('Key','Variable','Units')},
-        M : {(int)ID : ('Key','Variable','Units')},
-        A : {(int)ID : ('Key','Variable','Units')},
-        RP : {(int)ID : ('Key','Variable','Units')},
-    }
-
-    outputs = {
-        TS : outputs.Outputs,
-        H : outputs.Outputs,
-        D : outputs.Outputs,
-        M : outputs.Outputs,
-        A : outputs.Outputs,
-        RP : outputs.Outputs,
-    }
 
     Attributes
     ----------
     file_path : str
-        A full path of the ESO file.
+        A full path of the result file.
     file_timestamp : datetime.datetime
-        Time and date when the ESO file has been generated (extracted from original Eso file).
+        Time and date when of the file generation..
     data : {DFOutputs, SQLOutputs}
-        A class to store resutls data
-        {period : {ID : (key name, variable name, units)}}
+        A class to store results data
+    _search_tree : Tree
+        N array tree for efficient id searching.
+    _complete : bool
+        A flag to inform if the file has been processed.
+
 
     Notes
     -----
     This class cannot be used directly!
 
-    Method 'populate_data' is only a signature method so attributes cannot be populated.
+    Method 'populate_data' is only a signature method to be implemented in subclasses.
 
     """
 
@@ -84,8 +66,8 @@ class BaseFile:
         self.file_path = None
         self.file_name = None
         self.data = None
-
         self.file_timestamp = None
+
         self._search_tree = None
         self._complete = False
 
