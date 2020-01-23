@@ -305,7 +305,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        variables = self.data.get_variables(interval)
+        variables = self.data.get_variables_dct(interval)
         while variable in variables.values():
             i += 1
             variable = add_num()

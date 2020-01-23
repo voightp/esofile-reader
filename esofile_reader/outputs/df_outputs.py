@@ -68,16 +68,23 @@ class DFOutputs(BaseOutputs):
     def get_available_intervals(self) -> List[str]:
         return list(self.tables.keys())
 
-    def get_variables(self, interval: str) -> Dict[int, Variable]:
+    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
 
         def create_variable(sr):
             return sr["id"], Variable(sr["interval"], sr["key"], sr["variable"], sr["units"])
 
-        header_df = self.get_header_df(interval)
+        header_df = self.get_variables_df(interval)
         var_df = header_df.apply(create_variable, axis=1, result_type="expand")
         var_df.set_index(0, inplace=True)
 
         return var_df.to_dict(orient="dict")[1]
+
+    def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
+        all_variables = {}
+        for interval in self.get_available_intervals():
+            ids = self.get_variables_dct(interval)
+            all_variables[interval] = ids
+        return all_variables
 
     def get_variable_ids(self, interval: str) -> List[int]:
         mi = self.tables[interval].columns.get_level_values("id").tolist()
@@ -90,14 +97,14 @@ class DFOutputs(BaseOutputs):
             all_ids.extend(ids)
         return all_ids
 
-    def get_header_df(self, interval: str) -> pd.DataFrame:
+    def get_variables_df(self, interval: str) -> pd.DataFrame:
         df = self.get_only_numeric_data(interval)
         return df.columns.to_frame(index=False)
 
-    def get_all_header_dfs(self) -> pd.DataFrame:
+    def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
         for interval in self.get_available_intervals():
-            frames.append(self.get_header_df(interval))
+            frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
     def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
@@ -121,13 +128,16 @@ class DFOutputs(BaseOutputs):
             return id_
 
     def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
-        try:
-            self.tables[interval].drop(columns=ids, inplace=True, level="id")
-        except KeyError:
-            print(f"Cannot remove ids: {', '.join([str(id_) for id_ in ids])}")
-            raise KeyError
+        all_ids = self.tables[interval].columns.get_level_values("id")
+        if not all(map(lambda x: x in all_ids, ids)):
+            raise KeyError(f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
+                           f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
+                           f"are not included.")
 
-    def get_special_column(self, name: str, interval: str, start_date: datetime = None,
+        self.tables[interval].drop(columns=ids, inplace=True, level="id")
+
+
+    def get_special_column(self, interval: str, name: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
             raise KeyError(f"'{name}' column is not available "
@@ -142,11 +152,11 @@ class DFOutputs(BaseOutputs):
 
     def get_number_of_days(self, interval: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
-        return self.get_special_column(N_DAYS_COLUMN, interval, start_date, end_date)
+        return self.get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(self, interval: str, start_date: datetime = None,
                          end_date: datetime = None) -> pd.Series:
-        return self.get_special_column(DAY_COLUMN, interval, start_date, end_date)
+        return self.get_special_column(interval,DAY_COLUMN, start_date, end_date)
 
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:

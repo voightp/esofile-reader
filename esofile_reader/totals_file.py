@@ -134,7 +134,7 @@ class TotalsFile(BaseFile):
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            variable_dct = file.data.get_variables(interval)
+            variable_dct = file.data.get_variables_dct(interval)
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
             out = file.data.get_only_numeric_data(interval)

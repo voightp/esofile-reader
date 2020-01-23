@@ -37,9 +37,9 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.data.get_all_header_dfs().columns.to_list(), ["id", "interval", "key",
+        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
                                                                                "variable", "units"])
-        self.assertEqual(len(self.ef.data.get_all_header_dfs().index), 114)
+        self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name

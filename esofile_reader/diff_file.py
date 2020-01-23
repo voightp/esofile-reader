@@ -82,7 +82,7 @@ class DiffFile(BaseFile):
                                       include_id=True, include_interval=True)
 
         for interval in outputs.get_available_intervals():
-            header[interval] = outputs.get_variables(interval)
+            header[interval] = outputs.get_variables_dct(interval)
 
         tree = Tree()
         tree.populate_tree(header)

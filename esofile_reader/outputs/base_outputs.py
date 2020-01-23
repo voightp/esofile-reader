@@ -22,8 +22,13 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def get_variables(self, interval: str) -> Dict[int, Variable]:
-        """ Get list of variables for given interval. """
+    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
+        """ Get a dict of id: variables pairs for given interval. """
+        pass
+
+    @abstractmethod
+    def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
+        """ Get a dict of id: variables for all intervals. """
         pass
 
     @abstractmethod
@@ -37,12 +42,12 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def get_header_df(self, interval: str) -> pd.DataFrame:
+    def get_variables_df(self, interval: str) -> pd.DataFrame:
         """ Get header information from a single interval."""
         pass
 
     @abstractmethod
-    def get_all_header_dfs(self) -> pd.DataFrame:
+    def get_all_variables_df(self) -> pd.DataFrame:
         """ Get header information from all intervals as a single df. """
         pass
 
