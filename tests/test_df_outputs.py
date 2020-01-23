@@ -192,8 +192,8 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_invalid_ids(self):
-        df = self.ef.data.get_results("daily", [7])
-        self.assertTrue(df.empty)
+        with self.assertRaises(KeyError):
+            _ = self.ef.data.get_results("daily", [7])
 
     def test_get_global_max_results(self):
         df = self.ef.data.get_global_max_results("monthly", [324, 983])

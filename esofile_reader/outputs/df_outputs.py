@@ -136,7 +136,6 @@ class DFOutputs(BaseOutputs):
 
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
-
     def get_special_column(self, interval: str, name: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
@@ -156,7 +155,7 @@ class DFOutputs(BaseOutputs):
 
     def get_days_of_week(self, interval: str, start_date: datetime = None,
                          end_date: datetime = None) -> pd.Series:
-        return self.get_special_column(interval,DAY_COLUMN, start_date, end_date)
+        return self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:

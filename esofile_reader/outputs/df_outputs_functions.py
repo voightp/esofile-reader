@@ -84,27 +84,22 @@ def create_peak_outputs(interval, df, max_=True):
 def slicer(df, ids, start_date=None, end_date=None):
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
+
+    all_ids = df.columns.get_level_values("id")
+    if not all(map(lambda x: x in all_ids, ids)):
+        raise KeyError(f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
+                       f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
+                       f"are not included.")
+
     cond = df.columns.get_level_values("id").isin(ids)
-    try:
-        if start_date and end_date:
-            df = df.loc[start_date:end_date, cond]
-        elif start_date:
-            df = df.loc[start_date:, cond]
-        elif end_date:
-            df = df.loc[:end_date, cond]
-        else:
-            df = df.loc[:, cond]
 
-    except KeyError:
-        valid_ids = df.columns.get_level_values("id").intersection(ids)
-        ids = [str(ids)] if not isinstance(ids, list) else [str(i) for i in ids]
-        print(f"Cannot slice df using requested inputs:"
-              f"ids: '{', '.join(ids)}', start date: '{start_date}', end date: "
-              f"'{end_date}'.\nTrying to use ids: '{valid_ids}' with all rows.")
-
-        if valid_ids.empty:
-            raise KeyError("Any of given ids is not included!")
-
-        df = df.loc[:, valid_ids]
+    if start_date and end_date:
+        df = df.loc[start_date:end_date, cond]
+    elif start_date:
+        df = df.loc[start_date:, cond]
+    elif end_date:
+        df = df.loc[:end_date, cond]
+    else:
+        df = df.loc[:, cond]
 
     return df.copy()
