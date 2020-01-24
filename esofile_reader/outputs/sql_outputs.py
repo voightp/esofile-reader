@@ -9,7 +9,7 @@ from uuid import uuid1
 from esofile_reader import EsoFile
 from esofile_reader.utils.utils import profile
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
-    DateTime, Boolean, Sequence, Text, inspect, select
+    DateTime, Boolean, Text, inspect, select
 import contextlib
 from sqlalchemy import exc
 import sqlalchemy
@@ -34,12 +34,13 @@ class SQLOutputs(BaseOutputs):
         path = path if path else ":memory:"
 
         engine = create_engine(f'sqlite:///{path}', echo=echo)
-        metadata = MetaData(engine, reflect=True)
+        metadata = MetaData(engine)
+        metadata.reflect()
 
         if cls.FILE_TABLE not in metadata.tables.keys():
             file = Table(
                 cls.FILE_TABLE, metadata,
-                Column("id", Integer, Sequence('db_id_seq'), primary_key=True),
+                Column("id", Integer, autoincrement=True, primary_key=True),
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_timestamp", DateTime),
