@@ -22,10 +22,11 @@ from esofile_reader.utils.mini_classes import Variable
 
 class SQLOutputs(BaseOutputs):
     FILE_TABLE = "result_files"
+    ENGINE = None
+    METADATA = None
 
     def __init__(self, path=None):
-        (self.engine,
-         self.metadata) = self.set_up_db(path=path)
+        pass
 
     @classmethod
     @profile
@@ -54,11 +55,15 @@ class SQLOutputs(BaseOutputs):
             with contextlib.suppress(exc.InvalidRequestError, exc.OperationalError):
                 file.create()
 
-        return engine, metadata
+        cls.ENGINE = engine
+        cls.METADATA = metadata
 
     @classmethod
     @profile
-    def store_file(cls, result_file, engine, metadata):
+    def store_file(cls, result_file):
+        engine = cls.ENGINE
+        metadata = cls.METADATA
+
         f = metadata.tables[cls.FILE_TABLE]
         ins = f.insert().values(
             file_path=result_file.file_path,
@@ -92,6 +97,32 @@ class SQLOutputs(BaseOutputs):
             conn.execute(metadata.tables[indexes_name].insert().values(**indexes_ins))
 
         return id_
+
+    @classmethod
+    @profile
+    def delete_file(cls, id_):
+        files = cls.METADATA.tables[cls.FILE_TABLE]
+
+        with cls.ENGINE.connect() as conn:
+            tables = [files.c.indexes_table,
+                      files.c.timestep_table,
+                      files.c.hourly_table,
+                      files.c.daily_table,
+                      files.c.monthly_table,
+                      files.c.annual_table,
+                      files.c.runperiod_table]
+            res = conn.execute(select(tables).where(files.c.id == id_)).first()
+
+            if res:
+                # remove tables based on file reference
+                for table_name in [t for t in res if t]:
+                    cls.METADATA.tables[table_name].drop()
+
+                # remove result file
+                conn.execute(files.delete().where(files.c.id == id_))
+
+            else:
+                raise KeyError(f"Cannot delete file id '{id_}'.")
 
     def set_data(self, interval: str, df: pd.DataFrame):
         pass
@@ -154,6 +185,12 @@ if __name__ == "__main__":
     #
     # SQLOutputs.store_file(ef, eng, meta)
 
-    eng, meta = SQLOutputs.set_up_db("test.db", echo=False)
+    SQLOutputs.set_up_db("test.db", echo=False)
 
-    SQLOutputs.store_file(ef, eng, meta)
+    SQLOutputs.store_file(ef)
+    SQLOutputs.store_file(ef)
+    SQLOutputs.store_file(ef)
+    SQLOutputs.store_file(ef)
+
+    SQLOutputs.delete_file(1)
+    SQLOutputs.delete_file(3)
