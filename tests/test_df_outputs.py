@@ -1,7 +1,7 @@
 import unittest
 import os
 import pandas as pd
-from pandas.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal, assert_index_equal
 
 from tests import ROOT
 from esofile_reader import EsoFile, Variable
@@ -25,7 +25,14 @@ class TestDFOutputs(unittest.TestCase):
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
-    def get_all_variables_dct(self):
+    def test_get_datetime_index(self):
+        index = self.ef.data.get_datetime_index("monthly")
+        assert_index_equal(index, pd.DatetimeIndex(['2002-01-01', '2002-02-01', '2002-03-01', '2002-04-01',
+                                                    '2002-05-01', '2002-06-01', '2002-07-01', '2002-08-01',
+                                                    '2002-09-01', '2002-10-01', '2002-11-01', '2002-12-01'],
+                                                   dtype='datetime64[ns]', name='timestamp', freq=None))
+
+    def test_get_all_variables_dct(self):
         variables = self.ef.data.get_all_variables_dct()
         self.assertListEqual(
             list(variables.keys()),

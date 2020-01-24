@@ -22,6 +22,11 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
+    def get_datetime_index(self, interval: str) -> List[pd.datetime]:
+        """ Store table in database. """
+        pass
+
+    @abstractmethod
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
         """ Get a dict of id: variables pairs for given interval. """
         pass

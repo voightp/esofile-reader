@@ -68,6 +68,12 @@ class DFOutputs(BaseOutputs):
     def get_available_intervals(self) -> List[str]:
         return list(self.tables.keys())
 
+    def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
+        """ Store table in database. """
+        index = self.tables[interval].index
+        if isinstance(index, pd.DatetimeIndex):
+            return index
+
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
 
         def create_variable(sr):
