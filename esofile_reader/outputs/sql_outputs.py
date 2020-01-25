@@ -22,11 +22,12 @@ from esofile_reader.utils.mini_classes import Variable
 
 class SQLOutputs(BaseOutputs):
     FILE_TABLE = "result_files"
+    SEPARATOR = "\t"
     ENGINE = None
     METADATA = None
 
-    def __init__(self, path=None):
-        pass
+    def __init__(self, id_):
+        self.id_ = id_
 
     @classmethod
     @profile
@@ -34,7 +35,7 @@ class SQLOutputs(BaseOutputs):
         path = path if path else ":memory:"
 
         engine = create_engine(f'sqlite:///{path}', echo=echo)
-        metadata = MetaData(engine)
+        metadata = MetaData(bind=engine)
         metadata.reflect()
 
         if cls.FILE_TABLE not in metadata.tables.keys():
@@ -50,7 +51,7 @@ class SQLOutputs(BaseOutputs):
                 Column("daily_table", String(20)),
                 Column("monthly_table", String(20)),
                 Column("annual_table", String(20)),
-                Column("runperiod_table", String(20))
+                Column("runperiod_table", String(20)),
             )
 
             with contextlib.suppress(exc.InvalidRequestError, exc.OperationalError):
@@ -85,8 +86,8 @@ class SQLOutputs(BaseOutputs):
                 results_name = results_table_generator(metadata, id_, interval)
 
                 # create data inserts
-                results_ins = create_results_insert(outputs.get_only_numeric_data(interval))
-                indexes_ins.update(create_index_insert(interval, outputs.tables[interval]))
+                results_ins = create_results_insert(outputs.get_only_numeric_data(interval), cls.SEPARATOR)
+                indexes_ins.update(create_index_insert(interval, outputs.tables[interval], cls.SEPARATOR))
 
                 # insert results into tables
                 conn.execute(metadata.tables[results_name].insert(), results_ins)
@@ -97,7 +98,7 @@ class SQLOutputs(BaseOutputs):
             # store index data
             conn.execute(metadata.tables[indexes_name].insert().values(**indexes_ins))
 
-        return id_
+        return SQLOutputs(id_)
 
     @classmethod
     @profile
@@ -105,15 +106,17 @@ class SQLOutputs(BaseOutputs):
         files = cls.METADATA.tables[cls.FILE_TABLE]
 
         with cls.ENGINE.connect() as conn:
-            tables = [files.c.indexes_table,
-                      files.c.timestep_table,
-                      files.c.hourly_table,
-                      files.c.daily_table,
-                      files.c.monthly_table,
-                      files.c.annual_table,
-                      files.c.runperiod_table]
-            res = conn.execute(select(tables).where(files.c.id == id_)).first()
+            columns = [
+                files.c.indexes_table,
+                files.c.timestep_table,
+                files.c.hourly_table,
+                files.c.daily_table,
+                files.c.monthly_table,
+                files.c.annual_table,
+                files.c.runperiod_table
+            ]
 
+            res = conn.execute(select(columns).where(files.c.id == id_)).first()
             if res:
                 # remove tables based on file reference
                 for table_name in [t for t in res if t]:
@@ -125,17 +128,83 @@ class SQLOutputs(BaseOutputs):
             else:
                 raise KeyError(f"Cannot delete file id '{id_}'.")
 
+        # reset metadata to reflect changes
+        cls.METADATA = MetaData(bind=cls.ENGINE)
+        cls.METADATA.reflect()
+
     def set_data(self, interval: str, df: pd.DataFrame):
         pass
 
     def get_available_intervals(self) -> List[str]:
-        pass
+        files = self.METADATA.tables[self.FILE_TABLE]
+        columns = [
+            files.c.timestep_table,
+            files.c.hourly_table,
+            files.c.daily_table,
+            files.c.monthly_table,
+            files.c.annual_table,
+            files.c.runperiod_table
+        ]
 
+        intervals = []
+        with self.ENGINE.connect() as conn:
+            res = conn.execute(select(columns).where(files.c.id == self.id_)).first()
+            for interval, table in zip([TS, H, D, M, A, RP], res):
+                if table:
+                    intervals.append(interval)
+        return interval
+
+    def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        with self.ENGINE.connect() as conn:
+            table_name = conn.execute(select([files.c.indexes_table]).where(files.c.id == self.id_)).first()[0]
+            table = self.METADATA.tables[table_name]
+
+            switch = {
+                TS: table.c.timestep_dt,
+                H: table.c.hourly_dt,
+                D: table.c.daily_dt,
+                M: table.c.monthly_dt,
+                A: table.c.annual_dt,
+                RP: table.c.runperiod_dt
+            }
+
+            res = conn.execute(select([switch[interval]])).first()[0]
+            datetime_index = pd.DatetimeIndex(res.split(self.SEPARATOR))
+
+        return datetime_index
+
+    @profile
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
-        pass
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        switch = {
+            TS: files.c.timestep_table,
+            H: files.c.hourly_table,
+            D: files.c.daily_table,
+            M: files.c.monthly_table,
+            A: files.c.annual_table,
+            RP: files.c.runperiod_table
+        }
+
+        variables_dct = {}
+        with self.ENGINE.connect() as conn:
+            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).first()[0]
+            table = self.METADATA.tables[table_name]
+            res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
+                                       table.c.variable, table.c.units]))
+
+            for row in res:
+                variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
+
+        return variables_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
-        pass
+        all_variables_dct = {}
+        for interval in self.get_available_intervals():
+            all_variables_dct[interval] = self.get_variables_dct[interval]
+        return all_variables_dct
 
     def get_variable_ids(self, interval: str) -> List[int]:
         pass
@@ -178,7 +247,7 @@ class SQLOutputs(BaseOutputs):
 
 
 if __name__ == "__main__":
-    ef = EsoFile(r"C:\Users\vojtechp1\PycharmProjects\eso_reader\tests\eso_files\eplusout1.eso",
+    ef = EsoFile(r"C:\Users\vojte\Desktop\Python\eso_reader\tests\eso_files\eplusout_all_intervals.eso",
                  report_progress=True)
     # ef = EsoFile(r"C:\Users\vojtechp1\desktop\eplusout.eso", report_progress=True)
 
@@ -186,12 +255,8 @@ if __name__ == "__main__":
     #
     # SQLOutputs.store_file(ef, eng, meta)
 
-    SQLOutputs.set_up_db("test.db", echo=False)
+    SQLOutputs.set_up_db(r"C:\Users\vojte\Desktop\Python\eso_reader\esofile_reader\outputs\test.db", echo=False)
 
-    SQLOutputs.store_file(ef)
-    SQLOutputs.store_file(ef)
-    SQLOutputs.store_file(ef)
-    SQLOutputs.store_file(ef)
-
-    SQLOutputs.delete_file(1)
-    SQLOutputs.delete_file(3)
+    f = SQLOutputs.store_file(ef)
+    d = f.get_datetime_index("daily")
+    print(d)

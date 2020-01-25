@@ -21,7 +21,7 @@ def results_table_generator(metadata, file_id, interval):
         Column("key", String(50)),
         Column("variable", String(50)),
         Column("units", String(50)),
-        Column("values", Text)
+        Column("values", Text),
     )
 
     table.create()
@@ -54,7 +54,7 @@ def dates_table_generator(metadata, file_id):
     return name
 
 
-def merge_df_values(df: pd.DataFrame, separator: str = " ") -> pd.Series:
+def merge_df_values(df: pd.DataFrame, separator: str) -> pd.Series:
     """ Merge all column values into a single str pd.Series. """
     df = df.astype(str)
     str_df = df.apply(lambda x: f"{separator}".join(x.to_list()))
@@ -62,8 +62,8 @@ def merge_df_values(df: pd.DataFrame, separator: str = " ") -> pd.Series:
 
 
 @profile
-def create_results_insert(df):
-    sr = merge_df_values(df, "\t")
+def create_results_insert(df, separator):
+    sr = merge_df_values(df, separator)
     ins = []
 
     for index, values in sr.iteritems():
@@ -82,27 +82,27 @@ def create_results_insert(df):
 
 
 @profile
-def merge_sr_values(sr: pd.Series, separator: str = " ") -> str:
+def merge_sr_values(sr: pd.Series, separator: str) -> str:
     """ Merge all column values into a single str pd.Series. """
     sr = sr.astype(str).tolist()
     return f"{separator}".join(sr)
 
 
 @profile
-def create_index_insert(interval, df):
+def create_index_insert(interval, df, separator=" "):
     ids = df.columns.get_level_values("id")
     ins = {}
 
     if N_DAYS_COLUMN in ids:
         # this should be available only for monthly - runperiod
-        ins[f"{interval}_n_days"] = merge_sr_values(df.loc[:, N_DAYS_COLUMN])
+        ins[f"{interval}_n_days"] = merge_sr_values(df.loc[:, N_DAYS_COLUMN], separator)
 
     if DAY_COLUMN in ids:
         # this should be available only for monthly - runperiod
-        ins[f"{interval}_days"] = merge_sr_values(df.loc[:, DAY_COLUMN])
+        ins[f"{interval}_days"] = merge_sr_values(df.loc[:, DAY_COLUMN], separator)
 
     if isinstance(df.index, pd.DatetimeIndex):
-        str_date_range = "\t".join(df.index.strftime("%Y/%m/%d %H:%M:%S"))
+        str_date_range = f"{separator}".join(df.index.strftime("%Y/%m/%d %H:%M:%S"))
         ins[f"{interval}_dt"] = str_date_range
 
     return ins

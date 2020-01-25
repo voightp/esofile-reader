@@ -17,23 +17,34 @@ class TestSqlDB(unittest.TestCase):
         self.assertIsNotNone(SQLOutputs.METADATA)
         self.assertListEqual(list(SQLOutputs.METADATA.tables.keys()), ["result_files"])
 
+        self.assertListEqual(
+            list(SQLOutputs.METADATA.tables.keys()),
+            ["result_files"]
+        )
+
+        res = SQLOutputs.ENGINE.execute("""SELECT name FROM sqlite_master""")
+        self.assertEqual(res.fetchone()[0], "result_files")
+
     def test_store_file(self):
         SQLOutputs.set_up_db()
         SQLOutputs.store_file(self.ef)
+        tables = ['result_files', 'indexes-1', 'outputs-timestep-1', 'outputs-hourly-1',
+                  'outputs-daily-1', 'outputs-monthly-1', 'outputs-runperiod-1', 'outputs-annual-1']
 
-        self.assertListEqual(
-            list(SQLOutputs.METADATA.tables.keys()),
-            ['result_files', 'indexes-1', 'outputs-timestep-1', 'outputs-hourly-1',
-             'outputs-daily-1', 'outputs-monthly-1', 'outputs-runperiod-1', 'outputs-annual-1']
-        )
+        self.assertListEqual(list(SQLOutputs.METADATA.tables.keys()), tables)
+
+        res = SQLOutputs.ENGINE.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        self.assertListEqual([i[0] for i in res.fetchall()], tables)
 
     def test_delete_file(self):
         SQLOutputs.set_up_db()
         SQLOutputs.store_file(self.ef)
         SQLOutputs.delete_file(1)
-        print(SQLOutputs.METADATA.tables.keys())
 
         self.assertListEqual(
             list(SQLOutputs.METADATA.tables.keys()),
-            ['result_files']
+            ["result_files"]
         )
+
+        res = SQLOutputs.ENGINE.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        self.assertEqual(res.fetchone()[0], "result_files")
