@@ -135,6 +135,22 @@ class SQLOutputs(BaseOutputs):
     def set_data(self, interval: str, df: pd.DataFrame):
         pass
 
+    def _get_results_table(self, interval):
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        switch = {
+            TS: files.c.timestep_table,
+            H: files.c.hourly_table,
+            D: files.c.daily_table,
+            M: files.c.monthly_table,
+            A: files.c.annual_table,
+            RP: files.c.runperiod_table
+        }
+
+        with self.ENGINE.connect() as conn:
+            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).first()[0]
+            return self.METADATA.tables[table_name]
+
     def get_available_intervals(self) -> List[str]:
         files = self.METADATA.tables[self.FILE_TABLE]
         columns = [
@@ -171,27 +187,15 @@ class SQLOutputs(BaseOutputs):
             }
 
             res = conn.execute(select([switch[interval]])).first()[0]
-            datetime_index = pd.DatetimeIndex(res.split(self.SEPARATOR))
+            datetime_index = pd.DatetimeIndex(res.split(self.SEPARATOR), name="timestamp")
 
         return datetime_index
 
     @profile
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
-        files = self.METADATA.tables[self.FILE_TABLE]
-
-        switch = {
-            TS: files.c.timestep_table,
-            H: files.c.hourly_table,
-            D: files.c.daily_table,
-            M: files.c.monthly_table,
-            A: files.c.annual_table,
-            RP: files.c.runperiod_table
-        }
-
         variables_dct = {}
         with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).first()[0]
-            table = self.METADATA.tables[table_name]
+            table = self._get_results_table(interval)
             res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
                                        table.c.variable, table.c.units]))
 
@@ -203,20 +207,35 @@ class SQLOutputs(BaseOutputs):
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
         all_variables_dct = {}
         for interval in self.get_available_intervals():
-            all_variables_dct[interval] = self.get_variables_dct[interval]
+            all_variables_dct[interval] = self.get_variables_dct(interval)
         return all_variables_dct
 
     def get_variable_ids(self, interval: str) -> List[int]:
-        pass
+        with self.ENGINE.connect() as conn:
+            table = self._get_results_table(interval)
+            res = conn.execute(select([table.c.id]))
+            ids = [row[0] for row in res]
+        return ids
 
     def get_all_variable_ids(self) -> List[int]:
-        pass
+        all_ids = []
+        for interval in self.get_available_intervals():
+            all_ids.extend(self.get_variable_ids(interval))
+        return all_ids
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
-        pass
+        with self.ENGINE.connect() as conn:
+            table = self._get_results_table(interval)
+            res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
+                                       table.c.variable, table.c.units]))
+            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units"])
+        return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
-        pass
+        frames = []
+        for interval in self.get_available_intervals():
+            frames.append(self.get_variables_df(interval))
+        return pd.concat(frames)
 
     def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
         pass

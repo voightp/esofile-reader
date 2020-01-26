@@ -24,70 +24,70 @@ class TestDFOutputs(unittest.TestCase):
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
-    # def test_get_datetime_index(self):
-    #     index = self.ef.data.get_datetime_index("monthly")
-    #     assert_index_equal(index, pd.DatetimeIndex(['2002-01-01', '2002-02-01', '2002-03-01', '2002-04-01',
-    #                                                 '2002-05-01', '2002-06-01', '2002-07-01', '2002-08-01',
-    #                                                 '2002-09-01', '2002-10-01', '2002-11-01', '2002-12-01'],
-    #                                                dtype='datetime64[ns]', name='timestamp', freq=None))
-    #
-    # def test_get_all_variables_dct(self):
-    #     variables = self.ef.data.get_all_variables_dct()
-    #     self.assertListEqual(
-    #         list(variables.keys()),
-    #         ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
-    #     )
-    #
-    # def test_get_variables_dct(self):
-    #     variables = self.ef.data.get_variables_dct("daily")
-    #     self.assertListEqual(
-    #         list(variables.keys()),
-    #         [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
-    #          329, 335, 341, 433, 477, 521, 565, 952, 982]
-    #     )
-    #
-    # def test_get_variable_ids(self):
-    #     ids = self.ef.data.get_variable_ids("daily")
-    #     self.assertListEqual(
-    #         ids,
-    #         [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
-    #          329, 335, 341, 433, 477, 521, 565, 952, 982]
-    #     )
-    #
-    # def test_get_all_variable_ids(self):
-    #     ids = self.ef.data.get_all_variable_ids()
-    #     self.assertListEqual(
-    #         ids,
-    #         [7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431, 475, 519, 563, 950, 956, 8, 14, 20, 26, 32,
-    #          298, 304, 310, 316, 322, 328, 334, 340, 432, 476, 520, 564, 951, 981, 9, 15, 21, 27, 33, 299, 305, 311,
-    #          317, 323, 329, 335, 341, 433, 477, 521, 565, 952, 982, 10, 16, 22, 28, 34, 300, 306, 312, 318, 324, 330,
-    #          336, 342, 434, 478, 522, 566, 953, 983, 11, 17, 23, 29, 35, 301, 307, 313, 319, 325, 331, 337,
-    #          343, 435, 479, 523, 567, 954, 984, 12, 18, 24, 30, 36, 302, 308, 314, 320, 326, 332, 338, 344, 436, 480,
-    #          524, 568, 955, 985]
-    #     )
-    #
-    # def test_get_variables_df(self):
-    #     df = self.ef.data.get_variables_df("daily")
-    #     self.assertListEqual(
-    #         df.columns.tolist(),
-    #         ["id", "interval", "key", "variable", "units"]
-    #     )
-    #     self.assertTupleEqual(
-    #         df.shape,
-    #         (19, 5)
-    #     )
-    #
-    # def test_all_variables_df(self):
-    #     df = self.ef.data.get_all_variables_df()
-    #     self.assertListEqual(
-    #         df.columns.tolist(),
-    #         ["id", "interval", "key", "variable", "units"]
-    #     )
-    #     self.assertTupleEqual(
-    #         df.shape,
-    #         (114, 5)
-    #     )
-    #
+    def test_get_datetime_index(self):
+        index = self.sql_file.data.get_datetime_index("monthly")
+        assert_index_equal(index, pd.DatetimeIndex(['2002-01-01', '2002-02-01', '2002-03-01', '2002-04-01',
+                                                    '2002-05-01', '2002-06-01', '2002-07-01', '2002-08-01',
+                                                    '2002-09-01', '2002-10-01', '2002-11-01', '2002-12-01'],
+                                                   dtype='datetime64[ns]', name='timestamp', freq=None))
+
+    def test_get_all_variables_dct(self):
+        variables = self.sql_file.data.get_all_variables_dct()
+        self.assertListEqual(
+            list(variables.keys()),
+            ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
+        )
+
+    def test_get_variables_dct(self):
+        variables = self.sql_file.data.get_variables_dct("daily")
+        self.assertListEqual(
+            list(variables.keys()),
+            [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
+             329, 335, 341, 433, 477, 521, 565, 952, 982]
+        )
+
+    def test_get_variable_ids(self):
+        ids = self.sql_file.data.get_variable_ids("daily")
+        self.assertListEqual(
+            ids,
+            [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
+             329, 335, 341, 433, 477, 521, 565, 952, 982]
+        )
+
+    def test_get_all_variable_ids(self):
+        ids = self.sql_file.data.get_all_variable_ids()
+        self.assertListEqual(
+            ids,
+            [7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431, 475, 519, 563, 950, 956, 8, 14, 20, 26, 32,
+             298, 304, 310, 316, 322, 328, 334, 340, 432, 476, 520, 564, 951, 981, 9, 15, 21, 27, 33, 299, 305, 311,
+             317, 323, 329, 335, 341, 433, 477, 521, 565, 952, 982, 10, 16, 22, 28, 34, 300, 306, 312, 318, 324, 330,
+             336, 342, 434, 478, 522, 566, 953, 983, 11, 17, 23, 29, 35, 301, 307, 313, 319, 325, 331, 337,
+             343, 435, 479, 523, 567, 954, 984, 12, 18, 24, 30, 36, 302, 308, 314, 320, 326, 332, 338, 344, 436, 480,
+             524, 568, 955, 985]
+        )
+
+    def test_get_variables_df(self):
+        df = self.sql_file.data.get_variables_df("daily")
+        self.assertListEqual(
+            df.columns.tolist(),
+            ["id", "interval", "key", "variable", "units"]
+        )
+        self.assertTupleEqual(
+            df.shape,
+            (19, 5)
+        )
+
+    def test_all_variables_df(self):
+        df = self.sql_file.data.get_all_variables_df()
+        self.assertListEqual(
+            df.columns.tolist(),
+            ["id", "interval", "key", "variable", "units"]
+        )
+        self.assertTupleEqual(
+            df.shape,
+            (114, 5)
+        )
+
     # def test_rename_variable(self):
     #     self.ef.data.rename_variable("timestep", 7, "FOO", "BAR")
     #     col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
