@@ -1,4 +1,6 @@
 import os
+
+from datetime import datetime
 from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.diff_file import DiffFile
@@ -27,7 +29,7 @@ class EsoFile(BaseFile):
     ----------
     file_path : str
         A full path of the ESO file.
-    file_timestamp : datetime.datetime
+    file_created : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     data : {DFOutputs, SQLOutputs}
         A class to store resutls data
@@ -65,7 +67,7 @@ class EsoFile(BaseFile):
                          ignore_peaks=True, suppress_errors=False, year=2002):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
-        self.file_timestamp = os.path.getctime(self.file_path)
+        self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
 
         content = read_file(
             self.file_path,

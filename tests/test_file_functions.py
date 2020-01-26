@@ -26,7 +26,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
 
     def test_created(self):
-        self.assertTrue(isinstance(self.ef.created, datetime))
+        self.assertTrue(isinstance(self.ef.file_created, datetime))
 
     def test_complete(self):
         self.assertTrue(self.ef.complete)

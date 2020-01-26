@@ -20,7 +20,7 @@ class DatabaseFile(BaseFile):
         A data object to store results data.
     file_path : str
         A full path of the result file.
-    file_timestamp : datetime
+    file_created : datetime
         Time and date when of the file generation..
     data : {DFOutputs, SQLOutputs}
         A class to store results data
@@ -35,13 +35,13 @@ class DatabaseFile(BaseFile):
     """
 
     def __init__(self, id_: int, file_name: str, data: Union['SQLOutputs', 'DFOutputs'],
-                 file_timestamp: datetime, search_tree: Tree = None, file_path: str = None):
+                 file_created: datetime, search_tree: Tree = None, file_path: str = None):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path
         self.file_name = file_name
         self.data = data
-        self.file_timestamp = file_timestamp
+        self.file_created = file_created
 
         self._search_tree = search_tree
         self._complete = True

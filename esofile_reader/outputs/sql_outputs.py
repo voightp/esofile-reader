@@ -40,7 +40,7 @@ class SQLOutputs(BaseOutputs):
                 Column("id", Integer, autoincrement=True, primary_key=True),
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
-                Column("file_timestamp", DateTime),
+                Column("file_created", DateTime),
                 Column("indexes_table", String(20)),
                 Column("timestep_table", String(20)),
                 Column("hourly_table", String(20)),
@@ -66,7 +66,7 @@ class SQLOutputs(BaseOutputs):
         ins = f.insert().values(
             file_path=result_file.file_path,
             file_name=result_file.file_name,
-            file_timestamp=result_file.created
+            file_created=result_file.file_created
         )
 
         # insert new file data
@@ -94,9 +94,11 @@ class SQLOutputs(BaseOutputs):
             # store index data
             conn.execute(metadata.tables[indexes_name].insert().values(**indexes_ins))
 
-        db_file = DatabaseFile(id_, )
+        db_file = DatabaseFile(id_, result_file.file_name, SQLOutputs(id_),
+                               result_file.file_created, result_file._search_tree,
+                               result_file.file_path)
 
-        return SQLOutputs(id_)
+        return db_file
 
     @classmethod
     @profile

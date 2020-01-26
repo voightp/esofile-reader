@@ -92,7 +92,7 @@ class DiffFile(BaseFile):
         """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
-        self.file_timestamp = datetime.utcnow().timestamp()
+        self.file_created = datetime.utcnow()
 
         content = self.process_diff(first_file, other_file)
 

@@ -163,7 +163,7 @@ class TotalsFile(BaseFile):
         """ Generate 'Totals' related data based on input 'ResultFile'. """
         self.file_path = eso_file.file_path
         self.file_name = f"{eso_file.file_name} - totals"
-        self.file_timestamp = eso_file.file_timestamp  # use base file timestamp
+        self.file_created = eso_file.file_created  # use base file timestamp
 
         content = self.process_totals(eso_file)
 

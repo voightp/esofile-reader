@@ -1,12 +1,11 @@
 import pandas as pd
 
-from random import randint
-from datetime import datetime
 from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
-from esofile_reader.outputs.df_outputs import DFOutputs
 from esofile_reader.processing.interval_processor import update_dt_format
 from esofile_reader.constants import *
 from esofile_reader.utils.mini_classes import Variable
+
+from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
 
 
@@ -44,7 +43,7 @@ class BaseFile:
     ----------
     file_path : str
         A full path of the result file.
-    file_timestamp : datetime.datetime
+    file_created : datetime
         Time and date when of the file generation..
     data : {DFOutputs, SQLOutputs}
         A class to store results data
@@ -66,7 +65,7 @@ class BaseFile:
         self.file_path = None
         self.file_name = None
         self.data = None
-        self.file_timestamp = None
+        self.file_created = None
 
         self._search_tree = None
         self._complete = False
@@ -74,12 +73,7 @@ class BaseFile:
     def __repr__(self):
         return f"File: {self.file_name}" \
             f"\nPath: {self.file_path}" \
-            f"\nCreated: {self.created}"
-
-    @property
-    def created(self) -> datetime:
-        """ Return a timestamp of the file system creation. """
-        return datetime.fromtimestamp(self.file_timestamp)
+            f"\nCreated: {self.file_created}"
 
     @property
     def complete(self) -> bool:
