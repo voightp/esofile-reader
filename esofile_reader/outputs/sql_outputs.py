@@ -82,7 +82,7 @@ class SQLOutputs(BaseOutputs):
                 results_name = results_table_generator(metadata, id_, interval)
 
                 # create data inserts
-                results_ins = create_results_insert(outputs.get_only_numeric_data(interval), cls.SEPARATOR)
+                results_ins = create_results_insert(outputs.get_all_results(interval), cls.SEPARATOR)
                 indexes_ins.update(create_index_insert(interval, outputs.tables[interval], cls.SEPARATOR))
 
                 # insert results into tables
@@ -142,17 +142,17 @@ class SQLOutputs(BaseOutputs):
             files.c.hourly_table,
             files.c.daily_table,
             files.c.monthly_table,
-            files.c.annual_table,
-            files.c.runperiod_table
+            files.c.runperiod_table,
+            files.c.annual_table
         ]
 
         intervals = []
         with self.ENGINE.connect() as conn:
             res = conn.execute(select(columns).where(files.c.id == self.id_)).first()
-            for interval, table in zip([TS, H, D, M, A, RP], res):
+            for interval, table in zip([TS, H, D, M, RP, A], res):
                 if table:
                     intervals.append(interval)
-        return interval
+        return intervals
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
         files = self.METADATA.tables[self.FILE_TABLE]
@@ -231,6 +231,9 @@ class SQLOutputs(BaseOutputs):
         pass
 
     def get_days_of_week(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
+        pass
+
+    def get_all_results(self, interval: str) -> pd.DataFrame:
         pass
 
     def get_results(self, interval: str, ids: List[int], start_date: datetime = None, end_date: datetime = None,

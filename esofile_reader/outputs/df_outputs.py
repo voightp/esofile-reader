@@ -60,11 +60,6 @@ class DFOutputs(BaseOutputs):
     def set_data(self, interval: str, df: pd.DataFrame):
         self.tables[interval] = df
 
-    def get_only_numeric_data(self, interval: str) -> pd.DataFrame:
-        mi = self.tables[interval].columns
-        cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
-        return self.tables[interval].loc[:, ~cond]
-
     def get_available_intervals(self) -> List[str]:
         return list(self.tables.keys())
 
@@ -104,7 +99,7 @@ class DFOutputs(BaseOutputs):
         return all_ids
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
-        df = self.get_only_numeric_data(interval)
+        df = self.get_all_results(interval)
         return df.columns.to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -162,6 +157,11 @@ class DFOutputs(BaseOutputs):
     def get_days_of_week(self, interval: str, start_date: datetime = None,
                          end_date: datetime = None) -> pd.Series:
         return self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
+
+    def get_all_results(self, interval: str) -> pd.DataFrame:
+        mi = self.tables[interval].columns
+        cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
+        return self.tables[interval].loc[:, ~cond]
 
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:

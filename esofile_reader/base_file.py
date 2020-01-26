@@ -442,7 +442,7 @@ class BaseFile:
     def as_df(self, interval: str):
         """ Return the file as a single DataFrame. """
         try:
-            df = self.data.get_only_numeric_data(interval)
+            df = self.data.get_all_results(interval)
 
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.")

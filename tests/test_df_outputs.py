@@ -14,10 +14,6 @@ class TestDFOutputs(unittest.TestCase):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
 
-    def test_get_only_numeric_data(self):
-        df = self.ef.data.get_only_numeric_data("daily")
-        self.assertTupleEqual(df.shape, (365, 19))
-
     def test_get_available_intervals(self):
         intervals = self.ef.data.get_available_intervals()
         self.assertListEqual(
@@ -122,6 +118,10 @@ class TestDFOutputs(unittest.TestCase):
         col = self.ef.data.get_days_of_week("daily")
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
+
+    def test_get_all_results(self):
+        df = self.ef.data.get_all_results("daily")
+        self.assertTupleEqual(df.shape, (365, 19))
 
     def test_get_results(self):
         df = self.ef.data.get_results("monthly", [324, 983])

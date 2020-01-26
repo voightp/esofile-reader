@@ -84,6 +84,11 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
+    def get_all_results(self, interval: str) -> pd.DataFrame:
+        """ Get numeric outputs without special columns. """
+        pass
+
+    @abstractmethod
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """

@@ -136,7 +136,7 @@ class TotalsFile(BaseFile):
             variable_dct = file.data.get_variables_dct(interval)
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
-            out = file.data.get_only_numeric_data(interval)
+            out = file.data.get_all_results(interval)
             out = out.loc[:, ~out.columns.get_level_values("units").isin(IGNORED_UNITS)]
             out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
