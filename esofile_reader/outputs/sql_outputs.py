@@ -2,21 +2,17 @@ import pandas as pd
 from datetime import datetime
 from typing import Sequence, List, Dict
 from esofile_reader.constants import *
+from esofile_reader.database_file import DatabaseFile
 from esofile_reader.outputs.base_outputs import BaseOutputs
 from esofile_reader.outputs.sql_outputs_functions import results_table_generator, \
     dates_table_generator, create_index_insert, create_results_insert
-from uuid import uuid1
 from esofile_reader import EsoFile
 from esofile_reader.utils.utils import profile
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
     DateTime, Boolean, Text, inspect, select
 import contextlib
+
 from sqlalchemy import exc
-import sqlalchemy
-
-from esofile_reader.outputs.df_outputs_functions import merge_peak_outputs, slicer
-
-from esofile_reader.utils.utils import id_gen
 from esofile_reader.utils.mini_classes import Variable
 
 
@@ -97,6 +93,8 @@ class SQLOutputs(BaseOutputs):
 
             # store index data
             conn.execute(metadata.tables[indexes_name].insert().values(**indexes_ins))
+
+        db_file = DatabaseFile(id_, )
 
         return SQLOutputs(id_)
 

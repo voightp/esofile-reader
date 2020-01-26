@@ -1,8 +1,7 @@
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
-from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import incremental_id_gen
-from esofile_reader.utils.tree import Tree
+from esofile_reader.utils.search_tree import Tree
 from esofile_reader.outputs.df_outputs import DFOutputs
 from datetime import datetime
 
