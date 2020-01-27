@@ -17,6 +17,9 @@ class TestFileFunctions(unittest.TestCase):
         cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
         cls.ef_peaks = EsoFile(file_path, ignore_peaks=False, report_progress=False)
 
+    def test_print_file(self):
+        print(self.ef)
+
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,
                              ['timestep', 'hourly', 'daily',
