@@ -62,7 +62,7 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def add_variable(self, variable: str, array: Sequence) -> None:
+    def add_variable(self, variable: Variable, array: Sequence) -> None:
         """ Add a new output into specific result table. """
         pass
 

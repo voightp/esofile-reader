@@ -88,21 +88,26 @@ class TestDFOutputs(unittest.TestCase):
             (114, 5)
         )
 
-    # def test_rename_variable(self):
-    #     self.ef.data.rename_variable("timestep", 7, "FOO", "BAR")
-    #     col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
-    #
-    #     self.ef.data.rename_variable("timestep", 7, "Environment",
-    #                                  "Site Diffuse Solar Radiation Rate per Area")
-    #     col2 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "Environment",
-    #                                                    "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
-    #     self.assertListEqual(col1.tolist(), col2.tolist())
-    #
-    # def test_add_remove_variable(self):
-    #     id_ = self.ef.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
-    #     self.ef.data.remove_variables("monthly", [id_])
-    #     with self.assertRaises(KeyError):
-    #         _ = self.ef.data.tables["monthly"][id_]
+    def test_rename_variable(self):
+        self.sql_file.data.rename_variable("timestep", 7, "FOO", "BAR")
+        with SQLOutputs.ENGINE.connect() as conn:
+            table = self.sql_file.data._get_results_table("timestep")
+            res = conn.execute(table.select().where(table.c.id == 7)).first()
+            var = (res[0], res[1], res[2], res[3], res[4])
+            self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
+
+        self.sql_file.data.rename_variable("timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area")
+        with SQLOutputs.ENGINE.connect() as conn:
+            table = self.sql_file.data._get_results_table("timestep")
+            res = conn.execute(table.select().where(table.c.id == 7)).first()
+            var = (res[0], res[1], res[2], res[3], res[4])
+            self.assertTupleEqual(var,
+                                  (7, 'timestep', 'Environment', 'Site Diffuse Solar Radiation Rate per Area', 'W/m2'))
+
+    def test_add_remove_variable(self):
+        id_ = self.sql_file.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        self.sql_file.data.remove_variables("monthly", [id_])
+
     #
     # def test_remove_variable_invalid(self):
     #     with self.assertRaises(KeyError):

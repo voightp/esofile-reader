@@ -194,8 +194,8 @@ class SQLOutputs(BaseOutputs):
     @profile
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
         variables_dct = {}
+        table = self._get_results_table(interval)
         with self.ENGINE.connect() as conn:
-            table = self._get_results_table(interval)
             res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
                                        table.c.variable, table.c.units]))
 
@@ -211,8 +211,8 @@ class SQLOutputs(BaseOutputs):
         return all_variables_dct
 
     def get_variable_ids(self, interval: str) -> List[int]:
+        table = self._get_results_table(interval)
         with self.ENGINE.connect() as conn:
-            table = self._get_results_table(interval)
             res = conn.execute(select([table.c.id]))
             ids = [row[0] for row in res]
         return ids
@@ -224,8 +224,8 @@ class SQLOutputs(BaseOutputs):
         return all_ids
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
+        table = self._get_results_table(interval)
         with self.ENGINE.connect() as conn:
-            table = self._get_results_table(interval)
             res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
                                        table.c.variable, table.c.units]))
             df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units"])
@@ -238,13 +238,27 @@ class SQLOutputs(BaseOutputs):
         return pd.concat(frames)
 
     def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
-        pass
+        table = self._get_results_table(interval)
+        with self.ENGINE.connect() as conn:
+            conn.execute(table.update() \
+                         .where(table.c.id == id_) \
+                         .values(key=key_name, variable=var_name))
 
-    def add_variable(self, variable: str, array: Sequence) -> None:
-        pass
+    def add_variable(self, variable: Variable, array: Sequence) -> None:
+        table = self._get_results_table(variable.interval)
+        str_array = self.SEPARATOR.join([str(i) for i in array])
+
+        with self.ENGINE.connect() as conn:
+            statement = table.insert().values({**variable._asdict(), "values": str_array})
+            id_ = conn.execute(statement).inserted_primary_key[0]
+
+        return id_
 
     def remove_variables(self, interval: str, ids: List[int]) -> None:
-        return
+        table = self._get_results_table(interval)
+
+        with self.ENGINE.connect() as conn:
+            conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
         pass
