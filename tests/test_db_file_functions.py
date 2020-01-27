@@ -6,6 +6,7 @@ from datetime import datetime
 from esofile_reader import EsoFile
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader import Variable
+from esofile_reader.outputs.sql_outputs import SQLOutputs
 from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
@@ -14,8 +15,9 @@ class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
-        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False, report_progress=False)
+        f = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        SQLOutputs.set_up_db()
+        cls.ef = SQLOutputs.store_file(f)
 
     def test_print_file(self):
         print(self.ef)
@@ -34,10 +36,6 @@ class TestFileFunctions(unittest.TestCase):
     def test_complete(self):
         self.assertTrue(self.ef.complete)
         self.assertIsNone(self.ef.peak_outputs)
-
-    def test_peak_complete(self):
-        self.assertTrue(self.ef_peaks.complete)
-        self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_header_df(self):
         self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",

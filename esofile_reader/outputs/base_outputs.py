@@ -72,6 +72,11 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
+    def update_variable(self, interval: str, id: int, array: Sequence[float]):
+        """ Update given variable values. """
+        pass
+
+    @abstractmethod
     def get_number_of_days(self, interval: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
         """ Get special 'n days' column. """
