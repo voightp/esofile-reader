@@ -60,10 +60,12 @@ class SQLOutputs(BaseOutputs):
     @classmethod
     @profile
     def store_file(cls, result_file):
-        engine = cls.ENGINE
-        metadata = cls.METADATA
+        if not cls.METADATA or not cls.ENGINE:
+            raise AttributeError(f"Cannot store file into database."
+                                 f"\nIt's required to call '{cls.__name__}.set_up_db(path)'"
+                                 f" to create a database engine and metadata first.")
 
-        f = metadata.tables[cls.FILE_TABLE]
+        f = cls.METADATA.tables[cls.FILE_TABLE]
         ins = f.insert().values(
             file_path=result_file.file_path,
             file_name=result_file.file_name,
@@ -71,29 +73,29 @@ class SQLOutputs(BaseOutputs):
         )
 
         # insert new file data
-        with engine.connect() as conn:
+        with cls.ENGINE.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
-            indexes_name = dates_table_generator(metadata, id_)
+            indexes_name = dates_table_generator(cls.METADATA, id_)
             conn.execute(f.update().where(f.c.id == id_).values(indexes_table=indexes_name))
 
             indexes_ins = {}
             for interval in result_file.available_intervals:
                 outputs = result_file.data
                 # create result table for specific interval
-                results_name = results_table_generator(metadata, id_, interval)
+                results_name = results_table_generator(cls.METADATA, id_, interval)
 
                 # create data inserts
                 results_ins = create_results_insert(outputs.get_all_results(interval), cls.SEPARATOR)
                 indexes_ins.update(create_index_insert(interval, outputs.tables[interval], cls.SEPARATOR))
 
                 # insert results into tables
-                conn.execute(metadata.tables[results_name].insert(), results_ins)
+                conn.execute(cls.METADATA.tables[results_name].insert(), results_ins)
 
                 # store result table reference
                 conn.execute(f.update().where(f.c.id == id_).values(**{f"{interval}_table": results_name}))
 
             # store index data
-            conn.execute(metadata.tables[indexes_name].insert().values(**indexes_ins))
+            conn.execute(cls.METADATA.tables[indexes_name].insert().values(**indexes_ins))
 
         db_file = DatabaseFile(id_, result_file.file_name, SQLOutputs(id_),
                                result_file.file_created, result_file._search_tree,
