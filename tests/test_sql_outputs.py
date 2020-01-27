@@ -108,10 +108,6 @@ class TestDFOutputs(unittest.TestCase):
         id_ = self.sql_file.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
         self.sql_file.data.remove_variables("monthly", [id_])
 
-    def test_remove_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.sql_file.data.remove_variables("monthly", [100000])
-
     def test_get_number_of_days(self):
         col = self.sql_file.data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
