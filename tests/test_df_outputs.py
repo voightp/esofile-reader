@@ -97,6 +97,9 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_add_remove_variable(self):
         id_ = self.ef.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        col = self.ef.data.tables["monthly"].loc[:, (id_,"monthly", "FOO", "BAR","C")]
+        self.assertListEqual(col.to_list(), list(range(12)))
+
         self.ef.data.remove_variables("monthly", [id_])
         with self.assertRaises(KeyError):
             _ = self.ef.data.tables["monthly"][id_]
