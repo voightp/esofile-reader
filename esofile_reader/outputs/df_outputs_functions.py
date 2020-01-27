@@ -87,9 +87,9 @@ def slicer(df, ids, start_date=None, end_date=None):
 
     all_ids = df.columns.get_level_values("id")
     if not all(map(lambda x: x in all_ids, ids)):
-        raise KeyError(f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
+        raise KeyError(f"Cannot slice df, ids: '{', '.join([str(id_) for id_ in ids])}',"
                        f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
-                       f"are not included.")
+                       f" are not included.")
 
     cond = df.columns.get_level_values("id").isin(ids)
 
@@ -103,3 +103,27 @@ def slicer(df, ids, start_date=None, end_date=None):
         df = df.loc[:, cond]
 
     return df.copy()
+
+
+def df_dt_slicer(df, start_date, end_date):
+    """ Slice df 'vertically'. """
+    if start_date and end_date:
+        df = df.loc[start_date:end_date, :]
+    elif start_date:
+        df = df.loc[start_date:, ]
+    elif end_date:
+        df = df.loc[:end_date, :]
+
+    return df
+
+
+def sr_dt_slicer(sr, start_date, end_date):
+    """ Slice series. """
+    if start_date and end_date:
+        df = sr.loc[start_date:end_date]
+    elif start_date:
+        df = sr.loc[start_date:]
+    elif end_date:
+        df = sr.loc[:end_date]
+
+    return sr

@@ -97,7 +97,7 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_add_remove_variable(self):
         id_ = self.ef.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
-        col = self.ef.data.tables["monthly"].loc[:, (id_,"monthly", "FOO", "BAR","C")]
+        col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
         self.assertListEqual(col.to_list(), list(range(12)))
 
         self.ef.data.remove_variables("monthly", [id_])
@@ -113,9 +113,9 @@ class TestDFOutputs(unittest.TestCase):
             self.ef.data.get_special_column("FOO", "timestep")
 
     def test_get_number_of_days(self):
-        col = self.ef.data.get_number_of_days("runperiod")
-        self.assertEqual(col[0], 365)
-        self.assertEqual(col.size, 1)
+        col = self.ef.data.get_number_of_days("monthly")
+        self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+        self.assertEqual(col.size, 12)
 
     def test_get_days_of_week(self):
         col = self.ef.data.get_days_of_week("daily")

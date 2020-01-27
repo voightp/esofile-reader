@@ -4,8 +4,9 @@ from typing import Sequence, List, Dict
 from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
 from esofile_reader.outputs.base_outputs import BaseOutputs
+from esofile_reader.outputs.df_outputs_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
 from esofile_reader.outputs.sql_outputs_functions import results_table_generator, \
-    dates_table_generator, create_index_insert, create_results_insert
+    dates_table_generator, create_index_insert, create_results_insert, destringify_df
 from esofile_reader import EsoFile
 from esofile_reader.utils.utils import profile
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
@@ -148,8 +149,19 @@ class SQLOutputs(BaseOutputs):
         }
 
         with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).first()[0]
-            return self.METADATA.tables[table_name]
+            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).scalar()
+            table = self.METADATA.tables[table_name]
+
+        return table
+
+    def _get_index_table(self):
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        with self.ENGINE.connect() as conn:
+            table_name = conn.execute(select([files.c.indexes_table]).where(files.c.id == self.id_)).scalar()
+            table = self.METADATA.tables[table_name]
+
+        return table
 
     def get_available_intervals(self) -> List[str]:
         files = self.METADATA.tables[self.FILE_TABLE]
@@ -171,22 +183,19 @@ class SQLOutputs(BaseOutputs):
         return intervals
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
-        files = self.METADATA.tables[self.FILE_TABLE]
+        table = self._get_index_table()
+
+        switch = {
+            TS: table.c.timestep_dt,
+            H: table.c.hourly_dt,
+            D: table.c.daily_dt,
+            M: table.c.monthly_dt,
+            A: table.c.annual_dt,
+            RP: table.c.runperiod_dt
+        }
 
         with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([files.c.indexes_table]).where(files.c.id == self.id_)).first()[0]
-            table = self.METADATA.tables[table_name]
-
-            switch = {
-                TS: table.c.timestep_dt,
-                H: table.c.hourly_dt,
-                D: table.c.daily_dt,
-                M: table.c.monthly_dt,
-                A: table.c.annual_dt,
-                RP: table.c.runperiod_dt
-            }
-
-            res = conn.execute(select([switch[interval]])).first()[0]
+            res = conn.execute(select([switch[interval]])).scalar()
             datetime_index = pd.DatetimeIndex(res.split(self.SEPARATOR), name="timestamp")
 
         return datetime_index
@@ -261,25 +270,108 @@ class SQLOutputs(BaseOutputs):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
-        pass
+        table = self._get_index_table()
+
+        switch = {
+            M: table.c.monthly_n_days,
+            A: table.c.annual_n_days,
+            RP: table.c.runperiod_n_days
+        }
+
+        with self.ENGINE.connect() as conn:
+            res = conn.execute(select([switch[interval]])).scalar()
+            if res:
+                n_days = [int(i) for i in res.split(self.SEPARATOR)]
+                sr = pd.Series(n_days, name=N_DAYS_COLUMN)
+            else:
+                raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
+                               f"on the given data set.")
+
+        index = self.get_datetime_index(interval)
+        if index is not None:
+            sr.index = index
+
+        return sr_dt_slicer(sr, start_date, end_date)
 
     def get_days_of_week(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
-        pass
+        table = self._get_index_table()
 
-    def get_all_results(self, interval: str) -> pd.DataFrame:
-        pass
+        switch = {
+            TS: table.c.timestep_days,
+            H: table.c.hourly_days,
+            D: table.c.daily_days
+        }
+
+        with self.ENGINE.connect() as conn:
+            res = conn.execute(select([switch[interval]])).scalar()
+            if res:
+                sr = pd.Series(res.split(self.SEPARATOR), name=DAY_COLUMN)
+            else:
+                raise KeyError(f"'{DAY_COLUMN}' column is not available "
+                               f"on the given data set.")
+
+        index = self.get_datetime_index(interval)
+        if index is not None:
+            sr.index = index
+
+        return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(self, interval: str, ids: List[int], start_date: datetime = None, end_date: datetime = None,
                     include_day: bool = False) -> pd.DataFrame:
-        pass
+        table = self._get_results_table(interval)
+        with self.ENGINE.connect() as conn:
+            res = conn.execute(table.select().where(table.c.id.in_(ids)))
+            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units", "values"])
+            if df.empty:
+                raise KeyError(f"Cannot find results, any of given ids: "
+                               f"'{', '.join([str(id_) for id_ in ids])}' "
+                               f"is not included.")
 
-    def get_global_max_results(self, interval: str, ids: List[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
-        pass
+            df.set_index(["id", "interval", "key", "variable", "units"], inplace=True)
+            df = destringify_df(df)
 
-    def get_global_min_results(self, interval: str, ids: List[int], start_date: datetime = None,
+        index = self.get_datetime_index(interval)
+        if index is not None:
+            df.index = index
+
+        if include_day:
+            try:
+                day_sr = self.get_days_of_week(interval)
+                df.insert(0, day_sr)
+                df.set_index(DAY_COLUMN, append=True, inplace=True)
+            except KeyError:
+                try:
+                    df[DAY_COLUMN] = df.index.strftime("%A")
+                    df.set_index(DAY_COLUMN, append=True, inplace=True)
+                except AttributeError:
+                    pass
+
+        return df_dt_slicer(df, start_date, end_date)
+
+    def get_all_results(self, interval: str) -> pd.DataFrame:
+        ids = self.get_variable_ids(interval)
+        df = self.get_results(interval, ids)
+        return df
+
+    def _global_peak(self, interval, ids, start_date, end_date, max_=True):
+        """ Return maximum or minimum value and datetime of occurrence. """
+        df = self.get_results(interval, ids, start_date, end_date)
+
+        vals = pd.DataFrame(df.max() if max_ else df.min()).T
+        ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
+
+        df = merge_peak_outputs(ixs, vals)
+        df = df.iloc[[0]]  # report only first occurrence
+
+        return df
+
+    def get_global_max_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                                end_date: datetime = None) -> pd.DataFrame:
-        pass
+        return self._global_peak(interval, ids, start_date, end_date)
+
+    def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
+                               end_date: datetime = None) -> pd.DataFrame:
+        return self._global_peak(interval, ids, start_date, end_date, max_=False)
 
 
 if __name__ == "__main__":
