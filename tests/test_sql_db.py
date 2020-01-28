@@ -15,21 +15,27 @@ class TestSqlDB(unittest.TestCase):
         SQLOutputs.set_up_db()
         self.assertIsNotNone(SQLOutputs.ENGINE)
         self.assertIsNotNone(SQLOutputs.METADATA)
-        self.assertListEqual(list(SQLOutputs.METADATA.tables.keys()), ["result_files"])
+        self.assertListEqual(list(SQLOutputs.METADATA.tables.keys()), ["result-files"])
 
         self.assertListEqual(
             list(SQLOutputs.METADATA.tables.keys()),
-            ["result_files"]
+            ["result-files"]
         )
 
         res = SQLOutputs.ENGINE.execute("""SELECT name FROM sqlite_master""")
-        self.assertEqual(res.fetchone()[0], "result_files")
+        self.assertEqual(res.fetchone()[0], "result-files")
 
     def test_store_file(self):
         SQLOutputs.set_up_db()
         SQLOutputs.store_file(self.ef)
-        tables = ['result_files', 'indexes-1', 'outputs-timestep-1', 'outputs-hourly-1',
-                  'outputs-daily-1', 'outputs-monthly-1', 'outputs-runperiod-1', 'outputs-annual-1']
+        tables = [
+            'result-files', '1-results-timestep', '1-index-timestep',
+            '1-day-timestep', '1-results-hourly', '1-index-hourly', '1-day-hourly',
+            '1-results-daily', '1-index-daily', '1-day-daily', '1-results-monthly',
+            '1-index-monthly', '1-n_days-monthly', '1-results-runperiod',
+            '1-index-runperiod', '1-n_days-runperiod', '1-results-annual',
+            '1-index-annual', '1-n_days-annual'
+        ]
 
         self.assertListEqual(list(SQLOutputs.METADATA.tables.keys()), tables)
 
@@ -43,8 +49,8 @@ class TestSqlDB(unittest.TestCase):
 
         self.assertListEqual(
             list(SQLOutputs.METADATA.tables.keys()),
-            ["result_files"]
+            ["result-files"]
         )
 
         res = SQLOutputs.ENGINE.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
-        self.assertEqual(res.fetchone()[0], "result_files")
+        self.assertEqual(res.fetchone()[0], "result-files")

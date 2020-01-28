@@ -128,6 +128,17 @@ class DFOutputs(BaseOutputs):
 
             return id_
 
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+        df_length = len(self.tables[interval].index)
+        valid = len(array) == df_length
+
+        if not valid:
+            print(f"Variable contains {len(array)} values, df length is {df_length}!"
+                  "\nVariable cannot be updated.")
+        else:
+            cond = self.tables[interval].columns.get_level_values("id") == id_
+            self.tables[interval].loc[:, cond] = array
+
     def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
         all_ids = self.tables[interval].columns.get_level_values("id")
         if not all(map(lambda x: x in all_ids, ids)):
@@ -136,17 +147,6 @@ class DFOutputs(BaseOutputs):
                            f"are not included.")
 
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
-
-    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
-        df_length = len(self.tables[interval].index)
-        valid = len(array) == df_length
-
-        if not valid:
-            print(f"New variable contains {len(array)} values, df length is {df_length}!"
-                  "\nVariable cannot be added.")
-        else:
-            cond = self.tables[interval].columns.get_level_values("id") == id_
-            self.tables[interval].loc[:, cond] = array
 
     def get_special_column(self, interval: str, name: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:

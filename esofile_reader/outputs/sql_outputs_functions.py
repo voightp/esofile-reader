@@ -15,7 +15,7 @@ def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Tab
         Column("key", String(50)),
         Column("variable", String(50)),
         Column("units", String(50)),
-        Column("values", String(50)),
+        Column("str_values", String(50)),
     )
 
     table.create()
@@ -28,7 +28,7 @@ def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Ta
 
     table = Table(
         name, metadata,
-        Column("values", DateTime)
+        Column("value", DateTime)
     )
 
     table.create()
@@ -41,7 +41,7 @@ def create_n_days_table(metadata: MetaData, file_id: int, interval: str) -> Tabl
 
     table = Table(
         name, metadata,
-        Column("values", Integer)
+        Column("value", Integer)
     )
 
     table.create()
@@ -54,7 +54,7 @@ def create_day_table(metadata: MetaData, file_id: int, interval: str) -> Table:
 
     table = Table(
         name, metadata,
-        Column("values", String(10))
+        Column("value", String(10))
     )
 
     table.create()
@@ -62,10 +62,10 @@ def create_day_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     return table
 
 
-def create_values_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
+def create_value_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
     ins = []
     for value in values:
-        ins.append({"values": value})
+        ins.append({"value": value})
     return ins
 
 

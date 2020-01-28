@@ -6,7 +6,7 @@ from esofile_reader.database_file import DatabaseFile
 from esofile_reader.outputs.base_outputs import BaseOutputs
 from esofile_reader.outputs.df_outputs_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
 from esofile_reader.outputs.sql_outputs_functions import create_results_table, \
-    create_datetime_table, merge_df_values, create_values_insert, create_n_days_table, \
+    create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
     create_day_table, destringify_values
 from esofile_reader import EsoFile
 from esofile_reader.utils.utils import profile
@@ -19,7 +19,7 @@ from esofile_reader.utils.mini_classes import Variable
 
 
 class SQLOutputs(BaseOutputs):
-    FILE_TABLE = "result_files"
+    FILE_TABLE = "result-files"
     SEPARATOR = "\t"
     ENGINE = None
     METADATA = None
@@ -109,7 +109,7 @@ class SQLOutputs(BaseOutputs):
                             "key": index[2],
                             "variable": index[3],
                             "units": index[4],
-                            "values": values
+                            "str_values": values
                         }
                     )
                 conn.execute(results_table.insert(), ins)
@@ -117,19 +117,19 @@ class SQLOutputs(BaseOutputs):
                 # create index table
                 if isinstance(outputs.index, pd.DatetimeIndex):
                     index_table = create_datetime_table(cls.METADATA, id_, interval)
-                    conn.execute(index_table.insert(), create_values_insert(outputs.index))
+                    conn.execute(index_table.insert(), create_value_insert(outputs.index))
                     f_upd[f"{interval}_dt_table"] = index_table.name
 
                 # store 'n days' data
                 if N_DAYS_COLUMN in outputs.columns:
                     n_days_table = create_n_days_table(cls.METADATA, id_, interval)
-                    conn.execute(n_days_table.insert(), create_values_insert(outputs[N_DAYS_COLUMN]))
+                    conn.execute(n_days_table.insert(), create_value_insert(outputs[N_DAYS_COLUMN]))
                     f_upd[f"{interval}_n_days_table"] = n_days_table.name
 
                 # store 'day of week' data
                 if DAY_COLUMN in outputs.columns:
                     day_table = create_day_table(cls.METADATA, id_, interval)
-                    conn.execute(day_table.insert(), create_values_insert(outputs[DAY_COLUMN]))
+                    conn.execute(day_table.insert(), create_value_insert(outputs[DAY_COLUMN]))
                     f_upd[f"{interval}_day_table"] = day_table.name
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
@@ -146,21 +146,14 @@ class SQLOutputs(BaseOutputs):
         files = cls.METADATA.tables[cls.FILE_TABLE]
 
         with cls.ENGINE.connect() as conn:
-            columns = [
-                files.c.indexes_table,
-                files.c.timestep_table,
-                files.c.hourly_table,
-                files.c.daily_table,
-                files.c.monthly_table,
-                files.c.annual_table,
-                files.c.runperiod_table
-            ]
-
-            res = conn.execute(select(columns).where(files.c.id == id_)).first()
+            res = conn.execute(files.select().where(files.c.id == id_)).first()
             if res:
                 # remove tables based on file reference
-                for table_name in [t for t in res if t]:
-                    cls.METADATA.tables[table_name].drop()
+                for table_name in res:
+                    try:
+                        cls.METADATA.tables[table_name].drop()
+                    except KeyError:
+                        pass
 
                 # remove result file
                 conn.execute(files.delete().where(files.c.id == id_))
@@ -312,25 +305,50 @@ class SQLOutputs(BaseOutputs):
                          .where(table.c.id == id_) \
                          .values(key=key_name, variable=var_name))
 
-    def add_variable(self, variable: Variable, array: Sequence) -> None:
-        table = self._get_results_table(variable.interval)
-        str_array = self.SEPARATOR.join([str(i) for i in array])
+    def _validate(self, interval: str, array: Sequence):
+        table = self._get_results_table(interval)
 
         with self.ENGINE.connect() as conn:
-            statement = table.insert().values({**variable._asdict(), "values": str_array})
-            id_ = conn.execute(statement).inserted_primary_key[0]
+            res = conn.execute(select([table.c.str_values])).scalar()
 
-        return id_
+        # number of elements in array
+        n = res.count(self.SEPARATOR) + 1
+
+        return len(array) == n
+
+    def add_variable(self, variable: Variable, array: Sequence) -> None:
+        if self._validate(variable.interval, array):
+            table = self._get_results_table(variable.interval)
+            str_array = self.SEPARATOR.join([str(i) for i in array])
+
+            with self.ENGINE.connect() as conn:
+                statement = table.insert().values({**variable._asdict(), "str_values": str_array})
+                id_ = conn.execute(statement).inserted_primary_key[0]
+
+            return id_
+        else:
+            print("Cannot add new variable '{0} {1} {2} {3}'. "
+                  "Number of elements '({4})' does not match!".format(*variable, len(array)))
+
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+        if self._validate(interval, array):
+            table = self._get_results_table(interval)
+            str_array = self.SEPARATOR.join([str(i) for i in array])
+
+            with self.ENGINE.connect() as conn:
+                conn.execute(table.update() \
+                             .where(table.c.id == id_) \
+                             .values(str_values=str_array))
+            return id_
+        else:
+            print(f"Cannot update variable '{id_}'. "
+                  f"Number of elements '({len(array)})' does not match!")
 
     def remove_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
 
         with self.ENGINE.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
-
-    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
-        # TODO implement update
-        pass
 
     def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
         table = self._get_n_days_table(interval)
@@ -369,6 +387,7 @@ class SQLOutputs(BaseOutputs):
     def get_results(self, interval: str, ids: List[int], start_date: datetime = None, end_date: datetime = None,
                     include_day: bool = False) -> pd.DataFrame:
         table = self._get_results_table(interval)
+
         with self.ENGINE.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
             df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units", "values"])

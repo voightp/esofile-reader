@@ -67,13 +67,13 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
-        """ Remove given variables. """
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+        """ Update given variable values. """
         pass
 
     @abstractmethod
-    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
-        """ Update given variable values. """
+    def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
+        """ Remove given variables. """
         pass
 
     @abstractmethod
