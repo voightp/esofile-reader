@@ -1,18 +1,12 @@
-from uuid import uuid1
-from esofile_reader import EsoFile
-from esofile_reader.utils.utils import profile
-from esofile_reader.constants import *
-from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
-    DateTime, Boolean, Sequence, Text, inspect, select
 import pandas as pd
-import contextlib
-from sqlalchemy import exc
-import sqlalchemy
+
+from esofile_reader.utils.utils import profile
+from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime, Float
+from typing import Iterable, Any, Dict, List
 
 
-@profile
-def results_table_generator(metadata, file_id, interval):
-    name = f"outputs-{interval}-{file_id}"
+def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Table:
+    name = f"{file_id}-results-{interval}"
 
     table = Table(
         name, metadata,
@@ -21,41 +15,62 @@ def results_table_generator(metadata, file_id, interval):
         Column("key", String(50)),
         Column("variable", String(50)),
         Column("units", String(50)),
-        Column("values", Text),
+        Column("values", String(50)),
     )
 
     table.create()
 
-    return name
+    return table
 
 
-@profile
-def dates_table_generator(metadata, file_id):
-    name = f"indexes-{file_id}"
+def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Table:
+    name = f"{file_id}-index-{interval}"
 
     table = Table(
         name, metadata,
-        Column("timestep_dt", Text),
-        Column("hourly_dt", Text),
-        Column("daily_dt", Text),
-        Column("monthly_dt", Text),
-        Column("annual_dt", Text),
-        Column("runperiod_dt", Text),
-        Column("timestep_days", Text),
-        Column("hourly_days", Text),
-        Column("daily_days", Text),
-        Column("monthly_n_days", Text),
-        Column("annual_n_days", Text),
-        Column("runperiod_n_days", Text),
+        Column("values", DateTime)
     )
 
     table.create()
 
-    return name
+    return table
+
+
+def create_n_days_table(metadata: MetaData, file_id: int, interval: str) -> Table:
+    name = f"{file_id}-n_days-{interval}"
+
+    table = Table(
+        name, metadata,
+        Column("values", Integer)
+    )
+
+    table.create()
+
+    return table
+
+
+def create_day_table(metadata: MetaData, file_id: int, interval: str) -> Table:
+    name = f"{file_id}-day-{interval}"
+
+    table = Table(
+        name, metadata,
+        Column("values", String(10))
+    )
+
+    table.create()
+
+    return table
+
+
+def create_values_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
+    ins = []
+    for value in values:
+        ins.append({"values": value})
+    return ins
 
 
 @profile
-def destringify_df(df: pd.DataFrame, separator="\t"):
+def destringify_values(df: pd.DataFrame, separator="\t"):
     """ Transform joined str field into numeric columns. """
     names = df.index.names
     df = df.applymap(lambda x: x.split(separator)).T
@@ -69,55 +84,9 @@ def destringify_df(df: pd.DataFrame, separator="\t"):
     return df
 
 
+@profile
 def merge_df_values(df: pd.DataFrame, separator: str) -> pd.Series:
     """ Merge all column values into a single str pd.Series. """
     df = df.astype(str)
     str_df = df.apply(lambda x: f"{separator}".join(x.to_list()))
     return str_df
-
-
-@profile
-def create_results_insert(df, separator):
-    sr = merge_df_values(df, separator)
-    ins = []
-
-    for index, values in sr.iteritems():
-        ins.append(
-            {
-                "id": index[0],
-                "interval": index[1],
-                "key": index[2],
-                "variable": index[3],
-                "units": index[4],
-                "values": values
-            }
-        )
-
-    return ins
-
-
-@profile
-def merge_sr_values(sr: pd.Series, separator: str) -> str:
-    """ Merge all column values into a single str pd.Series. """
-    sr = sr.astype(str).tolist()
-    return f"{separator}".join(sr)
-
-
-@profile
-def create_index_insert(interval, df, separator=" "):
-    ids = df.columns.get_level_values("id")
-    ins = {}
-
-    if N_DAYS_COLUMN in ids:
-        # this should be available only for monthly - runperiod
-        ins[f"{interval}_n_days"] = merge_sr_values(df.loc[:, N_DAYS_COLUMN], separator)
-
-    if DAY_COLUMN in ids:
-        # this should be available only for monthly - runperiod
-        ins[f"{interval}_days"] = merge_sr_values(df.loc[:, DAY_COLUMN], separator)
-
-    if isinstance(df.index, pd.DatetimeIndex):
-        str_date_range = f"{separator}".join(df.index.strftime("%Y/%m/%d %H:%M:%S"))
-        ins[f"{interval}_dt"] = str_date_range
-
-    return ins

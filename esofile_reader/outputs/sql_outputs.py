@@ -5,8 +5,9 @@ from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
 from esofile_reader.outputs.base_outputs import BaseOutputs
 from esofile_reader.outputs.df_outputs_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
-from esofile_reader.outputs.sql_outputs_functions import results_table_generator, \
-    dates_table_generator, create_index_insert, create_results_insert, destringify_df
+from esofile_reader.outputs.sql_outputs_functions import create_results_table, \
+    create_datetime_table, merge_df_values, create_values_insert, create_n_days_table, \
+    create_day_table, destringify_values
 from esofile_reader import EsoFile
 from esofile_reader.utils.utils import profile
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
@@ -42,13 +43,24 @@ class SQLOutputs(BaseOutputs):
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_created", DateTime),
-                Column("indexes_table", String(20)),
-                Column("timestep_table", String(20)),
-                Column("hourly_table", String(20)),
-                Column("daily_table", String(20)),
-                Column("monthly_table", String(20)),
-                Column("annual_table", String(20)),
-                Column("runperiod_table", String(20)),
+                Column("timestep_outputs_table", String(50)),
+                Column("hourly_outputs_table", String(50)),
+                Column("daily_outputs_table", String(50)),
+                Column("monthly_outputs_table", String(50)),
+                Column("annual_outputs_table", String(50)),
+                Column("runperiod_outputs_table", String(50)),
+                Column("timestep_dt_table", String(50)),
+                Column("hourly_dt_table", String(50)),
+                Column("daily_dt_table", String(50)),
+                Column("monthly_dt_table", String(50)),
+                Column("annual_dt_table", String(50)),
+                Column("runperiod_dt_table", String(50)),
+                Column("timestep_day_table", String(50)),
+                Column("hourly_day_table", String(50)),
+                Column("daily_day_table", String(50)),
+                Column("monthly_n_days_table", String(50)),
+                Column("annual_n_days_table", String(50)),
+                Column("runperiod_n_days_table", String(50))
             )
 
             with contextlib.suppress(exc.InvalidRequestError, exc.OperationalError):
@@ -75,31 +87,56 @@ class SQLOutputs(BaseOutputs):
         # insert new file data
         with cls.ENGINE.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
-            indexes_name = dates_table_generator(cls.METADATA, id_)
-            conn.execute(f.update().where(f.c.id == id_).values(indexes_table=indexes_name))
 
-            indexes_ins = {}
             for interval in result_file.available_intervals:
-                outputs = result_file.data
-                # create result table for specific interval
-                results_name = results_table_generator(cls.METADATA, id_, interval)
+                f_upd = {}
 
-                # create data inserts
-                results_ins = create_results_insert(outputs.get_all_results(interval), cls.SEPARATOR)
-                indexes_ins.update(create_index_insert(interval, outputs.tables[interval], cls.SEPARATOR))
+                outputs = result_file.data.tables[interval]
+                # create result table
+                results_table = create_results_table(cls.METADATA, id_, interval)
+                f_upd[f"{interval}_outputs_table"] = results_table.name
 
-                # insert results into tables
-                conn.execute(cls.METADATA.tables[results_name].insert(), results_ins)
+                # store numeric values
+                df = result_file.data.get_all_results(interval)
+                sr = merge_df_values(df, cls.SEPARATOR)
 
-                # store result table reference
-                conn.execute(f.update().where(f.c.id == id_).values(**{f"{interval}_table": results_name}))
+                ins = []
+                for index, values in sr.iteritems():
+                    ins.append(
+                        {
+                            "id": index[0],
+                            "interval": index[1],
+                            "key": index[2],
+                            "variable": index[3],
+                            "units": index[4],
+                            "values": values
+                        }
+                    )
+                conn.execute(results_table.insert(), ins)
 
-            # store index data
-            conn.execute(cls.METADATA.tables[indexes_name].insert().values(**indexes_ins))
+                # create index table
+                if isinstance(outputs.index, pd.DatetimeIndex):
+                    index_table = create_datetime_table(cls.METADATA, id_, interval)
+                    conn.execute(index_table.insert(), create_values_insert(outputs.index))
+                    f_upd[f"{interval}_dt_table"] = index_table.name
 
-        db_file = DatabaseFile(id_, result_file.file_name, SQLOutputs(id_),
-                               result_file.file_created, result_file._search_tree,
-                               result_file.file_path)
+                # store 'n days' data
+                if N_DAYS_COLUMN in outputs.columns:
+                    n_days_table = create_n_days_table(cls.METADATA, id_, interval)
+                    conn.execute(n_days_table.insert(), create_values_insert(outputs[N_DAYS_COLUMN]))
+                    f_upd[f"{interval}_n_days_table"] = n_days_table.name
+
+                # store 'day of week' data
+                if DAY_COLUMN in outputs.columns:
+                    day_table = create_day_table(cls.METADATA, id_, interval)
+                    conn.execute(day_table.insert(), create_values_insert(outputs[DAY_COLUMN]))
+                    f_upd[f"{interval}_day_table"] = day_table.name
+
+                conn.execute(f.update().where(f.c.id == id_).values(f_upd))
+
+                db_file = DatabaseFile(id_, result_file.file_name, SQLOutputs(id_),
+                                       result_file.file_created, result_file._search_tree,
+                                       result_file.file_path)
 
         return db_file
 
@@ -138,42 +175,71 @@ class SQLOutputs(BaseOutputs):
     def set_data(self, interval: str, df: pd.DataFrame):
         pass
 
+    def _get_table(self, column, files):
+        with self.ENGINE.connect() as conn:
+            table_name = conn.execute(select([column]).where(files.c.id == self.id_)).scalar()
+            table = self.METADATA.tables[table_name]
+        return table
+
     def _get_results_table(self, interval):
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
-            TS: files.c.timestep_table,
-            H: files.c.hourly_table,
-            D: files.c.daily_table,
-            M: files.c.monthly_table,
-            A: files.c.annual_table,
-            RP: files.c.runperiod_table
+            TS: files.c.timestep_outputs_table,
+            H: files.c.hourly_outputs_table,
+            D: files.c.daily_outputs_table,
+            M: files.c.monthly_outputs_table,
+            A: files.c.annual_outputs_table,
+            RP: files.c.runperiod_outputs_table
         }
 
-        with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([switch[interval]]).where(files.c.id == self.id_)).scalar()
-            table = self.METADATA.tables[table_name]
+        return self._get_table(switch[interval], files)
 
-        return table
-
-    def _get_index_table(self):
+    def _get_datetime_table(self, interval):
         files = self.METADATA.tables[self.FILE_TABLE]
 
-        with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([files.c.indexes_table]).where(files.c.id == self.id_)).scalar()
-            table = self.METADATA.tables[table_name]
+        switch = {
+            TS: files.c.timestep_dt_table,
+            H: files.c.hourly_dt_table,
+            D: files.c.daily_dt_table,
+            M: files.c.monthly_dt_table,
+            A: files.c.annual_dt_table,
+            RP: files.c.runperiod_dt_table
+        }
 
-        return table
+        return self._get_table(switch[interval], files)
+
+    def _get_n_days_table(self, interval):
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        switch = {
+            M: files.c.monthly_n_days_table,
+            A: files.c.annual_n_days_table,
+            RP: files.c.runperiod_n_days_table
+        }
+
+        return self._get_table(switch[interval], files)
+
+    def _get_day_table(self, interval):
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        switch = {
+            TS: files.c.timestep_day_table,
+            H: files.c.hourly_day_table,
+            D: files.c.daily_day_table
+        }
+
+        return self._get_table(switch[interval], files)
 
     def get_available_intervals(self) -> List[str]:
         files = self.METADATA.tables[self.FILE_TABLE]
         columns = [
-            files.c.timestep_table,
-            files.c.hourly_table,
-            files.c.daily_table,
-            files.c.monthly_table,
-            files.c.runperiod_table,
-            files.c.annual_table
+            files.c.timestep_outputs_table,
+            files.c.hourly_outputs_table,
+            files.c.daily_outputs_table,
+            files.c.monthly_outputs_table,
+            files.c.runperiod_outputs_table,
+            files.c.annual_outputs_table
         ]
 
         intervals = []
@@ -185,20 +251,11 @@ class SQLOutputs(BaseOutputs):
         return intervals
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
-        table = self._get_index_table()
-
-        switch = {
-            TS: table.c.timestep_dt,
-            H: table.c.hourly_dt,
-            D: table.c.daily_dt,
-            M: table.c.monthly_dt,
-            A: table.c.annual_dt,
-            RP: table.c.runperiod_dt
-        }
+        table = self._get_datetime_table(interval)
 
         with self.ENGINE.connect() as conn:
-            res = conn.execute(select([switch[interval]])).scalar()
-            datetime_index = pd.DatetimeIndex(res.split(self.SEPARATOR), name="timestamp")
+            res = conn.execute(table.select()).fetchall()
+            datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
 
         return datetime_index
 
@@ -276,19 +333,12 @@ class SQLOutputs(BaseOutputs):
         pass
 
     def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
-        table = self._get_index_table()
-
-        switch = {
-            M: table.c.monthly_n_days,
-            A: table.c.annual_n_days,
-            RP: table.c.runperiod_n_days
-        }
+        table = self._get_n_days_table(interval)
 
         with self.ENGINE.connect() as conn:
-            res = conn.execute(select([switch[interval]])).scalar()
+            res = conn.execute(table.select()).fetchall()
             if res:
-                n_days = [int(i) for i in res.split(self.SEPARATOR)]
-                sr = pd.Series(n_days, name=N_DAYS_COLUMN)
+                sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
             else:
                 raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
                                f"on the given data set.")
@@ -300,18 +350,12 @@ class SQLOutputs(BaseOutputs):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_days_of_week(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
-        table = self._get_index_table()
-
-        switch = {
-            TS: table.c.timestep_days,
-            H: table.c.hourly_days,
-            D: table.c.daily_days
-        }
+        table = self._get_day_table(interval)
 
         with self.ENGINE.connect() as conn:
-            res = conn.execute(select([switch[interval]])).scalar()
+            res = conn.execute(table.select()).fetchall()
             if res:
-                sr = pd.Series(res.split(self.SEPARATOR), name=DAY_COLUMN)
+                sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
             else:
                 raise KeyError(f"'{DAY_COLUMN}' column is not available "
                                f"on the given data set.")
@@ -334,7 +378,7 @@ class SQLOutputs(BaseOutputs):
                                f"is not included.")
 
             df.set_index(["id", "interval", "key", "variable", "units"], inplace=True)
-            df = destringify_df(df)
+            df = destringify_values(df)
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -343,7 +387,7 @@ class SQLOutputs(BaseOutputs):
         if include_day:
             try:
                 day_sr = self.get_days_of_week(interval)
-                df.insert(0, day_sr)
+                df.insert(0, DAY_COLUMN, day_sr)
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
             except KeyError:
                 try:

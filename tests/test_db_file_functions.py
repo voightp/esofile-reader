@@ -35,7 +35,6 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_complete(self):
         self.assertTrue(self.ef.complete)
-        self.assertIsNone(self.ef.peak_outputs)
 
     def test_header_df(self):
         self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
