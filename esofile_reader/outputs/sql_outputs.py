@@ -381,16 +381,7 @@ class SQLOutputs(BaseOutputs):
 
 
 if __name__ == "__main__":
-    ef = EsoFile(r"C:\Users\vojte\Desktop\Python\eso_reader\tests\eso_files\eplusout_all_intervals.eso",
+    ef = EsoFile(r"C:\Users\vojtechp1\AppData\Local\DesignBuilder\EnergyPlus\eplusout_large.eso",
                  report_progress=True)
-    # ef = EsoFile(r"C:\Users\vojtechp1\desktop\eplusout.eso", report_progress=True)
-
-    # eng, meta = SQLOutputs.set_up_db(echo=False)
-    #
-    # SQLOutputs.store_file(ef, eng, meta)
-
-    SQLOutputs.set_up_db(r"C:\Users\vojte\Desktop\Python\eso_reader\esofile_reader\outputs\test.db", echo=False)
-
+    SQLOutputs.set_up_db("test.db", echo=False)
     f = SQLOutputs.store_file(ef)
-    d = f.get_datetime_index("daily")
-    print(d)
