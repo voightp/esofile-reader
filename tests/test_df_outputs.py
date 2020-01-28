@@ -108,6 +108,11 @@ class TestDFOutputs(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.ef.data.remove_variables("monthly", [100000])
 
+    def test_update_variable(self):
+        self.ef.data.update_variable("monthly", 983, list(range(12)))
+        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
+        self.assertListEqual(vals, list(range(12)))
+
     def test_get_special_column_invalid(self):
         with self.assertRaises(KeyError):
             self.ef.data.get_special_column("FOO", "timestep")

@@ -137,6 +137,17 @@ class DFOutputs(BaseOutputs):
 
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+        df_length = len(self.tables[interval].index)
+        valid = len(array) == df_length
+
+        if not valid:
+            print(f"New variable contains {len(array)} values, df length is {df_length}!"
+                  "\nVariable cannot be added.")
+        else:
+            cond = self.tables[interval].columns.get_level_values("id") == id_
+            self.tables[interval].loc[:, cond] = array
+
     def get_special_column(self, interval: str, name: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):

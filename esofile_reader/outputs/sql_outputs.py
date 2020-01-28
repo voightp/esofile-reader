@@ -271,6 +271,10 @@ class SQLOutputs(BaseOutputs):
         with self.ENGINE.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+        # TODO implement update
+        pass
+
     def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
         table = self._get_index_table()
 

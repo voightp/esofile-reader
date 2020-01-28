@@ -72,7 +72,7 @@ class BaseOutputs(ABC):
         pass
 
     @abstractmethod
-    def update_variable(self, interval: str, id: int, array: Sequence[float]):
+    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
         """ Update given variable values. """
         pass
 
