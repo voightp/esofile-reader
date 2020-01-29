@@ -2,14 +2,14 @@ import pandas as pd
 from datetime import datetime
 from typing import Sequence, List, Dict
 from esofile_reader.constants import *
-from esofile_reader.outputs.base_outputs import BaseOutputs
+from esofile_reader.outputs.base_outputs import BaseData
 from esofile_reader.outputs.df_outputs_functions import merge_peak_outputs, slicer
 
 from esofile_reader.utils.utils import id_gen
 from esofile_reader.utils.mini_classes import Variable
 
 
-class DFOutputs(BaseOutputs):
+class DFData(BaseData):
     """
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame classes as values.

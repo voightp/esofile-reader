@@ -8,7 +8,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Dict, List
 
-from esofile_reader.outputs.df_outputs import DFOutputs
+from esofile_reader.outputs.df_outputs import DFData
 from esofile_reader.outputs.df_outputs_functions import create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
@@ -377,8 +377,8 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
 
-    min_peaks = DFOutputs()
-    max_peaks = DFOutputs()
+    min_peaks = DFData()
+    max_peaks = DFData()
 
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, column_names[0])
@@ -409,7 +409,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
 def generate_outputs(raw_outputs, header, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
-    outputs = DFOutputs()
+    outputs = DFData()
 
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, column_names[0])

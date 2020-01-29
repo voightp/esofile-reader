@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Sequence, List, Dict
 from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
-from esofile_reader.outputs.base_outputs import BaseOutputs
+from esofile_reader.outputs.base_outputs import BaseData
 from esofile_reader.outputs.df_outputs_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
 from esofile_reader.outputs.sql_outputs_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
@@ -18,7 +18,7 @@ from sqlalchemy import exc
 from esofile_reader.utils.mini_classes import Variable
 
 
-class SQLOutputs(BaseOutputs):
+class SQLData(BaseData):
     FILE_TABLE = "result-files"
     SEPARATOR = "\t"
     ENGINE = None
@@ -134,7 +134,7 @@ class SQLOutputs(BaseOutputs):
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
 
-                db_file = DatabaseFile(id_, result_file.file_name, SQLOutputs(id_),
+                db_file = DatabaseFile(id_, result_file.file_name, SQLData(id_),
                                        result_file.file_created, result_file._search_tree,
                                        result_file.file_path)
 
@@ -447,5 +447,5 @@ class SQLOutputs(BaseOutputs):
 if __name__ == "__main__":
     ef = EsoFile(r"C:\Users\vojtechp1\AppData\Local\DesignBuilder\EnergyPlus\eplusout_large.eso",
                  report_progress=True)
-    SQLOutputs.set_up_db("test.db", echo=False)
-    f = SQLOutputs.store_file(ef)
+    SQLData.set_up_db("test.db", echo=False)
+    f = SQLData.store_file(ef)

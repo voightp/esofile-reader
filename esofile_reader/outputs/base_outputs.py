@@ -5,7 +5,7 @@ from esofile_reader.utils.mini_classes import Variable
 import pandas as pd
 
 
-class BaseOutputs(ABC):
+class BaseData(ABC):
     """
     An abstract class to define metadata for result storage.
 

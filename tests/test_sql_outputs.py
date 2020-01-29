@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal, assert_index_equal
 
 from tests import ROOT
 from esofile_reader import EsoFile, Variable
-from esofile_reader.outputs.sql_outputs import SQLOutputs
+from esofile_reader.outputs.sql_outputs import SQLData
 
 
 class TestDFOutputs(unittest.TestCase):
@@ -13,9 +13,9 @@ class TestDFOutputs(unittest.TestCase):
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
-        SQLOutputs.set_up_db()
+        SQLData.set_up_db()
 
-        cls.sql_file = SQLOutputs.store_file(ef)
+        cls.sql_file = SQLData.store_file(ef)
 
     def test_get_available_intervals(self):
         intervals = self.sql_file.data.get_available_intervals()
@@ -90,14 +90,14 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_rename_variable(self):
         self.sql_file.data.rename_variable("timestep", 7, "FOO", "BAR")
-        with SQLOutputs.ENGINE.connect() as conn:
+        with SQLData.ENGINE.connect() as conn:
             table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
             var = (res[0], res[1], res[2], res[3], res[4])
             self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
 
         self.sql_file.data.rename_variable("timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area")
-        with SQLOutputs.ENGINE.connect() as conn:
+        with SQLData.ENGINE.connect() as conn:
             table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
             var = (res[0], res[1], res[2], res[3], res[4])
