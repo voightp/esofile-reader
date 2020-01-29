@@ -126,7 +126,7 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_special_column_invalid(self):
         with self.assertRaises(KeyError):
-            self.ef.data.get_special_column("FOO", "timestep")
+            self.ef.data._get_special_column("FOO", "timestep")
 
     def test_get_number_of_days(self):
         col = self.ef.data.get_number_of_days("monthly")

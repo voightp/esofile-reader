@@ -22,14 +22,13 @@ class DiffFile(BaseFile):
         self.populate_content(first_file, other_file)
 
     @staticmethod
-    def calculate_diff(first_file: Type[BaseFile], other_file: Type[BaseFile], absolute: bool = False,
-                       include_id: bool = False, include_interval: bool = False) -> DFData:
+    def calculate_diff(file: Type[BaseFile], other_file: Type[BaseFile]) -> DFData:
         """ Calculate difference between two results files. """
         diff = DFData()
         id_gen = incremental_id_gen()
 
-        for interval in first_file.available_intervals:
-            df1 = first_file.as_df(interval)
+        for interval in file.available_intervals:
+            df1 = file.as_df(interval)
 
             if interval not in other_file.available_intervals:
                 continue
@@ -39,49 +38,41 @@ class DiffFile(BaseFile):
             df1.columns = df1.columns.droplevel("id")
             df2.columns = df2.columns.droplevel("id")
 
-            if not include_interval:
-                df1.columns = df1.columns.droplevel("interval")
-                df2.columns = df2.columns.droplevel("interval")
+            df = df1 - df2
+            df.dropna(how="all", inplace=True, axis=1)
+
+            if not df.empty:
+                # create new id for each record
+                ids = [next(id_gen) for _ in range(len(df.columns))]
+                header_df = df.columns.to_frame(index=False)
+                header_df.insert(0, "id", ids)
+
+                df.columns = pd.MultiIndex.from_frame(header_df)
 
             try:
-                df = df1 - df2
-                df.dropna(how="all", inplace=True, axis=1)
+                c1 = file.data.get_number_of_days(interval)
+                c2 = other_file.data.get_number_of_days(interval)
+                if c1.equals(c2):
+                    df.insert(0, N_DAYS_COLUMN, c1)
+            except KeyError:
+                pass
 
-                if not df.empty:
-                    if absolute:
-                        df = df.abs()
-
-                    if include_id:
-                        # create new id for each record
-                        ids = [next(id_gen) for _ in range(len(df.columns))]
-                        header_df = df.columns.to_frame(index=False)
-                        header_df.insert(0, "id", ids)
-
-                        df.columns = pd.MultiIndex.from_frame(header_df)
-
-            except MemoryError:
-                raise MemoryError("Cannot subtract output DataFrames!"
-                                  "\nRunning out of memory!")
-
-            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
-                try:
-                    c1 = first_file.data.get_special_column(c, interval)
-                    c2 = other_file.data.get_special_column(c, interval)
-                    if c1.equals(c2):
-                        df.insert(0, c, c1)
-                except KeyError:
-                    pass
+            try:
+                c1 = file.data.get_days_of_week(interval)
+                c2 = other_file.data.get_days_of_week(interval)
+                if c1.equals(c2):
+                    df.insert(0, DAY_COLUMN, c1)
+            except KeyError:
+                pass
 
             diff.populate_table(interval, df)
 
         return diff
 
-    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile],
-                     absolute: bool = False) -> Tuple[Type[BaseData], Tree]:
+    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> Tuple[Type[BaseData], Tree]:
         """ Create diff outputs. """
         header = {}
-        data = self.calculate_diff(first_file, other_file, absolute=absolute,
-                                   include_id=True, include_interval=True)
+        data = self.calculate_diff(first_file, other_file)
 
         for interval in data.get_available_intervals():
             header[interval] = data.get_variables_dct(interval)

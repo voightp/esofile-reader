@@ -363,7 +363,7 @@ class SQLData(BaseData):
         with self.ENGINE.connect() as conn:
             res = conn.execute(table.select()).fetchall()
             if res:
-                sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
+                sr = pd.Series([int(r[0]) for r in res], name=N_DAYS_COLUMN)
             else:
                 raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
                                f"on the given data set.")

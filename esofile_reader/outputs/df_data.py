@@ -149,8 +149,8 @@ class DFData(BaseData):
 
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
-    def get_special_column(self, interval: str, name: str, start_date: datetime = None,
-                           end_date: datetime = None) -> pd.Series:
+    def _get_special_column(self, interval: str, name: str, start_date: datetime = None,
+                            end_date: datetime = None) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
             raise KeyError(f"'{name}' column is not available "
                            f"on the given data set.")
@@ -164,11 +164,11 @@ class DFData(BaseData):
 
     def get_number_of_days(self, interval: str, start_date: datetime = None,
                            end_date: datetime = None) -> pd.Series:
-        return self.get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
+        return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(self, interval: str, start_date: datetime = None,
                          end_date: datetime = None) -> pd.Series:
-        return self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
+        return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
     def get_all_results(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns

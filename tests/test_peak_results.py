@@ -3,7 +3,8 @@ import unittest
 from datetime import datetime
 
 import pandas as pd
-
+from esofile_reader.eso_file import PeaksNotIncluded
+from esofile_reader.base_file import IncompleteFile
 from esofile_reader import EsoFile, Variable
 from tests import ROOT
 
@@ -220,3 +221,18 @@ class TestPeakResults(unittest.TestCase):
         ]
         r = self.ef.get_results(variables, output_type="local_min")
         self.assertEqual(r.loc[("eplusout_all_intervals", datetime(2002, 1, 1)), :].to_list(), results)
+
+    def test_get_results_missing_peaks(self):
+        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), ignore_peaks=True)
+        with self.assertRaises(PeaksNotIncluded):
+            ef.get_results([], output_type="local_min")
+
+    def test_generate_totals_incomplete(self):
+        ef = EsoFile(os.path.join(ROOT, "eso_files/header.txt"), ignore_peaks=True, suppress_errors=True)
+        with self.assertRaises(IncompleteFile):
+            ef.generate_totals()
+
+    def test_generate_diff_incomplete(self):
+        ef = EsoFile(os.path.join(ROOT, "eso_files/header.txt"), ignore_peaks=True, suppress_errors=True)
+        with self.assertRaises(IncompleteFile):
+            ef.generate_diff(ef)
