@@ -386,6 +386,7 @@ class SQLOutputs(BaseOutputs):
 
     def get_results(self, interval: str, ids: List[int], start_date: datetime = None, end_date: datetime = None,
                     include_day: bool = False) -> pd.DataFrame:
+        ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
 
         with self.ENGINE.connect() as conn:

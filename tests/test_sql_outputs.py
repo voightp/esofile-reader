@@ -108,6 +108,22 @@ class TestDFOutputs(unittest.TestCase):
         id_ = self.sql_file.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
         self.sql_file.data.remove_variables("monthly", [id_])
 
+    def test_update_variable(self):
+        original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
+        self.sql_file.data.update_variable("monthly", 983, list(range(12)))
+        vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
+        self.assertListEqual(vals, list(range(12)))
+
+        self.sql_file.data.update_variable("monthly", 983, original_vals)
+
+    def test_update_variable_invalid(self):
+        original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
+        self.sql_file.data.update_variable("monthly", 983, list(range(11)))
+        vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
+        self.assertListEqual(vals, original_vals.to_list())
+
+        self.sql_file.data.update_variable("monthly", 983, original_vals)
+
     def test_get_number_of_days(self):
         col = self.sql_file.data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
@@ -172,6 +188,33 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day(self):
+        df = self.sql_file.data.get_results("daily", [323, 982],
+                                            start_date=pd.datetime(2002, 4, 1),
+                                            end_date=pd.datetime(2002, 4, 3),
+                                            include_day=True)
+        test_columns = pd.MultiIndex.from_tuples([(323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
+                                                  (982, "daily", "CHILLER", "Chiller Electric Energy", "J")],
+                                                 names=["id", "interval", "key", "variable", "units"])
+
+        # days of week are picked up from actual date when not available on df
+        test_index = pd.MultiIndex.from_arrays(
+            [[pd.datetime(2002, 4, i) for i in range(1, 4)],
+             ["Monday", "Tuesday", "Wednesday"]], names=["timestamp", "day"])
+
+        test_df = pd.DataFrame([
+            [21.828242, 9.549276e+07],
+            [23.032272, 1.075975e+08],
+            [23.716322, 1.293816e+08],
+        ], columns=test_columns, index=test_index)
+
+        # need to drop id as pandas does not treat Index([324, 983])
+        # and IndexInt64([324, 983]) as identical
+        df = df.droplevel("id", axis=1)
+        test_df = test_df.droplevel("id", axis=1)
+
+        assert_frame_equal(df, test_df)
+
+    def test_get_results_include_day_from_date(self):
         df = self.sql_file.data.get_results("monthly", [324, 983],
                                             start_date=pd.datetime(2002, 4, 1),
                                             end_date=pd.datetime(2002, 6, 1),
