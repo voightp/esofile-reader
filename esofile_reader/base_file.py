@@ -57,7 +57,8 @@ class BaseFile:
     -----
     This class cannot be used directly!
 
-    Method 'populate_data' is only a signature method to be implemented in subclasses.
+    Method 'populate_content' is only a signature method to
+    be implemented in subclasses.
 
     """
 
