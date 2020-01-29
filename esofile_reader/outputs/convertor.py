@@ -1,8 +1,9 @@
-from esofile_reader.outputs.conversion_tables import energy_table, rate_table, si_to_ip
-from esofile_reader.constants import *
 from typing import List, Union, Callable, Sequence
 
 import pandas as pd
+
+from esofile_reader.constants import *
+from esofile_reader.outputs.conversion_tables import energy_table, rate_table, si_to_ip
 
 
 def apply_conversion(df: pd.DataFrame, orig_units: List[str], new_units: List[str],

@@ -1,12 +1,13 @@
-import pandas as pd
 from datetime import datetime
 from typing import Sequence, List, Dict
+
+import pandas as pd
+
 from esofile_reader.constants import *
 from esofile_reader.outputs.base_outputs import BaseData
-from esofile_reader.outputs.df_outputs_functions import merge_peak_outputs, slicer
-
-from esofile_reader.utils.utils import id_gen
+from esofile_reader.outputs.df_functions import merge_peak_outputs, slicer
 from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.utils import id_gen
 
 
 class DFData(BaseData):
@@ -108,12 +109,12 @@ class DFData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
         mi_df = self.tables[interval].columns.to_frame(index=False)
         mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [key_name, var_name]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
-    def add_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence) -> None:
         interval, key, variable, units = variable
         df_length = len(self.tables[interval].index)
         valid = len(array) == df_length
@@ -139,7 +140,7 @@ class DFData(BaseData):
             cond = self.tables[interval].columns.get_level_values("id") == id_
             self.tables[interval].loc[:, cond] = array
 
-    def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
+    def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         all_ids = self.tables[interval].columns.get_level_values("id")
         if not all(map(lambda x: x in all_ids, ids)):
             raise KeyError(f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"

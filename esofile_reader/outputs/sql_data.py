@@ -1,21 +1,21 @@
-import pandas as pd
+import contextlib
 from datetime import datetime
 from typing import Sequence, List, Dict
+
+import pandas as pd
+from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
+    DateTime, select
+from sqlalchemy import exc
+
 from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
 from esofile_reader.outputs.base_outputs import BaseData
-from esofile_reader.outputs.df_outputs_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
-from esofile_reader.outputs.sql_outputs_functions import create_results_table, \
+from esofile_reader.outputs.df_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
+from esofile_reader.outputs.sql_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
     create_day_table, destringify_values
-from esofile_reader import EsoFile
-from esofile_reader.utils.utils import profile
-from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
-    DateTime, Boolean, Text, inspect, select
-import contextlib
-
-from sqlalchemy import exc
 from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.utils import profile
 
 
 class SQLData(BaseData):
@@ -168,13 +168,21 @@ class SQLData(BaseData):
     def set_data(self, interval: str, df: pd.DataFrame):
         pass
 
-    def _get_table(self, column, files):
+    def update_file_name(self, name: str):
+        files = self.METADATA.tables[self.FILE_TABLE]
+
+        with self.ENGINE.connect() as conn:
+            conn.execute(files.update() \
+                         .where(files.c.id == self.id_) \
+                         .values(file_name=name))
+
+    def _get_table(self, column, files) -> Table:
         with self.ENGINE.connect() as conn:
             table_name = conn.execute(select([column]).where(files.c.id == self.id_)).scalar()
             table = self.METADATA.tables[table_name]
         return table
 
-    def _get_results_table(self, interval):
+    def _get_results_table(self, interval) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -188,7 +196,7 @@ class SQLData(BaseData):
 
         return self._get_table(switch[interval], files)
 
-    def _get_datetime_table(self, interval):
+    def _get_datetime_table(self, interval) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -202,7 +210,7 @@ class SQLData(BaseData):
 
         return self._get_table(switch[interval], files)
 
-    def _get_n_days_table(self, interval):
+    def _get_n_days_table(self, interval) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -298,7 +306,7 @@ class SQLData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
         table = self._get_results_table(interval)
         with self.ENGINE.connect() as conn:
             conn.execute(table.update() \
@@ -316,7 +324,7 @@ class SQLData(BaseData):
 
         return len(array) == n
 
-    def add_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence) -> None:
         if self._validate(variable.interval, array):
             table = self._get_results_table(variable.interval)
             str_array = self.SEPARATOR.join([str(i) for i in array])
@@ -344,7 +352,7 @@ class SQLData(BaseData):
             print(f"Cannot update variable '{id_}'. "
                   f"Number of elements '({len(array)})' does not match!")
 
-    def remove_variables(self, interval: str, ids: List[int]) -> None:
+    def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
 
         with self.ENGINE.connect() as conn:
@@ -442,10 +450,3 @@ class SQLData(BaseData):
     def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                                end_date: datetime = None) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)
-
-
-if __name__ == "__main__":
-    ef = EsoFile(r"C:\Users\vojtechp1\AppData\Local\DesignBuilder\EnergyPlus\eplusout_large.eso",
-                 report_progress=True)
-    SQLData.set_up_db("test.db", echo=False)
-    f = SQLData.store_file(ef)

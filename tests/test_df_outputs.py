@@ -86,27 +86,27 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        self.ef.data.rename_variable("timestep", 7, "FOO", "BAR")
+        self.ef.data.update_variable_name("timestep", 7, "FOO", "BAR")
         col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
 
-        self.ef.data.rename_variable("timestep", 7, "Environment",
+        self.ef.data.update_variable_name("timestep", 7, "Environment",
                                      "Site Diffuse Solar Radiation Rate per Area")
         col2 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "Environment",
                                                        "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
         self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
-        id_ = self.ef.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        id_ = self.ef.data.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
         col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
         self.assertListEqual(col.to_list(), list(range(12)))
 
-        self.ef.data.remove_variables("monthly", [id_])
+        self.ef.data.delete_variables("monthly", [id_])
         with self.assertRaises(KeyError):
             _ = self.ef.data.tables["monthly"][id_]
 
     def test_remove_variable_invalid(self):
         with self.assertRaises(KeyError):
-            self.ef.data.remove_variables("monthly", [100000])
+            self.ef.data.delete_variables("monthly", [100000])
 
     def test_update_variable(self):
         original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]

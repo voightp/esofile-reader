@@ -1,20 +1,20 @@
-import re
 import datetime as dt
-import pandas as pd
-import numpy as np
-
-from functools import partial
+import re
 from collections import defaultdict
 from copy import deepcopy
+from functools import partial
 from typing import Dict, List
 
-from esofile_reader.outputs.df_outputs import DFData
-from esofile_reader.outputs.df_outputs_functions import create_peak_outputs
-from esofile_reader.processing.interval_processor import interval_processor
-from esofile_reader.utils.mini_classes import Variable, IntervalTuple
+import numpy as np
+import pandas as pd
+
 from esofile_reader.constants import *
-from esofile_reader.utils.search_tree import Tree
+from esofile_reader.outputs.df_data import DFData
+from esofile_reader.outputs.df_functions import create_peak_outputs
+from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.utils.mini_classes import Variable, IntervalTuple
+from esofile_reader.utils.search_tree import Tree
 
 
 class InvalidLineSyntax(AttributeError):

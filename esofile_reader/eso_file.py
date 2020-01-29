@@ -1,9 +1,9 @@
 import os
-
 from datetime import datetime
+
 from esofile_reader.base_file import BaseFile, IncompleteFile
-from esofile_reader.totals_file import TotalsFile
 from esofile_reader.diff_file import DiffFile
+from esofile_reader.totals_file import TotalsFile
 
 try:
     from esofile_reader.processing.esofile_processor import read_file

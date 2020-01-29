@@ -1,10 +1,12 @@
-from esofile_reader.eso_file import EsoFile
-from esofile_reader.base_file import BaseFile
-from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.constants import *
 from datetime import datetime
 from typing import Union, List, Dict
+
 import pandas as pd
+
+from esofile_reader.base_file import BaseFile
+from esofile_reader.constants import *
+from esofile_reader.eso_file import EsoFile
+from esofile_reader.utils.mini_classes import Variable
 
 
 class NoResults(Exception):

@@ -6,7 +6,7 @@ from datetime import datetime
 from esofile_reader import EsoFile
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader import Variable
-from esofile_reader.outputs.sql_outputs import SQLData
+from esofile_reader.outputs.sql_data import SQLData
 from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
@@ -44,7 +44,12 @@ class TestFileFunctions(unittest.TestCase):
     def test_rename(self):
         original = self.ef.file_name
         self.ef.rename("foo")
+        stmnt = f"SELECT file_name FROM 'result-files' WHERE id={self.ef.id_}"
+        res = SQLData.ENGINE.execute(stmnt).scalar()
+
+        self.assertEqual(res, "foo")
         self.assertEqual(self.ef.file_name, "foo")
+
         self.ef.rename(original)
 
     def test__add_file_name_row(self):

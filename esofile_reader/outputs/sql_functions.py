@@ -1,8 +1,9 @@
+from typing import Iterable, Any, Dict, List
+
 import pandas as pd
+from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
 
 from esofile_reader.utils.utils import profile
-from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime, Float
-from typing import Iterable, Any, Dict, List
 
 
 def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Table:

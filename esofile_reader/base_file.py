@@ -1,12 +1,12 @@
-import pandas as pd
-
-from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
-from esofile_reader.processing.interval_processor import update_dt_format
-from esofile_reader.constants import *
-from esofile_reader.utils.mini_classes import Variable
-
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
+
+import pandas as pd
+
+from esofile_reader.constants import *
+from esofile_reader.outputs.convertor import rate_and_energy_units, convert_rate_to_energy, convert_units
+from esofile_reader.processing.interval_processor import update_dt_format
+from esofile_reader.utils.mini_classes import Variable
 
 
 class VariableNotFound(Exception):
@@ -327,7 +327,7 @@ class BaseFile:
             self._search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data.rename_variable(interval, ids[0], new_var.key, new_var.variable)
+            self.data.update_variable_name(interval, ids[0], new_var.key, new_var.variable)
             return ids[0], new_var
         else:
             print("Cannot rename variable! Original variable not found!")
@@ -336,7 +336,7 @@ class BaseFile:
                    array: Sequence) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(interval, key_name, var_name, units)
-        id_ = self.data.add_variable(new_var, array)
+        id_ = self.data.insert_variable(new_var, array)
 
         if id_:
             self._search_tree.add_variable(id_, new_var)
@@ -432,7 +432,7 @@ class BaseFile:
 
         groups = self._find_pairs(variables)
         for interval, ids in groups.items():
-            self.data.remove_variables(interval, ids)
+            self.data.delete_variables(interval, ids)
 
         # clean up the tree
         self._search_tree.remove_variables(variables)

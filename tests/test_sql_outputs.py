@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal, assert_index_equal
 
 from tests import ROOT
 from esofile_reader import EsoFile, Variable
-from esofile_reader.outputs.sql_outputs import SQLData
+from esofile_reader.outputs.sql_data import SQLData
 
 
 class TestDFOutputs(unittest.TestCase):
@@ -89,14 +89,14 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        self.sql_file.data.rename_variable("timestep", 7, "FOO", "BAR")
+        self.sql_file.data.update_variable_name("timestep", 7, "FOO", "BAR")
         with SQLData.ENGINE.connect() as conn:
             table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
             var = (res[0], res[1], res[2], res[3], res[4])
             self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
 
-        self.sql_file.data.rename_variable("timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area")
+        self.sql_file.data.update_variable_name("timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area")
         with SQLData.ENGINE.connect() as conn:
             table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
@@ -105,8 +105,8 @@ class TestDFOutputs(unittest.TestCase):
                                   (7, 'timestep', 'Environment', 'Site Diffuse Solar Radiation Rate per Area', 'W/m2'))
 
     def test_add_remove_variable(self):
-        id_ = self.sql_file.data.add_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
-        self.sql_file.data.remove_variables("monthly", [id_])
+        id_ = self.sql_file.data.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        self.sql_file.data.delete_variables("monthly", [id_])
 
     def test_update_variable(self):
         original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]

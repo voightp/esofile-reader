@@ -1,6 +1,6 @@
-import pandas as pd
 import numpy as np
-from typing import Sequence, List, Dict, Union
+import pandas as pd
+
 from esofile_reader.constants import *
 from esofile_reader.processing.interval_processor import parse_result_dt
 

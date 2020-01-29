@@ -1,7 +1,8 @@
-from typing import Union
 from datetime import datetime
-from esofile_reader.utils.search_tree import Tree
+from typing import Union
+
 from esofile_reader.base_file import BaseFile
+from esofile_reader.utils.search_tree import Tree
 
 
 class DatabaseFile(BaseFile):
@@ -34,7 +35,7 @@ class DatabaseFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file_name: str, data: Union['SQLOutputs', 'DFOutputs'],
+    def __init__(self, id_: int, file_name: str, data: Union['SQLData', 'DFData'],
                  file_created: datetime, search_tree: Tree = None, file_path: str = None):
         super().__init__()
         self.id_ = id_
@@ -45,3 +46,8 @@ class DatabaseFile(BaseFile):
 
         self._search_tree = search_tree
         self._complete = True
+
+    def rename(self, name: str) -> None:
+        self.file_name = name
+        if self.data.__class__.__name__ == "SQLData":
+            self.data.update_file_name(name)

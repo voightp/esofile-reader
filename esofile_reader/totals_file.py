@@ -1,13 +1,14 @@
-import pandas as pd
 import re
 
+import pandas as pd
+
 from esofile_reader.base_file import BaseFile, IncompleteFile
-from esofile_reader.diff_file import DiffFile
-from esofile_reader.outputs.df_outputs import DFData
-from esofile_reader.utils.search_tree import Tree
-from esofile_reader.utils.utils import incremental_id_gen
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
     SUMMED_UNITS, IGNORED_UNITS
+from esofile_reader.diff_file import DiffFile
+from esofile_reader.outputs.df_data import DFData
+from esofile_reader.utils.search_tree import Tree
+from esofile_reader.utils.utils import incremental_id_gen
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",

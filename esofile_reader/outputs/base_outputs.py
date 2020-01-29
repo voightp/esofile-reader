@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Sequence, List, Dict
 from datetime import datetime
-from esofile_reader.utils.mini_classes import Variable
+from typing import Sequence, List, Dict
+
 import pandas as pd
+
+from esofile_reader.utils.mini_classes import Variable
 
 
 class BaseData(ABC):
@@ -57,12 +59,12 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def rename_variable(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
         """ Rename given variable. """
         pass
 
     @abstractmethod
-    def add_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence) -> None:
         """ Add a new output into specific result table. """
         pass
 
@@ -72,7 +74,7 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def remove_variables(self, interval: str, ids: Sequence[int]) -> None:
+    def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         """ Remove given variables. """
         pass
 
