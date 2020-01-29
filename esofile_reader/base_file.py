@@ -317,7 +317,7 @@ class BaseFile:
         key_name = key if not key_name else key_name
 
         if (not var_name and not key_name) or (key == key_name and var == var_name):
-            print("Cannot rename variable! Variable and key names are"
+            print("Cannot rename variable! Variable and key names are "
                   "not specified or are the same as original variable.")
         elif ids:
             # remove current item to avoid item duplicity
