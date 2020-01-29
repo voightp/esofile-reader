@@ -1,5 +1,6 @@
-import unittest
 import os
+import unittest
+
 from esofile_reader import EsoFile, DiffFile, TotalsFile
 from tests import ROOT
 

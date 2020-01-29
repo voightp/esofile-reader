@@ -1,13 +1,15 @@
-import unittest
 import os
-import pandas as pd
-from pandas.testing import assert_frame_equal, assert_index_equal
+import unittest
 from datetime import datetime
+
+import pandas as pd
+from pandas.testing import assert_frame_equal
+
 from esofile_reader import EsoFile
-from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader import Variable
-from esofile_reader.outputs.sql_data import SQLData
+from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN
+from esofile_reader.outputs.sql_data import SQLData
 from tests import ROOT
 
 

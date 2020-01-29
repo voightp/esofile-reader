@@ -1,7 +1,8 @@
-import unittest
 import os
-from esofile_reader.outputs.sql_data import SQLData
+import unittest
+
 from esofile_reader import EsoFile
+from esofile_reader.outputs.sql_data import SQLData
 from tests import ROOT
 
 

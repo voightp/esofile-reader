@@ -1,8 +1,10 @@
-import unittest
 import os
-import pandas as pd
-from esofile_reader import EsoFile, Variable
+import unittest
 from datetime import datetime
+
+import pandas as pd
+
+from esofile_reader import EsoFile, Variable
 from tests import ROOT
 
 

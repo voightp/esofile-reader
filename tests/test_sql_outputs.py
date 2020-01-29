@@ -1,11 +1,12 @@
-import unittest
 import os
+import unittest
+
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from tests import ROOT
 from esofile_reader import EsoFile, Variable
 from esofile_reader.outputs.sql_data import SQLData
+from tests import ROOT
 
 
 class TestDFOutputs(unittest.TestCase):

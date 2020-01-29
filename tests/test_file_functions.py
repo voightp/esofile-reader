@@ -1,11 +1,12 @@
-import unittest
 import os
-import pandas as pd
-from pandas.testing import assert_frame_equal, assert_index_equal
+import unittest
 from datetime import datetime
-from esofile_reader import EsoFile
-from esofile_reader.base_file import CannotAggregateVariables
-from esofile_reader import Variable
+
+import pandas as pd
+from pandas.testing import assert_frame_equal
+
+from esofile_reader import EsoFile, Variable
+from esofile_reader.base_file import CannotAggregateVariables, BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN
 from tests import ROOT
 
@@ -19,6 +20,10 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_print_file(self):
         print(self.ef)
+
+    def test_base_file_populate_content(self):
+        bf = BaseFile()
+        bf.populate_content()
 
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,

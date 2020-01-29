@@ -1,12 +1,13 @@
-import unittest
 import os
+import unittest
+
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from pandas.testing import assert_frame_equal, assert_index_equal
+
 from esofile_reader import EsoFile, get_results
-from esofile_reader.eso_file import PeaksNotIncluded, IncompleteFile
-from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader import Variable
+from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
+from esofile_reader.eso_file import PeaksNotIncluded, IncompleteFile
 from tests import ROOT
 
 

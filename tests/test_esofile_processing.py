@@ -1,16 +1,15 @@
-import unittest
 import datetime
 import os
+import unittest
 
-from tests import ROOT
+from esofile_reader.constants import *
 from esofile_reader.processing.esofile_processor import *
-from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
                                                          _last_standard_item_id, _process_raw_line,
                                                          _process_interval_line, _process_result_line)
-
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.constants import *
+from tests import ROOT
 
 
 class TestEsoFileProcessing(unittest.TestCase):

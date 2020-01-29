@@ -1,8 +1,8 @@
-import unittest
 import os
-from esofile_reader import EsoFile, DiffFile, TotalsFile, Variable
-from esofile_reader.constants import *
+import unittest
 from datetime import datetime
+
+from esofile_reader import EsoFile, Variable
 from tests import ROOT
 
 
