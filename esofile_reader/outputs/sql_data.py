@@ -9,7 +9,7 @@ from sqlalchemy import exc
 
 from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
-from esofile_reader.outputs.base_outputs import BaseData
+from esofile_reader.outputs.base_data import BaseData
 from esofile_reader.outputs.df_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
 from esofile_reader.outputs.sql_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
@@ -142,7 +142,7 @@ class SQLData(BaseData):
 
     @classmethod
     @profile
-    def delete_file(cls, id_):
+    def delete_file(cls, id_: int) -> None:
         files = cls.METADATA.tables[cls.FILE_TABLE]
 
         with cls.ENGINE.connect() as conn:
@@ -165,10 +165,7 @@ class SQLData(BaseData):
         cls.METADATA = MetaData(bind=cls.ENGINE)
         cls.METADATA.reflect()
 
-    def set_data(self, interval: str, df: pd.DataFrame):
-        pass
-
-    def update_file_name(self, name: str):
+    def update_file_name(self, name: str) -> None:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         with self.ENGINE.connect() as conn:
@@ -176,13 +173,14 @@ class SQLData(BaseData):
                          .where(files.c.id == self.id_) \
                          .values(file_name=name))
 
-    def _get_table(self, column, files) -> Table:
+    def _get_table(self, column: str, files: Table) -> Table:
         with self.ENGINE.connect() as conn:
-            table_name = conn.execute(select([column]).where(files.c.id == self.id_)).scalar()
+            table_name = conn.execute(select([column]) \
+                                      .where(files.c.id == self.id_)).scalar()
             table = self.METADATA.tables[table_name]
         return table
 
-    def _get_results_table(self, interval) -> Table:
+    def _get_results_table(self, interval: str) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -196,7 +194,7 @@ class SQLData(BaseData):
 
         return self._get_table(switch[interval], files)
 
-    def _get_datetime_table(self, interval) -> Table:
+    def _get_datetime_table(self, interval: str) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -210,7 +208,7 @@ class SQLData(BaseData):
 
         return self._get_table(switch[interval], files)
 
-    def _get_n_days_table(self, interval) -> Table:
+    def _get_n_days_table(self, interval: str) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -221,7 +219,7 @@ class SQLData(BaseData):
 
         return self._get_table(switch[interval], files)
 
-    def _get_day_table(self, interval):
+    def _get_day_table(self, interval: str) -> Table:
         files = self.METADATA.tables[self.FILE_TABLE]
 
         switch = {
@@ -313,7 +311,7 @@ class SQLData(BaseData):
                          .where(table.c.id == id_) \
                          .values(key=key_name, variable=var_name))
 
-    def _validate(self, interval: str, array: Sequence):
+    def _validate(self, interval: str, array: Sequence[float]) -> bool:
         table = self._get_results_table(interval)
 
         with self.ENGINE.connect() as conn:
@@ -324,7 +322,7 @@ class SQLData(BaseData):
 
         return len(array) == n
 
-    def insert_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence[float]) -> None:
         if self._validate(variable.interval, array):
             table = self._get_results_table(variable.interval)
             str_array = self.SEPARATOR.join([str(i) for i in array])
@@ -358,7 +356,8 @@ class SQLData(BaseData):
         with self.ENGINE.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
-    def get_number_of_days(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
+    def get_number_of_days(self, interval: str, start_date: datetime = None,
+                           end_date: datetime = None) -> pd.Series:
         table = self._get_n_days_table(interval)
 
         with self.ENGINE.connect() as conn:
@@ -375,7 +374,8 @@ class SQLData(BaseData):
 
         return sr_dt_slicer(sr, start_date, end_date)
 
-    def get_days_of_week(self, interval: str, start_date: datetime = None, end_date: datetime = None) -> pd.Series:
+    def get_days_of_week(self, interval: str, start_date: datetime = None,
+                         end_date: datetime = None) -> pd.Series:
         table = self._get_day_table(interval)
 
         with self.ENGINE.connect() as conn:
@@ -392,8 +392,8 @@ class SQLData(BaseData):
 
         return sr_dt_slicer(sr, start_date, end_date)
 
-    def get_results(self, interval: str, ids: List[int], start_date: datetime = None, end_date: datetime = None,
-                    include_day: bool = False) -> pd.DataFrame:
+    def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
+                    end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
 
@@ -431,7 +431,8 @@ class SQLData(BaseData):
         df = self.get_results(interval, ids)
         return df
 
-    def _global_peak(self, interval, ids, start_date, end_date, max_=True):
+    def _global_peak(self, interval: str, ids: Sequence[int], start_date: datetime,
+                     end_date: datetime, max_: bool = True) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
 

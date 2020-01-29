@@ -1,9 +1,14 @@
 import os
 from datetime import datetime
+from typing import Type, List
+
+import pandas as pd
 
 from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.utils.mini_classes import Variable
 
 try:
     from esofile_reader.processing.esofile_processor import read_file
@@ -52,8 +57,9 @@ class EsoFile(BaseFile):
 
     """
 
-    def __init__(self, file_path, monitor=None, report_progress=True,
-                 ignore_peaks=True, suppress_errors=False, year=2002):
+    def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None,
+                 report_progress=True, ignore_peaks: bool = True, year: int = 2002,
+                 suppress_errors: bool = False, ):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
@@ -63,8 +69,8 @@ class EsoFile(BaseFile):
                               suppress_errors=suppress_errors,
                               year=year)
 
-    def populate_content(self, monitor=None, report_progress=True,
-                         ignore_peaks=True, suppress_errors=False, year=2002):
+    def populate_content(self, monitor: Type[DefaultMonitor] = None, report_progress: bool = True,
+                         ignore_peaks: bool = True, suppress_errors: bool = False, year: int = 2002):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
         self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
@@ -91,9 +97,11 @@ class EsoFile(BaseFile):
                 raise IncompleteFile(f"Unexpected end of the file reached!\n"
                                      f"File '{self.file_path}' is not complete.")
 
-    def _get_peak_results(self, variables, output_type, start_date=None, end_date=None,
-                          add_file_name="row", include_interval=False,
-                          include_id=False, part_match=False, timestamp_format="default"):
+    def _get_peak_results(self, variables: List[Variable], output_type: str,
+                          start_date: datetime = None, end_date: datetime = None,
+                          add_file_name: str = "row", include_interval: bool = False,
+                          include_id: bool = False, part_match: bool = False,
+                          timestamp_format: str = "default") -> pd.DataFrame:
         """ Return local peak results. """
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)
@@ -115,7 +123,8 @@ class EsoFile(BaseFile):
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def get_results(self, variables, output_type="standard", **kwargs):
+    def get_results(self, variables: List[Variable], output_type: str = "standard",
+                    **kwargs) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
 
@@ -188,7 +197,7 @@ class EsoFile(BaseFile):
             raise IncompleteFile(f"Cannot generate totals, "
                                  f"file {self.file_path} is not complete!")
 
-    def generate_diff(self, other_file):
+    def generate_diff(self, other_file: Type[BaseFile]):
         """ Generate 'Diff' file. """
         if self.complete:
             return DiffFile(self, other_file)

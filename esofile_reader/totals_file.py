@@ -1,4 +1,5 @@
 import re
+from typing import Type, Dict, Generator, List
 
 import pandas as pd
 
@@ -9,6 +10,7 @@ from esofile_reader.diff_file import DiffFile
 from esofile_reader.outputs.df_data import DFData
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
+from esofile_reader.utils.mini_classes import Variable
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
@@ -37,12 +39,12 @@ class TotalsFile(BaseFile):
 
     """
 
-    def __init__(self, eso_file):
+    def __init__(self, result_file: Type[BaseFile]):
         super().__init__()
-        self.populate_content(eso_file)
+        self.populate_content(result_file)
 
     @staticmethod
-    def _get_group_key(string, groups):
+    def _get_group_key(string: str, groups: set) -> str:
         """ """
         for g in groups:
             if re.match(f"^{g}.*", string):
@@ -51,13 +53,13 @@ class TotalsFile(BaseFile):
             print(f"{string} not found!")
 
     @staticmethod
-    def _get_keyword(string, keywords):
+    def _get_keyword(string: str, keywords: Dict[str, str]) -> str:
         """ Return value if key is included in 'word'. """
         if any(map(lambda x: x in string, keywords)):
             return next(v for k, v in keywords.items() if k in string)
 
     @staticmethod
-    def _calculate_totals(df):
+    def _calculate_totals(df: pd.DataFrame) -> pd.DataFrame:
         """ Handle totals generation."""
         cnd = df.index.get_level_values("units").isin(AVERAGED_UNITS)
         mi_df = df.index.to_frame(index=False)
@@ -82,7 +84,8 @@ class TotalsFile(BaseFile):
 
         return df.T
 
-    def _get_grouped_vars(self, id_gen, variables):
+    def _get_grouped_vars(self, id_gen: Generator[int, None, None],
+                          variables: Dict[int, List[Variable]]) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}
         rows, index = [], []
@@ -127,7 +130,7 @@ class TotalsFile(BaseFile):
 
         return pd.DataFrame(rows, columns=cols, index=index)
 
-    def process_totals(self, file):
+    def process_totals(self, file: Type[BaseFile]):
         """ Process 'Totals' outputs. """
         header = {}
         outputs = DFData()
@@ -153,27 +156,27 @@ class TotalsFile(BaseFile):
                 except KeyError:
                     pass
 
-            outputs.set_data(interval, df)
+            outputs.populate_table(interval, df)
 
         tree = Tree()
         tree.populate_tree(header)
 
         return outputs, tree
 
-    def populate_content(self, eso_file):
+    def populate_content(self, file: Type[BaseFile]):
         """ Generate 'Totals' related data based on input 'ResultFile'. """
-        self.file_path = eso_file.file_path
-        self.file_name = f"{eso_file.file_name} - totals"
-        self.file_created = eso_file.file_created  # use base file timestamp
+        self.file_path = file.file_path
+        self.file_name = f"{file.file_name} - totals"
+        self.file_created = file.file_created  # use base file timestamp
 
-        content = self.process_totals(eso_file)
+        content = self.process_totals(file)
 
         if content:
             self._complete = True
             (self.data,
              self._search_tree) = content
 
-    def generate_diff(self, other_file):
+    def generate_diff(self, other_file: Type[BaseFile]):
         """ Generate 'Diff' results file. """
         if self.complete:
             return DiffFile(self, other_file)

@@ -439,7 +439,7 @@ class BaseFile:
 
         return groups
 
-    def as_df(self, interval: str):
+    def as_df(self, interval: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame. """
         try:
             df = self.data.get_all_results(interval)
@@ -448,8 +448,3 @@ class BaseFile:
             raise KeyError(f"Cannot find interval: '{interval}'.")
 
         return df
-
-    def save(self, path=None, directory=None, name=None):
-        """ Save the file into filesystem. """
-        pass
-        # TODO implement

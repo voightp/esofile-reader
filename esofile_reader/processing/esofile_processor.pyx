@@ -393,10 +393,10 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
         min_df = create_peak_outputs(interval, df, max_=False)
-        min_peaks.set_data(interval, min_df)
+        min_peaks.populate_table(interval, min_df)
 
         max_df = create_peak_outputs(interval, df)
-        max_peaks.set_data(interval, max_df)
+        max_peaks.populate_table(interval, max_df)
 
     peak_outputs = {
         "local_min": min_peaks,
@@ -433,7 +433,7 @@ def generate_outputs(raw_outputs, header, dates, other_data):
                 df.insert(0, k, column)
             except KeyError:
                 pass
-        outputs.set_data(interval, df)
+        outputs.populate_table(interval, df)
 
     return outputs
 

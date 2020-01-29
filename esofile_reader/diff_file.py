@@ -1,10 +1,11 @@
 from datetime import datetime
-
+from typing import Type, Union, Tuple
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.outputs.df_data import DFData
+from esofile_reader.outputs.base_data import BaseData
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
 
@@ -16,13 +17,13 @@ class DiffFile(BaseFile):
 
     """
 
-    def __init__(self, first_file, other_file):
+    def __init__(self, first_file: Type[BaseFile], other_file: Type[BaseFile]):
         super().__init__()
         self.populate_content(first_file, other_file)
 
     @staticmethod
-    def calculate_diff(first_file, other_file, absolute=False,
-                       include_id=False, include_interval=False):
+    def calculate_diff(first_file: Type[BaseFile], other_file: Type[BaseFile], absolute: bool = False,
+                       include_id: bool = False, include_interval: bool = False) -> DFData:
         """ Calculate difference between two results files. """
         diff = DFData()
         id_gen = incremental_id_gen()
@@ -71,25 +72,26 @@ class DiffFile(BaseFile):
                 except KeyError:
                     pass
 
-            diff.set_data(interval, df)
+            diff.populate_table(interval, df)
 
         return diff
 
-    def process_diff(self, first_file, other_file, absolute=False):
+    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile],
+                     absolute: bool = False) -> Tuple[Type[BaseData], Tree]:
         """ Create diff outputs. """
         header = {}
-        outputs = self.calculate_diff(first_file, other_file, absolute=absolute,
-                                      include_id=True, include_interval=True)
+        data = self.calculate_diff(first_file, other_file, absolute=absolute,
+                                   include_id=True, include_interval=True)
 
-        for interval in outputs.get_available_intervals():
-            header[interval] = outputs.get_variables_dct(interval)
+        for interval in data.get_available_intervals():
+            header[interval] = data.get_variables_dct(interval)
 
         tree = Tree()
         tree.populate_tree(header)
 
-        return outputs, tree
+        return data, tree
 
-    def populate_content(self, first_file, other_file):
+    def populate_content(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> None:
         """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"

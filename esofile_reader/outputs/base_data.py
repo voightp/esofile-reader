@@ -14,11 +14,6 @@ class BaseData(ABC):
     """
 
     @abstractmethod
-    def set_data(self, interval: str, df: pd.DataFrame):
-        """ Store table in database. """
-        pass
-
-    @abstractmethod
     def get_available_intervals(self) -> List[str]:
         """ Store table in database. """
         pass

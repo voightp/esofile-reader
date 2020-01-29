@@ -4,7 +4,7 @@ from typing import Sequence, List, Dict
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.outputs.base_outputs import BaseData
+from esofile_reader.outputs.base_data import BaseData
 from esofile_reader.outputs.df_functions import merge_peak_outputs, slicer
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import id_gen
@@ -58,7 +58,7 @@ class DFData(BaseData):
     def __init__(self):
         self.tables = {}
 
-    def set_data(self, interval: str, df: pd.DataFrame):
+    def populate_table(self, interval: str, df: pd.DataFrame):
         self.tables[interval] = df
 
     def get_available_intervals(self) -> List[str]:
@@ -196,7 +196,8 @@ class DFData(BaseData):
 
         return df
 
-    def _global_peak(self, interval, ids, start_date, end_date, max_=True):
+    def _global_peak(self, interval: str, ids: Sequence[int], start_date: datetime,
+                     end_date: datetime, max_: bool = True) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
 

@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Sequence
+
 import numpy as np
 import pandas as pd
 
@@ -33,7 +36,7 @@ def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> p
 
 
 def _local_peaks(df: pd.DataFrame, val_ix: int = None, month_ix: int = None, day_ix: int = None,
-                 hour_ix: int = None, end_min_ix: int = None):
+                 hour_ix: int = None, end_min_ix: int = None) -> pd.DataFrame:
     """ Return value and datetime of occurrence. """
 
     def get_timestamps(sr):
@@ -61,7 +64,7 @@ def _local_peaks(df: pd.DataFrame, val_ix: int = None, month_ix: int = None, day
     return df
 
 
-def create_peak_outputs(interval, df, max_=True):
+def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> pd.DataFrame:
     """ Create DataFrame for peak minimums. """
 
     max_indexes = {
@@ -81,7 +84,8 @@ def create_peak_outputs(interval, df, max_=True):
     return _local_peaks(df, **indexes[interval])
 
 
-def slicer(df, ids, start_date=None, end_date=None):
+def slicer(df: pd.DataFrame, ids: Sequence[int], start_date: datetime = None,
+           end_date: datetime = None) -> pd.DataFrame:
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
 
@@ -105,7 +109,7 @@ def slicer(df, ids, start_date=None, end_date=None):
     return df.copy()
 
 
-def df_dt_slicer(df, start_date, end_date):
+def df_dt_slicer(df: pd.DataFrame, start_date: datetime, end_date: datetime) -> pd.DataFrame:
     """ Slice df 'vertically'. """
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]
@@ -117,13 +121,13 @@ def df_dt_slicer(df, start_date, end_date):
     return df
 
 
-def sr_dt_slicer(sr, start_date, end_date):
+def sr_dt_slicer(sr: pd.Series, start_date: datetime, end_date: datetime):
     """ Slice series. """
     if start_date and end_date:
-        df = sr.loc[start_date:end_date]
+        sr = sr.loc[start_date:end_date]
     elif start_date:
-        df = sr.loc[start_date:]
+        sr = sr.loc[start_date:]
     elif end_date:
-        df = sr.loc[:end_date]
+        sr = sr.loc[:end_date]
 
     return sr
