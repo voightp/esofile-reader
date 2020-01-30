@@ -67,9 +67,7 @@ class BaseFile:
         self.file_name = None
         self.data = None
         self.file_created = None
-
         self._search_tree = None
-        self._complete = False
 
     def __repr__(self):
         return f"File: {self.file_name}" \
@@ -78,8 +76,8 @@ class BaseFile:
 
     @property
     def complete(self) -> bool:
-        """ Check if the file has been populated and complete. """
-        return self._complete
+        """ Check if the file has been populated. """
+        return self.data and self._search_tree
 
     @property
     def available_intervals(self) -> List[str]:

@@ -226,13 +226,3 @@ class TestPeakResults(unittest.TestCase):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), ignore_peaks=True)
         with self.assertRaises(PeaksNotIncluded):
             ef.get_results([], output_type="local_min")
-
-    def test_generate_totals_incomplete(self):
-        ef = EsoFile(os.path.join(ROOT, "eso_files/header.txt"), ignore_peaks=True, suppress_errors=True)
-        with self.assertRaises(IncompleteFile):
-            ef.generate_totals()
-
-    def test_generate_diff_incomplete(self):
-        ef = EsoFile(os.path.join(ROOT, "eso_files/header.txt"), ignore_peaks=True, suppress_errors=True)
-        with self.assertRaises(IncompleteFile):
-            ef.generate_diff(ef)

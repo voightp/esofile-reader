@@ -502,14 +502,14 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
 
 def read_file(file_path, monitor=None, report_progress=False,
-              ignore_peaks=True, suppress_errors=False, year=2002):
+              ignore_peaks=True, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path, print_report=report_progress)
 
     # Initially read the file to check if it's ok
     monitor.processing_started()
-    complete = monitor.preprocess(suppress_errors)
+    complete = monitor.preprocess()
 
     if not complete:
         # prevent reading the file when incomplete

@@ -20,7 +20,7 @@ class DefaultMonitor:
     def name(self):
         return os.path.basename(self.path)
 
-    def preprocess(self, suppress_errors):
+    def preprocess(self):
         pth = self.path
 
         try:
@@ -32,14 +32,8 @@ class DefaultMonitor:
                     return True
 
         except FileNotFoundError:
-            self.processing_failed(("File: {} not found.".format(pth)))
-            if not suppress_errors:
-                raise FileNotFoundError
-
-        except IOError:
-            self.processing_failed("IO Error file: {}".format(pth))
-            if not suppress_errors:
-                raise IOError
+            self.processing_failed((f"File: {pth} not found."))
+            raise FileNotFoundError
 
     def processing_failed(self, info):
         self.report_progress(-1, info)

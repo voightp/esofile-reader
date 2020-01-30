@@ -2,7 +2,6 @@ import datetime
 import os
 import unittest
 
-from esofile_reader.constants import *
 from esofile_reader.processing.esofile_processor import *
 from esofile_reader.processing.esofile_processor import (_process_statement, _process_header_line,
                                                          _last_standard_item_id, _process_raw_line,
@@ -323,11 +322,10 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(header_dct["foo"], {3: "c"})
         self.assertEqual(outputs_dct["foo"], {3: "c"})
 
-    def test_process_file(self):
-        pass
-
-    def test_read_file(self):
-        pass
+    def test_monitor_invalid_path(self):
+        m = DefaultMonitor("abc")
+        with self.assertRaises(FileNotFoundError):
+            m.preprocess()
 
 
 if __name__ == "__main__":

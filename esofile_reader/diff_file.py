@@ -91,6 +91,5 @@ class DiffFile(BaseFile):
         content = self.process_diff(first_file, other_file)
 
         if content:
-            self._complete = True
             (self.data,
              self._search_tree) = content

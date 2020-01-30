@@ -43,9 +43,7 @@ class DatabaseFile(BaseFile):
         self.file_name = file_name
         self.data = data
         self.file_created = file_created
-
         self._search_tree = search_tree
-        self._complete = True
 
     def rename(self, name: str) -> None:
         self.file_name = name

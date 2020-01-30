@@ -48,8 +48,6 @@ class EsoFile(BaseFile):
         Processing progress is reported in terminal when set as 'True'.
     ignore_peaks : bool, default: True
         Ignore peak values from 'Daily'+ intervals.
-    suppress_errors: bool, default False
-        Do not raise IncompleteFile exceptions when processing fails
 
     Raises
     ------
@@ -58,19 +56,17 @@ class EsoFile(BaseFile):
     """
 
     def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None,
-                 report_progress=True, ignore_peaks: bool = True, year: int = 2002,
-                 suppress_errors: bool = False, ):
+                 report_progress=True, ignore_peaks: bool = True, year: int = 2002):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
         self.populate_content(monitor=monitor,
                               report_progress=report_progress,
                               ignore_peaks=ignore_peaks,
-                              suppress_errors=suppress_errors,
                               year=year)
 
     def populate_content(self, monitor: Type[DefaultMonitor] = None, report_progress: bool = True,
-                         ignore_peaks: bool = True, suppress_errors: bool = False, year: int = 2002):
+                         ignore_peaks: bool = True, year: int = 2002):
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
         self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
@@ -80,12 +76,10 @@ class EsoFile(BaseFile):
             monitor=monitor,
             report_progress=report_progress,
             ignore_peaks=ignore_peaks,
-            suppress_errors=suppress_errors,
             year=year
         )
 
         if content:
-            self._complete = True
             (
                 self.data,
                 self.peak_outputs,
@@ -93,9 +87,8 @@ class EsoFile(BaseFile):
             ) = content
 
         else:
-            if not suppress_errors:
-                raise IncompleteFile(f"Unexpected end of the file reached!\n"
-                                     f"File '{self.file_path}' is not complete.")
+            raise IncompleteFile(f"Unexpected end of the file reached!\n"
+                                 f"File '{self.file_path}' is not complete.")
 
     def _get_peak_results(self, variables: List[Variable], output_type: str,
                           start_date: datetime = None, end_date: datetime = None,
@@ -191,16 +184,8 @@ class EsoFile(BaseFile):
 
     def generate_totals(self):
         """ Generate 'Totals' file. """
-        if self.complete:
-            return TotalsFile(self)
-        else:
-            raise IncompleteFile(f"Cannot generate totals, "
-                                 f"file {self.file_path} is not complete!")
+        return TotalsFile(self)
 
     def generate_diff(self, other_file: Type[BaseFile]):
         """ Generate 'Diff' file. """
-        if self.complete:
-            return DiffFile(self, other_file)
-        else:
-            raise IncompleteFile(f"Cannot generate totals, "
-                                 f"file {self.file_path} is not complete!")
+        return DiffFile(self, other_file)

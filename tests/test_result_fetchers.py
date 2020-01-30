@@ -408,13 +408,9 @@ class TestResultFetching(unittest.TestCase):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
         self.assertIsNotNone(ef.peak_outputs)
 
-    def test_suppress_errors(self):
-        ef = EsoFile(os.path.join(ROOT, "eso_files/body.txt"), suppress_errors=True)
-        self.assertFalse(ef.complete)
-
     def test_suppress_errors_raises(self):
         with self.assertRaises(IncompleteFile):
-            _ = EsoFile(os.path.join(ROOT, "eso_files/body.txt"), suppress_errors=False)
+            _ = EsoFile(os.path.join(ROOT, "eso_files/body.txt"))
 
     def test_multiple_files_invalid_variable(self):
         files = [self.ef1, self.ef2]

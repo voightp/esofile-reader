@@ -169,17 +169,8 @@ class TotalsFile(BaseFile):
         self.file_name = f"{file.file_name} - totals"
         self.file_created = file.file_created  # use base file timestamp
 
-        content = self.process_totals(file)
-
-        if content:
-            self._complete = True
-            (self.data,
-             self._search_tree) = content
+        self.data, self._search_tree = self.process_totals(file)
 
     def generate_diff(self, other_file: Type[BaseFile]):
         """ Generate 'Diff' results file. """
-        if self.complete:
-            return DiffFile(self, other_file)
-        else:
-            raise IncompleteFile(f"Cannot generate 'Diff' file, "
-                                 f"file {self.file_path} is not complete!")
+        return DiffFile(self, other_file)

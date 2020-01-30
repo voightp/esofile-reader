@@ -20,7 +20,7 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
                 part_match: bool = False, units_system: str = "SI", rate_units: str = "W",
                 energy_units: str = "J", timestamp_format: str = "default",
                 rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT, report_progress: bool = True,
-                ignore_peaks: bool = True, suppress_errors: bool = False):
+                ignore_peaks: bool = True):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -72,8 +72,6 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
             Processing progress is reported in terminal when set as 'True'.
          ignore_peaks : bool, default: True
             Ignore peak values from 'Daily'+ intervals.
-         suppress_errors: bool, default False
-            Do not raise IncompleteFile exceptions when processing fails
 
      Returns
      -------
@@ -96,7 +94,6 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
         "report_progress": report_progress,
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
-        "suppress_errors": suppress_errors,
     }
 
     if isinstance(files, list):
@@ -109,23 +106,17 @@ def _get_results(file, variables, **kwargs):
     """ Load eso file and return requested results. """
     report_progress = kwargs.pop("report_progress")
     ignore_peaks = kwargs.pop("ignore_peaks")
-    suppress_errors = kwargs.pop("suppress_errors")
 
     if issubclass(file.__class__, BaseFile):
         eso_file = file
     else:
         eso_file = EsoFile(file,
                            ignore_peaks=ignore_peaks,
-                           report_progress=report_progress,
-                           suppress_errors=suppress_errors)
+                           report_progress=report_progress)
 
     if not eso_file.complete:
         msg = f"Cannot load results!\nFile '{eso_file.file_name}' is not complete."
-        if not suppress_errors:
-            raise NoResults(msg)
-        else:
-            print(msg)
-            return
+        raise NoResults(msg)
 
     return eso_file.get_results(variables, **kwargs)
 
