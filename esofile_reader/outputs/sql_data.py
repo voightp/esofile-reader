@@ -165,6 +165,16 @@ class SQLData(BaseData):
         cls.METADATA = MetaData(bind=cls.ENGINE)
         cls.METADATA.reflect()
 
+    @classmethod
+    @profile
+    def load_file(cls, id_: int) -> DatabaseFile:
+        files = cls.METADATA.tables[cls.FILE_TABLE]
+
+        with cls.ENGINE.connect() as conn:
+            res = conn.execute(files.select().where(files.c.id == id_)).first()
+            # TODO finish loading file
+
+
     def update_file_name(self, name: str) -> None:
         files = self.METADATA.tables[self.FILE_TABLE]
 
