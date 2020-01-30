@@ -10,6 +10,11 @@ from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
 
 
+class NoSharedVariables(Exception):
+    """ Raised when source diff files have no common variables. """
+    pass
+
+
 class DiffFile(BaseFile):
     """
     A class to create results based on intersection
@@ -28,17 +33,19 @@ class DiffFile(BaseFile):
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            df1 = file.as_df(interval)
-
             if interval not in other_file.available_intervals:
                 continue
 
+            df1 = file.as_df(interval)
             df2 = other_file.as_df(interval)
 
             df1.columns = df1.columns.droplevel("id")
             df2.columns = df2.columns.droplevel("id")
 
-            df = df1 - df2
+            index_cond = df1.index.intersection(df2.index).tolist()
+            columns_cond = df1.columns.intersection(df2.columns).tolist()
+
+            df = df1.loc[index_cond, columns_cond] - df2.loc[index_cond, columns_cond]
             df.dropna(how="all", inplace=True, axis=1)
 
             if not df.empty:
@@ -49,23 +56,23 @@ class DiffFile(BaseFile):
 
                 df.columns = pd.MultiIndex.from_frame(header_df)
 
-            try:
-                c1 = file.data.get_number_of_days(interval)
-                c2 = other_file.data.get_number_of_days(interval)
-                if c1.equals(c2):
-                    df.insert(0, N_DAYS_COLUMN, c1)
-            except KeyError:
-                pass
+                try:
+                    c1 = file.data.get_number_of_days(interval).loc[index_cond]
+                    c2 = other_file.data.get_number_of_days(interval).loc[index_cond]
+                    if c1.equals(c2):
+                        df.insert(0, N_DAYS_COLUMN, c1)
+                except KeyError:
+                    pass
 
-            try:
-                c1 = file.data.get_days_of_week(interval)
-                c2 = other_file.data.get_days_of_week(interval)
-                if c1.equals(c2):
-                    df.insert(0, DAY_COLUMN, c1)
-            except KeyError:
-                pass
+                try:
+                    c1 = file.data.get_days_of_week(interval).loc[index_cond]
+                    c2 = other_file.data.get_days_of_week(interval).loc[index_cond]
+                    if c1.equals(c2):
+                        df.insert(0, DAY_COLUMN, c1)
+                except KeyError:
+                    pass
 
-            diff.populate_table(interval, df)
+                diff.populate_table(interval, df)
 
         return diff
 
@@ -74,13 +81,18 @@ class DiffFile(BaseFile):
         header = {}
         data = self.calculate_diff(first_file, other_file)
 
-        for interval in data.get_available_intervals():
-            header[interval] = data.get_variables_dct(interval)
+        intervals = data.get_available_intervals()
+        if not intervals:
+            raise NoSharedVariables(f"Cannot generate diff file. Files '{first_file.file_name}' "
+                                    f" and '{other_file.file_name} do not have any shared variables.")
+        else:
+            for interval in intervals:
+                header[interval] = data.get_variables_dct(interval)
 
-        tree = Tree()
-        tree.populate_tree(header)
+            tree = Tree()
+            tree.populate_tree(header)
 
-        return data, tree
+            return data, tree
 
     def populate_content(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> None:
         """ Populate file content. """
@@ -88,8 +100,4 @@ class DiffFile(BaseFile):
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
         self.file_created = datetime.utcnow()
 
-        content = self.process_diff(first_file, other_file)
-
-        if content:
-            (self.data,
-             self._search_tree) = content
+        self.data, self._search_tree = self.process_diff(first_file, other_file)
