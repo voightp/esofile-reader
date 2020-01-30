@@ -231,5 +231,4 @@ class TestPeakResults(unittest.TestCase):
         variables = [
             Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
         ]
-        with self.assertRaises(KeyError):
-            self.ef.get_results(variables, output_type="local_min")
+        self.assertIsNone(self.ef.get_results(variables, output_type="local_min"))
