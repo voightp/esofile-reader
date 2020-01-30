@@ -414,7 +414,7 @@ class SQLData(BaseData):
 
         if include_day:
             try:
-                day_sr = self.get_days_of_week(interval)
+                day_sr = self.get_days_of_week(interval, start_date, end_date)
                 df.insert(0, DAY_COLUMN, day_sr)
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
             except KeyError:
