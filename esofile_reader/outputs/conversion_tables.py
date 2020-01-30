@@ -35,16 +35,16 @@ def energy_table(new_units, per_area=False):
         "kj": ("J/m2", "kJ/m2", 1000),
         "mj": ("J/m2", "MJ/m2", 1000000),
         "gj": ("J/m2", "GJ/m2", 1000000000),
-        "btu": ("J/m2", "Btu/f2", 1055.056 * 10.76391),  # TODO verify this!
-        "kbtu": ("J/m2", "kBtu/f2", 1055056 * 10.76391),
-        "mbtu": ("J/m2", "MBtu/f2", 1055056000 * 10.76391),
+        "btu": ("J/m2", "Btu/ft2", 1055.056 * 10.76391),
+        "kbtu": ("J/m2", "kBtu/ft2", 1055056 * 10.76391),
+        "mbtu": ("J/m2", "MBtu/ft2", 1055056000 * 10.76391),
     }
 
     try:
         tbl = table_pa if per_area else table
         return tbl[new_units.lower()]
     except KeyError:
-        print("Specified energy units [{}] not applicable!".format(new_units))
+        print(f"Specified energy units '{new_units}' cannot be converted!")
 
 
 def rate_table(new_units, per_area=False):
@@ -72,7 +72,7 @@ def rate_table(new_units, per_area=False):
     table_pa = {
         "kw": ("W/m2", "kW/m2", 1000),
         "mw": ("W/m2", "MW/m2", 1000000),
-        "btu/h": ("W/m2", "Btu/h-ft2", 0.2930711 * 10.76391),  # TODO verify this!
+        "btu/h": ("W/m2", "Btu/h-ft2", 0.2930711 * 10.76391),
         "kbtu/h": ("W/m2", "kBtu/h-ft2", 293.0711 * 10.76391),
         "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 * 10.76391),
     }
@@ -81,7 +81,7 @@ def rate_table(new_units, per_area=False):
         tbl = table_pa if per_area else table
         return tbl[new_units.lower()]
     except KeyError:
-        print("Specified rate units [{}] not applicable!".format(new_units))
+        print(f"Specified rate units '{new_units}'cannot be converted!")
 
 
 def si_to_ip(orig_units):
@@ -175,7 +175,7 @@ def si_to_ip(orig_units):
         return (orig_units, *table[orig_units])
 
     except KeyError:
-        print("Cannot convert to IP, original units [{}] left!".format(orig_units))
+        print(f"Cannot convert to IP, original units '{orig_units}' left!")
 
 # duplicates = {
 # 'g': ('g', 'ounce (mass, avoirdupois)', 28.35),

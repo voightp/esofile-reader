@@ -226,3 +226,10 @@ class TestPeakResults(unittest.TestCase):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), ignore_peaks=True)
         with self.assertRaises(PeaksNotIncluded):
             ef.get_results([], output_type="local_min")
+
+    def test_local_peaks_incorrect_interval(self):
+        variables = [
+            Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+        ]
+        with self.assertRaises(KeyError):
+            self.ef.get_results(variables, output_type="local_min")

@@ -51,8 +51,12 @@ def convert_units(df: pd.DataFrame, units_system: str, rate_units: str, energy_u
             inp = si_to_ip(units)
 
         if inp:
-            assert units == inp[0], "Original units do not match!"  # TODO remove for distribution
-            conversion_inputs.append(inp)
+            if units != inp[0]:
+                # TODO remove for distribution
+                raise AssertionError(f"Original units '{units}' do not match "
+                                     f"converted units '{inp[0]}'.")
+            else:
+                conversion_inputs.append(inp)
 
     if not conversion_inputs:
         # there's nothing to convert

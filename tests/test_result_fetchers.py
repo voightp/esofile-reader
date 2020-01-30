@@ -415,4 +415,32 @@ class TestResultFetching(unittest.TestCase):
     def test_multiple_files_invalid_variable(self):
         files = [self.ef1, self.ef2]
         v = Variable(None, "foo", "bar", "baz")
-        get_results(files, v)
+        self.assertIsNone(get_results(files, v))
+
+    def test_multiple_files_invalid_variables(self):
+        files = [self.ef1, self.ef2]
+        v = Variable(None, "foo", "bar", "baz")
+        self.assertIsNone(get_results(files, [v, v]))
+
+    def test_get_results_multiple_files(self):
+        files = [self.ef1, self.ef2]
+        v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
+        df = get_results(files, v, add_file_name="column")
+
+        test_names = ["file", "key", "variable", "units"]
+        test_columns = pd.MultiIndex.from_tuples([("eplusout1", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+                                                  ("eplusout2", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")],
+                                                 names=test_names)
+
+        dates = [pd.datetime(2002, 4, 1), pd.datetime(2002, 5, 1), pd.datetime(2002, 6, 1),
+                 pd.datetime(2002, 7, 1), pd.datetime(2002, 8, 1), pd.datetime(2002, 9, 1)]
+        test_index = pd.DatetimeIndex(dates, name="timestamp")
+
+        test_df = pd.DataFrame([[22.592079, 23.448357],
+                                [24.163740, 24.107510],
+                                [25.406725, 24.260228],
+                                [26.177191, 24.458445],
+                                [25.619201, 24.378681],
+                                [23.862254, 24.010489]], columns=test_columns, index=test_index)
+
+        assert_frame_equal(df, test_df)

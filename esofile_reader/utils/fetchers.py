@@ -133,13 +133,13 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
 
     except ValueError:
         if isinstance(variables, list):
-            lst = ["'{} - {} {} {}'".format(*tup) for tup in variables]
+            lst = ["'{} {} {} {}'".format(*tup) for tup in variables]
             request_str = ", ".join(lst)
         else:
             request_str = variables
 
         print(f"Any of requested variables was not found!\n"
-              f"Requested variables: '{request_str}'")
+              f"Requested variables: [{request_str}]")
         return
 
     return res

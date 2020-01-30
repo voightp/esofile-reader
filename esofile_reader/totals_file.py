@@ -149,13 +149,17 @@ class TotalsFile(BaseFile):
             df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
             df = self._calculate_totals(df)
 
-            for s in [N_DAYS_COLUMN, DAY_COLUMN]:
-                try:
-                    col = out[s]
-                    df.insert(0, s, col)
-                except KeyError:
-                    pass
+            try:
+                c1 = file.data.get_number_of_days(interval)
+                df.insert(0, N_DAYS_COLUMN, c1)
+            except KeyError:
+                pass
 
+            try:
+                c1 = file.data.get_days_of_week(interval)
+                df.insert(0, DAY_COLUMN, c1)
+            except KeyError:
+                pass
             outputs.populate_table(interval, df)
 
         tree = Tree()
