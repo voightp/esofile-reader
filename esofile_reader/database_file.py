@@ -17,13 +17,13 @@ class DatabaseFile(BaseFile):
     ----------
     id_ : int
         Unique id identifier.
-    data : {SQLOutputs, DFOutputs}
+    storage : {SQLOutputs, DFOutputs}
         A data object to store results data.
     file_path : str
         A full path of the result file.
     file_created : datetime
         Time and date when of the file generation..
-    data : {DFOutputs, SQLOutputs}
+    storage : {DFOutputs, SQLOutputs}
         A class to store results data
     _search_tree : Tree
         N array tree for efficient id searching.
@@ -35,17 +35,17 @@ class DatabaseFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file_name: str, data: Union['SQLData', 'DFData'],
+    def __init__(self, id_: int, file_name: str, storage: Union['SQLData', 'DFData'],
                  file_created: datetime, search_tree: Tree = None, file_path: str = None):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path
         self.file_name = file_name
-        self.data = data
+        self.storage = storage
         self.file_created = file_created
         self._search_tree = search_tree
 
     def rename(self, name: str) -> None:
         self.file_name = name
-        if self.data.__class__.__name__ == "SQLData":
-            self.data.update_file_name(name)
+        if self.storage.__class__.__name__ == "SQLStorage":
+            self.storage.update_file_name(name)

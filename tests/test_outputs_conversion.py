@@ -2,7 +2,7 @@ import unittest
 
 from pandas.util.testing import assert_frame_equal
 
-from esofile_reader.outputs.convertor import *
+from esofile_reader.convertor import *
 
 
 class TestOutputsConversion(unittest.TestCase):

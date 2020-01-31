@@ -7,7 +7,7 @@ from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
     SUMMED_UNITS, IGNORED_UNITS
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.outputs.df_data import DFData
+from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
 from esofile_reader.utils.mini_classes import Variable
@@ -133,7 +133,7 @@ class TotalsFile(BaseFile):
     def process_totals(self, file: Type[BaseFile]):
         """ Process 'Totals' outputs. """
         header = {}
-        outputs = DFData()
+        outputs = DFStorage()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:

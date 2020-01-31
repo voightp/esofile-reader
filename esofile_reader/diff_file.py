@@ -4,8 +4,8 @@ import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
-from esofile_reader.outputs.df_data import DFData
-from esofile_reader.outputs.base_data import BaseData
+from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
 
@@ -27,9 +27,9 @@ class DiffFile(BaseFile):
         self.populate_content(first_file, other_file)
 
     @staticmethod
-    def calculate_diff(file: Type[BaseFile], other_file: Type[BaseFile]) -> DFData:
+    def calculate_diff(file: Type[BaseFile], other_file: Type[BaseFile]) -> DFStorage:
         """ Calculate difference between two results files. """
-        diff = DFData()
+        diff = DFStorage()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
@@ -76,7 +76,7 @@ class DiffFile(BaseFile):
 
         return diff
 
-    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> Tuple[Type[BaseData], Tree]:
+    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> Tuple[Type[BaseStorage], Tree]:
         """ Create diff outputs. """
         header = {}
         data = self.calculate_diff(first_file, other_file)

@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from esofile_reader.outputs.conversion_tables import energy_table, rate_table, \
-    si_to_ip
+from esofile_reader.conversion_tables import energy_table, rate_table
 
 
 class TestConversionTables(TestCase):

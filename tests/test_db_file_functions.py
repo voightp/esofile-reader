@@ -9,7 +9,7 @@ from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN
-from esofile_reader.outputs.sql_data import SQLData
+from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
 
@@ -18,8 +18,8 @@ class TestFileFunctions(unittest.TestCase):
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         f = EsoFile(file_path, ignore_peaks=True, report_progress=False)
-        SQLData.set_up_db()
-        cls.ef = SQLData.store_file(f)
+        SQLStorage.set_up_db()
+        cls.ef = SQLStorage.store_file(f)
 
     def test_print_file(self):
         print(self.ef)
@@ -47,7 +47,7 @@ class TestFileFunctions(unittest.TestCase):
         original = self.ef.file_name
         self.ef.rename("foo")
         stmnt = f"SELECT file_name FROM 'result-files' WHERE id={self.ef.id_}"
-        res = SQLData.ENGINE.execute(stmnt).scalar()
+        res = SQLStorage.ENGINE.execute(stmnt).scalar()
 
         self.assertEqual(res, "foo")
         self.assertEqual(self.ef.file_name, "foo")

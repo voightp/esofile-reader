@@ -10,9 +10,9 @@ from sqlalchemy import exc
 
 from esofile_reader.constants import *
 from esofile_reader.database_file import DatabaseFile
-from esofile_reader.outputs.base_data import BaseData
-from esofile_reader.outputs.df_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
-from esofile_reader.outputs.sql_functions import create_results_table, \
+from esofile_reader.storage.base_storage import BaseStorage
+from esofile_reader.storage.df_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
+from esofile_reader.storage.sql_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
     create_day_table, destringify_values
 from esofile_reader.utils.mini_classes import Variable
@@ -20,7 +20,7 @@ from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import profile
 
 
-class SQLData(BaseData):
+class SQLStorage(BaseStorage):
     FILE_TABLE = "result-files"
     SEPARATOR = "\t"
     ENGINE = None
@@ -137,7 +137,7 @@ class SQLData(BaseData):
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
 
-                db_file = DatabaseFile(id_, result_file.file_name, SQLData(id_),
+                db_file = DatabaseFile(id_, result_file.file_name, SQLStorage(id_),
                                        result_file.file_created, result_file._search_tree,
                                        result_file.file_path)
 
@@ -178,7 +178,7 @@ class SQLData(BaseData):
                 select([files.c.id, files.c.file_name, files.c.file_created,
                         files.c.file_path]).where(files.c.id == id_)).first()
         if res:
-            data = SQLData(res[0])
+            data = SQLStorage(res[0])
 
             tree = Tree()
             tree.populate_tree(data.get_all_variables_dct())

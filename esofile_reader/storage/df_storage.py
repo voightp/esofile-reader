@@ -4,13 +4,13 @@ from typing import Sequence, List, Dict
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.outputs.base_data import BaseData
-from esofile_reader.outputs.df_functions import merge_peak_outputs, slicer
+from esofile_reader.storage.base_storage import BaseStorage
+from esofile_reader.storage.df_functions import merge_peak_outputs, slicer
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import id_gen
 
 
-class DFData(BaseData):
+class DFStorage(BaseStorage):
     """
     The results are stored in a dictionary using string interval identifiers
     as keys and pandas.DataFrame classes as values.
