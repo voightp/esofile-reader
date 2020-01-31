@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Union
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.utils.search_tree import Tree
+from esofile_reader.utils.mini_classes import Storage
 
 
 class DatabaseFile(BaseFile):
@@ -35,7 +35,7 @@ class DatabaseFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file_name: str, storage: Union['SQLData', 'DFData'],
+    def __init__(self, id_: int, file_name: str, storage: Storage,
                  file_created: datetime, search_tree: Tree = None, file_path: str = None):
         super().__init__()
         self.id_ = id_

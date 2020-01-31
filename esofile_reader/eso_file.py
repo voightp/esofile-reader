@@ -8,7 +8,7 @@ from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
-from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 try:
     from esofile_reader.processing.esofile_processor import read_file
@@ -186,6 +186,6 @@ class EsoFile(BaseFile):
         """ Generate 'Totals' file. """
         return TotalsFile(self)
 
-    def generate_diff(self, other_file: Type[BaseFile]):
+    def generate_diff(self, other_file: ResultsFile):
         """ Generate 'Diff' file. """
         return DiffFile(self, other_file)

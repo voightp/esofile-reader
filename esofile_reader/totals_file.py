@@ -10,7 +10,7 @@ from esofile_reader.diff_file import DiffFile
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 variable_groups = {
     "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
@@ -39,7 +39,7 @@ class TotalsFile(BaseFile):
 
     """
 
-    def __init__(self, result_file: Type[BaseFile]):
+    def __init__(self, result_file: ResultsFile):
         super().__init__()
         self.populate_content(result_file)
 
@@ -130,7 +130,7 @@ class TotalsFile(BaseFile):
 
         return pd.DataFrame(rows, columns=cols, index=index)
 
-    def process_totals(self, file: Type[BaseFile]):
+    def process_totals(self, file: ResultsFile):
         """ Process 'Totals' outputs. """
         header = {}
         outputs = DFStorage()
@@ -167,7 +167,7 @@ class TotalsFile(BaseFile):
 
         return outputs, tree
 
-    def populate_content(self, file: Type[BaseFile]):
+    def populate_content(self, file: ResultsFile):
         """ Generate 'Totals' related data based on input 'ResultFile'. """
         self.file_path = file.file_path
         self.file_name = f"{file.file_name} - totals"
@@ -175,6 +175,6 @@ class TotalsFile(BaseFile):
 
         self.storage, self._search_tree = self.process_totals(file)
 
-    def generate_diff(self, other_file: Type[BaseFile]):
+    def generate_diff(self, other_file: ResultsFile):
         """ Generate 'Diff' results file. """
         return DiffFile(self, other_file)
