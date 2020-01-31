@@ -84,6 +84,10 @@ class BaseFile:
         """ Get all available intervals. """
         return self.data.get_available_intervals()
 
+    def get_header_dictionary(self, interval: str):
+        """ Get all variables for given interval. """
+        return self.data.get_variables_dct(interval)
+
     def rename(self, name: str) -> None:
         """ Set a new file name. """
         self.file_name = name

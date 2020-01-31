@@ -1,4 +1,5 @@
 import contextlib
+import traceback
 from datetime import datetime
 from typing import Sequence, List, Dict
 
@@ -16,6 +17,7 @@ from esofile_reader.outputs.sql_functions import create_results_table, \
     create_day_table, destringify_values
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import profile
+from esofile_reader.utils.search_tree import Tree
 
 
 class SQLData(BaseData):
@@ -171,9 +173,34 @@ class SQLData(BaseData):
         files = cls.METADATA.tables[cls.FILE_TABLE]
 
         with cls.ENGINE.connect() as conn:
-            res = conn.execute(files.select().where(files.c.id == id_)).first()
-            # TODO finish loading file
+            res = conn.execute(
+                select([files.c.id, files.c.file_name, files.c.file_created,
+                        files.c.file_path]).where(files.c.id == id_)).first()
+        if res:
+            data = SQLData(res[0])
 
+            tree = Tree()
+            tree.populate_tree(data.get_all_variables_dct())
+
+            return DatabaseFile(res[0], res[1], data, res[2],
+                                file_path=res[3], search_tree=tree)
+
+        else:
+            raise KeyError(f"Cannot load file id '{id_}'.\n"
+                           f"{traceback.format_exc()}")
+
+    @classmethod
+    @profile
+    def load_all_files(cls) -> List[DatabaseFile]:
+        files = cls.METADATA.tables[cls.FILE_TABLE]
+
+        with cls.ENGINE.connect() as conn:
+            res = conn.execute(files.select(files.c.id))
+
+        ids = [r[0] for r in res]
+        db_files = [cls.load_file(id_) for id_ in ids]
+
+        return db_files
 
     def update_file_name(self, name: str) -> None:
         files = self.METADATA.tables[self.FILE_TABLE]
