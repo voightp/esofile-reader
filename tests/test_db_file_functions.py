@@ -30,7 +30,7 @@ class TestFileFunctions(unittest.TestCase):
                               'monthly', 'runperiod', 'annual'])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
+        self.assertEqual(len(self.ef.storage.get_all_variable_ids()), 114)
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.file_created, datetime))
@@ -39,9 +39,9 @@ class TestFileFunctions(unittest.TestCase):
         self.assertTrue(self.ef.complete)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
+        self.assertEqual(self.ef.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
                                                                                  "variable", "units"])
-        self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
+        self.assertEqual(len(self.ef.storage.get_all_variables_df().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name
@@ -237,7 +237,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.storage.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

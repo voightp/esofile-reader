@@ -94,13 +94,13 @@ class SQLStorage(BaseStorage):
             for interval in result_file.available_intervals:
                 f_upd = {}
 
-                outputs = result_file.data.tables[interval]
+                outputs = result_file.storage.tables[interval]
                 # create result table
                 results_table = create_results_table(cls.METADATA, id_, interval)
                 f_upd[f"{interval}_outputs_table"] = results_table.name
 
                 # store numeric values
-                df = result_file.data.get_all_results(interval)
+                df = result_file.storage.get_all_results(interval)
                 sr = merge_df_values(df, cls.SEPARATOR)
 
                 ins = []

@@ -137,10 +137,10 @@ class TotalsFile(BaseFile):
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            variable_dct = file.data.get_variables_dct(interval)
+            variable_dct = file.storage.get_variables_dct(interval)
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
-            out = file.data.get_all_results(interval)
+            out = file.storage.get_all_results(interval)
             out = out.loc[:, ~out.columns.get_level_values("units").isin(IGNORED_UNITS)]
             out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
@@ -150,13 +150,13 @@ class TotalsFile(BaseFile):
             df = self._calculate_totals(df)
 
             try:
-                c1 = file.data.get_number_of_days(interval)
+                c1 = file.storage.get_number_of_days(interval)
                 df.insert(0, N_DAYS_COLUMN, c1)
             except KeyError:
                 pass
 
             try:
-                c1 = file.data.get_days_of_week(interval)
+                c1 = file.storage.get_days_of_week(interval)
                 df.insert(0, DAY_COLUMN, c1)
             except KeyError:
                 pass
@@ -173,7 +173,7 @@ class TotalsFile(BaseFile):
         self.file_name = f"{file.file_name} - totals"
         self.file_created = file.file_created  # use base file timestamp
 
-        self.data, self._search_tree = self.process_totals(file)
+        self.storage, self._search_tree = self.process_totals(file)
 
     def generate_diff(self, other_file: Type[BaseFile]):
         """ Generate 'Diff' results file. """

@@ -57,16 +57,16 @@ class DiffFile(BaseFile):
                 df.columns = pd.MultiIndex.from_frame(header_df)
 
                 try:
-                    c1 = file.data.get_number_of_days(interval).loc[index_cond]
-                    c2 = other_file.data.get_number_of_days(interval).loc[index_cond]
+                    c1 = file.storage.get_number_of_days(interval).loc[index_cond]
+                    c2 = other_file.storage.get_number_of_days(interval).loc[index_cond]
                     if c1.equals(c2):
                         df.insert(0, N_DAYS_COLUMN, c1)
                 except KeyError:
                     pass
 
                 try:
-                    c1 = file.data.get_days_of_week(interval).loc[index_cond]
-                    c2 = other_file.data.get_days_of_week(interval).loc[index_cond]
+                    c1 = file.storage.get_days_of_week(interval).loc[index_cond]
+                    c2 = other_file.storage.get_days_of_week(interval).loc[index_cond]
                     if c1.equals(c2):
                         df.insert(0, DAY_COLUMN, c1)
                 except KeyError:
@@ -100,4 +100,4 @@ class DiffFile(BaseFile):
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
         self.file_created = datetime.utcnow()
 
-        self.data, self._search_tree = self.process_diff(first_file, other_file)
+        self.storage, self._search_tree = self.process_diff(first_file, other_file)
