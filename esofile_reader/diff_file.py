@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Type, Union, Tuple
+from typing import Type, Tuple
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
@@ -8,6 +8,7 @@ from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
+from esofile_reader.utils.mini_classes import ResultsFile, Storage
 
 
 class NoSharedVariables(Exception):
@@ -22,12 +23,12 @@ class DiffFile(BaseFile):
 
     """
 
-    def __init__(self, first_file: Type[BaseFile], other_file: Type[BaseFile]):
+    def __init__(self, first_file: ResultsFile, other_file: ResultsFile):
         super().__init__()
         self.populate_content(first_file, other_file)
 
     @staticmethod
-    def calculate_diff(file: Type[BaseFile], other_file: Type[BaseFile]) -> DFStorage:
+    def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFStorage:
         """ Calculate difference between two results files. """
         diff = DFStorage()
         id_gen = incremental_id_gen()
@@ -76,7 +77,7 @@ class DiffFile(BaseFile):
 
         return diff
 
-    def process_diff(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> Tuple[Type[BaseStorage], Tree]:
+    def process_diff(self, first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Storage, Tree]:
         """ Create diff outputs. """
         header = {}
         data = self.calculate_diff(first_file, other_file)
@@ -94,7 +95,7 @@ class DiffFile(BaseFile):
 
             return data, tree
 
-    def populate_content(self, first_file: Type[BaseFile], other_file: Type[BaseFile]) -> None:
+    def populate_content(self, first_file: ResultsFile, other_file: ResultsFile) -> None:
         """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
