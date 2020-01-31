@@ -3,7 +3,7 @@ import unittest
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
-
+from esofile_reader.storage.df_functions import sr_dt_slicer, df_dt_slicer
 from esofile_reader import EsoFile, Variable
 from tests import ROOT
 
@@ -90,9 +90,9 @@ class TestDFOutputs(unittest.TestCase):
         col1 = self.ef.storage.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
 
         self.ef.storage.update_variable_name("timestep", 7, "Environment",
-                                     "Site Diffuse Solar Radiation Rate per Area")
+                                             "Site Diffuse Solar Radiation Rate per Area")
         col2 = self.ef.storage.tables["timestep"].loc[:, (7, "timestep", "Environment",
-                                                       "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
+                                                          "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
         self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
@@ -283,3 +283,41 @@ class TestDFOutputs(unittest.TestCase):
         df = df.droplevel("id", axis=1)
         test_df = test_df.droplevel("id", axis=1)
         assert_frame_equal(df, test_df)
+
+    def test_df_dt_slicer(self):
+        index = pd.DatetimeIndex(pd.date_range("2002-01-01", freq="d", periods=5))
+        df = pd.DataFrame({"a": list(range(5))}, index=index)
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=pd.datetime(2002, 1, 2), end_date=None),
+            df.iloc[1:, :]
+        )
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=None, end_date=pd.datetime(2002, 1, 2)),
+            df.iloc[:2, :]
+        )
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=pd.datetime(2002, 1, 2), end_date=pd.datetime(2002, 1, 2)),
+            df.iloc[[1], :]
+        )
+
+    def test_sr_dt_slicer(self):
+        index = pd.DatetimeIndex(pd.date_range("2002-01-01", freq="d", periods=5))
+        sr = pd.Series(list(range(5)), index=index)
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=pd.datetime(2002, 1, 2), end_date=None),
+            sr.iloc[1:],
+        )
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=None, end_date=pd.datetime(2002, 1, 2)),
+            sr.iloc[:2]
+        )
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=pd.datetime(2002, 1, 2), end_date=pd.datetime(2002, 1, 2)),
+            sr.iloc[[1]]
+        )

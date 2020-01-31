@@ -40,7 +40,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(self.ef.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
-                                                                                 "variable", "units"])
+                                                                                    "variable", "units"])
         self.assertEqual(len(self.ef.storage.get_all_variables_df().index), 114)
 
     def test_rename(self):
