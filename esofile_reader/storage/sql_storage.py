@@ -298,15 +298,6 @@ class SQLStorage(BaseStorage):
 
         return datetime_index
 
-    def get_daterange_index(self, interval: str) -> pd.DatetimeIndex:
-        table = self._get_datetime_table(interval)
-
-        with self.ENGINE.connect() as conn:
-            res = conn.execute(table.select()).fetchall()
-            datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
-
-        return datetime_index
-
     @profile
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
         variables_dct = {}
