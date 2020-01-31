@@ -12,6 +12,10 @@ class TestSqlDB(unittest.TestCase):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
 
+    def test_1st_store_file_not_set_up(self):
+        with self.assertRaises(AttributeError):
+            SQLData.store_file(self.ef)
+
     def test_set_up_db(self):
         SQLData.set_up_db()
         self.assertIsNotNone(SQLData.ENGINE)
@@ -92,3 +96,11 @@ class TestSqlDB(unittest.TestCase):
                     len(f.get_header_dictionary(interval)),
                     len(lf.get_header_dictionary(interval))
                 )
+
+    def test_load_file_invalid(self):
+        with self.assertRaises(KeyError):
+            SQLData.load_file(1000)
+
+    def test_delete_file_invalid(self):
+        with self.assertRaises(KeyError):
+            SQLData.delete_file(1000)
