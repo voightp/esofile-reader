@@ -12,11 +12,13 @@ class TestSqlDB(unittest.TestCase):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
 
-    def test_1st_store_file_not_set_up(self):
+    def test_1_store_file_not_set_up(self):
+        SQLData.ENGINE = None
+        SQLData.METADATA = None
         with self.assertRaises(AttributeError):
             SQLData.store_file(self.ef)
 
-    def test_set_up_db(self):
+    def test_2_set_up_db(self):
         SQLData.set_up_db()
         self.assertIsNotNone(SQLData.ENGINE)
         self.assertIsNotNone(SQLData.METADATA)

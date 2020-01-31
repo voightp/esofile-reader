@@ -5,6 +5,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader import EsoFile, Variable
+from esofile_reader.constants import *
 from esofile_reader.outputs.sql_data import SQLData
 from tests import ROOT
 
@@ -17,6 +18,11 @@ class TestDFOutputs(unittest.TestCase):
         SQLData.set_up_db()
 
         cls.sql_file = SQLData.store_file(ef)
+
+    @classmethod
+    def tearDownClass(cls):
+        SQLData.ENGINE = None
+        SQLData.METADATA = None
 
     def test_get_available_intervals(self):
         intervals = self.sql_file.data.get_available_intervals()
@@ -97,7 +103,8 @@ class TestDFOutputs(unittest.TestCase):
             var = (res[0], res[1], res[2], res[3], res[4])
             self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
 
-        self.sql_file.data.update_variable_name("timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area")
+        self.sql_file.data.update_variable_name("timestep", 7, "Environment",
+                                                "Site Diffuse Solar Radiation Rate per Area")
         with SQLData.ENGINE.connect() as conn:
             table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()

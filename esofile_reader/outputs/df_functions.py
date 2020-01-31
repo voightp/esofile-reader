@@ -106,7 +106,7 @@ def slicer(df: pd.DataFrame, ids: Sequence[int], start_date: datetime = None,
     else:
         df = df.loc[:, cond]
 
-    return df.copy()
+    return df
 
 
 def df_dt_slicer(df: pd.DataFrame, start_date: datetime, end_date: datetime) -> pd.DataFrame:

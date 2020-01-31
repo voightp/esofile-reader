@@ -16,8 +16,8 @@ from esofile_reader.outputs.sql_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
     create_day_table, destringify_values
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.utils.utils import profile
 from esofile_reader.utils.search_tree import Tree
+from esofile_reader.utils.utils import profile
 
 
 class SQLData(BaseData):
@@ -45,6 +45,7 @@ class SQLData(BaseData):
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_created", DateTime),
+                Column("range_outputs_table", String(50)),
                 Column("timestep_outputs_table", String(50)),
                 Column("hourly_outputs_table", String(50)),
                 Column("daily_outputs_table", String(50)),
@@ -226,7 +227,8 @@ class SQLData(BaseData):
             D: files.c.daily_outputs_table,
             M: files.c.monthly_outputs_table,
             A: files.c.annual_outputs_table,
-            RP: files.c.runperiod_outputs_table
+            RP: files.c.runperiod_outputs_table,
+            RANGE: files.c.range_outputs_table
         }
 
         return self._get_table(switch[interval], files)
@@ -240,7 +242,7 @@ class SQLData(BaseData):
             D: files.c.daily_dt_table,
             M: files.c.monthly_dt_table,
             A: files.c.annual_dt_table,
-            RP: files.c.runperiod_dt_table
+            RP: files.c.runperiod_dt_table,
         }
 
         return self._get_table(switch[interval], files)
@@ -275,18 +277,28 @@ class SQLData(BaseData):
             files.c.daily_outputs_table,
             files.c.monthly_outputs_table,
             files.c.runperiod_outputs_table,
-            files.c.annual_outputs_table
+            files.c.annual_outputs_table,
+            files.c.range_outputs_table
         ]
 
         intervals = []
         with self.ENGINE.connect() as conn:
             res = conn.execute(select(columns).where(files.c.id == self.id_)).first()
-            for interval, table in zip([TS, H, D, M, RP, A], res):
+            for interval, table in zip([TS, H, D, M, RP, A, RANGE], res):
                 if table:
                     intervals.append(interval)
         return intervals
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
+        table = self._get_datetime_table(interval)
+
+        with self.ENGINE.connect() as conn:
+            res = conn.execute(table.select()).fetchall()
+            datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
+
+        return datetime_index
+
+    def get_daterange_index(self, interval: str) -> pd.DatetimeIndex:
         table = self._get_datetime_table(interval)
 
         with self.ENGINE.connect() as conn:
@@ -445,21 +457,19 @@ class SQLData(BaseData):
             df.set_index(["id", "interval", "key", "variable", "units"], inplace=True)
             df = destringify_values(df)
 
-        index = self.get_datetime_index(interval)
-        if index is not None:
-            df.index = index
-
-        if include_day:
-            try:
-                day_sr = self.get_days_of_week(interval, start_date, end_date)
-                df.insert(0, DAY_COLUMN, day_sr)
-                df.set_index(DAY_COLUMN, append=True, inplace=True)
-            except KeyError:
+        if interval == RANGE:
+            # create default 'range' index
+            df.index.rename(RANGE, inplace=True)
+        else:
+            df.index = self.get_datetime_index(interval)
+            if include_day:
                 try:
+                    day_sr = self.get_days_of_week(interval, start_date, end_date)
+                    df.insert(0, DAY_COLUMN, day_sr)
+                    df.set_index(DAY_COLUMN, append=True, inplace=True)
+                except KeyError:
                     df[DAY_COLUMN] = df.index.strftime("%A")
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
-                except AttributeError:
-                    pass
 
         return df_dt_slicer(df, start_date, end_date)
 

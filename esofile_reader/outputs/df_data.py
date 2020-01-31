@@ -31,6 +31,7 @@ class DFData(BaseData):
         M : pd.DataFrame,
         A : pd.DataFrame,
         RP : pd.DataFrame,
+        range: pd.DataFrame
     }
 
     pd.DataFrame:
@@ -173,11 +174,12 @@ class DFData(BaseData):
     def get_all_results(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
         cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
-        return self.tables[interval].loc[:, ~cond]
+        return self.tables[interval].loc[:, ~cond].copy()
 
     def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
                     end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
         df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
+        df = df.copy()
 
         if isinstance(df, pd.Series):
             df = pd.DataFrame(df)

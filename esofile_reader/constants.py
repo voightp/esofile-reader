@@ -4,11 +4,13 @@ D = "daily"
 M = "monthly"
 A = "annual"
 RP = "runperiod"
+RANGE = "range"
 
 N_DAYS_COLUMN = "n days"
 DAY_COLUMN = "day"
 TIMESTAMP_COLUMN = "timestamp"
 VALUE_COLUMN = "value"
+RANGE_COLUMN = "range"
 
 RATE_TO_ENERGY_DCT = {TS: False,
                       H: False,
@@ -16,8 +18,6 @@ RATE_TO_ENERGY_DCT = {TS: False,
                       M: True,
                       A: True,
                       RP: True}
-
-ALL_INTERVALS = ["timestep", "hourly", "daily", "monthly", "annual", "runperiod"]
 
 AVERAGED_UNITS = [
     "W",

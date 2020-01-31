@@ -269,14 +269,15 @@ class BaseFile:
             data = self.data
             df = res[output_type]()
 
-            # convert 'rate' or 'energy' when standard results are requested
-            if output_type == "standard" and rate_to_energy_dct[interval]:
-                try:
-                    n_days = data.get_number_of_days(interval, start_date, end_date)
-                except KeyError:
-                    n_days = None
+            if interval != RANGE:
+                # convert 'rate' or 'energy' when standard results are requested
+                if output_type == "standard" and rate_to_energy_dct[interval]:
+                    try:
+                        n_days = data.get_number_of_days(interval, start_date, end_date)
+                    except KeyError:
+                        n_days = None
 
-                df = convert_rate_to_energy(df, interval, n_days)
+                    df = convert_rate_to_energy(df, interval, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -397,7 +398,7 @@ class BaseFile:
             # no processing required
             units = units[0]
 
-        elif rate_and_energy_units(units):
+        elif rate_and_energy_units(units) and interval != RANGE:
             # it's needed to assign multi index to convert energy
             try:
                 n_days = self.data.get_number_of_days(interval)
