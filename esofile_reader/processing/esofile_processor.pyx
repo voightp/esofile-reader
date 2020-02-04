@@ -286,15 +286,15 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         A nested list of raw environment information.
 
      """
-    dates = {k: [] for k in outputs.keys()}
-    cumulative_days = {k: [] for k in outputs.keys() if k in (M, A, RP)}
-    days_of_week = defaultdict(list)
-    interval = None
+    # initialize storage for all outputs
+    all_outputs = []
+    all_peak_outputs = []
+    environments = []
 
-    if not ignore_peaks:
-        peak_outputs = {k: v for k, v in deepcopy(outputs).items() if k in (D, M, A, RP)}
-    else:
-        peak_outputs = None
+    # initialize datetime bins
+    dates = []
+    cumulative_days = []
+    days_of_week = []
 
     while True:
         line = next(eso_file)
@@ -311,47 +311,53 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
                 raise ValueError
 
         if line_id <= highest_interval_id:
-            # check if the current line represents
-            # an interval or an output
             if line_id == 1:
-                # Initialize new list to store environment line
-                [value.append([]) for value in dates.values()]
-                [value.append([]) for value in cumulative_days.values()]
+                environments.append(line[0].strip())
+
+                # initialize outputs for the current environment
+                all_outputs.append(deepcopy(outputs))
+                if not ignore_peaks:
+                    all_peak_outputs.append(deepcopy({k: v for k, v in outputs.items()
+                                                      if k in (D, M, A, RP)}))
+                else:
+                    all_peak_outputs.append(None)
+
+                # initialize date time data for the current environment
+                dates.append(defaultdict(list))
+                days_of_week.append(defaultdict(list))
+                cumulative_days.append(defaultdict(list))
             else:
                 interval, date, other = _process_interval_line(line_id, line)
 
-                if interval not in dates.keys():
-                    # Skip when current interval is not requested
-                    continue
-
                 # Populate last environment list with interval line
-                dates[interval][-1].append(date)
+                dates[-1][interval].append(date)
 
                 # Populate current step for all result ids with nan values.
                 # This is in place to avoid issues for variables which are not
                 # reported during current interval
-                [v.append(np.nan) for v in outputs[interval].values()]
+                [v.append(np.nan) for v in all_outputs[-1][interval].values()]
 
                 if line_id >= 3 and not ignore_peaks:
-                    [v.append(np.nan) for v in peak_outputs[interval].values()]
+                    [v.append(np.nan) for v in all_peak_outputs[-1][interval].values()]
 
                 if line_id <= 3:
-                    days_of_week[interval].append(other.strip())
+                    days_of_week[-1][interval].append(other.strip())
                 else:
-                    cumulative_days[interval][-1].append(other)
+                    cumulative_days[-1][interval].append(other)
 
         else:
             # current line represents a result
             # replace nan values from the last step
             res, peak_res = _process_result_line(line, ignore_peaks)
             try:
-                outputs[interval][line_id][-1] = res
+                all_outputs[-1][interval][line_id][-1] = res
                 if peak_res:
-                    peak_outputs[interval][line_id][-1] = peak_res
+                    all_peak_outputs[-1][interval][line_id][-1] = peak_res
             except KeyError:
-                print(f"ignoring {line_id}")
+                print(f"Ignoring {line_id}, variable is not included in header!")
 
-    return outputs, peak_outputs, dates, cumulative_days, days_of_week
+    return environments, all_outputs, all_peak_outputs, \
+           dates, cumulative_days, days_of_week
 
 
 def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.DataFrame:
@@ -460,6 +466,10 @@ def remove_duplicates(ids, header_dct, outputs_dct):
 
 def process_file(file, monitor, year, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
+    all_outputs = []
+    all_peak_outputs = []
+    trees = []
+
     # process first few standard lines, ignore timestamp
     last_standard_item_id, _ = process_standard_lines(file)
 
@@ -469,36 +479,40 @@ def process_file(file, monitor, year, ignore_peaks=True):
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
-    (raw_outputs, raw_peak_outputs, dates,
-     cumulative_days, day_of_week) = read_body(file, last_standard_item_id,
-                                               init_outputs, ignore_peaks, monitor)
+    content = read_body(file, last_standard_item_id, init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
 
-    # Sort interval line into relevant dictionaries
-    dates, n_days = interval_processor(dates, cumulative_days, year)
-    monitor.intervals_finished()
+    for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
+        # Sort interval line into relevant dictionaries
+        dates, n_days = interval_processor(dates, cumulative_days, year)
+        monitor.intervals_finished()
 
-    # Create a 'search tree' to allow searching for variables
-    tree, dup_ids = create_tree(header)
-    monitor.search_tree_finished()
+        # Create a 'search tree' to allow searching for variables
+        tree, dup_ids = create_tree(header)
+        trees.append(tree)
+        monitor.search_tree_finished()
 
-    if dup_ids:
-        # remove duplicates from header and outputs
-        remove_duplicates(dup_ids, header, raw_outputs)
+        if dup_ids:
+            # remove duplicates from header and outputs
+            remove_duplicates(dup_ids, header, out)
 
-    if not ignore_peaks:
-        peak_outputs = generate_peak_outputs(raw_peak_outputs, header, dates)
-    else:
-        peak_outputs = None
+        if not ignore_peaks:
+            peak_outputs = generate_peak_outputs(peak, header, dates)
+        else:
+            peak_outputs = None
+        all_peak_outputs.append(peak_outputs)
 
-    # transform standard dictionaries into DataFrame like Output classes
-    other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
-    outputs = generate_outputs(raw_outputs, header, dates, other_data)
-    monitor.output_cls_gen_finished()
+        # transform standard dictionaries into DataFrame like Output classes
+        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
+        outputs = generate_outputs(out, header, dates, other_data)
+        all_outputs.append(outputs)
+
+        monitor.output_cls_gen_finished()
 
     monitor.processing_finished()
 
-    return outputs, peak_outputs, tree
+    # content[0] stores environment names
+    return content[0], all_outputs, all_peak_outputs, trees
 
 
 def read_file(file_path, monitor=None, report_progress=False,
@@ -514,7 +528,6 @@ def read_file(file_path, monitor=None, report_progress=False,
     if not complete:
         # prevent reading the file when incomplete
         return
-
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)

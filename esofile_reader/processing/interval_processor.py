@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.utils.utils import slice_dict
 
 
 class IntervalNotAvailable(KeyError):
@@ -93,7 +92,7 @@ def is_end_day(month, day):
     return day == months[month]
 
 
-def month_act_days(m_envs):
+def month_act_days(monthly_cumulative_days):
     """
     Transform consecutive number of days in monthly data to actual number of days.
 
@@ -101,33 +100,21 @@ def month_act_days(m_envs):
     Raw data reports interval as 31, 59..., this function calculates and returns
     actual number of days for each month 31, 28...
     """
-    m_list = []
+    old_num = monthly_cumulative_days.pop(0)
+    m_actual_days = [old_num]
 
-    for m_env in m_envs:
-        if len(m_env) > 1:
-            old_num = m_env.pop(0)
-            new_lst = [old_num]
-            for num in m_env:
-                new_num = num - old_num
-                new_lst.append(new_num)
-                old_num += new_num
-            m_list.append(new_lst)
-        else:
-            m_list.append(m_env)
+    for num in monthly_cumulative_days:
+        new_num = num - old_num
+        m_actual_days.append(new_num)
+        old_num += new_num
 
-    return m_list
+    return m_actual_days
 
 
 def find_num_of_days_annual(ann_num_of_days, rp_num_of_days):
     """ Use runperiod data to calculate number of days for each annual period. """
-    new_ann = []
-
-    for an_env, rp_env in zip(ann_num_of_days, rp_num_of_days):
-        # calculate annual number of days when runperiod contains multiple years
-        days = rp_env[0] // len(an_env)
-        new_ann.append([days for _ in an_env])
-
-    return new_ann
+    days = rp_num_of_days[0] // len(ann_num_of_days)
+    return [days for _ in ann_num_of_days]
 
 
 def get_num_of_days(cumulative_days):
@@ -188,72 +175,52 @@ def _to_timestamp(year, interval_tuple):
     return pd.Timestamp(year, month, day, hour, end_minute)
 
 
-def _gen_dt(envs, year):
+def _gen_dt(raw_dates, year):
     """ Generate timestamp index for a given period. """
-    new_envs = []
-    prev_env_start = None
-    for env in envs:
-        if prev_env_start:
-            # increment year if there could be duplicate date
-            if env[0] == prev_env_start:
-                year += 1
-        prev_env_start = env[0]
+    dates = [_to_timestamp(year, raw_dates[0])]
 
-        new_env = [_to_timestamp(year, env[0])]
-        for i in range(1, len(env)):
+    for i in range(1, len(raw_dates)):
+        # based on the first, current and previous
+        # steps decide if the year should be incremented
+        if incr_year_env(raw_dates[0], raw_dates[i], raw_dates[-1]):
+            year += 1
 
-            # based on the first, current and previous
-            # steps decide if the year should be incremented
-            if incr_year_env(env[0], env[i], env[-1]):
-                year += 1
+        date = _to_timestamp(year, raw_dates[i])
+        dates.append(date)
 
-            date = _to_timestamp(year, env[i])
-            new_env.append(date)
-
-        new_envs.append(new_env)
-
-    return new_envs
+    return dates
 
 
-def convert_to_dt_index(env_dict, year):
+def convert_to_dt_index(raw_dates, year):
     """ Replace raw date information with datetime like object. """
-    for interval, value in env_dict.items():
-        env_dict[interval] = _gen_dt(value, year)
+    dates = {}
+    for interval, value in raw_dates.items():
+        dates[interval] = _gen_dt(value, year)
 
-    return env_dict
+    return dates
 
 
-def update_start_dates(env_dict):
+def update_start_dates(dates):
     """ Set accurate first date for monthly+ intervals. """
 
-    def _set_start_date(to_be_set_envs, reference):
-        for envs in reference.values():
-            for r_env, o_env in zip(to_be_set_envs, envs):
-                r_env[0] = o_env[0].replace(hour=0, minute=0)
-            return to_be_set_envs
+    def _set_start_date(orig, refs):
+        for ref in refs.values():
+            orig[0] = ref[0].replace(hour=0, minute=0)
+            return orig
 
-    ts_to_m_envs = slice_dict(env_dict, [TS, H, D, M])
+    ts_to_m_envs = {k: dates[k] for k in dates if k in [TS, H, D, M]}
     if ts_to_m_envs:
-        if M in env_dict:
-            env_dict[M] = _set_start_date(env_dict[M], ts_to_m_envs)
+        if M in dates:
+            dates[M] = _set_start_date(dates[M], ts_to_m_envs)
 
-        if A in env_dict:
-            env_dict[A] = _set_start_date(env_dict[A], ts_to_m_envs)
+        if A in dates:
+            dates[A] = _set_start_date(dates[A], ts_to_m_envs)
 
-        if RP in env_dict:
-            env_dict[RP] = _set_start_date(env_dict[RP], ts_to_m_envs)
-
-
-def flat_values(nested_env_dict):
-    """ Transform dictionary nested list values into flat lists. """
-    if nested_env_dict:
-        for key, nested_value in nested_env_dict.items():
-            nested_env_dict[key] = [item for lst in nested_value for item in lst]
-
-    return nested_env_dict
+        if RP in dates:
+            dates[RP] = _set_start_date(dates[RP], ts_to_m_envs)
 
 
-def interval_processor(all_envs, cumulative_days, year):
+def interval_processor(dates, cumulative_days, year):
     """
     Process E+ raw date and time line.
 
@@ -267,25 +234,19 @@ def interval_processor(all_envs, cumulative_days, year):
     Based on the available data, start and end date for each environment is found
     and stored.
 
-    Finally, values containing nested lists are transformed into flat lists
-    to be consistent with output data.
     """
 
     num_of_days = {}
-    m_to_rp = {k: v for k, v in all_envs.items() if k in (M, A, RP)}
+    m_to_rp = {k: v for k, v in dates.items() if k in (M, A, RP)}
 
     if m_to_rp:
         # Separate number of days data if any M to RP interval is available
         num_of_days = get_num_of_days(cumulative_days)
 
     # transform raw int data into datetime like index
-    dates = convert_to_dt_index(all_envs, year)
+    dates = convert_to_dt_index(dates, year)
 
-    # update first day of monthly+ interval based on
-    # shorter interval line
+    # update first day of monthly+ interval based on TS, H or D data
     update_start_dates(dates)
 
-    return (
-        flat_values(dates),
-        flat_values(num_of_days)
-    )
+    return dates, num_of_days

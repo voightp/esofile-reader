@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Type, List
+from typing import Type, List, _ForwardRef
 
 import pandas as pd
 
@@ -20,8 +20,12 @@ except ModuleNotFoundError:
 
 
 class PeaksNotIncluded(Exception):
-    """ Exception is raised when EsoFile has been processed without peaks. """
+    """ Exception is raised when 'EsoFile' has been processed without peaks. """
     pass
+
+
+class MultiEnvFileRequired(Exception):
+    """ Exception raised when populating single 'EsoFile' with multi env data."""
 
 
 class EsoFile(BaseFile):
@@ -37,7 +41,7 @@ class EsoFile(BaseFile):
     file_created : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
     storage : {DFOutputs, SQLOutputs}
-        A class to store resutls data
+        A class to store results data
         {period : {ID : (key name, variable name, units)}}
 
     Parameters
@@ -48,25 +52,62 @@ class EsoFile(BaseFile):
         Processing progress is reported in terminal when set as 'True'.
     ignore_peaks : bool, default: True
         Ignore peak values from 'Daily'+ intervals.
+    year: int, default 2002
+        A start year for generated datetime data.
+    autopopulate: bool, default True
+        Read file on initialization.
 
     Raises
     ------
     IncompleteFile
+    BlankLineError
 
     """
 
-    def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None,
+    def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None, autopopulate=True,
                  report_progress=True, ignore_peaks: bool = True, year: int = 2002):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-        self.populate_content(monitor=monitor,
-                              report_progress=report_progress,
-                              ignore_peaks=ignore_peaks,
-                              year=year)
+
+        if autopopulate:
+            self.populate_content(monitor=monitor, report_progress=report_progress,
+                                  ignore_peaks=ignore_peaks, year=year)
+
+    @classmethod
+    def process_multi_env_file(cls, file_path: str, monitor: Type[DefaultMonitor] = None,
+                               report_progress=True, ignore_peaks: bool = True,
+                               year: int = 2002) -> List[_ForwardRef('EsoFile')]:
+        """ Generate independent 'EsoFile' for each environment. """
+        eso_files = []
+        content = read_file(
+            file_path,
+            monitor=monitor,
+            report_progress=report_progress,
+            ignore_peaks=ignore_peaks,
+            year=year
+        )
+
+        if content:
+            for environment, outputs, peak_outputs, tree in zip(*content):
+                ef = EsoFile(file_path, autopopulate=False)
+                ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+
+                name = os.path.splitext(os.path.basename(file_path))[0]
+                ef.file_name = f"{name} - {environment}"
+                ef.storage = outputs
+                ef.peak_outputs = peak_outputs
+                ef._search_tree = tree
+
+                eso_files.append(ef)
+        else:
+            raise IncompleteFile(f"Unexpected end of the file reached!\n"
+                                 f"File '{file_path}' is not complete.")
+
+        return eso_files
 
     def populate_content(self, monitor: Type[DefaultMonitor] = None, report_progress: bool = True,
-                         ignore_peaks: bool = True, year: int = 2002):
+                         ignore_peaks: bool = True, year: int = 2002) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
         self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
@@ -80,12 +121,18 @@ class EsoFile(BaseFile):
         )
 
         if content:
-            (
-                self.storage,
-                self.peak_outputs,
-                self._search_tree,
-            ) = content
-
+            environment_names = content[0]
+            if len(environment_names) == 1:
+                (
+                    self.storage,
+                    self.peak_outputs,
+                    self._search_tree,
+                ) = [c[0] for c in content[1:]]
+            else:
+                raise MultiEnvFileRequired(f"Cannot populate file {self.file_path}. "
+                                           f"as there are multiple environments included.\n"
+                                           f"Use 'EsoFile.process_multi_env_file' to "
+                                           f"generate multiple files.")
         else:
             raise IncompleteFile(f"Unexpected end of the file reached!\n"
                                  f"File '{self.file_path}' is not complete.")

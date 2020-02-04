@@ -171,31 +171,32 @@ class TestEsoFileProcessing(unittest.TestCase):
             _, init_outputs = read_header(f)
 
         with open(self.body_pth, "r") as f:
-            (raw_outputs, raw_peak_outputs, dates,
+            (env_names, raw_outputs, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
-            self.assertEqual(raw_outputs["timestep"][7], ['15.65\n', '14.3\n', '14.15\n', '14.0\n', '12.8\n', '11.6\n',
-                                                          '10.899999999999999\n', '10.2\n', '11.05\n', '11.9\n',
-                                                          '13.0\n', '14.1\n', '15.05\n', '16.0\n', '17.35\n', '18.7\n',
-                                                          '20.4\n', '22.1\n', '23.75\n', '25.4\n', '26.4\n', '27.4\n',
-                                                          '28.0\n', '28.6\n', '29.1\n', '29.6\n',
-                                                          '30.200000000000004\n', '30.8\n', '31.05\n', '31.3\n',
-                                                          '30.75\n', '30.2\n', '29.6\n', '29.0\n', '28.7\n', '28.4\n',
-                                                          '27.45\n', '26.5\n', '25.7\n', '24.9\n',
-                                                          '24.049999999999998\n', '23.2\n', '22.25\n', '21.3\n',
-                                                          '20.25\n', '19.2\n', '18.1\n', '17.0\n', '16.05\n',
-                                                          '15.1\n', '14.3\n', '13.5\n', '12.95\n', '12.4\n',
-                                                          '12.100000000000002\n', '11.8\n', '11.600000000000002\n',
-                                                          '11.4\n', '11.15\n', '10.9\n',
-                                                          '11.45\n', '12.0\n', '11.9\n', '11.8\n', '12.5\n', '13.2\n',
-                                                          '13.75\n', '14.3\n', '14.75\n', '15.2\n', '15.35\n', '15.5\n',
-                                                          '16.55\n', '17.6\n', '17.200000000000004\n', '16.8\n',
-                                                          '16.5\n', '16.2\n', '15.5\n', '14.8\n', '15.6\n',
-                                                          '16.4\n', '16.299999999999998\n', '16.2\n', '15.7\n',
-                                                          '15.2\n', '14.45\n', '13.7\n', '13.05\n', '12.4\n', '11.9\n',
-                                                          '11.4\n', '10.850000000000002\n', '10.3\n', '10.2\n',
-                                                          '10.1\n'])
-            self.assertEqual(raw_outputs["hourly"][8],
+            self.assertEqual(raw_outputs[0]["timestep"][7],
+                             ['15.65\n', '14.3\n', '14.15\n', '14.0\n', '12.8\n', '11.6\n',
+                              '10.899999999999999\n', '10.2\n', '11.05\n', '11.9\n',
+                              '13.0\n', '14.1\n', '15.05\n', '16.0\n', '17.35\n', '18.7\n',
+                              '20.4\n', '22.1\n', '23.75\n', '25.4\n', '26.4\n', '27.4\n',
+                              '28.0\n', '28.6\n', '29.1\n', '29.6\n',
+                              '30.200000000000004\n', '30.8\n', '31.05\n', '31.3\n',
+                              '30.75\n', '30.2\n', '29.6\n', '29.0\n', '28.7\n', '28.4\n',
+                              '27.45\n', '26.5\n', '25.7\n', '24.9\n',
+                              '24.049999999999998\n', '23.2\n', '22.25\n', '21.3\n',
+                              '20.25\n', '19.2\n', '18.1\n', '17.0\n', '16.05\n',
+                              '15.1\n', '14.3\n', '13.5\n', '12.95\n', '12.4\n',
+                              '12.100000000000002\n', '11.8\n', '11.600000000000002\n',
+                              '11.4\n', '11.15\n', '10.9\n',
+                              '11.45\n', '12.0\n', '11.9\n', '11.8\n', '12.5\n', '13.2\n',
+                              '13.75\n', '14.3\n', '14.75\n', '15.2\n', '15.35\n', '15.5\n',
+                              '16.55\n', '17.6\n', '17.200000000000004\n', '16.8\n',
+                              '16.5\n', '16.2\n', '15.5\n', '14.8\n', '15.6\n',
+                              '16.4\n', '16.299999999999998\n', '16.2\n', '15.7\n',
+                              '15.2\n', '14.45\n', '13.7\n', '13.05\n', '12.4\n', '11.9\n',
+                              '11.4\n', '10.850000000000002\n', '10.3\n', '10.2\n',
+                              '10.1\n'])
+            self.assertEqual(raw_outputs[0]["hourly"][8],
                              ['14.975000000000002\n', '14.075\n', '12.2\n', '10.549999999999999\n',
                               '11.475000000000002\n', '13.55\n', '15.525\n', '18.025\n', '21.25\n', '24.575\n',
                               '26.9\n', '28.3\n', '29.35\n', '30.5\n', '31.175\n', '30.475\n', '29.3\n',
@@ -206,7 +207,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                               '15.45\n', '14.075\n', '12.725000000000002\n', '11.65\n', '10.575000000000001\n',
                               '10.149999999999999\n'])
 
-            self.assertEqual(raw_outputs["hourly"][163],
+            self.assertEqual(raw_outputs[0]["hourly"][163],
                              [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                               np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                               np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, '31.939895115385128\n',
@@ -216,47 +217,47 @@ class TestEsoFileProcessing(unittest.TestCase):
                               '32.197143544621329\n', '31.872368037056775\n', np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                               np.NaN])
 
-            self.assertListEqual(raw_outputs["daily"][14], ['12.883333333333335', '10.19895789513146'])
-            self.assertListEqual(raw_outputs["monthly"][15], ['12.883333333333335', '10.19895789513146'])
-            self.assertListEqual(raw_outputs["runperiod"][16], ['11.541145614232397'])
+            self.assertListEqual(raw_outputs[0]["daily"][14], ['12.883333333333335', '10.19895789513146'])
+            self.assertListEqual(raw_outputs[0]["monthly"][15], ['12.883333333333335', '10.19895789513146'])
+            self.assertListEqual(raw_outputs[0]["runperiod"][16], ['11.541145614232397'])
 
-            self.assertListEqual(raw_peak_outputs["daily"][9], [[10.2, 4, 60, 31.3, 15, 60],
-                                                                [10.1, 24, 60, 17.6, 13, 60]])
-            self.assertListEqual(raw_peak_outputs["daily"][622], [[0.0, 1, 15, 0.0, 1, 15],
-                                                                  [0.0, 1, 15, 1.1844716168217186, 10, 60]])
-            self.assertListEqual(raw_peak_outputs["monthly"][10], [[10.2, 30, 4, 60, 31.3, 30, 15, 60],
-                                                                   [10.1, 1, 24, 60, 17.6, 1, 13, 60]])
-            self.assertListEqual(raw_peak_outputs["runperiod"][11], [[10.1, 7, 1, 24, 60, 31.3, 6, 30, 15, 60]])
+            self.assertListEqual(raw_peak_outputs[0]["daily"][9], [[10.2, 4, 60, 31.3, 15, 60],
+                                                                   [10.1, 24, 60, 17.6, 13, 60]])
+            self.assertListEqual(raw_peak_outputs[0]["daily"][622], [[0.0, 1, 15, 0.0, 1, 15],
+                                                                     [0.0, 1, 15, 1.1844716168217186, 10, 60]])
+            self.assertListEqual(raw_peak_outputs[0]["monthly"][10], [[10.2, 30, 4, 60, 31.3, 30, 15, 60],
+                                                                      [10.1, 1, 24, 60, 17.6, 1, 13, 60]])
+            self.assertListEqual(raw_peak_outputs[0]["runperiod"][11], [[10.1, 7, 1, 24, 60, 31.3, 6, 30, 15, 60]])
 
-            self.assertEqual(dates["timestep"][0][0], IntervalTuple(month=6, day=30, hour=1, end_minute=30))
-            self.assertEqual(dates["timestep"][0][-1], IntervalTuple(month=7, day=1, hour=24, end_minute=60))
+            self.assertEqual(dates[0]["timestep"][0], IntervalTuple(month=6, day=30, hour=1, end_minute=30))
+            self.assertEqual(dates[0]["timestep"][-1], IntervalTuple(month=7, day=1, hour=24, end_minute=60))
 
-            self.assertEqual(dates["hourly"][0][0], IntervalTuple(month=6, day=30, hour=1, end_minute=60))
-            self.assertEqual(dates["hourly"][0][-1], IntervalTuple(month=7, day=1, hour=24, end_minute=60))
+            self.assertEqual(dates[0]["hourly"][0], IntervalTuple(month=6, day=30, hour=1, end_minute=60))
+            self.assertEqual(dates[0]["hourly"][-1], IntervalTuple(month=7, day=1, hour=24, end_minute=60))
 
-            self.assertEqual(dates["daily"][0][0], IntervalTuple(month=6, day=30, hour=0, end_minute=0))
-            self.assertEqual(dates["daily"][0][-1], IntervalTuple(month=7, day=1, hour=0, end_minute=0))
+            self.assertEqual(dates[0]["daily"][0], IntervalTuple(month=6, day=30, hour=0, end_minute=0))
+            self.assertEqual(dates[0]["daily"][-1], IntervalTuple(month=7, day=1, hour=0, end_minute=0))
 
-            self.assertEqual(dates["monthly"][0][0], IntervalTuple(month=6, day=1, hour=0, end_minute=0))
-            self.assertEqual(dates["monthly"][0][0], IntervalTuple(month=6, day=1, hour=0, end_minute=0))
+            self.assertEqual(dates[0]["monthly"][0], IntervalTuple(month=6, day=1, hour=0, end_minute=0))
+            self.assertEqual(dates[0]["monthly"][0], IntervalTuple(month=6, day=1, hour=0, end_minute=0))
 
-            self.assertEqual(dates["runperiod"][0][-1], IntervalTuple(month=1, day=1, hour=0, end_minute=0))
+            self.assertEqual(dates[0]["runperiod"][-1], IntervalTuple(month=1, day=1, hour=0, end_minute=0))
 
-            self.assertListEqual(day_of_week["timestep"], ["Sunday"] * 48 + ["Monday"] * 48)
-            self.assertListEqual(day_of_week["hourly"], ["Sunday"] * 24 + ["Monday"] * 24)
-            self.assertListEqual(day_of_week["daily"], ["Sunday", "Monday"])
+            self.assertListEqual(day_of_week[0]["timestep"], ["Sunday"] * 48 + ["Monday"] * 48)
+            self.assertListEqual(day_of_week[0]["hourly"], ["Sunday"] * 24 + ["Monday"] * 24)
+            self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
         with open(self.header_pth, "r") as f:
             header, init_outputs = read_header(f)
 
         with open(self.body_pth, "r") as f:
-            (_, raw_peak_outputs, dates,
+            (env_names, _, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
-        dates, n_days = interval_processor(dates, cumulative_days, 2002)
+        dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
 
-        outputs = generate_peak_outputs(raw_peak_outputs, header, dates)
+        outputs = generate_peak_outputs(raw_peak_outputs[0], header, dates)
 
         min_outputs = outputs["local_min"]
         max_outputs = outputs["local_max"]
@@ -278,13 +279,13 @@ class TestEsoFileProcessing(unittest.TestCase):
             header, init_outputs = read_header(f)
 
         with open(self.body_pth, "r") as f:
-            (raw_outputs, raw_peak_outputs, dates,
+            (env_names, raw_outputs, raw_peak_outputs, dates,
              cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
 
-        dates, n_days = interval_processor(dates, cumulative_days, 2002)
+        dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
 
-        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week}
-        outputs = generate_outputs(raw_outputs, header, dates, other_data)
+        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
+        outputs = generate_outputs(raw_outputs[0], header, dates, other_data)
 
         for interval, df in outputs.tables.items():
             if N_DAYS_COLUMN in df.columns:

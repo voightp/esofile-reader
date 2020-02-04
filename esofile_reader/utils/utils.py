@@ -19,11 +19,6 @@ def incremental_id_gen():
         yield i
 
 
-def slice_dict(dct, keys):
-    """ Slice dictionary using given keys. """
-    return {key: dct[key] for key in keys if key in dct}
-
-
 def profile(func):
     def inner_func(*args, **kwargs):
         s = time.perf_counter()
