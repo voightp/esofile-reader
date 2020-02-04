@@ -1,36 +1,16 @@
 import re
-from typing import Type, Dict, Generator, List
+from typing import Dict, Generator, List
 
 import pandas as pd
 
-from esofile_reader.base_file import BaseFile, IncompleteFile
+from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
-    SUMMED_UNITS, IGNORED_UNITS
+    SUMMED_UNITS
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.utils.mini_classes import Variable, ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-from esofile_reader.utils.mini_classes import Variable, ResultsFile
-
-variable_groups = {
-    "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
-    "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
-    "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
-    "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
-    "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
-    "Lights", "Other Equipment", "People", "Pump", "Schedule", "Site", "Surface",
-    "System Node", "VRF Heat Pump", "Water Heater", "Water to Water Heat Pump",
-    "Water Use Equipment", "Zone", }
-
-subgroups = {
-    "_PARTITION_": "Partitions",
-    "_WALL_": "Walls",
-    "_ROOF_": "Roofs",
-    "_FLOOR_": "Floors",
-    "_EXTFLOOR_": "External floors",
-    "_GROUNDFLOOR_": "Ground floors",
-    "_CEILING_": "Ceilings",
-}
 
 
 class TotalsFile(BaseFile):
@@ -38,6 +18,35 @@ class TotalsFile(BaseFile):
     This class handles 'Totals' generation.
 
     """
+
+    VARIABLE_GROUPS = {
+        "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
+        "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
+        "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
+        "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
+        "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
+        "Lights", "Other Equipment", "People", "Pump", "Refrigeration Zone Air Chiller",
+        "Refrigeration Air Chiller System", "Refrigeration Zone Case and Walk In",
+        "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
+        "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
+
+    SUBGROUPS = {
+        "_PARTITION_": "Partitions",
+        "_WALL_": "Walls",
+        "_ROOF_": "Roofs",
+        "_FLOOR_": "Floors",
+        "_EXTFLOOR_": "External floors",
+        "_GROUNDFLOOR_": "Ground floors",
+        "_CEILING_": "Ceilings",
+    }
+
+    IGNORED_VARIABLES = {
+        "Performance Curve Input Variable", "Performance Curve Output Value"
+    }
+
+    IGNORED_UNITS = {
+        "kg/s"
+    }
 
     def __init__(self, result_file: ResultsFile):
         super().__init__()
@@ -97,30 +106,34 @@ class TotalsFile(BaseFile):
 
             # init group string to be the same as variable
             gr_str = variable
-            w = self._get_keyword(key, subgroups)
+            w = self._get_keyword(key, self.SUBGROUPS)
 
-            if key == "Cumulative Meter" or key == "Meter":
-                if "#" in variable:
-                    # use last substring as a key
-                    variable = variable.split()[-1]
-                    gr_str = variable + " " + gr_str
-            elif w:
-                gr_str = w + " " + gr_str
-                key = w  # assign a new key based on subgroup keyword
-            else:
-                # assign key based on 'Variable' category
-                # the category is missing, use a first word in 'Variable' string
-                if group:
-                    key = self._get_group_key(variable, variable_groups)
+            if group:
+                if key == "Cumulative Meter" or key == "Meter":
+                    if "#" in variable:
+                        # use last substring as a key
+                        gr_str = variable.split("#")[-1]
+                        variable = gr_str
+                elif w:
+                    gr_str = w + " " + gr_str
+                    key = w  # assign a new key based on subgroup keyword
+                else:
+                    # assign key based on 'Variable' category
+                    # the category is missing, use a first word in 'Variable' string
+                    key = self._get_group_key(variable, self.VARIABLE_GROUPS)
                     if not key:
                         key = variable.split(maxsplit=1)[0]
 
-            if gr_str in groups:
-                group_id = groups[gr_str]
-            elif group:
-                group_id = next(id_gen)
-                groups[gr_str] = group_id
+                if gr_str in groups:
+                    # variable group already exist, get id of the existing group
+                    group_id = groups[gr_str]
+                else:
+                    # variable group does not exist yet, create new group id
+                    # and store group reference for consequent variables
+                    group_id = next(id_gen)
+                    groups[gr_str] = group_id
             else:
+                # units cannot be grouped, create an independent variable
                 group_id = next(id_gen)
 
             index.append(id_)
@@ -132,19 +145,48 @@ class TotalsFile(BaseFile):
 
     def process_totals(self, file: ResultsFile):
         """ Process 'Totals' outputs. """
-        header = {}
+
+        def ignored_ids(df):
+            srs = []
+            sr = df.columns.get_level_values("variable")
+
+            for w in self.IGNORED_VARIABLES:
+                srs.append(sr.str.contains(w))
+
+            cond1 = pd.DataFrame(srs).apply(lambda x: x.any()).tolist()
+            cond2 = df.columns.get_level_values("units").isin(self.IGNORED_UNITS)
+
+            return df.loc[:, cond1 | cond2].columns.get_level_values("id")
+
         outputs = DFStorage()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            variable_dct = file.storage.get_variables_dct(interval)
-            header_df = self._get_grouped_vars(id_gen, variable_dct)
-
             out = file.storage.get_all_results(interval)
-            out = out.loc[:, ~out.columns.get_level_values("units").isin(IGNORED_UNITS)]
+
+            # find invalid ids
+            ids = ignored_ids(out)
+
+            # filter variables based on ignored units and variables
+            out = out.loc[:, ~out.columns.get_level_values("id").isin(ids)]
+
+            if out.empty:
+                # ignore empty intervals
+                continue
+
+            # leave only 'id' column as header data will be added
             out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
-            df = pd.merge(left=header_df, right=out.T, left_index=True, right_index=True)
+            # get header variables and filter them
+            variable_dct = file.storage.get_variables_dct(interval)
+            variable_dct = {k: v for k, v in variable_dct.items() if k not in ids}
+
+            header_df = self._get_grouped_vars(id_gen, variable_dct)
+
+            # join header data and numeric outputs
+            df = pd.merge(how="inner", left=header_df, right=out.T,
+                          left_index=True, right_index=True)
+
             df.reset_index(drop=True, inplace=True)
             df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
             df = self._calculate_totals(df)
@@ -160,10 +202,11 @@ class TotalsFile(BaseFile):
                 df.insert(0, DAY_COLUMN, c1)
             except KeyError:
                 pass
+
             outputs.populate_table(interval, df)
 
         tree = Tree()
-        tree.populate_tree(header)
+        tree.populate_tree(outputs.get_all_variables_dct())
 
         return outputs, tree
 

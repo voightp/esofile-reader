@@ -23,6 +23,7 @@ AVERAGED_UNITS = [
     "W",
     "W/m2",
     "C",
+    "deltaC"
     "",
     "W/m2-K",
     "ppm",
@@ -33,8 +34,4 @@ AVERAGED_UNITS = [
 SUMMED_UNITS = [
     "J",
     "J/m2"
-]
-
-IGNORED_UNITS = [
-    "kg/s"
 ]
