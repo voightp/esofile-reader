@@ -15,6 +15,7 @@ from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
+from esofile_reader.base_file import IncompleteFile
 
 
 class InvalidLineSyntax(AttributeError):
@@ -475,7 +476,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    header, init_outputs = read_header(file)
+    orig_header, init_outputs = read_header(file)
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
@@ -488,6 +489,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
         monitor.intervals_finished()
 
         # Create a 'search tree' to allow searching for variables
+        header = deepcopy(orig_header)
         tree, dup_ids = create_tree(header)
         trees.append(tree)
         monitor.search_tree_finished()
@@ -527,7 +529,9 @@ def read_file(file_path, monitor=None, report_progress=False,
 
     if not complete:
         # prevent reading the file when incomplete
-        return
+        msg = f"File '{file_path} is not complete!'"
+        monitor.processing_failed(msg)
+        raise IncompleteFile
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
@@ -536,6 +540,3 @@ def read_file(file_path, monitor=None, report_progress=False,
         msg = f"There's a blank line in file '{file_path}'."
         monitor.processing_failed(msg)
         raise BlankLineError(msg)
-
-    except IOError:
-        print(f"IOError thrown when handling: '{file_path}'")

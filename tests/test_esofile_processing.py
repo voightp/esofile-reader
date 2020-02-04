@@ -328,6 +328,25 @@ class TestEsoFileProcessing(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             m.preprocess()
 
+    def test_header_invalid_line(self):
+        f = (line for line in ["this is wrong!"])
+        with self.assertRaises(AttributeError):
+            read_header(f)
+
+    def test_body_invalid_line(self):
+        f = (line for line in ["this is wrong!"])
+        with self.assertRaises(ValueError):
+            read_body(f, 6, {"a": []}, False, DefaultMonitor("foo"))
+
+    def test_body_blank_line(self):
+        f = (line for line in [""])
+        with self.assertRaises(BlankLineError):
+            read_body(f, 6, {"a": []}, False, DefaultMonitor("foo"))
+
+    def test_file_blank_line(self):
+        with self.assertRaises(IncompleteFile):
+            read_file(self.header_pth)
+
 
 if __name__ == "__main__":
     unittest.main()
