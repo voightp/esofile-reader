@@ -8,6 +8,7 @@ from esofile_reader.processing.esofile_processor import (_process_statement, _pr
                                                          _process_interval_line, _process_result_line)
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.base_file import IncompleteFile
 from tests import ROOT
 
 
