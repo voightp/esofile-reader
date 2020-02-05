@@ -31,6 +31,10 @@ class TotalsFile(BaseFile):
         "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
 
     SUBGROUPS = {
+        "_WIN": "Windows",
+        "_HOLE": "Holes",
+        "_DOOR": "Doors",
+        "_VENT": "Vents",
         "_PARTITION_": "Partitions",
         "_WALL_": "Walls",
         "_ROOF_": "Roofs",
@@ -89,7 +93,6 @@ class TotalsFile(BaseFile):
         df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
 
         df.index.set_names("id", level="group_id", inplace=True)
-        df.columns.set_names("timestamp", inplace=True)
 
         return df.T
 
@@ -187,9 +190,13 @@ class TotalsFile(BaseFile):
             df = pd.merge(how="inner", left=header_df, right=out.T,
                           left_index=True, right_index=True)
 
+            # create new totals DataFrame
             df.reset_index(drop=True, inplace=True)
             df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
             df = self._calculate_totals(df)
+
+            # restore index
+            df.index = out.index
 
             try:
                 c1 = file.storage.get_number_of_days(interval)

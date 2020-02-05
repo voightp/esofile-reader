@@ -1,12 +1,13 @@
 from unittest import TestCase
-from esofile_reader import TotalsFile
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.base_file import BaseFile
-from esofile_reader.utils.search_tree import Tree
-from esofile_reader import Variable
-from tests import ROOT
+
 import pandas as pd
-from esofile_reader.utils.utils import incremental_id_gen
+
+from esofile_reader import DiffFile
+from esofile_reader import TotalsFile
+from esofile_reader import Variable
+from esofile_reader.base_file import BaseFile
+from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.utils.search_tree import Tree
 
 
 class TestTotalsFile(TestCase):
@@ -16,9 +17,9 @@ class TestTotalsFile(TestCase):
         bf.file_name = "base"
         bf.file_path = "dummy/path"
         daily_variables = [
-            (1, "daily", "BLOCK1:ZONE1", "Temperature", "C"),
-            (2, "daily", "BLOCK1:ZONE2", "Temperature", "C"),
-            (3, "daily", "BLOCK1:ZONE3", "Temperature", "C"),
+            (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+            (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
+            (3, "daily", "BLOCK1:ZONE3", "Zone Temperature", "C"),
             (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
             (5, "daily", "BLOCK1:ZONE1_WALL_3_0_0_0_0_0_WIN", "Window Gain", "W"),
             (6, "daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
@@ -48,9 +49,9 @@ class TestTotalsFile(TestCase):
         monthly_results = pd.DataFrame([[1]], columns=monthly_columns, index=monthly_index)
 
         range_variables = [
-            (16, "range", "BLOCK1:ZONE1", "Temperature", "DON'T GROUP"),
-            (17, "range", "BLOCK1:ZONE2", "Temperature", "DON'T GROUP"),
-            (18, "range", "BLOCK1:ZONE3", "Temperature", "C"),
+            (16, "range", "BLOCK1:ZONE1", "Zone Temperature", "DON'T GROUP"),
+            (17, "range", "BLOCK1:ZONE2", "Zone Temperature", "DON'T GROUP"),
+            (18, "range", "BLOCK1:ZONE3", "Zone Temperature", "C"),
             (19, "range", "BLOCK1:ZONE1", "Heating Load", "W")
         ]
 
@@ -83,16 +84,55 @@ class TestTotalsFile(TestCase):
     def test_search_tree(self):
         print(self.tf._search_tree)
         ids = self.tf.find_ids([
-            Variable("daily", "Temperature", "Temperature", "C"),
+            Variable("daily", "Zone", "Zone Temperature", "C"),
             Variable("daily", "Meter", "LIGHTS", "J"),
             Variable("range", "Heating", "Heating Load", "W")
         ])
         self.assertListEqual(ids, [1, 6, 10])
 
     def test_grouped_variables(self):
-        pd.set_option("display.max_columns", 10)
-        for t in self.tf.available_intervals:
-            print(self.tf.storage.tables[t])
+        test_columns = pd.MultiIndex.from_tuples(
+            [(1, "daily", "Zone", "Zone Temperature", "C"),
+             (2, "daily", "Heating", "Heating Load", "W"),
+             (3, "daily", "Windows", "Window Gain", "W"),
+             (4, "daily", "Windows", "Window Lost", "W"),
+             (5, "daily", "Walls", "Wall Gain", "W"),
+             (6, "daily", "Meter", "LIGHTS", "J")],
+            names=["id", "interval", "key", "variable", "units"])
+
+        test_index = pd.DatetimeIndex(pd.date_range("2002-1-1", freq="d", periods=3),
+                                      name="timestamp")
+        test_results = pd.DataFrame([
+            [2, 4, 6, 8, 9.5, 23],
+            [2, 4, 6, 8, 9.5, 23],
+            [2, 4, 6, 8, 9.5, 23],
+        ], columns=test_columns, index=test_index, dtype="float64")
+
+        pd.testing.assert_frame_equal(self.tf.storage.tables["daily"], test_results)
+
+    def test_non_grouped_variables(self):
+        test_columns = pd.MultiIndex.from_tuples([
+            (7, "range", "BLOCK1:ZONE1", "Zone Temperature", "DON'T GROUP"),
+            (8, "range", "BLOCK1:ZONE2", "Zone Temperature", "DON'T GROUP"),
+            (9, "range", "Zone", "Zone Temperature", "C"),
+            (10, "range", "Heating", "Heating Load", "W")],
+            names=["id", "interval", "key", "variable", "units"])
+
+        test_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
+        test_results = pd.DataFrame([
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+        ], columns=test_columns, index=test_index)
+
+        print(test_results)
+        print(self.tf.storage.tables["range"])
+
+        pd.testing.assert_frame_equal(self.tf.storage.tables["range"], test_results)
+
+    def test_empty_interval(self):
+        with self.assertRaises(KeyError):
+            _ = self.tf.storage.tables["monthly"]
 
     def test_generate_diff_file(self):
-        pass
+        df = DiffFile(self.tf, self.tf)
+        self.assertTrue(df.complete)
