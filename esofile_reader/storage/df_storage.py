@@ -4,9 +4,10 @@ from typing import Sequence, List, Dict
 import pandas as pd
 
 from esofile_reader.constants import *
+from esofile_reader.database_file import DatabaseFile
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.storage.df_functions import merge_peak_outputs, slicer
-from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.mini_classes import Variable, ResultsFile
 from esofile_reader.utils.utils import id_gen
 
 
@@ -55,9 +56,34 @@ class DFStorage(BaseStorage):
         get_days_of_week(interval)
 
     """
+    _FILES = {}
 
     def __init__(self):
         self.tables = {}
+
+    @classmethod
+    def _id_generator(cls):
+        id_ = 0
+        while id_ in cls._FILES.keys():
+            id_ += 1
+        return id_
+
+    @classmethod
+    def store_file(cls, results_file: ResultsFile, totals: bool = False) -> int:
+        id_ = cls._id_generator()
+        db_file = DatabaseFile(id_, results_file.file_name, results_file.storage,
+                               results_file.file_created, totals=totals,
+                               search_tree=results_file._search_tree,
+                               file_path=results_file.file_path)
+
+        # store file in class database
+        cls._FILES[id_] = db_file
+
+        return id_
+
+    @classmethod
+    def delete_file(cls, id_: int) -> None:
+        del cls._FILES[id_]
 
     def populate_table(self, interval: str, df: pd.DataFrame):
         self.tables[interval] = df

@@ -6,8 +6,8 @@ import pandas as pd
 
 from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 try:

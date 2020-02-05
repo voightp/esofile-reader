@@ -19,7 +19,8 @@ class TestFileFunctions(unittest.TestCase):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         f = EsoFile(file_path, ignore_peaks=True, report_progress=False)
         SQLStorage.set_up_db()
-        cls.ef = SQLStorage.store_file(f)
+        id_ = SQLStorage.store_file(f)
+        cls.ef = SQLStorage._FILES[id_]
 
     def test_print_file(self):
         print(self.ef)

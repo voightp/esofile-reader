@@ -5,7 +5,7 @@ from typing import Sequence, List, Dict
 
 import pandas as pd
 from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
-    DateTime, select
+    DateTime, select, Boolean
 from sqlalchemy import exc
 
 from esofile_reader.constants import *
@@ -15,7 +15,7 @@ from esofile_reader.storage.df_functions import df_dt_slicer, sr_dt_slicer, merg
 from esofile_reader.storage.sql_functions import create_results_table, \
     create_datetime_table, merge_df_values, create_value_insert, create_n_days_table, \
     create_day_table, destringify_values
-from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.mini_classes import Variable, ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import profile
 
@@ -25,6 +25,8 @@ class SQLStorage(BaseStorage):
     SEPARATOR = "\t"
     ENGINE = None
     METADATA = None
+
+    _FILES = {}
 
     def __init__(self, id_):
         self.id_ = id_
@@ -45,6 +47,7 @@ class SQLStorage(BaseStorage):
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_created", DateTime),
+                Column("totals", Boolean),
                 Column("range_outputs_table", String(50)),
                 Column("timestep_outputs_table", String(50)),
                 Column("hourly_outputs_table", String(50)),
@@ -74,7 +77,7 @@ class SQLStorage(BaseStorage):
 
     @classmethod
     @profile
-    def store_file(cls, result_file):
+    def store_file(cls, results_file: ResultsFile, totals: bool = False) -> int:
         if not cls.METADATA or not cls.ENGINE:
             raise AttributeError(f"Cannot store file into database."
                                  f"\nIt's required to call '{cls.__name__}.set_up_db(path)'"
@@ -82,25 +85,26 @@ class SQLStorage(BaseStorage):
 
         f = cls.METADATA.tables[cls.FILE_TABLE]
         ins = f.insert().values(
-            file_path=result_file.file_path,
-            file_name=result_file.file_name,
-            file_created=result_file.file_created
+            file_path=results_file.file_path,
+            file_name=results_file.file_name,
+            file_created=results_file.file_created,
+            totals=totals
         )
 
         # insert new file data
         with cls.ENGINE.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
 
-            for interval in result_file.available_intervals:
+            for interval in results_file.available_intervals:
                 f_upd = {}
 
-                outputs = result_file.storage.tables[interval]
+                outputs = results_file.storage.tables[interval]
                 # create result table
                 results_table = create_results_table(cls.METADATA, id_, interval)
                 f_upd[f"{interval}_outputs_table"] = results_table.name
 
                 # store numeric values
-                df = result_file.storage.get_all_results(interval)
+                df = results_file.storage.get_all_results(interval)
                 sr = merge_df_values(df, cls.SEPARATOR)
 
                 ins = []
@@ -137,11 +141,15 @@ class SQLStorage(BaseStorage):
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
 
-                db_file = DatabaseFile(id_, result_file.file_name, SQLStorage(id_),
-                                       result_file.file_created, result_file._search_tree,
-                                       result_file.file_path)
+                db_file = DatabaseFile(id_, results_file.file_name, SQLStorage(id_),
+                                       results_file.file_created, totals=totals,
+                                       search_tree=results_file._search_tree,
+                                       file_path=results_file.file_path)
 
-        return db_file
+        # store file in a class attribute
+        cls._FILES[id_] = db_file
+
+        return id_
 
     @classmethod
     @profile
@@ -168,27 +176,7 @@ class SQLStorage(BaseStorage):
         cls.METADATA = MetaData(bind=cls.ENGINE)
         cls.METADATA.reflect()
 
-    @classmethod
-    @profile
-    def load_file(cls, id_: int) -> DatabaseFile:
-        files = cls.METADATA.tables[cls.FILE_TABLE]
-
-        with cls.ENGINE.connect() as conn:
-            res = conn.execute(
-                select([files.c.id, files.c.file_name, files.c.file_created,
-                        files.c.file_path]).where(files.c.id == id_)).first()
-        if res:
-            data = SQLStorage(res[0])
-
-            tree = Tree()
-            tree.populate_tree(data.get_all_variables_dct())
-
-            return DatabaseFile(res[0], res[1], data, res[2],
-                                file_path=res[3], search_tree=tree)
-
-        else:
-            raise KeyError(f"Cannot load file id '{id_}'.\n"
-                           f"{traceback.format_exc()}")
+        del cls._FILES[id_]
 
     @classmethod
     @profile
@@ -197,11 +185,29 @@ class SQLStorage(BaseStorage):
 
         with cls.ENGINE.connect() as conn:
             res = conn.execute(files.select(files.c.id))
+            ids = [r[0] for r in res]
 
-        ids = [r[0] for r in res]
-        db_files = [cls.load_file(id_) for id_ in ids]
+            for id_ in reversed(ids):
+                res = conn.execute(
+                    select([files.c.id, files.c.file_name, files.c.file_created,
+                            files.c.file_path, files.c.totals]).where(files.c.id == id_)).first()
+            if res:
+                storage = SQLStorage(res[0])
 
-        return db_files
+                tree = Tree()
+                tree.populate_tree(storage.get_all_variables_dct())
+
+                db_file = DatabaseFile(res[0], res[1], storage, res[2],
+                                       file_path=res[3], search_tree=tree,
+                                       totals=res[4])
+
+                cls._FILES[id_] = db_file
+
+            else:
+                raise KeyError(f"Cannot load file id '{id_}'.\n"
+                               f"{traceback.format_exc()}")
+
+        return ids
 
     def update_file_name(self, name: str) -> None:
         files = self.METADATA.tables[self.FILE_TABLE]

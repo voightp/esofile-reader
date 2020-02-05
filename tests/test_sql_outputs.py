@@ -17,7 +17,8 @@ class TestDFOutputs(unittest.TestCase):
         ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
         SQLStorage.set_up_db()
 
-        cls.sql_file = SQLStorage.store_file(ef)
+        id_ = SQLStorage.store_file(ef)
+        cls.sql_file = SQLStorage._FILES[id_]
 
     @classmethod
     def tearDownClass(cls):
@@ -104,7 +105,7 @@ class TestDFOutputs(unittest.TestCase):
             self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
 
         self.sql_file.storage.update_variable_name("timestep", 7, "Environment",
-                                                "Site Diffuse Solar Radiation Rate per Area")
+                                                   "Site Diffuse Solar Radiation Rate per Area")
         with SQLStorage.ENGINE.connect() as conn:
             table = self.sql_file.storage._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
@@ -176,8 +177,8 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_sliced(self):
         df = self.sql_file.storage.get_results("monthly", [324, 983],
-                                            start_date=pd.datetime(2002, 4, 1),
-                                            end_date=pd.datetime(2002, 6, 1))
+                                               start_date=pd.datetime(2002, 4, 1),
+                                               end_date=pd.datetime(2002, 6, 1))
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
@@ -197,9 +198,9 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_include_day(self):
         df = self.sql_file.storage.get_results("daily", [323, 982],
-                                            start_date=pd.datetime(2002, 4, 1),
-                                            end_date=pd.datetime(2002, 4, 3),
-                                            include_day=True)
+                                               start_date=pd.datetime(2002, 4, 1),
+                                               end_date=pd.datetime(2002, 4, 3),
+                                               include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (982, "daily", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
@@ -224,9 +225,9 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_include_day_from_date(self):
         df = self.sql_file.storage.get_results("monthly", [324, 983],
-                                            start_date=pd.datetime(2002, 4, 1),
-                                            end_date=pd.datetime(2002, 6, 1),
-                                            include_day=True)
+                                               start_date=pd.datetime(2002, 4, 1),
+                                               end_date=pd.datetime(2002, 6, 1),
+                                               include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])

@@ -4,6 +4,8 @@ from typing import Sequence, List, Dict
 
 import pandas as pd
 
+from esofile_reader.database_file import DatabaseFile
+from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.mini_classes import Variable
 
 
@@ -12,6 +14,18 @@ class BaseStorage(ABC):
     An abstract class to define metadata for result storage.
 
     """
+
+    @classmethod
+    @abstractmethod
+    def store_file(cls, results_file: ResultsFile, totals: bool = False) -> int:
+        """ Store file in the 'class' database. """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def delete_file(cls, id_: int) -> None:
+        """ Delete file from the 'class' database. """
+        pass
 
     @abstractmethod
     def get_available_intervals(self) -> List[str]:

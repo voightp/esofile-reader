@@ -35,8 +35,8 @@ class DatabaseFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file_name: str, storage: Storage,
-                 file_created: datetime, search_tree: Tree = None, file_path: str = None):
+    def __init__(self, id_: int, file_name: str, storage: Storage, file_created: datetime,
+                 totals: bool = False, search_tree: Tree = None, file_path: str = None):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path
@@ -44,6 +44,7 @@ class DatabaseFile(BaseFile):
         self.storage = storage
         self.file_created = file_created
         self._search_tree = search_tree
+        self.totals = totals
 
     def rename(self, name: str) -> None:
         self.file_name = name
