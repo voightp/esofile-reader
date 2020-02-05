@@ -1,14 +1,14 @@
 from datetime import datetime
-from typing import Type, Tuple
+from typing import Tuple
+
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.base_storage import BaseStorage
+from esofile_reader.utils.mini_classes import ResultsFile, Storage
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-from esofile_reader.utils.mini_classes import ResultsFile, Storage
 
 
 class NoSharedVariables(Exception):

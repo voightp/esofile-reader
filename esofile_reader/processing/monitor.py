@@ -73,11 +73,12 @@ class DefaultMonitor:
         self.record_time(identifier)
 
         if self.print_report:
-            elapsed, delta = self.calc_time(identifier)
             if identifier == -1:
                 print("\t{} - {}".format(identifier, text))
 
             else:
+                elapsed, delta = self.calc_time(identifier)
+
                 if identifier == 1:
                     print("\n{}\n"
                           "File: '{}' \n\t{} - {}".format("*" * 50, self.name, identifier, text))
