@@ -12,6 +12,29 @@ class BaseStorage(ABC):
     An abstract class to define metadata for result storage.
 
     """
+    @classmethod
+    @abstractmethod
+    def store_file(cls):
+        """ Store file in the 'class' database. """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def delete_file(cls):
+        """ Delete file from the 'class' database. """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def load_file(cls):
+        """ Load file from the 'class' database. """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def load_all_files(cls):
+        """ Load all files from the 'class' database. """
+        pass
 
     @abstractmethod
     def get_available_intervals(self) -> List[str]:
