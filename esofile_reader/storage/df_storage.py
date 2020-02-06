@@ -56,7 +56,7 @@ class DFStorage(BaseStorage):
         get_days_of_week(interval)
 
     """
-    _FILES = {}
+    FILES = {}
 
     def __init__(self):
         self.tables = {}
@@ -64,7 +64,7 @@ class DFStorage(BaseStorage):
     @classmethod
     def _id_generator(cls):
         id_ = 0
-        while id_ in cls._FILES.keys():
+        while id_ in cls.FILES.keys():
             id_ += 1
         return id_
 
@@ -77,13 +77,17 @@ class DFStorage(BaseStorage):
                                file_path=results_file.file_path)
 
         # store file in class database
-        cls._FILES[id_] = db_file
+        cls.FILES[id_] = db_file
 
         return id_
 
     @classmethod
     def delete_file(cls, id_: int) -> None:
-        del cls._FILES[id_]
+        del cls.FILES[id_]
+
+    @classmethod
+    def get_all_file_names(cls):
+        return [f.file_name for f in cls.FILES.values()]
 
     def populate_table(self, interval: str, df: pd.DataFrame):
         self.tables[interval] = df

@@ -27,6 +27,12 @@ class BaseStorage(ABC):
         """ Delete file from the 'class' database. """
         pass
 
+    @classmethod
+    @abstractmethod
+    def get_all_file_names(cls):
+        """ Get all stored names. """
+        pass
+
     @abstractmethod
     def get_available_intervals(self) -> List[str]:
         """ Store table in database. """

@@ -20,7 +20,7 @@ class TestFileFunctions(unittest.TestCase):
         f = EsoFile(file_path, ignore_peaks=True, report_progress=False)
         SQLStorage.set_up_db()
         id_ = SQLStorage.store_file(f)
-        cls.ef = SQLStorage._FILES[id_]
+        cls.ef = SQLStorage.FILES[id_]
 
     def test_print_file(self):
         print(self.ef)

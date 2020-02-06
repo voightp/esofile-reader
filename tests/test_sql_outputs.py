@@ -18,7 +18,7 @@ class TestDFOutputs(unittest.TestCase):
         SQLStorage.set_up_db()
 
         id_ = SQLStorage.store_file(ef)
-        cls.sql_file = SQLStorage._FILES[id_]
+        cls.sql_file = SQLStorage.FILES[id_]
 
     @classmethod
     def tearDownClass(cls):

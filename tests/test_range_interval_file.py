@@ -45,7 +45,7 @@ class TestRangeIntervalFile(unittest.TestCase):
 
         SQLStorage.set_up_db()
         id_ = SQLStorage.store_file(bf)
-        cls.db_bf = SQLStorage._FILES[id_]
+        cls.db_bf = SQLStorage.FILES[id_]
 
     def test_available_intervals(self):
         self.assertListEqual(self.bf.available_intervals, ["range"])

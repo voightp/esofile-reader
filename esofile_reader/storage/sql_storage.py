@@ -26,7 +26,7 @@ class SQLStorage(BaseStorage):
     ENGINE = None
     METADATA = None
 
-    _FILES = {}
+    FILES = {}
 
     def __init__(self, id_):
         self.id_ = id_
@@ -147,7 +147,7 @@ class SQLStorage(BaseStorage):
                                        file_path=results_file.file_path)
 
         # store file in a class attribute
-        cls._FILES[id_] = db_file
+        cls.FILES[id_] = db_file
 
         return id_
 
@@ -176,7 +176,7 @@ class SQLStorage(BaseStorage):
         cls.METADATA = MetaData(bind=cls.ENGINE)
         cls.METADATA.reflect()
 
-        del cls._FILES[id_]
+        del cls.FILES[id_]
 
     @classmethod
     @profile
@@ -184,7 +184,7 @@ class SQLStorage(BaseStorage):
         files = cls.METADATA.tables[cls.FILE_TABLE]
 
         with cls.ENGINE.connect() as conn:
-            res = conn.execute(files.select(files.c.id))
+            res = conn.execute(select([files.c.id]))
             ids = [r[0] for r in res]
 
             for id_ in reversed(ids):
@@ -201,13 +201,23 @@ class SQLStorage(BaseStorage):
                                        file_path=res[3], search_tree=tree,
                                        totals=res[4])
 
-                cls._FILES[id_] = db_file
+                cls.FILES[id_] = db_file
 
             else:
                 raise KeyError(f"Cannot load file id '{id_}'.\n"
                                f"{traceback.format_exc()}")
 
         return ids
+
+    @classmethod
+    def get_all_file_names(cls):
+        files = cls.METADATA.tables[cls.FILE_TABLE]
+
+        with cls.ENGINE.connect() as conn:
+            res = conn.execute(select([files.c.file_name]))
+            names = [r[0] for r in res]
+
+        return names
 
     def update_file_name(self, name: str) -> None:
         files = self.METADATA.tables[self.FILE_TABLE]
