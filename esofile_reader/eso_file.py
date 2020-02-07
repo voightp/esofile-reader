@@ -89,12 +89,16 @@ class EsoFile(BaseFile):
         )
 
         if content:
-            for environment, outputs, peak_outputs, tree in zip(*content):
+            content = [c for c in list(zip(*content))[::-1]]
+            for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
                 ef = EsoFile(file_path, autopopulate=False)
                 ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
 
+                # last processed environment uses a plain name
+                # this is in place to only assign distinct names for
+                # 'sizing' results which are reported first
                 name = os.path.splitext(os.path.basename(file_path))[0]
-                ef.file_name = f"{name} - {environment}"
+                ef.file_name = f"{name} - {environment}" if i > 0 else name
                 ef.storage = outputs
                 ef.peak_outputs = peak_outputs
                 ef._search_tree = tree
