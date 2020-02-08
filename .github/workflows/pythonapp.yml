@@ -1,11 +1,14 @@
 name: Python application
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, windows, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
