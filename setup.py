@@ -31,6 +31,7 @@ setuptools.setup(
         "pandas >= 0.25.3",
         "pytz >= 2019.3",
         "six >= 1.13.0",
-        "coverage >= 5.0.3"
+        "coverage >= 5.0.3",
+        "SQLAlchemy==1.3.13"
     ]
 )
