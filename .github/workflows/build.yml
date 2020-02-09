@@ -12,9 +12,11 @@ on:
 
 jobs:
   build:
-
-    runs-on: windows-latest
-
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+        
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.6
@@ -34,4 +36,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
-        python -m unittest discover -s ./tests -t ./tests -p test_*.py
+        coverage run -m unittest discover -s ./tests -t ./tests -p test_*.py
+        

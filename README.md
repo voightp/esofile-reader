@@ -1,6 +1,6 @@
-# esofile-reader
+# esofile-reader ![Build](https://github.com/voightp/esofile-reader/workflows/Build/badge.svg)
 Package to read and process E+ output Eso files.
 
-It stores processed data as pandas.DataFrame like classes.
+The data is stored as pandas.DataFrame for each output interval.
 
 
