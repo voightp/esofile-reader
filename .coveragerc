@@ -23,10 +23,12 @@ ignore_errors = True
 omit  =
     # Ignore abstract class
     esofile_reader\storage\base_storage.py
+    venv\*
+    tests\*
 
 [paths]
 source =
     ./esofile_reader/
 
 [html]
-directory = coverage_html_report
+directory = htmlcov
