@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Union, List, Dict
 
@@ -19,8 +20,7 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
                 include_interval: bool = False, include_day: bool = False, include_id: bool = False,
                 part_match: bool = False, units_system: str = "SI", rate_units: str = "W",
                 energy_units: str = "J", timestamp_format: str = "default",
-                rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT, report_progress: bool = True,
-                ignore_peaks: bool = True):
+                rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT, ignore_peaks: bool = True):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -68,8 +68,6 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
             Convert default 'Energy' outputs to requested units
          timestamp_format : str
             Specified str format of a datetime timestamp.
-         report_progress : bool, default True
-            Processing progress is reported in terminal when set as 'True'.
          ignore_peaks : bool, default: True
             Ignore peak values from 'Daily'+ intervals.
 
@@ -91,7 +89,6 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
         "rate_units": rate_units,
         "energy_units": energy_units,
         "timestamp_format": timestamp_format,
-        "report_progress": report_progress,
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
     }
@@ -104,15 +101,12 @@ def get_results(files, variables: Union[Variable, List[Variable]], start_date: d
 
 def _get_results(file, variables, **kwargs):
     """ Load eso file and return requested results. """
-    report_progress = kwargs.pop("report_progress")
     ignore_peaks = kwargs.pop("ignore_peaks")
 
     if issubclass(file.__class__, BaseFile):
         eso_file = file
     else:
-        eso_file = EsoFile(file,
-                           ignore_peaks=ignore_peaks,
-                           report_progress=report_progress)
+        eso_file = EsoFile(file, ignore_peaks=ignore_peaks)
 
     if not eso_file.complete:
         msg = f"Cannot load results!\nFile '{eso_file.file_name}' is not complete."
@@ -133,13 +127,12 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
 
     except ValueError:
         if isinstance(variables, list):
-            lst = ["'{} {} {} {}'".format(*tup) for tup in variables]
-            request_str = ", ".join(lst)
+            rstr = ", ".join(["'{} {} {} {}'".format(*tup) for tup in variables])
         else:
-            request_str = variables
+            rstr = variables
 
-        print(f"Any of requested variables was not found!\n"
-              f"Requested variables: [{request_str}]")
+        logging.warning(f"Any of requested variables was not found!\n"
+                        f"Requested variables: [{rstr}]")
         return
 
     return res

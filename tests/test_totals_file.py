@@ -82,7 +82,6 @@ class TestTotalsFile(TestCase):
         self.assertEqual(self.tf.file_path, "dummy/path")
 
     def test_search_tree(self):
-        print(self.tf._search_tree)
         ids = self.tf.find_ids([
             Variable("daily", "Zone", "Zone Temperature", "C"),
             Variable("daily", "Meter", "LIGHTS", "J"),
@@ -123,9 +122,6 @@ class TestTotalsFile(TestCase):
             [1, 2, 3, 4],
             [1, 2, 3, 4],
         ], columns=test_columns, index=test_index)
-
-        print(test_results)
-        print(self.tf.storage.tables["range"])
 
         pd.testing.assert_frame_equal(self.tf.storage.tables["range"], test_results)
 

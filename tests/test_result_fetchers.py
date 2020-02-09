@@ -16,8 +16,8 @@ class TestResultFetching(unittest.TestCase):
     def setUpClass(cls):
         file_path1 = os.path.join(ROOT, "eso_files/eplusout1.eso")
         file_path2 = os.path.join(ROOT, "eso_files/eplusout2.eso")
-        cls.ef1 = EsoFile(file_path1, ignore_peaks=True, report_progress=False)
-        cls.ef2 = EsoFile(file_path2, ignore_peaks=False, report_progress=False)
+        cls.ef1 = EsoFile(file_path1, ignore_peaks=True)
+        cls.ef2 = EsoFile(file_path2, ignore_peaks=False)
 
     def test_get_results(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -402,7 +402,7 @@ class TestResultFetching(unittest.TestCase):
         self.assertListEqual(df.index.tolist(), dates)
 
     def test_get_results_report_progress(self):
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), report_progress=False)
+        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
 
     def test_get_results_ignore_peaks(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)

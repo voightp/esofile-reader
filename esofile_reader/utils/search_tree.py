@@ -1,3 +1,5 @@
+import logging
+
 class Node:
     """ A base tree component.
 
@@ -159,7 +161,8 @@ class Tree:
             self._loop(nd, level, ids, cond, part_match=part_match)
 
         if not ids:
-            print(f"Variable: '{interval} : {key} : {variable} : {units}' not found!")
+            logging.warning(f"Variable: '{interval} : {key} "
+                            f": {variable} : {units}' not found!")
 
         return ids
 
@@ -189,7 +192,8 @@ class Tree:
         pairs = {k: v for k, v in pairs.items() if v}
 
         if not pairs:
-            print(f"Variable: '{interval} : {key} : {variable} : {units}' not found!")
+            logging.warning(f"Variable: '{interval} : {key} "
+                            f": {variable} : {units}' not found!")
 
         return pairs
 

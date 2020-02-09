@@ -14,7 +14,7 @@ class TestDFOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        ef = EsoFile(file_path, ignore_peaks=True)
         SQLStorage.set_up_db()
 
         id_ = SQLStorage.store_file(ef)

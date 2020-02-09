@@ -517,11 +517,10 @@ def process_file(file, monitor, year, ignore_peaks=True):
     return content[0], all_outputs, all_peak_outputs, trees
 
 
-def read_file(file_path, monitor=None, report_progress=False,
-              ignore_peaks=True, year=2002):
+def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
-        monitor = DefaultMonitor(file_path, print_report=report_progress)
+        monitor = DefaultMonitor(file_path)
 
     # Initially read the file to check if it's ok
     monitor.processing_started()

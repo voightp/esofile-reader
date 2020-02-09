@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import traceback
 from datetime import datetime
 from typing import Sequence, List, Dict
@@ -389,8 +390,8 @@ class SQLStorage(BaseStorage):
 
             return id_
         else:
-            print("Cannot add new variable '{0} {1} {2} {3}'. "
-                  "Number of elements '({4})' does not match!".format(*variable, len(array)))
+            logging.warning("Cannot add new variable '{0} {1} {2} {3}'. "
+                            "Number of elements '({4})' does not match!".format(*variable, len(array)))
 
     def update_variable(self, interval: str, id_: int, array: Sequence[float]):
         if self._validate(interval, array):
@@ -403,8 +404,8 @@ class SQLStorage(BaseStorage):
                              .values(str_values=str_array))
             return id_
         else:
-            print(f"Cannot update variable '{id_}'. "
-                  f"Number of elements '({len(array)})' does not match!")
+            logging.warning(f"Cannot update variable '{id_}'. "
+                            f"Number of elements '({len(array)})' does not match!")
 
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)

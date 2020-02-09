@@ -17,13 +17,10 @@ class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        f = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        f = EsoFile(file_path, ignore_peaks=True)
         SQLStorage.set_up_db()
         id_ = SQLStorage.store_file(f)
         cls.ef = SQLStorage.FILES[id_]
-
-    def test_print_file(self):
-        print(self.ef)
 
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,
@@ -266,9 +263,6 @@ class TestFileFunctions(unittest.TestCase):
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
-
-    def test_print_tree(self):
-        print(self.ef._search_tree.__repr__)
 
 
 if __name__ == '__main__':

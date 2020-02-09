@@ -15,11 +15,8 @@ class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
-        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False, report_progress=False)
-
-    def test_print_file(self):
-        print(self.ef)
+        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_base_file_populate_content(self):
         bf = BaseFile()
@@ -46,7 +43,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(self.ef.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
-                                                                                 "variable", "units"])
+                                                                                    "variable", "units"])
         self.assertEqual(len(self.ef.storage.get_all_variables_df().index), 114)
 
     def test_rename(self):
@@ -266,9 +263,6 @@ class TestFileFunctions(unittest.TestCase):
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
-
-    def test_print_tree(self):
-        print(self.ef._search_tree.__repr__)
 
 
 if __name__ == '__main__':
