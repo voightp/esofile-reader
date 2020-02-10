@@ -9,8 +9,8 @@ class TestFileGeneration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
-        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False, report_progress=False)
+        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_eso_file(self):
         self.assertTrue(self.ef.complete)

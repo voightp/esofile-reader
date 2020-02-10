@@ -12,7 +12,7 @@ class TestDFOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        cls.ef = EsoFile(file_path, ignore_peaks=True)
 
     def test_get_available_intervals(self):
         intervals = self.ef.storage.get_available_intervals()

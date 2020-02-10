@@ -8,9 +8,9 @@ from tests import ROOT
 
 
 class TestDiffFile(TestCase):
-    ef1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), report_progress=False)
-    ef2 = EsoFile(os.path.join(ROOT, "eso_files/eplusout2.eso"), report_progress=False)
-    ef3 = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), report_progress=False)
+    ef1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+    ef2 = EsoFile(os.path.join(ROOT, "eso_files/eplusout2.eso"))
+    ef3 = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
 
     def test_process_diff_identical_files(self):
         diff = DiffFile(self.ef1, self.ef1)
@@ -36,7 +36,7 @@ class TestDiffFile(TestCase):
         diff = DiffFile(self.ef1, self.ef2)
         shapes = [(4392, 59), (183, 59), (6, 59)]
         for interval, test_shape in zip(diff.available_intervals, shapes):
-            print(diff.storage.tables[interval].shape)
+            self.assertTupleEqual(diff.storage.tables[interval].shape, test_shape)
 
     def test_process_diff_different_datetime(self):
         diff = DiffFile(self.ef1, self.ef3)

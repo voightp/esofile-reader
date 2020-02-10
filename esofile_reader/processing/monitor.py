@@ -1,11 +1,12 @@
+import logging
 import os
+import traceback
 import time
 
 
 class DefaultMonitor:
-    def __init__(self, path, print_report=False):
+    def __init__(self, path):
         self.path = path
-        self.print_report = print_report
         self.processing_time_dct = {}
 
         self.header_lines = -1
@@ -32,7 +33,7 @@ class DefaultMonitor:
                     return True
 
         except FileNotFoundError:
-            self.processing_failed((f"File: {pth} not found."))
+            self.processing_failed(f"File: {pth} not found.")
             raise FileNotFoundError
 
     def processing_failed(self, info):
@@ -72,20 +73,22 @@ class DefaultMonitor:
     def report_progress(self, identifier, text):
         self.record_time(identifier)
 
-        if self.print_report:
-            if identifier == -1:
-                print("\t{} - {}".format(identifier, text))
+        if identifier == -1:
+            msg = f"\t{identifier} - {text}"
 
+        else:
+            elapsed, delta = self.calc_time(identifier)
+
+            if identifier == 1:
+                logging.info("*" * 80)
+                logging.info(f"\tFile: '{self.name}'")
+                msg = f"\t{identifier} - {text: <30}"
+            elif identifier == 8:
+                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s"
             else:
-                elapsed, delta = self.calc_time(identifier)
+                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
 
-                if identifier == 1:
-                    print("\n{}\n"
-                          "File: '{}' \n\t{} - {}".format("*" * 50, self.name, identifier, text))
-                elif identifier == 8:
-                    print("\t{} - {} - {:.6f}s".format(identifier, text, elapsed))
-                else:
-                    print("\t{} - {} - {:.6f}s | {:.6f}s".format(identifier, text, elapsed, delta))
+        logging.info(msg)
 
     def record_time(self, identifier):
         self.processing_time_dct[identifier] = time.perf_counter()
@@ -100,13 +103,13 @@ class DefaultMonitor:
             abs_proc = abs_num_lines / (times[8] - times[1])
 
         except ZeroDivisionError:
-            print("Unexpected processing time.")
+            logging.exception(f"Unexpected processing time."
+                              f"{traceback.format_exc()}")
             res_proc = -1
             abs_proc = -1
 
-        if self.print_report:
-            print("\n\t>> Results processing speed: {:.0f} lines per s\n"
-                  "\t>> Absolute processing speed: {:.0f} lines per s".format(res_proc, abs_proc))
+        logging.info(f"\n\t>> Results processing speed: {res_proc:.0f} lines per s"
+                     f"\n\t>> Absolute processing speed: {abs_proc:.0f} lines per s")
 
     def calc_time(self, identifier):
         start = self.processing_time_dct[1]

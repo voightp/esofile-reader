@@ -8,14 +8,14 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
+from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.df_functions import create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.storage.df_functions import create_peak_outputs
+from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
-from esofile_reader.base_file import IncompleteFile
 
 
 class InvalidLineSyntax(AttributeError):
@@ -246,11 +246,10 @@ def _process_interval_line(line_id, data):
 
 def _process_result_line(line, ignore_peaks):
     """ Convert items of result line list from string to float. """
-    # first value is converted in batch when creating results DataFrame
     if ignore_peaks:
-        return line[0], None
+        return float(line[0]), None
     else:
-        return line[0], [np.float(i) if "." in i else np.int(i) for i in line[1:]]
+        return float(line[0]), [float(i) if "." in i else int(i) for i in line[1:]]
 
 
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
@@ -298,15 +297,15 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     days_of_week = []
 
     while True:
-        line = next(eso_file)
+        raw_line = next(eso_file)
         monitor.update_body_progress()
 
         try:
-            line_id, line = _process_raw_line(line)
+            line_id, line = _process_raw_line(raw_line)
         except ValueError:
-            if "End of Data" in line:
+            if "End of Data" in raw_line:
                 break
-            elif line == "":
+            elif raw_line == "":
                 raise BlankLineError
             else:
                 raise ValueError
@@ -349,7 +348,12 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         else:
             # current line represents a result
             # replace nan values from the last step
-            res, peak_res = _process_result_line(line, ignore_peaks)
+            try:
+                res, peak_res = _process_result_line(line, ignore_peaks)
+            except ValueError:
+                raise ValueError(f"Unexpected value on line {line_id}: "
+                                 f"{raw_line}")
+
             try:
                 all_outputs[-1][interval][line_id][-1] = res
                 if peak_res:
@@ -429,9 +433,6 @@ def generate_outputs(raw_outputs, header, dates, other_data):
         df.set_index(keys=column_names[1:], append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-
-        # raw outputs are stored as strings
-        df = df.astype(np.float, copy=False)
 
         # add other special columns
         for k, v in other_data.items():
@@ -517,11 +518,10 @@ def process_file(file, monitor, year, ignore_peaks=True):
     return content[0], all_outputs, all_peak_outputs, trees
 
 
-def read_file(file_path, monitor=None, report_progress=False,
-              ignore_peaks=True, year=2002):
+def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
-        monitor = DefaultMonitor(file_path, print_report=report_progress)
+        monitor = DefaultMonitor(file_path)
 
     # Initially read the file to check if it's ok
     monitor.processing_started()

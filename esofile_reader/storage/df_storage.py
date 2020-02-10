@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Sequence, List, Dict
 
@@ -151,8 +152,8 @@ class DFStorage(BaseStorage):
         valid = len(array) == df_length
 
         if not valid:
-            print(f"New variable contains {len(array)} values, df length is {df_length}!"
-                  "\nVariable cannot be added.")
+            logging.warning(f"New variable contains {len(array)} values, "
+                            f"df length is {df_length}!\nVariable cannot be added.")
         else:
             all_ids = self.get_all_variable_ids()
             id_ = id_gen(all_ids)
@@ -165,8 +166,8 @@ class DFStorage(BaseStorage):
         valid = len(array) == df_length
 
         if not valid:
-            print(f"Variable contains {len(array)} values, df length is {df_length}!"
-                  "\nVariable cannot be updated.")
+            logging.warning(f"Variable contains {len(array)} values, "
+                            f"df length is {df_length}!\nVariable cannot be updated.")
         else:
             cond = self.tables[interval].columns.get_level_values("id") == id_
             self.tables[interval].loc[:, cond] = array

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
 
@@ -71,8 +72,8 @@ class BaseFile:
 
     def __repr__(self):
         return f"File: {self.file_name}" \
-               f"\nPath: {self.file_path}" \
-               f"\nCreated: {self.file_created}"
+            f"\nPath: {self.file_path}" \
+            f"\nCreated: {self.file_created}"
 
     @property
     def complete(self) -> bool:
@@ -101,8 +102,8 @@ class BaseFile:
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            print(f"Invalid name position!\n'add_file_name' kwarg must "
-                  f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
+            logging.warning(f"Invalid name position!\n'add_file_name' kwarg must "
+                            f"be one of: '{', '.join(pos)}'.\nSetting 'row'.")
 
         axis = 0 if name_position == "row" else 1
 
@@ -123,8 +124,8 @@ class BaseFile:
 
             return df
         else:
-            print(f"Any of requested variables is not "
-                  f"included in the Eso file '{self.file_name}'.")
+            logging.warning(f"Any of requested variables is not "
+                            f"included in the Eso file '{self.file_name}'.")
 
     def _find_pairs(self, variables: Union[Variable, List[Variable]],
                     part_match: bool = False) -> Dict[str, List[int]]:
@@ -320,8 +321,8 @@ class BaseFile:
         key_name = key if not key_name else key_name
 
         if (not var_name and not key_name) or (key == key_name and var == var_name):
-            print("Cannot rename variable! Variable and key names are "
-                  "not specified or are the same as original variable.")
+            logging.warning("Cannot rename variable! Variable and key names are "
+                            "not specified or are the same as original variable.")
         elif ids:
             # remove current item to avoid item duplicity
             self._search_tree.remove_variables([variable])
@@ -334,7 +335,7 @@ class BaseFile:
             self.storage.update_variable_name(interval, ids[0], new_var.key, new_var.variable)
             return ids[0], new_var
         else:
-            print("Cannot rename variable! Original variable not found!")
+            logging.warning("Cannot rename variable! Original variable not found!")
 
     def add_output(self, interval: str, key_name: str, var_name: str, units: str,
                    array: Sequence) -> Tuple[int, Variable]:

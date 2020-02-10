@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from typing import Type, List, _ForwardRef
@@ -6,8 +7,8 @@ import pandas as pd
 
 from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.totals_file import TotalsFile
 from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 try:
@@ -48,8 +49,6 @@ class EsoFile(BaseFile):
     ----------
     file_path : path like object
         A full path of the ESO file
-    report_progress : bool, default True
-        Processing progress is reported in terminal when set as 'True'.
     ignore_peaks : bool, default: True
         Ignore peak values from 'Daily'+ intervals.
     year: int, default 2002
@@ -65,25 +64,22 @@ class EsoFile(BaseFile):
     """
 
     def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None, autopopulate=True,
-                 report_progress=True, ignore_peaks: bool = True, year: int = 2002):
+                 ignore_peaks: bool = True, year: int = 2002):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
 
         if autopopulate:
-            self.populate_content(monitor=monitor, report_progress=report_progress,
-                                  ignore_peaks=ignore_peaks, year=year)
+            self.populate_content(monitor=monitor, ignore_peaks=ignore_peaks, year=year)
 
     @classmethod
     def process_multi_env_file(cls, file_path: str, monitor: Type[DefaultMonitor] = None,
-                               report_progress=True, ignore_peaks: bool = True,
-                               year: int = 2002) -> List[_ForwardRef('EsoFile')]:
+                               ignore_peaks: bool = True, year: int = 2002) -> List[_ForwardRef('EsoFile')]:
         """ Generate independent 'EsoFile' for each environment. """
         eso_files = []
         content = read_file(
             file_path,
             monitor=monitor,
-            report_progress=report_progress,
             ignore_peaks=ignore_peaks,
             year=year
         )
@@ -110,7 +106,7 @@ class EsoFile(BaseFile):
 
         return eso_files
 
-    def populate_content(self, monitor: Type[DefaultMonitor] = None, report_progress: bool = True,
+    def populate_content(self, monitor: Type[DefaultMonitor] = None,
                          ignore_peaks: bool = True, year: int = 2002) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
@@ -119,7 +115,6 @@ class EsoFile(BaseFile):
         content = read_file(
             self.file_path,
             monitor=monitor,
-            report_progress=report_progress,
             ignore_peaks=ignore_peaks,
             year=year
         )
@@ -154,7 +149,7 @@ class EsoFile(BaseFile):
             try:
                 df = self.peak_outputs[output_type].get_results(interval, ids, start_date, end_date)
             except KeyError:
-                print(f"There are no peak outputs stored for interval: '{interval}'.")
+                logging.warning(f"There are no peak outputs stored for interval: '{interval}'.")
                 continue
 
             if not include_id:

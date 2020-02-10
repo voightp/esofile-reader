@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Dict, Generator, List
 
@@ -63,7 +64,7 @@ class TotalsFile(BaseFile):
             if re.match(f"^{g}.*", string):
                 return g
         else:
-            print(f"{string} not found!")
+            logging.info(f"{string} not found!")
 
     @staticmethod
     def _get_keyword(string: str, keywords: Dict[str, str]) -> str:

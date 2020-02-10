@@ -10,7 +10,7 @@ class TestSqlDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True, report_progress=False)
+        cls.ef = EsoFile(file_path, ignore_peaks=True)
 
     def test_01_store_file_not_set_up(self):
         SQLStorage.ENGINE = None
