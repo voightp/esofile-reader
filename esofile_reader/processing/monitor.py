@@ -80,11 +80,13 @@ class DefaultMonitor:
             elapsed, delta = self.calc_time(identifier)
 
             if identifier == 1:
-                msg = f"\n{'*' * 50}\nFile: '{self.name}' \n\t{identifier} - {text}"
+                logging.info("*" * 80)
+                logging.info(f"\tFile: '{self.name}'")
+                msg = f"\t{identifier} - {text: <30}"
             elif identifier == 8:
-                msg = f"\t{identifier} - {text} - {elapsed:.6f}s"
+                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s"
             else:
-                msg = f"\t{identifier} - {text} - {elapsed:.6f}s | {delta:.6f}s"
+                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
 
         logging.info(msg)
 
