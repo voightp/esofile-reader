@@ -8,14 +8,14 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
+from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.df_functions import create_peak_outputs
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.storage.df_functions import create_peak_outputs
+from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
-from esofile_reader.base_file import IncompleteFile
 
 
 class InvalidLineSyntax(AttributeError):
@@ -246,11 +246,10 @@ def _process_interval_line(line_id, data):
 
 def _process_result_line(line, ignore_peaks):
     """ Convert items of result line list from string to float. """
-    # first value is converted in batch when creating results DataFrame
     if ignore_peaks:
         return float(line[0]), None
     else:
-        return float(line[0]), [np.float(i) if "." in i else np.int(i) for i in line[1:]]
+        return float(line[0]), [float(i) if "." in i else int(i) for i in line[1:]]
 
 
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
