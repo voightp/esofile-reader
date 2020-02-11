@@ -217,7 +217,7 @@ class TestFileFunctions(unittest.TestCase):
         test_mi = pd.MultiIndex.from_tuples([("Custom Key - sum", "Custom Variable", "J")],
                                             names=["key", "variable", "units"])
         test_index = pd.MultiIndex.from_product([["eplusout_all_intervals"],
-                                                 [pd.datetime(2002, i, 1) for i in range(1, 13)]],
+                                                 [datetime(2002, i, 1) for i in range(1, 13)]],
                                                 names=["file", "timestamp"])
         test_df = pd.DataFrame([[5.164679e+08],
                                 [1.318966e+09],

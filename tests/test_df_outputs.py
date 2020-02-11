@@ -6,6 +6,7 @@ from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
 from esofile_reader import EsoFile, Variable
 from tests import ROOT
+from datetime import datetime
 
 
 class TestDFOutputs(unittest.TestCase):
@@ -90,9 +91,9 @@ class TestDFOutputs(unittest.TestCase):
         col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
 
         self.ef.data.update_variable_name("timestep", 7, "Environment",
-                                             "Site Diffuse Solar Radiation Rate per Area")
+                                          "Site Diffuse Solar Radiation Rate per Area")
         col2 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "Environment",
-                                                          "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
+                                                       "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
         self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
@@ -147,7 +148,7 @@ class TestDFOutputs(unittest.TestCase):
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame([
             [18.948067, 2.582339e+08],
             [18.879265, 6.594828e+08],
@@ -172,12 +173,12 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_sliced(self):
         df = self.ef.data.get_results("monthly", [324, 983],
-                                         start_date=pd.datetime(2002, 4, 1),
-                                         end_date=pd.datetime(2002, 6, 1))
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 6, 1))
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
             [24.993765, 3.762886e+09],
@@ -193,16 +194,16 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_include_day(self):
         df = self.ef.data.get_results("daily", [323, 982],
-                                         start_date=pd.datetime(2002, 4, 1),
-                                         end_date=pd.datetime(2002, 4, 3),
-                                         include_day=True)
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 4, 3),
+                                      include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (982, "daily", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, 4, i) for i in range(1, 4)],
+            [[datetime(2002, 4, i) for i in range(1, 4)],
              ["Monday", "Tuesday", "Wednesday"]], names=["timestamp", "day"])
 
         test_df = pd.DataFrame([
@@ -220,16 +221,16 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_include_day_from_date(self):
         df = self.ef.data.get_results("monthly", [324, 983],
-                                         start_date=pd.datetime(2002, 4, 1),
-                                         end_date=pd.datetime(2002, 6, 1),
-                                         include_day=True)
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 6, 1),
+                                      include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, i, 1) for i in range(4, 7)],
+            [[datetime(2002, i, 1) for i in range(4, 7)],
              ["Monday", "Wednesday", "Saturday"]], names=["timestamp", "day"])
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
@@ -257,7 +258,7 @@ class TestDFOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [27.007450, pd.datetime(2002, 7, 1), 5.093662e+09, pd.datetime(2002, 7, 1)],
+            [27.007450, datetime(2002, 7, 1), 5.093662e+09, datetime(2002, 7, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])
@@ -275,7 +276,7 @@ class TestDFOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [18.520034, pd.datetime(2002, 12, 1), 1.945721e+08, pd.datetime(2002, 12, 1)],
+            [18.520034, datetime(2002, 12, 1), 1.945721e+08, datetime(2002, 12, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])
@@ -289,17 +290,17 @@ class TestDFOutputs(unittest.TestCase):
         df = pd.DataFrame({"a": list(range(5))}, index=index)
 
         pd.testing.assert_frame_equal(
-            df_dt_slicer(df, start_date=pd.datetime(2002, 1, 2), end_date=None),
+            df_dt_slicer(df, start_date=datetime(2002, 1, 2), end_date=None),
             df.iloc[1:, :]
         )
 
         pd.testing.assert_frame_equal(
-            df_dt_slicer(df, start_date=None, end_date=pd.datetime(2002, 1, 2)),
+            df_dt_slicer(df, start_date=None, end_date=datetime(2002, 1, 2)),
             df.iloc[:2, :]
         )
 
         pd.testing.assert_frame_equal(
-            df_dt_slicer(df, start_date=pd.datetime(2002, 1, 2), end_date=pd.datetime(2002, 1, 2)),
+            df_dt_slicer(df, start_date=datetime(2002, 1, 2), end_date=datetime(2002, 1, 2)),
             df.iloc[[1], :]
         )
 
@@ -308,16 +309,16 @@ class TestDFOutputs(unittest.TestCase):
         sr = pd.Series(list(range(5)), index=index)
 
         pd.testing.assert_series_equal(
-            sr_dt_slicer(sr, start_date=pd.datetime(2002, 1, 2), end_date=None),
+            sr_dt_slicer(sr, start_date=datetime(2002, 1, 2), end_date=None),
             sr.iloc[1:],
         )
 
         pd.testing.assert_series_equal(
-            sr_dt_slicer(sr, start_date=None, end_date=pd.datetime(2002, 1, 2)),
+            sr_dt_slicer(sr, start_date=None, end_date=datetime(2002, 1, 2)),
             sr.iloc[:2]
         )
 
         pd.testing.assert_series_equal(
-            sr_dt_slicer(sr, start_date=pd.datetime(2002, 1, 2), end_date=pd.datetime(2002, 1, 2)),
+            sr_dt_slicer(sr, start_date=datetime(2002, 1, 2), end_date=datetime(2002, 1, 2)),
             sr.iloc[[1]]
         )

@@ -21,7 +21,7 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_datetime_index(self, interval: str) -> List[pd.datetime]:
+    def get_datetime_index(self, interval: str) -> List[datetime]:
         """ Store table in database. """
         pass
 

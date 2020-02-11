@@ -1,6 +1,6 @@
-from unittest import TestCase
-
 import pandas as pd
+from datetime import datetime
+from unittest import TestCase
 
 from esofile_reader import DiffFile
 from esofile_reader import TotalsFile
@@ -45,7 +45,7 @@ class TestTotalsFile(TestCase):
 
         monthly_variables = [(15, "monthly", "Some Flow 1", "Mass Flow", "kg/s")]
         monthly_columns = pd.MultiIndex.from_tuples(monthly_variables, names=names)
-        monthly_index = pd.DatetimeIndex([pd.datetime(2002, 1, 1)], name="timestamp")
+        monthly_index = pd.DatetimeIndex([datetime(2002, 1, 1)], name="timestamp")
         monthly_results = pd.DataFrame([[1]], columns=monthly_columns, index=monthly_index)
 
         range_variables = [

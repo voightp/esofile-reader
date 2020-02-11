@@ -1,7 +1,7 @@
 import os
-import unittest
-
 import pandas as pd
+import unittest
+from datetime import datetime
 from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader import EsoFile, Variable
@@ -152,7 +152,7 @@ class TestSQLOutputs(unittest.TestCase):
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame([
             [18.948067, 2.582339e+08],
             [18.879265, 6.594828e+08],
@@ -177,12 +177,12 @@ class TestSQLOutputs(unittest.TestCase):
 
     def test_get_results_sliced(self):
         df = self.sql_file.data.get_results("monthly", [324, 983],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 6, 1))
+                                               start_date=datetime(2002, 4, 1),
+                                               end_date=datetime(2002, 6, 1))
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
             [24.993765, 3.762886e+09],
@@ -198,8 +198,8 @@ class TestSQLOutputs(unittest.TestCase):
 
     def test_get_results_include_day(self):
         df = self.sql_file.data.get_results("daily", [323, 982],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 4, 3),
+                                               start_date=datetime(2002, 4, 1),
+                                               end_date=datetime(2002, 4, 3),
                                                include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (982, "daily", "CHILLER", "Chiller Electric Energy", "J")],
@@ -207,7 +207,7 @@ class TestSQLOutputs(unittest.TestCase):
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, 4, i) for i in range(1, 4)],
+            [[datetime(2002, 4, i) for i in range(1, 4)],
              ["Monday", "Tuesday", "Wednesday"]], names=["timestamp", "day"])
 
         test_df = pd.DataFrame([
@@ -225,8 +225,8 @@ class TestSQLOutputs(unittest.TestCase):
 
     def test_get_results_include_day_from_date(self):
         df = self.sql_file.data.get_results("monthly", [324, 983],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 6, 1),
+                                               start_date=datetime(2002, 4, 1),
+                                               end_date=datetime(2002, 6, 1),
                                                include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
@@ -234,7 +234,7 @@ class TestSQLOutputs(unittest.TestCase):
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, i, 1) for i in range(4, 7)],
+            [[datetime(2002, i, 1) for i in range(4, 7)],
              ["Monday", "Wednesday", "Saturday"]], names=["timestamp", "day"])
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
@@ -262,7 +262,7 @@ class TestSQLOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [27.007450, pd.datetime(2002, 7, 1), 5.093662e+09, pd.datetime(2002, 7, 1)],
+            [27.007450, datetime(2002, 7, 1), 5.093662e+09, datetime(2002, 7, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])
@@ -280,7 +280,7 @@ class TestSQLOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [18.520034, pd.datetime(2002, 12, 1), 1.945721e+08, pd.datetime(2002, 12, 1)],
+            [18.520034, datetime(2002, 12, 1), 1.945721e+08, datetime(2002, 12, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])

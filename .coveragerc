@@ -22,6 +22,7 @@ ignore_errors = True
 
 omit  =
     # Ignore abstract class
+    esofile_reader\data\base_data.py
     esofile_reader\storage\base_storage.py
     venv\*
     tests\*
