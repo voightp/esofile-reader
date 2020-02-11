@@ -18,30 +18,4 @@ class ParquetFile(BaseFile):
         self.totals = totals
 
 
-class ParquetWarehouse:
-    def __init__(self, path=None):
-        self.path = path
-        self.files = {}
 
-    def _id_generator(self):
-        id_ = 0
-        while id_ in self.files.keys():
-            id_ += 1
-        return id_
-
-    def store_file(self, results_file: ResultsFile, totals: bool = False) -> int:
-        id_ = self._id_generator()
-        pq_file = ParquetFile(id_, results_file.file_name, results_file.storage,
-                              results_file.file_created, totals=totals,
-                              search_tree=results_file._search_tree,
-                              file_path=results_file.file_path)
-
-        self.files[id] = pq_file
-
-        return id_
-
-    def delete_file(self, id_: int) -> None:
-        del self.files[id_]
-
-    def get_all_file_names(self):
-        return [f.file_name for f in self.files.values()]
