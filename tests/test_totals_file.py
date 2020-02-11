@@ -6,7 +6,7 @@ from esofile_reader import DiffFile
 from esofile_reader import TotalsFile
 from esofile_reader import Variable
 from esofile_reader.base_file import BaseFile
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.data.df_data import DFData
 from esofile_reader.utils.search_tree import Tree
 
 
@@ -62,7 +62,7 @@ class TestTotalsFile(TestCase):
             [1, 2, 3, 4],
         ], columns=range_columns, index=range_index)
 
-        data = DFStorage()
+        data = DFData()
         data.populate_table("daily", daily_results)
         data.populate_table("monthly", monthly_results)
         data.populate_table("range", range_results)
@@ -70,7 +70,7 @@ class TestTotalsFile(TestCase):
         tree = Tree()
         tree.populate_tree(data.get_all_variables_dct())
 
-        bf.storage = data
+        bf.data = data
         bf._search_tree = tree
 
         cls.tf = TotalsFile(bf)
@@ -107,7 +107,7 @@ class TestTotalsFile(TestCase):
             [2, 4, 6, 8, 9.5, 23],
         ], columns=test_columns, index=test_index, dtype="float64")
 
-        pd.testing.assert_frame_equal(self.tf.storage.tables["daily"], test_results)
+        pd.testing.assert_frame_equal(self.tf.data.tables["daily"], test_results)
 
     def test_non_grouped_variables(self):
         test_columns = pd.MultiIndex.from_tuples([
@@ -123,11 +123,11 @@ class TestTotalsFile(TestCase):
             [1, 2, 3, 4],
         ], columns=test_columns, index=test_index)
 
-        pd.testing.assert_frame_equal(self.tf.storage.tables["range"], test_results)
+        pd.testing.assert_frame_equal(self.tf.data.tables["range"], test_results)
 
     def test_empty_interval(self):
         with self.assertRaises(KeyError):
-            _ = self.tf.storage.tables["monthly"]
+            _ = self.tf.data.tables["monthly"]
 
     def test_generate_diff_file(self):
         df = DiffFile(self.tf, self.tf)

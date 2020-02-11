@@ -4,7 +4,8 @@ from datetime import datetime
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.data.df_data import DFData
+from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.search_tree import Tree
@@ -32,26 +33,26 @@ class TestRangeIntervalFile(unittest.TestCase):
             [25.123, 27.456, 14.546, 3000]
         ], columns=columns, index=index)
 
-        data = DFStorage()
+        data = DFData()
         data.populate_table("range", results)
 
         tree = Tree()
         tree.populate_tree(data.get_all_variables_dct())
 
-        bf.storage = data
+        bf.data = data
         bf._search_tree = tree
 
         cls.bf = bf
 
-        SQLStorage.set_up_db()
-        id_ = SQLStorage.store_file(bf)
-        cls.db_bf = SQLStorage.FILES[id_]
+        storage = SQLStorage()
+        id_ = storage.store_file(bf)
+        cls.db_bf = storage.files[id_]
 
     def test_available_intervals(self):
         self.assertListEqual(self.bf.available_intervals, ["range"])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.bf.storage.get_all_variable_ids()), 4)
+        self.assertEqual(len(self.bf.data.get_all_variable_ids()), 4)
 
     def test_created(self):
         self.assertTrue(isinstance(self.bf.file_created, datetime))
@@ -60,9 +61,9 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertTrue(self.bf.complete)
 
     def test_header_df(self):
-        self.assertEqual(self.bf.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
+        self.assertEqual(self.bf.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
                                                                                  "variable", "units"])
-        self.assertEqual(len(self.bf.storage.get_all_variables_df().index), 4)
+        self.assertEqual(len(self.bf.data.get_all_variables_df().index), 4)
 
     def test_find_ids(self):
         v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")

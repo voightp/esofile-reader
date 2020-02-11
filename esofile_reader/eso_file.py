@@ -95,7 +95,7 @@ class EsoFile(BaseFile):
                 # 'sizing' results which are reported first
                 name = os.path.splitext(os.path.basename(file_path))[0]
                 ef.file_name = f"{name} - {environment}" if i > 0 else name
-                ef.storage = outputs
+                ef.data = outputs
                 ef.peak_outputs = peak_outputs
                 ef._search_tree = tree
 
@@ -123,7 +123,7 @@ class EsoFile(BaseFile):
             environment_names = content[0]
             if len(environment_names) == 1:
                 (
-                    self.storage,
+                    self.data,
                     self.peak_outputs,
                     self._search_tree,
                 ) = [c[0] for c in content[1:]]

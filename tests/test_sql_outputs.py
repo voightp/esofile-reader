@@ -5,49 +5,49 @@ import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader import EsoFile, Variable
-from esofile_reader.constants import *
+from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
 
-class TestDFOutputs(unittest.TestCase):
+class TestSQLOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         ef = EsoFile(file_path, ignore_peaks=True)
-        SQLStorage.set_up_db()
+        cls.storage = SQLStorage()
 
-        id_ = SQLStorage.store_file(ef)
-        cls.sql_file = SQLStorage.FILES[id_]
+        id_ = cls.storage.store_file(ef)
+        cls.sql_file = cls.storage.files[id_]
 
     @classmethod
     def tearDownClass(cls):
-        SQLStorage.ENGINE = None
-        SQLStorage.METADATA = None
+        SQLData.ENGINE = None
+        SQLData.METADATA = None
 
     def test_get_available_intervals(self):
-        intervals = self.sql_file.storage.get_available_intervals()
+        intervals = self.sql_file.data.get_available_intervals()
         self.assertListEqual(
             intervals,
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     def test_get_datetime_index(self):
-        index = self.sql_file.storage.get_datetime_index("monthly")
+        index = self.sql_file.data.get_datetime_index("monthly")
         assert_index_equal(index, pd.DatetimeIndex(['2002-01-01', '2002-02-01', '2002-03-01', '2002-04-01',
                                                     '2002-05-01', '2002-06-01', '2002-07-01', '2002-08-01',
                                                     '2002-09-01', '2002-10-01', '2002-11-01', '2002-12-01'],
                                                    dtype='datetime64[ns]', name='timestamp', freq=None))
 
     def test_get_all_variables_dct(self):
-        variables = self.sql_file.storage.get_all_variables_dct()
+        variables = self.sql_file.data.get_all_variables_dct()
         self.assertListEqual(
             list(variables.keys()),
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     def test_get_variables_dct(self):
-        variables = self.sql_file.storage.get_variables_dct("daily")
+        variables = self.sql_file.data.get_variables_dct("daily")
         self.assertListEqual(
             list(variables.keys()),
             [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
@@ -55,7 +55,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_variable_ids(self):
-        ids = self.sql_file.storage.get_variable_ids("daily")
+        ids = self.sql_file.data.get_variable_ids("daily")
         self.assertListEqual(
             ids,
             [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
@@ -63,7 +63,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_all_variable_ids(self):
-        ids = self.sql_file.storage.get_all_variable_ids()
+        ids = self.sql_file.data.get_all_variable_ids()
         self.assertListEqual(
             ids,
             [7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431, 475, 519, 563, 950, 956, 8, 14, 20, 26, 32,
@@ -75,7 +75,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_variables_df(self):
-        df = self.sql_file.storage.get_variables_df("daily")
+        df = self.sql_file.data.get_variables_df("daily")
         self.assertListEqual(
             df.columns.tolist(),
             ["id", "interval", "key", "variable", "units"]
@@ -86,7 +86,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_all_variables_df(self):
-        df = self.sql_file.storage.get_all_variables_df()
+        df = self.sql_file.data.get_all_variables_df()
         self.assertListEqual(
             df.columns.tolist(),
             ["id", "interval", "key", "variable", "units"]
@@ -97,58 +97,58 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        self.sql_file.storage.update_variable_name("timestep", 7, "FOO", "BAR")
-        with SQLStorage.ENGINE.connect() as conn:
-            table = self.sql_file.storage._get_results_table("timestep")
+        self.sql_file.data.update_variable_name("timestep", 7, "FOO", "BAR")
+        with self.storage.engine.connect() as conn:
+            table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
             var = (res[0], res[1], res[2], res[3], res[4])
             self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
 
-        self.sql_file.storage.update_variable_name("timestep", 7, "Environment",
+        self.sql_file.data.update_variable_name("timestep", 7, "Environment",
                                                    "Site Diffuse Solar Radiation Rate per Area")
-        with SQLStorage.ENGINE.connect() as conn:
-            table = self.sql_file.storage._get_results_table("timestep")
+        with self.storage.engine.connect() as conn:
+            table = self.sql_file.data._get_results_table("timestep")
             res = conn.execute(table.select().where(table.c.id == 7)).first()
             var = (res[0], res[1], res[2], res[3], res[4])
             self.assertTupleEqual(var,
                                   (7, 'timestep', 'Environment', 'Site Diffuse Solar Radiation Rate per Area', 'W/m2'))
 
     def test_add_remove_variable(self):
-        id_ = self.sql_file.storage.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
-        self.sql_file.storage.delete_variables("monthly", [id_])
+        id_ = self.sql_file.data.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        self.sql_file.data.delete_variables("monthly", [id_])
 
     def test_update_variable(self):
-        original_vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.storage.update_variable("monthly", 983, list(range(12)))
-        vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
+        self.sql_file.data.update_variable("monthly", 983, list(range(12)))
+        vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
 
-        self.sql_file.storage.update_variable("monthly", 983, original_vals)
+        self.sql_file.data.update_variable("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
-        original_vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.storage.update_variable("monthly", 983, list(range(11)))
-        vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
+        self.sql_file.data.update_variable("monthly", 983, list(range(11)))
+        vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
 
-        self.sql_file.storage.update_variable("monthly", 983, original_vals)
+        self.sql_file.data.update_variable("monthly", 983, original_vals)
 
     def test_get_number_of_days(self):
-        col = self.sql_file.storage.get_number_of_days("monthly")
+        col = self.sql_file.data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
     def test_get_days_of_week(self):
-        col = self.sql_file.storage.get_days_of_week("daily")
+        col = self.sql_file.data.get_days_of_week("daily")
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 
     def test_get_all_results(self):
-        df = self.sql_file.storage.get_all_results("daily")
+        df = self.sql_file.data.get_all_results("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
     def test_get_results(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983])
+        df = self.sql_file.data.get_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
@@ -176,7 +176,7 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_sliced(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983],
+        df = self.sql_file.data.get_results("monthly", [324, 983],
                                                start_date=pd.datetime(2002, 4, 1),
                                                end_date=pd.datetime(2002, 6, 1))
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
@@ -197,7 +197,7 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day(self):
-        df = self.sql_file.storage.get_results("daily", [323, 982],
+        df = self.sql_file.data.get_results("daily", [323, 982],
                                                start_date=pd.datetime(2002, 4, 1),
                                                end_date=pd.datetime(2002, 4, 3),
                                                include_day=True)
@@ -224,7 +224,7 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day_from_date(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983],
+        df = self.sql_file.data.get_results("monthly", [324, 983],
                                                start_date=pd.datetime(2002, 4, 1),
                                                end_date=pd.datetime(2002, 6, 1),
                                                include_day=True)
@@ -251,10 +251,10 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_invalid_ids(self):
         with self.assertRaises(KeyError):
-            _ = self.sql_file.storage.get_results("daily", [7])
+            _ = self.sql_file.data.get_results("daily", [7])
 
     def test_get_global_max_results(self):
-        df = self.sql_file.storage.get_global_max_results("monthly", [324, 983])
+        df = self.sql_file.data.get_global_max_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
              (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "timestamp"),
@@ -272,7 +272,7 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_global_min_results(self):
-        df = self.sql_file.storage.get_global_min_results("monthly", [324, 983])
+        df = self.sql_file.data.get_global_min_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
              (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "timestamp"),

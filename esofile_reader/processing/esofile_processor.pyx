@@ -12,8 +12,8 @@ from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
 from esofile_reader.processing.interval_processor import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.storage.df_functions import create_peak_outputs
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.data.df_functions import create_peak_outputs
+from esofile_reader.data.df_data import DFData
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
 
@@ -388,8 +388,8 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
 
-    min_peaks = DFStorage()
-    max_peaks = DFStorage()
+    min_peaks = DFData()
+    max_peaks = DFData()
 
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, column_names[0])
@@ -420,7 +420,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
 def generate_outputs(raw_outputs, header, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
-    outputs = DFStorage()
+    outputs = DFData()
 
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, column_names[0])

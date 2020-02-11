@@ -9,6 +9,7 @@ from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN
+from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
@@ -18,9 +19,9 @@ class TestFileFunctions(unittest.TestCase):
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         f = EsoFile(file_path, ignore_peaks=True)
-        SQLStorage.set_up_db()
-        id_ = SQLStorage.store_file(f)
-        cls.ef = SQLStorage.FILES[id_]
+        cls.storage = SQLStorage()
+        id_ = cls.storage.store_file(f)
+        cls.ef = cls.storage.files[id_]
 
     def test_available_intervals(self):
         self.assertListEqual(self.ef.available_intervals,
@@ -28,7 +29,7 @@ class TestFileFunctions(unittest.TestCase):
                               'monthly', 'runperiod', 'annual'])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.ef.storage.get_all_variable_ids()), 114)
+        self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.file_created, datetime))
@@ -37,15 +38,15 @@ class TestFileFunctions(unittest.TestCase):
         self.assertTrue(self.ef.complete)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
+        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
                                                                                     "variable", "units"])
-        self.assertEqual(len(self.ef.storage.get_all_variables_df().index), 114)
+        self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name
         self.ef.rename("foo")
         stmnt = f"SELECT file_name FROM 'result-files' WHERE id={self.ef.id_}"
-        res = SQLStorage.ENGINE.execute(stmnt).scalar()
+        res = self.storage.engine.execute(stmnt).scalar()
 
         self.assertEqual(res, "foo")
         self.assertEqual(self.ef.file_name, "foo")
@@ -235,7 +236,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.storage.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

@@ -19,5 +19,5 @@ ResultsFile = Union[ForwardRef("EsoFile"),
                     ForwardRef("DatabaseFile")]
 
 # type hint to wrap all storage types
-Storage = Union[ForwardRef("SQLStorage"),
-                ForwardRef("DFStorage")]
+Data = Union[ForwardRef("SQLData"),
+             ForwardRef("DFData")]

@@ -66,7 +66,7 @@ class BaseFile:
     def __init__(self):
         self.file_path = None
         self.file_name = None
-        self.storage = None
+        self.data = None
         self.file_created = None
         self._search_tree = None
 
@@ -78,16 +78,16 @@ class BaseFile:
     @property
     def complete(self) -> bool:
         """ Check if the file has been populated. """
-        return self.storage and self._search_tree
+        return self.data and self._search_tree
 
     @property
     def available_intervals(self) -> List[str]:
         """ Get all available intervals. """
-        return self.storage.get_available_intervals()
+        return self.data.get_available_intervals()
 
     def get_header_dictionary(self, interval: str):
         """ Get all variables for given interval. """
-        return self.storage.get_variables_dct(interval)
+        return self.data.get_variables_dct(interval)
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -267,7 +267,7 @@ class BaseFile:
         groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
-            storage = self.storage
+            storage = self.data
             df = res[output_type]()
 
             if interval != RANGE:
@@ -304,7 +304,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        variables = self.storage.get_variables_dct(interval)
+        variables = self.data.get_variables_dct(interval)
         while variable in variables.values():
             i += 1
             variable = add_num()
@@ -332,7 +332,7 @@ class BaseFile:
             self._search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.storage.update_variable_name(interval, ids[0], new_var.key, new_var.variable)
+            self.data.update_variable_name(interval, ids[0], new_var.key, new_var.variable)
             return ids[0], new_var
         else:
             logging.warning("Cannot rename variable! Original variable not found!")
@@ -341,7 +341,7 @@ class BaseFile:
                    array: Sequence) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(interval, key_name, var_name, units)
-        id_ = self.storage.insert_variable(new_var, array)
+        id_ = self.data.insert_variable(new_var, array)
 
         if id_:
             self._search_tree.add_variable(id_, new_var)
@@ -391,7 +391,7 @@ class BaseFile:
 
         interval, ids = list(groups.items())[0]
 
-        df = self.storage.get_results(interval, ids)
+        df = self.data.get_results(interval, ids)
         variables = df.columns.get_level_values("variable").tolist()
         units = df.columns.get_level_values("units").tolist()
 
@@ -402,7 +402,7 @@ class BaseFile:
         elif rate_and_energy_units(units) and interval != RANGE:
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.storage.get_number_of_days(interval)
+                n_days = self.data.get_number_of_days(interval)
             except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:
@@ -437,7 +437,7 @@ class BaseFile:
 
         groups = self._find_pairs(variables)
         for interval, ids in groups.items():
-            self.storage.delete_variables(interval, ids)
+            self.data.delete_variables(interval, ids)
 
         # clean up the tree
         self._search_tree.remove_variables(variables)
@@ -447,7 +447,7 @@ class BaseFile:
     def as_df(self, interval: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame. """
         try:
-            df = self.storage.get_all_results(interval)
+            df = self.data.get_all_results(interval)
 
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.")

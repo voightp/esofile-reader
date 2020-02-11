@@ -23,23 +23,23 @@ class TestDiffFile(TestCase):
 
             # check if n days and day of week columns are copied
             if interval in [TS, H, D]:
-                c1 = diff.storage.get_days_of_week(interval)
-                c2 = self.ef1.storage.get_days_of_week(interval)
+                c1 = diff.data.get_days_of_week(interval)
+                c2 = self.ef1.data.get_days_of_week(interval)
                 assert_series_equal(c1, c2)
 
             if interval in [M, A, RP]:
-                c1 = diff.storage.get_number_of_days(interval)
-                c2 = self.ef1.storage.get_number_of_days(interval)
+                c1 = diff.data.get_number_of_days(interval)
+                c2 = self.ef1.data.get_number_of_days(interval)
                 assert_series_equal(c1, c2)
 
     def test_process_diff_similar_files(self):
         diff = DiffFile(self.ef1, self.ef2)
         shapes = [(4392, 59), (183, 59), (6, 59)]
         for interval, test_shape in zip(diff.available_intervals, shapes):
-            self.assertTupleEqual(diff.storage.tables[interval].shape, test_shape)
+            self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
 
     def test_process_diff_different_datetime(self):
         diff = DiffFile(self.ef1, self.ef3)
         shapes = [(4392, 3), (183, 3), (6, 3)]
         for interval, test_shape in zip(diff.available_intervals, shapes):
-            self.assertTupleEqual(diff.storage.tables[interval].shape, test_shape)
+            self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
