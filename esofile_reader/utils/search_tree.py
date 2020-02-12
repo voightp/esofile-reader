@@ -1,5 +1,6 @@
 import logging
 
+
 class Node:
     """ A base tree component.
 
@@ -110,8 +111,9 @@ class Tree:
 
         for interval, data in header_dct.items():
             for id_, tup in data.items():
-                dup_id = self.add_branch(interval, tup.key,
-                                         tup.variable, tup.units, id_)
+                dup_id = self.add_branch(
+                    interval, tup.key, tup.variable, tup.units, id_
+                )
                 if dup_id:
                     duplicates.append(dup_id)
 
@@ -147,8 +149,9 @@ class Tree:
             for nd in node.children:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
-    def get_ids(self, interval=None, key=None,
-                variable=None, units=None, part_match=False):
+    def get_ids(
+        self, interval=None, key=None, variable=None, units=None, part_match=False
+    ):
         """
         Find variable ids for given arguments.
 
@@ -161,13 +164,15 @@ class Tree:
             self._loop(nd, level, ids, cond, part_match=part_match)
 
         if not ids:
-            logging.warning(f"Variable: '{interval} : {key} "
-                            f": {variable} : {units}' not found!")
+            logging.warning(
+                f"Variable: '{interval} : {key} " f": {variable} : {units}' not found!"
+            )
 
         return ids
 
-    def get_pairs(self, interval=None, key=None,
-                  variable=None, units=None, part_match=False):
+    def get_pairs(
+        self, interval=None, key=None, variable=None, units=None, part_match=False
+    ):
         """
         Find interval : variable ids pairs for given arguments.
 
@@ -192,8 +197,9 @@ class Tree:
         pairs = {k: v for k, v in pairs.items() if v}
 
         if not pairs:
-            logging.warning(f"Variable: '{interval} : {key} "
-                            f": {variable} : {units}' not found!")
+            logging.warning(
+                f"Variable: '{interval} : {key} " f": {variable} : {units}' not found!"
+            )
 
         return pairs
 

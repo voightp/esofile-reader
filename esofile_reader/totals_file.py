@@ -5,10 +5,9 @@ from typing import Dict, Generator, List
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
-    SUMMED_UNITS
-from esofile_reader.diff_file import DiffFile
+from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
+from esofile_reader.diff_file import DiffFile
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
@@ -21,15 +20,45 @@ class TotalsFile(BaseFile):
     """
 
     VARIABLE_GROUPS = {
-        "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
-        "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
-        "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
-        "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
-        "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
-        "Lights", "Other Equipment", "People", "Pump", "Refrigeration Zone Air Chiller",
-        "Refrigeration Air Chiller System", "Refrigeration Zone Case and Walk In",
-        "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
-        "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
+        "AFN Zone",
+        "Air System",
+        "Baseboard",
+        "Boiler",
+        "Cooling Coil",
+        "Chiller",
+        "Chilled Water Thermal Storage Tank",
+        "Cooling Tower",
+        "Earth Tube",
+        "Exterior Lights",
+        "Debug Surface Solar Shading Model",
+        "Electric Load Center",
+        "Environmental Impact",
+        "Facility Total",
+        "Facility",
+        "Fan",
+        "Generator",
+        "HVAC System",
+        "Heat Exchanger",
+        "Heating Coil",
+        "Humidifier",
+        "Inverter",
+        "Lights",
+        "Other Equipment",
+        "People",
+        "Pump",
+        "Refrigeration Zone Air Chiller",
+        "Refrigeration Air Chiller System",
+        "Refrigeration Zone Case and Walk In",
+        "Schedule",
+        "Site",
+        "Surface",
+        "System Node",
+        "VRF Heat Pump",
+        "Water Heater",
+        "Water to Water Heat Pump",
+        "Water Use Equipment",
+        "Zone",
+    }
 
     SUBGROUPS = {
         "_WIN": "Windows",
@@ -46,12 +75,11 @@ class TotalsFile(BaseFile):
     }
 
     IGNORED_VARIABLES = {
-        "Performance Curve Input Variable", "Performance Curve Output Value"
+        "Performance Curve Input Variable",
+        "Performance Curve Output Value",
     }
 
-    IGNORED_UNITS = {
-        "kg/s"
-    }
+    IGNORED_UNITS = {"kg/s"}
 
     def __init__(self, result_file: ResultsFile):
         super().__init__()
@@ -97,8 +125,9 @@ class TotalsFile(BaseFile):
 
         return df.T
 
-    def _get_grouped_vars(self, id_gen: Generator[int, None, None],
-                          variables: Dict[int, List[Variable]]) -> pd.DataFrame:
+    def _get_grouped_vars(
+        self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+    ) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}
         rows, index = [], []
@@ -179,7 +208,9 @@ class TotalsFile(BaseFile):
                 continue
 
             # leave only 'id' column as header data will be added
-            out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
+            out.columns = out.columns.droplevel(
+                ["interval", "key", "variable", "units"]
+            )
 
             # get header variables and filter them
             variable_dct = file.data.get_variables_dct(interval)
@@ -188,12 +219,19 @@ class TotalsFile(BaseFile):
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
             # join header data and numeric outputs
-            df = pd.merge(how="inner", left=header_df, right=out.T,
-                          left_index=True, right_index=True)
+            df = pd.merge(
+                how="inner",
+                left=header_df,
+                right=out.T,
+                left_index=True,
+                right_index=True,
+            )
 
             # create new totals DataFrame
             df.reset_index(drop=True, inplace=True)
-            df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
+            df.set_index(
+                ["group_id", "interval", "key", "variable", "units"], inplace=True
+            )
             df = self._calculate_totals(df)
 
             # restore index

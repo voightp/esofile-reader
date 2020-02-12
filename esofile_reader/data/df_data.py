@@ -5,10 +5,9 @@ from typing import Sequence, List, Dict
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.database_file import DatabaseFile
 from esofile_reader.data.base_data import BaseData
 from esofile_reader.data.df_functions import merge_peak_outputs, slicer
-from esofile_reader.utils.mini_classes import Variable, ResultsFile
+from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import id_gen
 
 
@@ -74,9 +73,11 @@ class DFData(BaseData):
             return index
 
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
-
         def create_variable(sr):
-            return sr["id"], Variable(sr["interval"], sr["key"], sr["variable"], sr["units"])
+            return (
+                sr["id"],
+                Variable(sr["interval"], sr["key"], sr["variable"], sr["units"]),
+            )
 
         header_df = self.get_variables_df(interval)
         var_df = header_df.apply(create_variable, axis=1, result_type="expand")
@@ -123,8 +124,10 @@ class DFData(BaseData):
         valid = len(array) == df_length
 
         if not valid:
-            logging.warning(f"New variable contains {len(array)} values, "
-                            f"df length is {df_length}!\nVariable cannot be added.")
+            logging.warning(
+                f"New variable contains {len(array)} values, "
+                f"df length is {df_length}!\nVariable cannot be added."
+            )
         else:
             all_ids = self.get_all_variable_ids()
             id_ = id_gen(all_ids)
@@ -137,8 +140,10 @@ class DFData(BaseData):
         valid = len(array) == df_length
 
         if not valid:
-            logging.warning(f"Variable contains {len(array)} values, "
-                            f"df length is {df_length}!\nVariable cannot be updated.")
+            logging.warning(
+                f"Variable contains {len(array)} values, "
+                f"df length is {df_length}!\nVariable cannot be updated."
+            )
         else:
             cond = self.tables[interval].columns.get_level_values("id") == id_
             self.tables[interval].loc[:, cond] = array
@@ -146,17 +151,25 @@ class DFData(BaseData):
     def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         all_ids = self.tables[interval].columns.get_level_values("id")
         if not all(map(lambda x: x in all_ids, ids)):
-            raise KeyError(f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
-                           f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
-                           f"are not included.")
+            raise KeyError(
+                f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
+                f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
+                f"are not included."
+            )
 
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
-    def _get_special_column(self, interval: str, name: str, start_date: datetime = None,
-                            end_date: datetime = None) -> pd.Series:
+    def _get_special_column(
+        self,
+        interval: str,
+        name: str,
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
-            raise KeyError(f"'{name}' column is not available "
-                           f"on the given data set.")
+            raise KeyError(
+                f"'{name}' column is not available " f"on the given data set."
+            )
 
         col = slicer(self.tables[interval], name, start_date, end_date)
 
@@ -165,12 +178,14 @@ class DFData(BaseData):
 
         return col
 
-    def get_number_of_days(self, interval: str, start_date: datetime = None,
-                           end_date: datetime = None) -> pd.Series:
+    def get_number_of_days(
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
-    def get_days_of_week(self, interval: str, start_date: datetime = None,
-                         end_date: datetime = None) -> pd.Series:
+    def get_days_of_week(
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
     def get_all_results(self, interval: str) -> pd.DataFrame:
@@ -178,9 +193,17 @@ class DFData(BaseData):
         cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
         return self.tables[interval].loc[:, ~cond].copy()
 
-    def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                    end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
-        df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
+    def get_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+        include_day: bool = False,
+    ) -> pd.DataFrame:
+        df = slicer(
+            self.tables[interval], ids, start_date=start_date, end_date=end_date
+        )
         df = df.copy()
 
         if isinstance(df, pd.Series):
@@ -200,8 +223,14 @@ class DFData(BaseData):
 
         return df
 
-    def _global_peak(self, interval: str, ids: Sequence[int], start_date: datetime,
-                     end_date: datetime, max_: bool = True) -> pd.DataFrame:
+    def _global_peak(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime,
+        end_date: datetime,
+        max_: bool = True,
+    ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
 
@@ -213,10 +242,20 @@ class DFData(BaseData):
 
         return df
 
-    def get_global_max_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_max_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
-    def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_min_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

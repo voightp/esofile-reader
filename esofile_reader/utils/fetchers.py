@@ -12,15 +12,28 @@ from esofile_reader.utils.mini_classes import Variable
 
 class NoResults(Exception):
     """ Exception raised when results are requested from an incomplete file. """
+
     pass
 
 
-def get_results(files, variables: Union[Variable, List[Variable]], start_date: datetime = None,
-                end_date: datetime = None, output_type: str = "standard", add_file_name: str = "row",
-                include_interval: bool = False, include_day: bool = False, include_id: bool = False,
-                part_match: bool = False, units_system: str = "SI", rate_units: str = "W",
-                energy_units: str = "J", timestamp_format: str = "default",
-                rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT, ignore_peaks: bool = True):
+def get_results(
+    files,
+    variables: Union[Variable, List[Variable]],
+    start_date: datetime = None,
+    end_date: datetime = None,
+    output_type: str = "standard",
+    add_file_name: str = "row",
+    include_interval: bool = False,
+    include_day: bool = False,
+    include_id: bool = False,
+    part_match: bool = False,
+    units_system: str = "SI",
+    rate_units: str = "W",
+    energy_units: str = "J",
+    timestamp_format: str = "default",
+    rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+    ignore_peaks: bool = True,
+):
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -131,8 +144,10 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
         else:
             rstr = variables
 
-        logging.warning(f"Any of requested variables was not found!\n"
-                        f"Requested variables: [{rstr}]")
+        logging.warning(
+            f"Any of requested variables was not found!\n"
+            f"Requested variables: [{rstr}]"
+        )
         return
 
     return res

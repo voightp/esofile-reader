@@ -13,6 +13,7 @@ from esofile_reader.utils.utils import incremental_id_gen
 
 class NoSharedVariables(Exception):
     """ Raised when source diff files have no common variables. """
+
     pass
 
 
@@ -77,15 +78,19 @@ class DiffFile(BaseFile):
 
         return diff
 
-    def process_diff(self, first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Data, Tree]:
+    def process_diff(
+        self, first_file: ResultsFile, other_file: ResultsFile
+    ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}
         data = self.calculate_diff(first_file, other_file)
 
         intervals = data.get_available_intervals()
         if not intervals:
-            raise NoSharedVariables(f"Cannot generate diff file. Files '{first_file.file_name}' "
-                                    f" and '{other_file.file_name} do not have any shared variables.")
+            raise NoSharedVariables(
+                f"Cannot generate diff file. Files '{first_file.file_name}' "
+                f" and '{other_file.file_name} do not have any shared variables."
+            )
         else:
             for interval in intervals:
                 header[interval] = data.get_variables_dct(interval)
@@ -95,7 +100,9 @@ class DiffFile(BaseFile):
 
             return data, tree
 
-    def populate_content(self, first_file: ResultsFile, other_file: ResultsFile) -> None:
+    def populate_content(
+        self, first_file: ResultsFile, other_file: ResultsFile
+    ) -> None:
         """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"

@@ -4,8 +4,6 @@ from typing import Sequence, List, Dict
 
 import pandas as pd
 
-from esofile_reader.database_file import DatabaseFile
-from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.mini_classes import Variable
 
 
@@ -76,14 +74,16 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_number_of_days(self, interval: str, start_date: datetime = None,
-                           end_date: datetime = None) -> pd.Series:
+    def get_number_of_days(
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         """ Get special 'n days' column. """
         pass
 
     @abstractmethod
-    def get_days_of_week(self, interval: str, start_date: datetime = None,
-                         end_date: datetime = None) -> pd.Series:
+    def get_days_of_week(
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         """ Get special 'day' column. """
         pass
 
@@ -93,19 +93,35 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                    end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
+    def get_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+        include_day: bool = False,
+    ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
         pass
 
     @abstractmethod
-    def get_global_max_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_max_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> pd.DataFrame:
         """ Get pd.DataFrame max results for given variables. """
         pass
 
     @abstractmethod
-    def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_min_results(
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> pd.DataFrame:
         """ Get pd.DataFrame min results for given variables. """
         pass

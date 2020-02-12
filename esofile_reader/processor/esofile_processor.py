@@ -10,21 +10,23 @@ import pandas as pd
 
 from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
-from esofile_reader.processing.interval_processor import interval_processor
-from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.data.df_functions import create_peak_outputs
 from esofile_reader.data.df_data import DFData
+from esofile_reader.data.df_functions import create_peak_outputs
+from esofile_reader.processor.interval_processor import interval_processor
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
 
 
 class InvalidLineSyntax(AttributeError):
     """ Exception raised for an unexpected line syntax. """
+
     pass
 
 
 class BlankLineError(Exception):
     """ Exception raised when eso file contains blank line.  """
+
     pass
 
 
@@ -32,7 +34,7 @@ def _eso_file_version(raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
-    return int(version[(start + 1):(start + 6)].replace(".", ""))
+    return int(version[(start + 1) : (start + 6)].replace(".", ""))
 
 
 def _dt_timestamp(timestamp):
@@ -159,7 +161,8 @@ def _last_standard_item_id(version):
 def _process_raw_line(line):
     """ Return id and list of line without trailing whitespaces. """
     split_line = line.split(",")
-    return int(split_line[0]), split_line[1:]
+    id_ = int(split_line[0])
+    return id_, split_line[1:]
 
 
 def _process_interval_line(line_id, data):
@@ -317,8 +320,11 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
                 # initialize outputs for the current environment
                 all_outputs.append(deepcopy(outputs))
                 if not ignore_peaks:
-                    all_peak_outputs.append(deepcopy({k: v for k, v in outputs.items()
-                                                      if k in (D, M, A, RP)}))
+                    all_peak_outputs.append(
+                        deepcopy(
+                            {k: v for k, v in outputs.items() if k in (D, M, A, RP)}
+                        )
+                    )
                 else:
                     all_peak_outputs.append(None)
 
@@ -351,8 +357,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
             try:
                 res, peak_res = _process_result_line(line, ignore_peaks)
             except ValueError:
-                raise ValueError(f"Unexpected value on line {line_id}: "
-                                 f"{raw_line}")
+                raise ValueError(f"Unexpected value on line {line_id}: " f"{raw_line}")
 
             try:
                 all_outputs[-1][interval][line_id][-1] = res
@@ -361,8 +366,14 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
             except KeyError:
                 print(f"Ignoring {line_id}, variable is not included in header!")
 
-    return environments, all_outputs, all_peak_outputs, \
-           dates, cumulative_days, days_of_week
+    return (
+        environments,
+        all_outputs,
+        all_peak_outputs,
+        dates,
+        cumulative_days,
+        days_of_week,
+    )
 
 
 def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.DataFrame:
@@ -373,8 +384,9 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
     return df
 
 
-def create_header_df(header_dct: Dict[int, Variable], interval: str,
-                     index_name: str, columns: List[str]) -> pd.DataFrame:
+def create_header_df(
+    header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
+) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []
     for id_, var in header_dct.items():
@@ -393,11 +405,13 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
 
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, column_names[0])
-        df_header = create_header_df(header[interval], interval, column_names[0],
-                                     column_names[1:])
+        df_header = create_header_df(
+            header[interval], interval, column_names[0], column_names[1:]
+        )
 
-        df = pd.merge(df_header, df_values, sort=False,
-                      left_index=True, right_index=True)
+        df = pd.merge(
+            df_header, df_values, sort=False, left_index=True, right_index=True
+        )
 
         df.set_index(keys=column_names[1:], append=True, inplace=True)
         df = df.T
@@ -409,10 +423,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
         max_df = create_peak_outputs(interval, df)
         max_peaks.populate_table(interval, max_df)
 
-    peak_outputs = {
-        "local_min": min_peaks,
-        "local_max": max_peaks
-    }
+    peak_outputs = {"local_min": min_peaks, "local_max": max_peaks}
 
     return peak_outputs
 
@@ -424,11 +435,13 @@ def generate_outputs(raw_outputs, header, dates, other_data):
 
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, column_names[0])
-        df_header = create_header_df(header[interval], interval, column_names[0],
-                                     column_names[1:])
+        df_header = create_header_df(
+            header[interval], interval, column_names[0], column_names[1:]
+        )
 
-        df = pd.merge(df_header, df_values, sort=False,
-                      left_index=True, right_index=True)
+        df = pd.merge(
+            df_header, df_values, sort=False, left_index=True, right_index=True
+        )
 
         df.set_index(keys=column_names[1:], append=True, inplace=True)
         df = df.T
@@ -481,7 +494,9 @@ def process_file(file, monitor, year, ignore_peaks=True):
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
-    content = read_body(file, last_standard_item_id, init_outputs, ignore_peaks, monitor)
+    content = read_body(
+        file, last_standard_item_id, init_outputs, ignore_peaks, monitor
+    )
     monitor.body_finished()
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):

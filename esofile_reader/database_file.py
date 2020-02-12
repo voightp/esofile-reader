@@ -35,8 +35,16 @@ class DatabaseFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file_name: str, data: Data, file_created: datetime,
-                 totals: bool = False, search_tree: Tree = None, file_path: str = None):
+    def __init__(
+        self,
+        id_: int,
+        file_name: str,
+        data: Data,
+        file_created: datetime,
+        totals: bool = False,
+        search_tree: Tree = None,
+        file_path: str = None,
+    ):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path

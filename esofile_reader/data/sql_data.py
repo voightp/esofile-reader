@@ -7,14 +7,14 @@ from sqlalchemy import Table, select
 
 from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import df_dt_slicer, sr_dt_slicer, merge_peak_outputs
+from esofile_reader.data.df_functions import df_dt_slicer, sr_dt_slicer, \
+    merge_peak_outputs
 from esofile_reader.storage.sql_functions import destringify_values
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import profile
 
 
 class SQLData(BaseData):
-
     def __init__(self, id_, sql_storage):
         self.id_ = id_
         self.storage = sql_storage
@@ -23,14 +23,13 @@ class SQLData(BaseData):
         ft = self.storage.file_table
 
         with self.storage.engine.connect() as conn:
-            conn.execute(ft.update() \
-                         .where(ft.c.id == self.id_) \
-                         .values(file_name=name))
+            conn.execute(ft.update().where(ft.c.id == self.id_).values(file_name=name))
 
     def _get_table(self, column: str, ft: Table) -> Table:
         with self.storage.engine.connect() as conn:
-            table_name = conn.execute(select([column]) \
-                                      .where(ft.c.id == self.id_)).scalar()
+            table_name = conn.execute(
+                select([column]).where(ft.c.id == self.id_)
+            ).scalar()
             table = self.storage.metadata.tables[table_name]
         return table
 
@@ -44,7 +43,7 @@ class SQLData(BaseData):
             M: ft.c.monthly_outputs_table,
             A: ft.c.annual_outputs_table,
             RP: ft.c.runperiod_outputs_table,
-            RANGE: ft.c.range_outputs_table
+            RANGE: ft.c.range_outputs_table,
         }
 
         return self._get_table(switch[interval], ft)
@@ -69,7 +68,7 @@ class SQLData(BaseData):
         switch = {
             M: ft.c.monthly_n_days_table,
             A: ft.c.annual_n_days_table,
-            RP: ft.c.runperiod_n_days_table
+            RP: ft.c.runperiod_n_days_table,
         }
 
         return self._get_table(switch[interval], ft)
@@ -80,7 +79,7 @@ class SQLData(BaseData):
         switch = {
             TS: ft.c.timestep_day_table,
             H: ft.c.hourly_day_table,
-            D: ft.c.daily_day_table
+            D: ft.c.daily_day_table,
         }
 
         return self._get_table(switch[interval], ft)
@@ -94,7 +93,7 @@ class SQLData(BaseData):
             ft.c.monthly_outputs_table,
             ft.c.runperiod_outputs_table,
             ft.c.annual_outputs_table,
-            ft.c.range_outputs_table
+            ft.c.range_outputs_table,
         ]
 
         intervals = []
@@ -119,8 +118,17 @@ class SQLData(BaseData):
         variables_dct = {}
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
-                                       table.c.variable, table.c.units]))
+            res = conn.execute(
+                select(
+                    [
+                        table.c.id,
+                        table.c.interval,
+                        table.c.key,
+                        table.c.variable,
+                        table.c.units,
+                    ]
+                )
+            )
 
             for row in res:
                 variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
@@ -149,9 +157,20 @@ class SQLData(BaseData):
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(select([table.c.id, table.c.interval, table.c.key,
-                                       table.c.variable, table.c.units]))
-            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units"])
+            res = conn.execute(
+                select(
+                    [
+                        table.c.id,
+                        table.c.interval,
+                        table.c.key,
+                        table.c.variable,
+                        table.c.units,
+                    ]
+                )
+            )
+            df = pd.DataFrame(
+                res, columns=["id", "interval", "key", "variable", "units"]
+            )
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -163,9 +182,11 @@ class SQLData(BaseData):
     def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
-            conn.execute(table.update() \
-                         .where(table.c.id == id_) \
-                         .values(key=key_name, variable=var_name))
+            conn.execute(
+                table.update()
+                    .where(table.c.id == id_)
+                    .values(key=key_name, variable=var_name)
+            )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
         table = self._get_results_table(interval)
@@ -184,13 +205,19 @@ class SQLData(BaseData):
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
 
             with self.storage.engine.connect() as conn:
-                statement = table.insert().values({**variable._asdict(), "str_values": str_array})
+                statement = table.insert().values(
+                    {**variable._asdict(), "str_values": str_array}
+                )
                 id_ = conn.execute(statement).inserted_primary_key[0]
 
             return id_
         else:
-            logging.warning("Cannot add new variable '{0} {1} {2} {3}'. "
-                            "Number of elements '({4})' does not match!".format(*variable, len(array)))
+            logging.warning(
+                "Cannot add new variable '{0} {1} {2} {3}'. "
+                "Number of elements '({4})' does not match!".format(
+                    *variable, len(array)
+                )
+            )
 
     def update_variable(self, interval: str, id_: int, array: Sequence[float]):
         if self._validate(interval, array):
@@ -198,13 +225,15 @@ class SQLData(BaseData):
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
 
             with self.storage.engine.connect() as conn:
-                conn.execute(table.update() \
-                             .where(table.c.id == id_) \
-                             .values(str_values=str_array))
+                conn.execute(
+                    table.update().where(table.c.id == id_).values(str_values=str_array)
+                )
             return id_
         else:
-            logging.warning(f"Cannot update variable '{id_}'. "
-                            f"Number of elements '({len(array)})' does not match!")
+            logging.warning(
+                f"Cannot update variable '{id_}'. "
+                f"Number of elements '({len(array)})' does not match!"
+            )
 
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
@@ -212,8 +241,9 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
-    def get_number_of_days(self, interval: str, start_date: datetime = None,
-                           end_date: datetime = None) -> pd.Series:
+    def get_number_of_days(
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         table = self._get_n_days_table(interval)
 
         with self.storage.engine.connect() as conn:
@@ -221,8 +251,10 @@ class SQLData(BaseData):
             if res:
                 sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
             else:
-                raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
-                               f"on the given data set.")
+                raise KeyError(
+                    f"'{N_DAYS_COLUMN}' column is not available "
+                    f"on the given data set."
+                )
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -230,8 +262,9 @@ class SQLData(BaseData):
 
         return sr_dt_slicer(sr, start_date, end_date)
 
-    def get_days_of_week(self, interval: str, start_date: datetime = None,
-                         end_date: datetime = None) -> pd.Series:
+    def get_days_of_week(
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
+    ) -> pd.Series:
         table = self._get_day_table(interval)
 
         with self.storage.engine.connect() as conn:
@@ -239,8 +272,9 @@ class SQLData(BaseData):
             if res:
                 sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
             else:
-                raise KeyError(f"'{DAY_COLUMN}' column is not available "
-                               f"on the given data set.")
+                raise KeyError(
+                    f"'{DAY_COLUMN}' column is not available " f"on the given data set."
+                )
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -248,18 +282,28 @@ class SQLData(BaseData):
 
         return sr_dt_slicer(sr, start_date, end_date)
 
-    def get_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                    end_date: datetime = None, include_day: bool = False) -> pd.DataFrame:
+    def get_results(
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            include_day: bool = False,
+    ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
-            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units", "values"])
+            df = pd.DataFrame(
+                res, columns=["id", "interval", "key", "variable", "units", "values"]
+            )
             if df.empty:
-                raise KeyError(f"Cannot find results, any of given ids: "
-                               f"'{', '.join([str(id_) for id_ in ids])}' "
-                               f"is not included.")
+                raise KeyError(
+                    f"Cannot find results, any of given ids: "
+                    f"'{', '.join([str(id_) for id_ in ids])}' "
+                    f"is not included."
+                )
 
             df.set_index(["id", "interval", "key", "variable", "units"], inplace=True)
             df = destringify_values(df)
@@ -285,8 +329,14 @@ class SQLData(BaseData):
         df = self.get_results(interval, ids)
         return df
 
-    def _global_peak(self, interval: str, ids: Sequence[int], start_date: datetime,
-                     end_date: datetime, max_: bool = True) -> pd.DataFrame:
+    def _global_peak(
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
+    ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
 
@@ -298,10 +348,20 @@ class SQLData(BaseData):
 
         return df
 
-    def get_global_max_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_max_results(
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+    ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
-    def get_global_min_results(self, interval: str, ids: Sequence[int], start_date: datetime = None,
-                               end_date: datetime = None) -> pd.DataFrame:
+    def get_global_min_results(
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+    ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

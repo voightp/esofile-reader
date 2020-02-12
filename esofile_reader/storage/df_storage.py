@@ -4,7 +4,6 @@ from esofile_reader.utils.mini_classes import ResultsFile
 
 
 class DFStorage(BaseStorage):
-
     def __init__(self):
         super().__init__()
         self.files = {}
@@ -17,10 +16,15 @@ class DFStorage(BaseStorage):
 
     def store_file(self, results_file: ResultsFile, totals: bool = False) -> int:
         id_ = self._id_generator()
-        db_file = DatabaseFile(id_, results_file.file_name, results_file.data,
-                               results_file.file_created, totals=totals,
-                               search_tree=results_file._search_tree,
-                               file_path=results_file.file_path)
+        db_file = DatabaseFile(
+            id_,
+            results_file.file_name,
+            results_file.data,
+            results_file.file_created,
+            totals=totals,
+            search_tree=results_file._search_tree,
+            file_path=results_file.file_path,
+        )
 
         # store file in class database
         self.files[id_] = db_file

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from esofile_reader.utils.mini_classes import ResultsFile
 
 
