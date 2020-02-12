@@ -4,18 +4,6 @@ import pandas as pd
 from esofile_reader.constants import *
 
 
-class IntervalNotAvailable(KeyError):
-    """ Raise an exception when interval is not included in results. """
-
-    pass
-
-
-class CannotFindEnvironment(Exception):
-    """ Raise and exception when there isn't any suitable interval to find environment dates. """
-
-    pass
-
-
 def update_dt_format(df, timestamp_format):
     """ Set specified 'datetime' str format. """
     if TIMESTAMP_COLUMN in df.index.names:
@@ -185,10 +173,10 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
         if current_step_data == (12, 31, 24, 60):
             return True
         elif first_step_data == current_step_data and previous_step_data != (
-            12,
-            31,
-            24,
-            60,
+                12,
+                31,
+                24,
+                60,
         ):
             return True  # duplicate date -> increment year
         else:

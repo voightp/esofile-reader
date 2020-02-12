@@ -14,27 +14,16 @@ from esofile_reader.data.df_data import DFData
 from esofile_reader.data.df_functions import create_peak_outputs
 from esofile_reader.processor.interval_processor import interval_processor
 from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.utils.exceptions import *
 from esofile_reader.utils.mini_classes import Variable, IntervalTuple
 from esofile_reader.utils.search_tree import Tree
-
-
-class InvalidLineSyntax(AttributeError):
-    """ Exception raised for an unexpected line syntax. """
-
-    pass
-
-
-class BlankLineError(Exception):
-    """ Exception raised when eso file contains blank line.  """
-
-    pass
 
 
 def _eso_file_version(raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
-    return int(version[(start + 1) : (start + 6)].replace(".", ""))
+    return int(version[(start + 1): (start + 6)].replace(".", ""))
 
 
 def _dt_timestamp(timestamp):
@@ -385,7 +374,7 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
 
 
 def create_header_df(
-    header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
+        header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
 ) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []

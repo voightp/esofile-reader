@@ -9,12 +9,7 @@ from esofile_reader.data.df_data import DFData
 from esofile_reader.utils.mini_classes import ResultsFile, Data
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-
-
-class NoSharedVariables(Exception):
-    """ Raised when source diff files have no common variables. """
-
-    pass
+from esofile_reader.utils.exceptions import *
 
 
 class DiffFile(BaseFile):
@@ -79,7 +74,7 @@ class DiffFile(BaseFile):
         return diff
 
     def process_diff(
-        self, first_file: ResultsFile, other_file: ResultsFile
+            self, first_file: ResultsFile, other_file: ResultsFile
     ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}
@@ -101,7 +96,7 @@ class DiffFile(BaseFile):
             return data, tree
 
     def populate_content(
-        self, first_file: ResultsFile, other_file: ResultsFile
+            self, first_file: ResultsFile, other_file: ResultsFile
     ) -> None:
         """ Populate file content. """
         self.file_path = None

@@ -6,7 +6,7 @@ from typing import Type, List
 try:
     from typing import ForwardRef
 except ImportError:
-    from typing import _ForwardRf as ForwardRef
+    from typing import _ForwardRef as ForwardRef
 
 import pandas as pd
 
@@ -14,6 +14,7 @@ from esofile_reader.base_file import BaseFile, IncompleteFile
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.utils.exceptions import *
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 try:
@@ -23,16 +24,6 @@ except ModuleNotFoundError:
 
     pyximport.install()
     from esofile_reader.processor.esofile_processor import read_file
-
-
-class PeaksNotIncluded(Exception):
-    """ Exception is raised when 'EsoFile' has been processed without peaks. """
-
-    pass
-
-
-class MultiEnvFileRequired(Exception):
-    """ Exception raised when populating single 'EsoFile' with multi env data."""
 
 
 class EsoFile(BaseFile):

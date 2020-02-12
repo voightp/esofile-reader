@@ -8,37 +8,8 @@ from esofile_reader.constants import *
 from esofile_reader.convertor import rate_and_energy_units, \
     convert_rate_to_energy, convert_units
 from esofile_reader.processor.interval_processor import update_dt_format
+from esofile_reader.utils.exceptions import *
 from esofile_reader.utils.mini_classes import Variable
-
-
-class VariableNotFound(Exception):
-    """ Exception raised when requested variable id is not available. """
-
-    pass
-
-
-class InvalidOutputType(Exception):
-    """ Exception raised when the output time is invalid. """
-
-    pass
-
-
-class InvalidUnitsSystem(Exception):
-    """ Exception raised when units system is invalid. """
-
-    pass
-
-
-class IncompleteFile(Exception):
-    """ Exception raised when the file is not complete. """
-
-    pass
-
-
-class CannotAggregateVariables(Exception):
-    """ Exception raised when variables cannot be aggregated. """
-
-    pass
 
 
 class BaseFile:
