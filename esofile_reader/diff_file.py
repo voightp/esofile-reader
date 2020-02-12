@@ -74,7 +74,7 @@ class DiffFile(BaseFile):
         return diff
 
     def process_diff(
-            self, first_file: ResultsFile, other_file: ResultsFile
+        self, first_file: ResultsFile, other_file: ResultsFile
     ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}
@@ -95,9 +95,7 @@ class DiffFile(BaseFile):
 
             return data, tree
 
-    def populate_content(
-            self, first_file: ResultsFile, other_file: ResultsFile
-    ) -> None:
+    def populate_content(self, first_file: ResultsFile, other_file: ResultsFile) -> None:
         """ Populate file content. """
         self.file_path = None
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"

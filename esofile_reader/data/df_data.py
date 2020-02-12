@@ -167,9 +167,7 @@ class DFData(BaseData):
         end_date: datetime = None,
     ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
-            raise KeyError(
-                f"'{name}' column is not available " f"on the given data set."
-            )
+            raise KeyError(f"'{name}' column is not available " f"on the given data set.")
 
         col = slicer(self.tables[interval], name, start_date, end_date)
 
@@ -201,9 +199,7 @@ class DFData(BaseData):
         end_date: datetime = None,
         include_day: bool = False,
     ) -> pd.DataFrame:
-        df = slicer(
-            self.tables[interval], ids, start_date=start_date, end_date=end_date
-        )
+        df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
 
         if isinstance(df, pd.Series):

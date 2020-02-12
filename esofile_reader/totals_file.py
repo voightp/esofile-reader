@@ -208,9 +208,7 @@ class TotalsFile(BaseFile):
                 continue
 
             # leave only 'id' column as header data will be added
-            out.columns = out.columns.droplevel(
-                ["interval", "key", "variable", "units"]
-            )
+            out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
             # get header variables and filter them
             variable_dct = file.data.get_variables_dct(interval)

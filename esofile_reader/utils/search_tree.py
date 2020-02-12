@@ -111,9 +111,7 @@ class Tree:
 
         for interval, data in header_dct.items():
             for id_, tup in data.items():
-                dup_id = self.add_branch(
-                    interval, tup.key, tup.variable, tup.units, id_
-                )
+                dup_id = self.add_branch(interval, tup.key, tup.variable, tup.units, id_)
                 if dup_id:
                     duplicates.append(dup_id)
 

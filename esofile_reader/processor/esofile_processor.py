@@ -23,7 +23,7 @@ def _eso_file_version(raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
-    return int(version[(start + 1): (start + 6)].replace(".", ""))
+    return int(version[(start + 1) : (start + 6)].replace(".", ""))
 
 
 def _dt_timestamp(timestamp):
@@ -310,9 +310,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
                 all_outputs.append(deepcopy(outputs))
                 if not ignore_peaks:
                     all_peak_outputs.append(
-                        deepcopy(
-                            {k: v for k, v in outputs.items() if k in (D, M, A, RP)}
-                        )
+                        deepcopy({k: v for k, v in outputs.items() if k in (D, M, A, RP)})
                     )
                 else:
                     all_peak_outputs.append(None)
@@ -374,7 +372,7 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
 
 
 def create_header_df(
-        header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
+    header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
 ) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []
@@ -398,9 +396,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
             header[interval], interval, column_names[0], column_names[1:]
         )
 
-        df = pd.merge(
-            df_header, df_values, sort=False, left_index=True, right_index=True
-        )
+        df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
 
         df.set_index(keys=column_names[1:], append=True, inplace=True)
         df = df.T
@@ -428,9 +424,7 @@ def generate_outputs(raw_outputs, header, dates, other_data):
             header[interval], interval, column_names[0], column_names[1:]
         )
 
-        df = pd.merge(
-            df_header, df_values, sort=False, left_index=True, right_index=True
-        )
+        df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
 
         df.set_index(keys=column_names[1:], append=True, inplace=True)
         df = df.T
@@ -483,9 +477,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
-    content = read_body(
-        file, last_standard_item_id, init_outputs, ignore_peaks, monitor
-    )
+    content = read_body(file, last_standard_item_id, init_outputs, ignore_peaks, monitor)
     monitor.body_finished()
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):

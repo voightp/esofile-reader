@@ -7,8 +7,11 @@ from sqlalchemy import Table, select
 
 from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import df_dt_slicer, sr_dt_slicer, \
-    merge_peak_outputs
+from esofile_reader.data.df_functions import (
+    df_dt_slicer,
+    sr_dt_slicer,
+    merge_peak_outputs,
+)
 from esofile_reader.storage.sql_functions import destringify_values
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.utils import profile
@@ -168,9 +171,7 @@ class SQLData(BaseData):
                     ]
                 )
             )
-            df = pd.DataFrame(
-                res, columns=["id", "interval", "key", "variable", "units"]
-            )
+            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units"])
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -184,8 +185,8 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             conn.execute(
                 table.update()
-                    .where(table.c.id == id_)
-                    .values(key=key_name, variable=var_name)
+                .where(table.c.id == id_)
+                .values(key=key_name, variable=var_name)
             )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
@@ -214,9 +215,7 @@ class SQLData(BaseData):
         else:
             logging.warning(
                 "Cannot add new variable '{0} {1} {2} {3}'. "
-                "Number of elements '({4})' does not match!".format(
-                    *variable, len(array)
-                )
+                "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
 
     def update_variable(self, interval: str, id_: int, array: Sequence[float]):
@@ -242,7 +241,7 @@ class SQLData(BaseData):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_number_of_days(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         table = self._get_n_days_table(interval)
 
@@ -263,7 +262,7 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_days_of_week(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
+        self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         table = self._get_day_table(interval)
 
@@ -283,12 +282,12 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
-            self,
-            interval: str,
-            ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
-            include_day: bool = False,
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
@@ -330,12 +329,12 @@ class SQLData(BaseData):
         return df
 
     def _global_peak(
-            self,
-            interval: str,
-            ids: Sequence[int],
-            start_date: datetime,
-            end_date: datetime,
-            max_: bool = True,
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime,
+        end_date: datetime,
+        max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
@@ -349,19 +348,19 @@ class SQLData(BaseData):
         return df
 
     def get_global_max_results(
-            self,
-            interval: str,
-            ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-            self,
-            interval: str,
-            ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+        self,
+        interval: str,
+        ids: Sequence[int],
+        start_date: datetime = None,
+        end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

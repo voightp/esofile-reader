@@ -12,22 +12,22 @@ from esofile_reader.utils.exceptions import NoResults
 
 
 def get_results(
-        files,
-        variables: Union[Variable, List[Variable]],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        output_type: str = "standard",
-        add_file_name: str = "row",
-        include_interval: bool = False,
-        include_day: bool = False,
-        include_id: bool = False,
-        part_match: bool = False,
-        units_system: str = "SI",
-        rate_units: str = "W",
-        energy_units: str = "J",
-        timestamp_format: str = "default",
-        rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
-        ignore_peaks: bool = True,
+    files,
+    variables: Union[Variable, List[Variable]],
+    start_date: datetime = None,
+    end_date: datetime = None,
+    output_type: str = "standard",
+    add_file_name: str = "row",
+    include_interval: bool = False,
+    include_day: bool = False,
+    include_id: bool = False,
+    part_match: bool = False,
+    units_system: str = "SI",
+    rate_units: str = "W",
+    energy_units: str = "J",
+    timestamp_format: str = "default",
+    rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+    ignore_peaks: bool = True,
 ):
     """
      Return a pandas.DataFrame object with outputs for specified request.

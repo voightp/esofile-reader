@@ -103,9 +103,7 @@ class DefaultMonitor:
             abs_proc = abs_num_lines / (times[8] - times[1])
 
         except ZeroDivisionError:
-            logging.exception(
-                f"Unexpected processing time." f"{traceback.format_exc()}"
-            )
+            logging.exception(f"Unexpected processing time." f"{traceback.format_exc()}")
             res_proc = -1
             abs_proc = -1
 

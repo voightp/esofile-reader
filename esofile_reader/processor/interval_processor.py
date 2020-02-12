@@ -173,10 +173,10 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
         if current_step_data == (12, 31, 24, 60):
             return True
         elif first_step_data == current_step_data and previous_step_data != (
-                12,
-                31,
-                24,
-                60,
+            12,
+            31,
+            24,
+            60,
         ):
             return True  # duplicate date -> increment year
         else:

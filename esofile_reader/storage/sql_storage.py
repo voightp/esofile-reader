@@ -3,16 +3,31 @@ import traceback
 from typing import List
 
 import pandas as pd
-from sqlalchemy import Table, Column, Integer, String, MetaData, create_engine, \
-    DateTime, select, Boolean, exc
+from sqlalchemy import (
+    Table,
+    Column,
+    Integer,
+    String,
+    MetaData,
+    create_engine,
+    DateTime,
+    select,
+    Boolean,
+    exc,
+)
 
 from esofile_reader.constants import *
 from esofile_reader.data.sql_data import SQLData
 from esofile_reader.database_file import DatabaseFile
 from esofile_reader.storage.base_storage import BaseStorage
-from esofile_reader.storage.sql_functions import create_results_table, \
-    create_datetime_table, merge_df_values, create_value_insert, \
-    create_n_days_table, create_day_table
+from esofile_reader.storage.sql_functions import (
+    create_results_table,
+    create_datetime_table,
+    merge_df_values,
+    create_value_insert,
+    create_n_days_table,
+    create_day_table,
+)
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import profile
@@ -124,9 +139,7 @@ class SQLStorage(BaseStorage):
                 # create index table
                 if isinstance(outputs.index, pd.DatetimeIndex):
                     index_table = create_datetime_table(self.metadata, id_, interval)
-                    conn.execute(
-                        index_table.insert(), create_value_insert(outputs.index)
-                    )
+                    conn.execute(index_table.insert(), create_value_insert(outputs.index))
                     f_upd[f"{interval}_dt_table"] = index_table.name
 
                 # store 'n days' data
