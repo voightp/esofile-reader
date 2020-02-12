@@ -5,10 +5,10 @@ from copy import deepcopy
 from functools import partial
 from typing import Dict, List
 
+import cython
 import numpy as np
 import pandas as pd
 
-from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.data.df_functions import create_peak_outputs
@@ -23,7 +23,7 @@ def _eso_file_version(raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
-    return int(version[(start + 1) : (start + 6)].replace(".", ""))
+    return int(version[(start + 1): (start + 6)].replace(".", ""))
 
 
 def _dt_timestamp(timestamp):
@@ -39,7 +39,7 @@ def _process_statement(line):
     timestamp = _dt_timestamp(tmstmp)
     return version, timestamp
 
-
+@cython.profile(True)
 def _process_header_line(line):
     """
     Process E+ dictionary line and populate period header dictionaries.
@@ -74,8 +74,8 @@ def _process_header_line(line):
 
     return int(line_id), key, var, units, interval.lower()
 
-
-def read_header(eso_file):
+@cython.profile(True)
+def read_header(eso_file, monitor):
     """
     Read header dictionary of the eso file.
 
@@ -102,17 +102,23 @@ def read_header(eso_file):
     header_dct = defaultdict(partial(defaultdict))
     outputs = defaultdict(partial(defaultdict))
 
+    chunk = monitor.chunk_size
+    counter = monitor.counter
+
     while True:
-        line = next(eso_file)
+        raw_line = next(eso_file)
 
-        # Extract line from a raw line
+        counter += 1
+        if counter == chunk:
+            monitor.update_progress()
+            counter = 0
+
         try:
-            id_, key_nm, var_nm, units, interval = _process_header_line(line)
-
+            id_, key_nm, var_nm, units, interval = _process_header_line(raw_line)
         except AttributeError:
-            if "End of Data Dictionary" in line:
+            if "End of Data Dictionary" in raw_line:
                 break
-            elif line == "":
+            elif raw_line == "":
                 raise BlankLineError
             else:
                 raise AttributeError
@@ -127,33 +133,7 @@ def read_header(eso_file):
 
     return header_dct, outputs
 
-
-def process_standard_lines(file):
-    """ Process first few standard lines. """
-    first_line = next(file)
-
-    version, timestamp = _process_statement(first_line)
-    last = _last_standard_item_id(version)
-
-    # Skip standard reporting intervals
-    _ = [next(file) for _ in range(last)]
-
-    # Find the last item which defines reporting interval
-    return last, timestamp
-
-
-def _last_standard_item_id(version):
-    """ Return last standard item id (6th item was added for E+ 8.9) """
-    return 6 if version >= 890 else 5
-
-
-def _process_raw_line(line):
-    """ Return id and list of line without trailing whitespaces. """
-    split_line = line.split(",")
-    id_ = int(split_line[0])
-    return id_, split_line[1:]
-
-
+@cython.profile(True)
 def _process_interval_line(line_id, data):
     """
     Sort interval line into relevant period dictionaries.
@@ -235,15 +215,8 @@ def _process_interval_line(line_id, data):
 
     return categories[line_id]()
 
-
-def _process_result_line(line, ignore_peaks):
-    """ Convert items of result line list from string to float. """
-    if ignore_peaks:
-        return float(line[0]), None
-    else:
-        return float(line[0]), [float(i) if "." in i else int(i) for i in line[1:]]
-
-
+@cython.profile(True)
+@cython.boundscheck(False)
 def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     """
     Read body of the eso file.
@@ -278,6 +251,9 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         A nested list of raw environment information.
 
      """
+    cdef int chunk, counter, line_id
+    cdef float res
+
     # initialize storage for all outputs
     all_outputs = []
     all_peak_outputs = []
@@ -288,12 +264,21 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
     cumulative_days = []
     days_of_week = []
 
+    chunk = monitor.chunk_size
+    counter = monitor.counter
+
     while True:
         raw_line = next(eso_file)
-        monitor.update_body_progress()
+
+        counter += 1
+        if counter == chunk:
+            monitor.update_progress()
+            counter = 0
 
         try:
-            line_id, line = _process_raw_line(raw_line)
+            split_line = raw_line.split(",")
+            line_id = int(split_line[0])
+            line = split_line[1:]
         except ValueError:
             if "End of Data" in raw_line:
                 break
@@ -341,8 +326,14 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         else:
             # current line represents a result
             # replace nan values from the last step
+            peak_res = None
             try:
-                res, peak_res = _process_result_line(line, ignore_peaks)
+                if ignore_peaks:
+                    res = float(line[0])
+                else:
+                    res = float(line[0])
+                    peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
+
             except ValueError:
                 raise ValueError(f"Unexpected value on line {line_id}: " f"{raw_line}")
 
@@ -362,7 +353,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
         days_of_week,
     )
 
-
+@cython.profile(True)
 def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.DataFrame:
     """ Create a raw values pd.DataFrame for given interval. """
     df = pd.DataFrame(outputs_dct)
@@ -370,9 +361,9 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
     df.index.set_names(index_name, inplace=True)
     return df
 
-
+@cython.profile(True)
 def create_header_df(
-    header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
+        header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
 ) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []
@@ -382,7 +373,7 @@ def create_header_df(
 
     return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
 
-
+@cython.profile(True)
 def generate_peak_outputs(raw_peak_outputs, header, dates):
     """ Transform processed peak output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
@@ -412,7 +403,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
 
     return peak_outputs
 
-
+@cython.profile(True)
 def generate_outputs(raw_outputs, header, dates, other_data):
     """ Transform processed output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
@@ -461,7 +452,7 @@ def remove_duplicates(ids, header_dct, outputs_dct):
                 except KeyError:
                     pass
 
-
+@cython.profile(True)
 def process_file(file, monitor, year, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
     all_outputs = []
@@ -469,11 +460,18 @@ def process_file(file, monitor, year, ignore_peaks=True):
     trees = []
 
     # process first few standard lines, ignore timestamp
-    last_standard_item_id, _ = process_standard_lines(file)
+    version, timestamp = _process_statement(next(file))
+    monitor.counter += 1
+    last_standard_item_id = 6 if version >= 890 else 5
+
+    # Skip standard reporting intervals
+    for _ in range(last_standard_item_id):
+        next(file)
+        monitor.counter += 1
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    orig_header, init_outputs = read_header(file)
+    orig_header, init_outputs = read_header(file, monitor)
     monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries.
@@ -513,21 +511,22 @@ def process_file(file, monitor, year, ignore_peaks=True):
     # content[0] stores environment names
     return content[0], all_outputs, all_peak_outputs, trees
 
-
+@cython.profile(True)
 def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path)
 
-    # Initially read the file to check if it's ok
+    # count number of lines to report progress
     monitor.processing_started()
-    complete = monitor.preprocess()
+    # cdef int i
+    with open(file_path, "rb") as f:
+        i = 0
+        for _ in f:
+            i += 1
+    monitor.preprocess(i + 1)
+    monitor.preprocessing_finished()
 
-    if not complete:
-        # prevent reading the file when incomplete
-        msg = f"File '{file_path} is not complete!'"
-        monitor.processing_failed(msg)
-        raise IncompleteFile
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
