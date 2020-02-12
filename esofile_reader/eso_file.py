@@ -38,7 +38,7 @@ class EsoFile(BaseFile):
         A full path of the ESO file.
     file_created : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
-    storage : {DFOutputs, SQLOutputs}
+    data : {DFData, SQLData}
         A class to store results data
         {period : {ID : (key name, variable name, units)}}
 

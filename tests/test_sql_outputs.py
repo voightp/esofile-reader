@@ -10,7 +10,7 @@ from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
 
-class TestSQLOutputs(unittest.TestCase):
+class TestSQLData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")

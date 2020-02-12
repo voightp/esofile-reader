@@ -9,7 +9,7 @@ from tests import ROOT
 from datetime import datetime
 
 
-class TestDFOutputs(unittest.TestCase):
+class TestDFData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")

@@ -26,12 +26,10 @@ class BaseFile:
         A full path of the result file.
     file_created : datetime
         Time and date when of the file generation..
-    data : {DFOutputs, SQLOutputs}
+    data : {DFData, SQLData}
         A class to store results data
     _search_tree : Tree
         N array tree for efficient id searching.
-    _complete : bool
-        A flag to inform if the file has been processed.
 
 
     Notes
