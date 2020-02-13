@@ -253,7 +253,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
 
      """
     cdef int chunk, counter, line_id
-    cdef float res
+    cdef double res
 
     # initialize storage for all outputs
     all_outputs = []
@@ -286,6 +286,7 @@ def read_body(eso_file, highest_interval_id, outputs, ignore_peaks, monitor):
             elif raw_line == "":
                 raise BlankLineError
             else:
+                print(raw_line)
                 raise ValueError
 
         if line_id <= highest_interval_id:
@@ -517,9 +518,9 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     """ Open the eso file and trigger file processing. """
     if monitor is None:
         monitor = DefaultMonitor(file_path)
+    monitor.processing_started()
 
     # count number of lines to report progress
-    monitor.processing_started()
     cdef int i
     with open(file_path, "rb") as f:
         i = 0

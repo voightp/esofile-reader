@@ -334,7 +334,7 @@ class TestResultFetching(unittest.TestCase):
 
         self.assertListEqual(df.columns.get_level_values("units").tolist(), ["J/m2", "J"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 217800, 5)
-        self.assertAlmostEqual(df.iloc[7, 1], 335583.6469868852, 5)
+        self.assertAlmostEqual(df.iloc[7, 1], 335583.646986, 5)
         self.assertAlmostEqual(df.iloc[0, 2], 6253200, 5)
         self.assertAlmostEqual(df.iloc[0, 3], 10918518.194915276, 5)
         self.assertAlmostEqual(df.iloc[0, 4], 213833700, 5)
@@ -407,10 +407,6 @@ class TestResultFetching(unittest.TestCase):
     def test_get_results_ignore_peaks(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
         self.assertIsNotNone(ef.peak_outputs)
-
-    def test_suppress_errors_raises(self):
-        with self.assertRaises(IncompleteFile):
-            _ = EsoFile(os.path.join(ROOT, "eso_files/body.txt"))
 
     def test_multiple_files_invalid_variable(self):
         files = [self.ef1, self.ef2]
