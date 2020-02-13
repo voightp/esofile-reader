@@ -13,7 +13,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/voightp/esofile-reader.git",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages("esofile_reader"),
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
