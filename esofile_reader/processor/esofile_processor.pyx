@@ -520,7 +520,7 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
 
     # count number of lines to report progress
     monitor.processing_started()
-    # cdef int i
+    cdef int i
     with open(file_path, "rb") as f:
         i = 0
         for _ in f:
@@ -536,3 +536,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
         msg = f"There's a blank line in file '{file_path}'."
         monitor.processing_failed(msg)
         raise BlankLineError(msg)
+
+    except StopIteration:
+        raise IncompleteFile(f"File '{file_path}' is not complete!")
