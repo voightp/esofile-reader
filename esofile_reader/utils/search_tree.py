@@ -1,5 +1,7 @@
 import logging
 
+from esofile_reader.utils.utils import lower_args
+
 
 class Node:
     """ A base tree component.
@@ -70,17 +72,11 @@ class Tree:
     @staticmethod
     def _add_node(nd_name, parent):
         """ Create a new node if it does not exists. """
-
-        def _is_in_children():
-            """ Return child node if node already exists. """
-            for child in children:
-                if child.key.lower() == nd_name.lower():
-                    return child
-            else:
-                return None
-
         children = parent.children
-        nd = _is_in_children()
+        try:
+            nd = next(ch for ch in children if ch.key == nd_name)
+        except StopIteration:
+            nd = None
 
         if not nd:
             nd = Node(parent, nd_name)
@@ -88,9 +84,10 @@ class Tree:
 
         return nd
 
+    @lower_args
     def add_branch(self, interval, key, var, units, id_):
         """ Append a branch to the tree. """
-        pth = [interval, var, key, units]
+        pth = [interval.lower(), var.lower(), key.lower(), units.lower()]
         parent = self.root
 
         for nd_name in pth:
@@ -100,7 +97,7 @@ class Tree:
         val = Node(parent, id_)
         val.children = None
         if parent.children:
-            # there's already a leaf, variable is duplicate
+            # there's already a leaf, variable is a duplicate
             return id_
 
         parent.children.append(val)
@@ -121,9 +118,9 @@ class Tree:
     def _match(nd, condition, part_match=False):
         """ Check if node matches condition. """
         if not part_match:
-            return nd.key.lower() == condition.lower()
+            return nd.key == condition
         else:
-            return condition.lower() in nd.key.lower()
+            return condition in nd.key
 
     def _loop(self, node, level, ids, cond, part_match=False):
         """ Search through the tree to find ids. """
@@ -147,13 +144,11 @@ class Tree:
             for nd in node.children:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
+    @lower_args
     def get_ids(
-        self, interval=None, key=None, variable=None, units=None, part_match=False
+            self, interval=None, key=None, variable=None, units=None, part_match=False
     ):
-        """
-        Find variable ids for given arguments.
-
-        """
+        """ Find variable ids for given arguments. """
         cond = [interval, variable, key, units]
         ids = []
 
@@ -168,8 +163,9 @@ class Tree:
 
         return ids
 
+    @lower_args
     def get_pairs(
-        self, interval=None, key=None, variable=None, units=None, part_match=False
+            self, interval=None, key=None, variable=None, units=None, part_match=False
     ):
         """
         Find interval : variable ids pairs for given arguments.
@@ -182,6 +178,7 @@ class Tree:
             level = -1
             ids = []
             if interval:
+                interval = interval.lower()
                 if self._match(node, interval):
                     for nd in node.children:
                         self._loop(nd, level, ids, cond, part_match=part_match)
@@ -228,18 +225,20 @@ class Tree:
             for nd in node.children:
                 self._rem_loop(nd, level, cond)
 
+    @lower_args
+    def remove_variable(self, interval, key, variable, units):
+        cond = [interval, variable, key, units]
+        for nd in self.root.children:
+            level = -1
+            self._rem_loop(nd, level, cond)
+
     def remove_variables(self, variables):
         """ Remove variable from the tree. """
         if not isinstance(variables, list):
             variables = [variables]
 
-        for var in variables:
-            interval, key, variable, units = var
-            cond = [interval, variable, key, units]
-
-            for nd in self.root.children:
-                level = -1
-                self._rem_loop(nd, level, cond)
+        for variable in variables:
+            self.remove_variable(*variable)
 
     def add_variable(self, id_, variable):
         """ Add new variable into the tree. """

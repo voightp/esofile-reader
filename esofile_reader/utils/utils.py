@@ -28,3 +28,16 @@ def profile(func):
         return res
 
     return inner_func
+
+
+def lower_args(func):
+    def wrapper(*args, **kwargs):
+        low_args = []
+        low_kwargs = {}
+        for a in args:
+            low_args.append(a.lower() if isinstance(a, str) else a)
+        for k, v in kwargs.items():
+            low_kwargs[k] = v.lower() if isinstance(v, str) else v
+        return func(*low_args, **low_kwargs)
+
+    return wrapper

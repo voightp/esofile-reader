@@ -139,9 +139,9 @@ class BaseFile:
         variables = variables if isinstance(variables, list) else [variables]
         out = {}
 
-        for request in variables:
+        for variable in variables:
             interval, key, var, units = [
-                str(r) if isinstance(r, int) else r for r in request
+                str(r) if isinstance(r, int) else r for r in variable
             ]
 
             pairs = self._search_tree.get_pairs(
