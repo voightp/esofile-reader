@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import traceback
 import time
 
@@ -34,11 +35,13 @@ class DefaultMonitor:
 
     def header_finished(self):
         self.report_progress(3, "Header successfully read!")
+        logging.info("\nProcessing results")
 
     def body_finished(self):
         self.report_progress(4, "File successfully read!")
 
     def intervals_finished(self):
+        print() # newline
         self.report_progress(5, "Interval processing finished!")
 
     def search_tree_finished(self):
@@ -54,7 +57,9 @@ class DefaultMonitor:
     def update_progress(self):
         self.progress += 1
         self.counter = 0
-        print("*", end="")
+        if logging.root.level == logging.INFO:
+            print(".", end="")
+            sys.stdout.flush()
 
     def calc_time(self, identifier):
         start = self.processing_times[1]

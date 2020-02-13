@@ -98,10 +98,11 @@ def read_header(eso_file, monitor):
         A dictionary of expected eso file results with initialized lists.
 
     """
-
     header_dct = defaultdict(partial(defaultdict))
     outputs = defaultdict(partial(defaultdict))
 
+    # store counter as a local variable so
+    cdef int chunk, counter
     chunk = monitor.chunk_size
     counter = monitor.counter
 
