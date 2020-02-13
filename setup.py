@@ -21,7 +21,7 @@ setuptools.setup(
         "Operating System :: Windows",
     ],
     ext_modules=cythonize("./esofile_reader/processor/esofile_processor.pyx",
-                          annotate=False, compiler_directives={'language_level': "3"}),
+                          annotate=True, compiler_directives={'language_level': "3"}),
     zip_safe=False,
     install_requires=[
         "Cython >= 0.29.14",
