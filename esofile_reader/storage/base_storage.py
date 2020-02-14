@@ -13,7 +13,7 @@ class BaseStorage(ABC):
         self.files = {}
 
     @abstractmethod
-    def store_file(self, results_file: ResultsFile, totals: bool = False) -> int:
+    def store_file(self, results_file: ResultsFile) -> int:
         """ Store file in the 'class' database. """
         pass
 

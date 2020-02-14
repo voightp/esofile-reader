@@ -111,19 +111,19 @@ class TestDFData(unittest.TestCase):
 
     def test_update_variable(self):
         original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable("monthly", 983, list(range(12)))
+        self.ef.data.update_variable_results("monthly", 983, list(range(12)))
         vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
 
-        self.ef.data.update_variable("monthly", 983, original_vals)
+        self.ef.data.update_variable_results("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
         original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable("monthly", 983, list(range(11)))
+        self.ef.data.update_variable_results("monthly", 983, list(range(11)))
         vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
 
-        self.ef.data.update_variable("monthly", 983, original_vals)
+        self.ef.data.update_variable_results("monthly", 983, original_vals)
 
     def test_get_special_column_invalid(self):
         with self.assertRaises(KeyError):

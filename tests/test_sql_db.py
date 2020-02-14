@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from esofile_reader import EsoFile
+from esofile_reader import EsoFile, TotalsFile
 from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
@@ -53,7 +53,7 @@ class TestSqlDB(unittest.TestCase):
 
     def test_04_store_file_totals(self):
         storage = SQLStorage()
-        id_ = storage.store_file(self.ef, totals=True)
+        id_ = storage.store_file(TotalsFile(self.ef))
         res = storage.engine.execute(f"""SELECT totals FROM 'result-files' WHERE id={id_};""").scalar()
         self.assertTrue(res)
 
@@ -89,7 +89,7 @@ class TestSqlDB(unittest.TestCase):
             self.assertEqual(f.file_name, lf.file_name)
             self.assertEqual(f.file_path, lf.file_path)
             self.assertEqual(f.id_, lf.id_)
-            self.assertEqual(len(f._search_tree.str_tree()), len(lf._search_tree.str_tree()))
+            self.assertEqual(len(f.search_tree.str_tree()), len(lf.search_tree.str_tree()))
 
             for interval in f.available_intervals:
                 self.assertEqual(

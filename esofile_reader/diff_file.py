@@ -101,4 +101,4 @@ class DiffFile(BaseFile):
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
         self.file_created = datetime.utcnow()
 
-        self.data, self._search_tree = self.process_diff(first_file, other_file)
+        self.data, self.search_tree = self.process_diff(first_file, other_file)

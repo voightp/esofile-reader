@@ -40,7 +40,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         tree.populate_tree(data.get_all_variables_dct())
 
         bf.data = data
-        bf._search_tree = tree
+        bf.search_tree = tree
 
         cls.bf = bf
 
@@ -108,12 +108,12 @@ class TestRangeIntervalFile(unittest.TestCase):
         id_, var = self.bf.add_output("range", "new", "variable", "C", [1, 2, 3])
         self.assertTupleEqual(var, Variable("range", "new", "variable", "C"))
 
-        ids = self.bf._search_tree.get_ids(*var)
+        ids = self.bf.search_tree.get_ids(*var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
         self.bf.remove_outputs(var)
-        ids = self.bf._search_tree.get_ids(*var)
+        ids = self.bf.search_tree.get_ids(*var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):

@@ -218,7 +218,7 @@ class SQLData(BaseData):
                 "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
 
-    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
         if self._validate(interval, array):
             table = self._get_results_table(interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])

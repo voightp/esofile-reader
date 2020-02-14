@@ -135,7 +135,7 @@ class DFData(BaseData):
 
             return id_
 
-    def update_variable(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
         df_length = len(self.tables[interval].index)
         valid = len(array) == df_length
 

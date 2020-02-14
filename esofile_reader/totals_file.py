@@ -260,7 +260,7 @@ class TotalsFile(BaseFile):
         self.file_name = f"{file.file_name} - totals"
         self.file_created = file.file_created  # use base file timestamp
 
-        self.data, self._search_tree = self.process_totals(file)
+        self.data, self.search_tree = self.process_totals(file)
 
     def generate_diff(self, other_file: ResultsFile):
         """ Generate 'Diff' results file. """

@@ -18,7 +18,7 @@ from sqlalchemy import (
 
 from esofile_reader.constants import *
 from esofile_reader.data.sql_data import SQLData
-from esofile_reader.database_file import DatabaseFile
+from esofile_reader.storage.storage_files import SQLFile
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.storage.sql_functions import (
     create_results_table,
@@ -31,6 +31,7 @@ from esofile_reader.storage.sql_functions import (
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import profile
+from esofile_reader.totals_file import TotalsFile
 
 
 class SQLStorage(BaseStorage):
@@ -90,7 +91,7 @@ class SQLStorage(BaseStorage):
         return engine, metadata
 
     @profile
-    def store_file(self, results_file: ResultsFile, totals: bool = False) -> int:
+    def store_file(self, results_file: ResultsFile) -> int:
         if not self.metadata or not self.engine:
             raise AttributeError(
                 f"Cannot store file into database."
@@ -103,7 +104,7 @@ class SQLStorage(BaseStorage):
             file_path=results_file.file_path,
             file_name=results_file.file_name,
             file_created=results_file.file_created,
-            totals=totals,
+            totals=isinstance(results_file, TotalsFile),
         )
 
         # insert new file data
@@ -161,14 +162,14 @@ class SQLStorage(BaseStorage):
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
 
-                db_file = DatabaseFile(
+                db_file = SQLFile(
                     id_,
-                    results_file.file_name,
-                    SQLData(id_, self),
-                    results_file.file_created,
-                    totals=totals,
-                    search_tree=results_file._search_tree,
                     file_path=results_file.file_path,
+                    file_name=results_file.file_name,
+                    sql_data=SQLData(id_, self),
+                    file_created=results_file.file_created,
+                    search_tree=results_file.search_tree,
+                    totals=isinstance(results_file, TotalsFile)
                 )
 
         # store file in a class attribute
@@ -203,7 +204,7 @@ class SQLStorage(BaseStorage):
         del self.files[id_]
 
     @profile
-    def load_all_files(self) -> List[DatabaseFile]:
+    def load_all_files(self) -> List[SQLFile]:
         files = self.metadata.tables[self.FILE_TABLE]
 
         with self.engine.connect() as conn:
@@ -215,9 +216,9 @@ class SQLStorage(BaseStorage):
                     select(
                         [
                             files.c.id,
+                            files.c.file_path,
                             files.c.file_name,
                             files.c.file_created,
-                            files.c.file_path,
                             files.c.totals,
                         ]
                     ).where(files.c.id == id_)
@@ -228,14 +229,14 @@ class SQLStorage(BaseStorage):
                 tree = Tree()
                 tree.populate_tree(data.get_all_variables_dct())
 
-                db_file = DatabaseFile(
-                    res[0],
-                    res[1],
-                    data,
-                    res[2],
-                    file_path=res[3],
+                db_file = SQLFile(
+                    id_=res[0],
+                    file_path=res[1],
+                    file_name=res[2],
+                    sql_data=data,
+                    file_created=res[3],
                     search_tree=tree,
-                    totals=res[4],
+                    totals=res[4]
                 )
 
                 self.files[id_] = db_file

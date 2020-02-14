@@ -102,7 +102,7 @@ class EsoFile(BaseFile):
                 ef.file_name = f"{name} - {environment}" if i > 0 else name
                 ef.data = outputs
                 ef.peak_outputs = peak_outputs
-                ef._search_tree = tree
+                ef.search_tree = tree
 
                 eso_files.append(ef)
         else:
@@ -130,7 +130,7 @@ class EsoFile(BaseFile):
         if content:
             environment_names = content[0]
             if len(environment_names) == 1:
-                (self.data, self.peak_outputs, self._search_tree,) = [
+                (self.data, self.peak_outputs, self.search_tree,) = [
                     c[0] for c in content[1:]
                 ]
             else:

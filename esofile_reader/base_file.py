@@ -28,7 +28,7 @@ class BaseFile:
         Time and date when of the file generation..
     data : {DFData, SQLData}
         A class to store results data
-    _search_tree : Tree
+    search_tree : Tree
         N array tree for efficient id searching.
 
 
@@ -46,7 +46,7 @@ class BaseFile:
         self.file_name = None
         self.data = None
         self.file_created = None
-        self._search_tree = None
+        self.search_tree = None
 
     def __repr__(self):
         return (
@@ -58,7 +58,7 @@ class BaseFile:
     @property
     def complete(self) -> bool:
         """ Check if the file has been populated. """
-        return self.data and self._search_tree
+        return self.data and self.search_tree
 
     @property
     def available_intervals(self) -> List[str]:
@@ -144,7 +144,7 @@ class BaseFile:
                 str(r) if isinstance(r, int) else r for r in variable
             ]
 
-            pairs = self._search_tree.get_pairs(
+            pairs = self.search_tree.get_pairs(
                 interval=interval,
                 key=key,
                 variable=var,
@@ -173,7 +173,7 @@ class BaseFile:
             interval, key, var, units = [
                 str(r) if isinstance(r, int) else r for r in request
             ]
-            ids = self._search_tree.get_ids(
+            ids = self.search_tree.get_ids(
                 interval=interval,
                 key=key,
                 variable=var,
@@ -348,11 +348,11 @@ class BaseFile:
             )
         elif ids:
             # remove current item to avoid item duplicity
-            self._search_tree.remove_variables([variable])
+            self.search_tree.remove_variables([variable])
 
             # create new variable and add it into tree
             new_var = self.create_header_variable(interval, key_name, var_name, units)
-            self._search_tree.add_variable(ids[0], new_var)
+            self.search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
             self.data.update_variable_name(
@@ -370,7 +370,7 @@ class BaseFile:
         id_ = self.data.insert_variable(new_var, array)
 
         if id_:
-            self._search_tree.add_variable(id_, new_var)
+            self.search_tree.add_variable(id_, new_var)
             return id_, new_var
 
     def aggregate_variables(
@@ -477,7 +477,7 @@ class BaseFile:
             self.data.delete_variables(interval, ids)
 
         # clean up the tree
-        self._search_tree.remove_variables(variables)
+        self.search_tree.remove_variables(variables)
 
         return groups
 

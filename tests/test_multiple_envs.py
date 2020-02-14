@@ -29,7 +29,7 @@ class TestMultipleEnvs(unittest.TestCase):
             self.assertTrue(ef.complete)
 
     def test_tree(self):
-        trees = [ef._search_tree.str_tree() for ef in self.efs]
+        trees = [ef.search_tree.str_tree() for ef in self.efs]
         self.assertEqual(len(set(trees)), 1)
 
 

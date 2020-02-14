@@ -119,19 +119,19 @@ class TestSQLData(unittest.TestCase):
 
     def test_update_variable(self):
         original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.data.update_variable("monthly", 983, list(range(12)))
+        self.sql_file.data.update_variable_results("monthly", 983, list(range(12)))
         vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
 
-        self.sql_file.data.update_variable("monthly", 983, original_vals)
+        self.sql_file.data.update_variable_results("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
         original_vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.data.update_variable("monthly", 983, list(range(11)))
+        self.sql_file.data.update_variable_results("monthly", 983, list(range(11)))
         vals = self.sql_file.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
 
-        self.sql_file.data.update_variable("monthly", 983, original_vals)
+        self.sql_file.data.update_variable_results("monthly", 983, original_vals)
 
     def test_get_number_of_days(self):
         col = self.sql_file.data.get_number_of_days("monthly")

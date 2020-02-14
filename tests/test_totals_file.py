@@ -71,7 +71,7 @@ class TestTotalsFile(TestCase):
         tree.populate_tree(data.get_all_variables_dct())
 
         bf.data = data
-        bf._search_tree = tree
+        bf.search_tree = tree
 
         cls.tf = TotalsFile(bf)
 
@@ -81,7 +81,7 @@ class TestTotalsFile(TestCase):
     def test_file_path(self):
         self.assertEqual(self.tf.file_path, "dummy/path")
 
-    def test_search_tree(self):
+    def testsearch_tree(self):
         ids = self.tf.find_ids([
             Variable("daily", "Zone", "Zone Temperature", "C"),
             Variable("daily", "Meter", "LIGHTS", "J"),
