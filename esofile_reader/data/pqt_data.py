@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, List
 
 # from esofile_reader import Variable
 from esofile_reader.data.df_data import DFData
@@ -10,25 +10,31 @@ from pyarrow import Table
 from pathlib import Path
 
 
-class ParquetData(DFData):
-    def __init__(self, tables, dir):
+class ParquetDFData(DFData):
+    def __init__(self, tables, pardir):
         super().__init__()
         self.tables = tables
-        self.table_paths = {k: Path(dir, f"results-{k}.parquet") for k in tables}
-        self.header_paths = {k: Path(dir, f"header-{k}.parquet") for k in tables}
+        self.results_tables = {k: Path(pardir, f"results-{k}.parquet") for k in tables}
+        self.header_tables = {k: Path(pardir, f"header-{k}.parquet") for k in tables}
         self.update_all()
+
+    def relative_results_paths(self, path: Path) -> List[str]:
+        return [str(p.relative_to(path)) for p in self.results_tables.values()]
+
+    def relative_header_paths(self, path: Path) -> List[str]:
+        return [str(p.relative_to(path)) for p in self.header_tables.values()]
 
     def update_header_parquet(self, interval):
         with suppress(OSError):
-            os.remove(self.header_paths[interval])
+            os.remove(self.header_tables[interval])
 
         header = self.get_variables_df(interval)
         tbl = Table.from_pandas(header)
-        write_table(tbl, self.header_paths[interval])
+        write_table(tbl, self.header_tables[interval])
 
     def update_results_parquet(self, interval):
         with suppress(OSError):
-            os.remove(self.table_paths[interval])
+            os.remove(self.results_tables[interval])
 
         df = self.tables[interval]
 
@@ -38,7 +44,7 @@ class ParquetData(DFData):
         df.columns = df.columns.astype(str)
 
         tbl = Table.from_pandas(df)
-        write_table(tbl, self.table_paths[interval])
+        write_table(tbl, self.results_tables[interval])
         # restore the original columns index
         df.columns = columns
 
@@ -69,3 +75,6 @@ class ParquetData(DFData):
         super().delete_variables(interval, ids)
         self.update_header_parquet(interval)
         self.update_results_parquet(interval)
+
+class ParquetData(ParquetDFData):
+    

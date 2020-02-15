@@ -70,6 +70,11 @@ class TestParquetDB(unittest.TestCase):
         self.storage.delete_file(id1)
         self.assertFalse(path.exists())
 
+    def test_06_save_storage(self):
+        self.storage.store_file(self.ef1)
+        self.storage.store_file(self.ef2)
+        self.storage.save_as("foo", "bar")
+
     #
     # def test_05_delete_file(self):
     #     storage = SQLStorage()

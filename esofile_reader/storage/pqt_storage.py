@@ -1,23 +1,24 @@
-from esofile_reader.base_file import BaseFile
-from esofile_reader.eso_file import EsoFile
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.utils.mini_classes import ResultsFile
-from esofile_reader.data.pqt_data import ParquetData
-from esofile_reader.storage.storage_files import ParquetFile
+import json
+import os
+import shutil
 import tempfile
 from pathlib import Path
-from zipfile import ZipFile
-from esofile_reader.totals_file import TotalsFile
-import json
+import contextlib
 
-import shutil
+from esofile_reader.eso_file import EsoFile
+from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.totals_file import TotalsFile
+from esofile_reader.utils.mini_classes import ResultsFile
 
 
 class ParquetStorage(DFStorage):
+    EXT = ".cfy"
+
     def __init__(self, path=None):
         super().__init__()
         self.files = {}
-        self.path = path
+        self.path = Path(path) if path else path
         self.temp_dir = tempfile.mkdtemp(prefix="chartify-")
 
     def __del__(self):
@@ -26,20 +27,47 @@ class ParquetStorage(DFStorage):
 
     def store_file(self, results_file: ResultsFile) -> int:
         id_ = self._id_generator()
-        self.files[id_] = ParquetFile(id_, results_file, pardir=self.temp_dir)
+        file = ParquetFile(
+            id_=id_,
+            file_path=results_file.file_path,
+            file_name=results_file.file_name,
+            data=results_file.data,
+            file_created=results_file.file_created,
+            search_tree=results_file.search_tree,
+            totals=isinstance(results_file, TotalsFile),
+            pardir=self.temp_dir,
+        )
+        self.files[id_] = file
         return id_
 
     def delete_file(self, id_: int) -> None:
         shutil.rmtree(self.files[id_].path, ignore_errors=True)
         del self.files[id_]
 
-    def save(self):
-        pass
-
-    def save_as(self, root, name):
+    def save_as(self, dir_, name):
+        # store json summary file
         files = [f.as_dict() for f in self.files.values()]
-        print(files)
-        print(json.dumps(files, indent=4))
+        tempson = str(Path(self.temp_dir, "files.json"))
+        with open(tempson, "w") as f:
+            json.dump(files, f, indent=4)
+
+        # store all the tempdir content
+        zf = shutil.make_archive(str(Path(dir_, f"{name}")), "zip", self.temp_dir)
+
+        # change zip to custom extension
+        p = Path(zf)
+        path = p.with_suffix(self.EXT)
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path)
+        p.rename(path)
+        self.path = path
+
+    def save(self):
+        if not self.path:
+            raise FileNotFoundError("Path not defined! Call 'save_as' first.")
+        dir_ = self.path.parent
+        name = self.path.with_suffix("").name
+        self.save_as(dir_, name)
 
 
 if __name__ == "__main__":
@@ -49,4 +77,6 @@ if __name__ == "__main__":
     st.store_file(EsoFile(p))
     st.store_file(EsoFile(p))
     st.store_file(EsoFile(p))
-    st.save_as(1,2)
+    st.save_as(r"C:/users/vojte/desktop", "blabla")
+    st.delete_file(0)
+    st.save()
