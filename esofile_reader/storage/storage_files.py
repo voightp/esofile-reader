@@ -3,11 +3,12 @@ import tempfile
 from datetime import datetime
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.data.pqt_data import ParquetDFData
+from esofile_reader.data.pqt_data import ParquetData
 from esofile_reader.data.sql_data import SQLData
 from esofile_reader.data.df_data import DFData
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
+from esofile_reader.utils.search_tree import Tree
 from pathlib import Path
 import json
 
@@ -24,8 +25,18 @@ class SQLFile(BaseFile):
     ----------
     id_ : int
         Unique id identifier.
-    file : ResultsFile
-        One of ('EsoFile', 'DiffFile', 'TotalsFile') results files..
+    file_path: str
+        A file path of the reference file.
+    file_name: str
+        File name of the reference file.
+    sql_data: SQLData
+        A class to hold result tables.
+    file_created: datetime
+        A creation datetime of the reference file.
+    search_tree: Tree
+        Search tree instance.
+    totals: bool
+        A flag to check if the reference file was 'totals'.
 
     Notes
     -----
@@ -40,8 +51,8 @@ class SQLFile(BaseFile):
             file_name: str,
             sql_data: SQLData,
             file_created: datetime,
-            search_tree,
-            totals
+            search_tree: Tree,
+            totals: bool
     ):
         super().__init__()
         self.id_ = id_
@@ -110,7 +121,7 @@ class ParquetFile(BaseFile):
         self.totals = totals
         self.path = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.path.mkdir()
-        self.data = ParquetDFData(data.tables, self.path)
+        self.data = ParquetData(data.tables, self.path)
 
     def __del__(self):
         print("REMOVING PARQUET FILE " + str(self.id_))
@@ -124,25 +135,5 @@ class ParquetFile(BaseFile):
             "file_created": self.file_created.timestamp(),
             "totals": self.totals,
             "results_tables": self.data.relative_results_paths(self.path),
-            "header_tables": self.data.relative_header_paths(self.path)
         }
 
-    # @profile
-    # def save(self):
-    #     header_df = self.data.get_all_variables_df()
-    #     header_table = pa.Table.from_pandas(header_df)
-    #     header_path = tempfile.mkstemp(dir=self.temp_dir, prefix="header-")[1]
-    #     print(header_path)
-    #
-    #     write_table(header_table, header_path)
-    #
-    #     import time
-    #     time.sleep(10)
-    #
-    # def save_as(self, root, name):
-    #     p = Path(root, f"{name}.parquet")
-    #     self.path = p
-    #     shutil.make_archive(p, "zip", self.temp_dir)
-    #
-    # def load(self):
-    #     pass
