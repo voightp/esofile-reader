@@ -18,6 +18,10 @@ class TestParquetData(unittest.TestCase):
         cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data, _ef.file_created,
                              _ef.search_tree, False, "")
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.ef
+
     def test_get_available_intervals(self):
         intervals = self.ef.data.get_available_intervals()
         self.assertListEqual(

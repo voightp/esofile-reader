@@ -110,7 +110,7 @@ class ParquetFile(BaseFile):
             file_created: datetime,
             search_tree,
             totals,
-            pardir,
+            pardir="",
             name=None
     ):
         super().__init__()
