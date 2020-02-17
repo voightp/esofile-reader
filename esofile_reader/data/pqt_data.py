@@ -1,6 +1,7 @@
 import contextlib
 import os
 import re
+import numpy as np
 from pathlib import Path
 from typing import List
 
@@ -17,6 +18,9 @@ class ParquetIndexer:
     with DataFrame.loc[]. Indexer attempts to slice columns
     index to pass columns argument when reading parquet file.
 
+    Ids are stored as int to provide compatibility with the
+    standard DfData.
+
     """
 
     def __init__(self, frame, columns, shape):
@@ -24,23 +28,39 @@ class ParquetIndexer:
         self.columns = columns
         self.shape = shape
 
+    def __setitem__(self, key, value):
+        df = self.frame.as_df()
+        try:
+            df.loc[key] = value
+        except KeyError:
+            df[key] = value
+
+        self.frame.update_parquet(df)
+
     def __getitem__(self, item):
         def _is_boolean():
-            return all(map(lambda x: isinstance(x, bool), col))
+            return all(map(lambda x: isinstance(x, (bool, np.bool_)), col))
 
         def _is_id():
             return all(map(lambda x: isinstance(x, (str, int)), col))
 
+        def _is_tuple():
+            return all(map(lambda x: isinstance(x, tuple), col))
+
         if isinstance(item, tuple):
             row, col = item
-            col = [col] if isinstance(col, (int, str)) else col
-            if _is_boolean() and self.shape[1] == len(item):
+            col = [col] if isinstance(col, (int, str, tuple)) else col
+            if (_is_boolean() and self.shape[1] == len(col)):
                 mi = self.columns[col]
             elif _is_id():
                 mi = self.columns[self.columns.get_level_values("id").isin(col)]
+            elif _is_tuple():
+                arr = [ix in col for ix in self.columns]
+                mi = self.columns[arr]
             else:
-                raise IndexError("Cannot slice ParquetFrame. Column slice only"
-                                 "accepts list of int ids or boolean array.")
+                raise IndexError("Cannot slice ParquetFrame. Column slice only "
+                                 "accepts list of int ids, boolean arrays or"
+                                 "multiindex tuples.")
             if mi.empty:
                 raise KeyError(
                     f"Cannot find ids: {', '.join([str(i) for i in col])}"
@@ -54,7 +74,13 @@ class ParquetIndexer:
             str_col = None
 
         df = self.frame.as_df(columns=str_col)
-        return df.loc[row]
+        df = df.loc[row]
+
+        if len(df.columns) == 1:
+            # reduce dimension
+            df = df.iloc[:, 0]
+
+        return df
 
 
 class ParquetFrame:
@@ -65,14 +91,15 @@ class ParquetFrame:
         self.store_parquet(df)
 
     def __del__(self):
+        print("REMOVING PARQUET FRAME " + str(self.table_path))
         with contextlib.suppress(FileNotFoundError):
             os.remove(self.table_path)
 
     def __getitem__(self, item):
-        return self.loc[:, item]
+        return self._indexer[:, item]
 
     def __setitem__(self, key, value):
-        pass
+        self._indexer[key] = value
 
     @property
     def metadata(self):
@@ -116,10 +143,28 @@ class ParquetFrame:
         self.update_parquet(df)
 
     def as_df(self, columns=None):
+
+        def to_int(val):
+            try:
+                return int(val)
+            except ValueError:
+                return val
+
         table = pq.read_pandas(self.table_path, columns=columns)
         df = table.to_pandas()
         del table  # not necessary, but a good practice
+
+        # destringify numeric ids
+        header_df = df.columns.to_frame(index=False)
+        header_df["id"] = header_df["id"].apply(to_int)
+        df.columns = pd.MultiIndex.from_frame(header_df)
+
         return df
+
+    def drop(self, *args, **kwargs):
+        df = self.as_df()
+        df.drop(*args, **kwargs)
+        self.update_parquet(df)
 
     def store_parquet(self, df):
         # stringify ids as parquet index cannot be numeric
@@ -143,5 +188,5 @@ class ParquetData(DFData):
         super().__init__()
         self.tables = {k: ParquetFrame(v, k, pardir) for k, v in tables.items()}
 
-    def relative_table_paths(self, path: Path) -> List[str]:
-        return [str(tbl.relative_to(path)) for tbl in self.tables.values()]
+    def relative_table_paths(self, rel_to: Path) -> List[str]:
+        return [str(tbl.relative_to(rel_to)) for tbl in self.tables.values()]

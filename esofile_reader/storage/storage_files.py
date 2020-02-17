@@ -101,17 +101,18 @@ class DFFile(BaseFile):
 
 
 class ParquetFile(BaseFile):
-    def __init__(self,
-                 id_: int,
-                 file_path: str,
-                 file_name: str,
-                 data: DFData,
-                 file_created: datetime,
-                 search_tree,
-                 totals,
-                 pardir,
-                 name=None
-                 ):
+    def __init__(
+            self,
+            id_: int,
+            file_path: str,
+            file_name: str,
+            data: DFData,
+            file_created: datetime,
+            search_tree,
+            totals,
+            pardir,
+            name=None
+    ):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path
@@ -120,11 +121,12 @@ class ParquetFile(BaseFile):
         self.search_tree = search_tree
         self.totals = totals
         self.path = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
+        shutil.rmtree(self.path, ignore_errors=True)
         self.path.mkdir()
         self.data = ParquetData(data.tables, self.path)
 
     def __del__(self):
-        print("REMOVING PARQUET FILE " + str(self.id_))
+        print("REMOVING PARQUET FILE " + str(self.path))
         shutil.rmtree(self.path, ignore_errors=True)
 
     def as_dict(self):
@@ -134,6 +136,5 @@ class ParquetFile(BaseFile):
             "file_name": self.file_name,
             "file_created": self.file_created.timestamp(),
             "totals": self.totals,
-            "results_tables": self.data.relative_results_paths(self.path),
+            "results_tables": self.data.relative_table_paths(self.path),
         }
-

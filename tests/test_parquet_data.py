@@ -5,15 +5,18 @@ import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
 from esofile_reader import EsoFile, Variable
+from esofile_reader.storage.storage_files import ParquetFile
 from tests import ROOT
 from datetime import datetime
 
 
-class TestDFData(unittest.TestCase):
+class TestParquetData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        ef = EsoFile(file_path, ignore_peaks=True)
+        _ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data, _ef.file_created,
+                             _ef.search_tree, False, "")
 
     def test_get_available_intervals(self):
         intervals = self.ef.data.get_available_intervals()
