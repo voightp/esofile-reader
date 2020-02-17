@@ -83,10 +83,13 @@ class ParquetIndexer:
 
 
 class ParquetFrame:
+    CHUNK_SIZE = 100
+
     def __init__(self, df, name, pardir):
-        self.table_path = Path(pardir, f"results-{name}.parquet")
+        self.root_path = Path(pardir, f"results-{name}")
+        self.root_path.mkdir()
+        self.parquets = {}
         self._indexer = ParquetIndexer(self)
-        self._temp = None
         self._index = df.index
         self._columns = df.columns
         self.store_parquet(df)
