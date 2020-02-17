@@ -23,10 +23,8 @@ class ParquetIndexer:
 
     """
 
-    def __init__(self, frame, columns, shape):
+    def __init__(self, frame):
         self.frame = frame
-        self.columns = columns
-        self.shape = shape
 
     def __setitem__(self, key, value):
         df = self.frame.as_df()
@@ -35,6 +33,7 @@ class ParquetIndexer:
         except KeyError:
             df[key] = value
 
+        self.frame._columns = df.columns
         self.frame.update_parquet(df)
 
     def __getitem__(self, item):
@@ -50,13 +49,13 @@ class ParquetIndexer:
         if isinstance(item, tuple):
             row, col = item
             col = [col] if isinstance(col, (int, str, tuple)) else col
-            if (_is_boolean() and self.shape[1] == len(col)):
-                mi = self.columns[col]
+            if _is_boolean() and self.frame.columns.size == len(col):
+                mi = self.frame.columns[col]
             elif _is_id():
-                mi = self.columns[self.columns.get_level_values("id").isin(col)]
+                mi = self.frame.columns[self.frame.columns.get_level_values("id").isin(col)]
             elif _is_tuple():
-                arr = [ix in col for ix in self.columns]
-                mi = self.columns[arr]
+                arr = [ix in col for ix in self.frame.columns]
+                mi = self.frame.columns[arr]
             else:
                 raise IndexError("Cannot slice ParquetFrame. Column slice only "
                                  "accepts list of int ids, boolean arrays or"
@@ -86,8 +85,10 @@ class ParquetIndexer:
 class ParquetFrame:
     def __init__(self, df, name, pardir):
         self.table_path = Path(pardir, f"results-{name}.parquet")
-        self._indexer = ParquetIndexer(self, df.columns, df.shape)
+        self._indexer = ParquetIndexer(self)
         self._temp = None
+        self._index = df.index
+        self._columns = df.columns
         self.store_parquet(df)
 
     def __del__(self):
@@ -106,25 +107,25 @@ class ParquetFrame:
         # metadata.metadata returns metadata b' string
         return pq.ParquetFile(self.table_path).metadata.metadata
 
-    @property
-    def schema(self):
-        return pq.ParquetFile(self.table_path).schema
+    # @property
+    # def index(self):
+    # # extract index name from table metadata
+    # m = self.metadata[b"pandas"].decode("UTF-8")
+    # p = re.compile("\"index_columns\": \[\"(\S*)\"\]")
+    # name = p.search(m).groups()[0]
+    #
+    # # read index column and create pandas index
+    # table = pq.read_table(self.table_path, columns=[name])
+    # data = table.column(name).to_pandas()
+    # return pd.Index(data, name=name)
 
     @property
     def index(self):
-        # extract index name from table metadata
-        m = self.metadata[b"pandas"].decode("UTF-8")
-        p = re.compile("\"index_columns\": \[\"(\S*)\"\]")
-        name = p.search(m).groups()[0]
-
-        # read index column and create pandas index
-        table = pq.read_table(self.table_path, columns=[name])
-        data = table.column(name).to_pandas()
-        return pd.Index(data, name=name)
+        return self._index
 
     @property
     def columns(self):
-        return self._indexer.columns
+        return self._columns
 
     @property
     def loc(self):
@@ -150,7 +151,7 @@ class ParquetFrame:
             except ValueError:
                 return val
 
-        table = pq.read_pandas(self.table_path, columns=columns)
+        table = pq.read_pandas(self.table_path, columns=columns, memory_map=True)
         df = table.to_pandas()
         del table  # not necessary, but a good practice
 
@@ -164,9 +165,13 @@ class ParquetFrame:
     def drop(self, *args, **kwargs):
         df = self.as_df()
         df.drop(*args, **kwargs)
+        self._columns = df.columns
         self.update_parquet(df)
 
     def store_parquet(self, df):
+        # store original columns as str operation will mutate the original
+        original_columns = df.columns.copy()
+
         # stringify ids as parquet index cannot be numeric
         header_df = df.columns.to_frame(index=False)
         header_df["id"] = header_df["id"].astype(str)
@@ -175,11 +180,12 @@ class ParquetFrame:
         results_table = pa.Table.from_pandas(df)
         pq.write_table(results_table, self.table_path)
 
+        # restore the original column index
+        df.columns = original_columns
+
     def update_parquet(self, df):
         with contextlib.suppress(FileNotFoundError):
             os.remove(self.table_path)
-        self._indexer.columns = df.columns
-        self._indexer.shape = df.shape
         self.store_parquet(df)
 
 
