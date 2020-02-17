@@ -1,6 +1,7 @@
 import contextlib
 import os
 import re
+import math
 import numpy as np
 from pathlib import Path
 from typing import List
@@ -88,11 +89,12 @@ class ParquetFrame:
     def __init__(self, df, name, pardir):
         self.root_path = Path(pardir, f"results-{name}")
         self.root_path.mkdir()
-        self.parquets = {}
+        self.chunks = None
         self._indexer = ParquetIndexer(self)
         self._index = df.index
         self._columns = df.columns
-        self.store_parquet(df)
+
+        self.store_df(df)
 
     def __del__(self):
         print("REMOVING PARQUET FRAME " + str(self.table_path))
@@ -104,23 +106,6 @@ class ParquetFrame:
 
     def __setitem__(self, key, value):
         self._indexer[key] = value
-
-    @property
-    def metadata(self):
-        # metadata.metadata returns metadata b' string
-        return pq.ParquetFile(self.table_path).metadata.metadata
-
-    # @property
-    # def index(self):
-    # # extract index name from table metadata
-    # m = self.metadata[b"pandas"].decode("UTF-8")
-    # p = re.compile("\"index_columns\": \[\"(\S*)\"\]")
-    # name = p.search(m).groups()[0]
-    #
-    # # read index column and create pandas index
-    # table = pq.read_table(self.table_path, columns=[name])
-    # data = table.column(name).to_pandas()
-    # return pd.Index(data, name=name)
 
     @property
     def index(self):
@@ -146,7 +131,7 @@ class ParquetFrame:
         df.columns = val
         self.update_parquet(df)
 
-    def as_df(self, columns=None):
+    def get_df(self, name: str, columns: List[str] = None):
 
         def to_int(val):
             try:
@@ -154,7 +139,11 @@ class ParquetFrame:
             except ValueError:
                 return val
 
-        table = pq.read_pandas(self.table_path, columns=columns, memory_map=True)
+        table = pq.read_pandas(
+            Path(self.root_path, name),
+            columns=columns,
+            memory_map=True
+        )
         df = table.to_pandas()
         del table  # not necessary, but a good practice
 
@@ -165,31 +154,56 @@ class ParquetFrame:
 
         return df
 
-    def drop(self, *args, **kwargs):
-        df = self.as_df()
-        df.drop(*args, **kwargs)
+    def store_df(self, df):
+        n = math.ceil(df.size[1] / self.CHUNK_SIZE)
+        start = 0
+        frames = []
+        for i in range(n):
+            dfi = df.iloc[:, 0:start + self.CHUNK_SIZE]
+
+            # stringify ids as parquet index cannot be numeric
+            header_df = dfi.columns.to_frame(index=False)
+            header_df["id"] = header_df["id"].astype(str)
+            dfi.columns = pd.MultiIndex.from_frame(header_df)
+            name = f"chunk-{i}.parquet"
+
+            frames.append(
+                pd.DataFrame({"id": header_df["id"], "chunk": [name] * dfi.shape[1]})
+            )
+            self.store_parquet(name, dfi)
+            start += self.CHUNK_SIZE
+
+        self.chunks = pd.concat(frames)
+
+    def find_parquet(self, ids: List[str]):
+        pairs = {}
+        out = self.chunks.loc[self.chunks["id"].isin(ids)]
+        groups = out.groupby(["chunk"])
+        for key, df in groups:
+            pairs[key] = df.loc[:, "id"].tolist()
+        return pairs
+
+    def store_parquet(self, name: str, df: pd.DataFrame):
+        table = pa.Table.from_pandas(df)
+        pq.write_table(table, Path(self.root_path, name))
+
+    def update_parquet(self, name: str, df: pd.DataFrame):
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(Path(self.root_path, name))
+        self.store_parquet(name, df)
+
+    def drop(self, columns: List[int], **kwargs):
+        ids = [str(i) for i in columns]
+        pairs = self.find_parquet(ids)
+
+        for chunk, ids in pairs.items():
+            df = self.get_df(chunk)
+            df = self.as_df()
+            df.drop(columns=ids, inplace=True, level="id")
+
+        # TODO str vs int, columns setter
         self._columns = df.columns
         self.update_parquet(df)
-
-    def store_parquet(self, df):
-        # store original columns as str operation will mutate the original
-        original_columns = df.columns.copy()
-
-        # stringify ids as parquet index cannot be numeric
-        header_df = df.columns.to_frame(index=False)
-        header_df["id"] = header_df["id"].astype(str)
-        df.columns = pd.MultiIndex.from_frame(header_df)
-
-        results_table = pa.Table.from_pandas(df)
-        pq.write_table(results_table, self.table_path)
-
-        # restore the original column index
-        df.columns = original_columns
-
-    def update_parquet(self, df):
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(self.table_path)
-        self.store_parquet(df)
 
 
 class ParquetData(DFData):
