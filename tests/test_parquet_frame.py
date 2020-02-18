@@ -96,7 +96,7 @@ class TestParquetFrame(TestCase):
 
         assert_index_equal(
             new_columns,
-            self.pqf.get_full_df().columns
+            self.pqf.get_df().columns
         )
 
     def test_columns_setter_invalid_class(self):
@@ -106,6 +106,9 @@ class TestParquetFrame(TestCase):
     def test_columns_setter_invalid_count(self):
         with self.assertRaises(IndexError):
             self.pqf.columns = pd.Index(list("abcdefghijklm"))
+
+    def test_column_indexing(self):
+        self.pdf[2]
 
     def test_loc(self):
         self.pqf[:]
