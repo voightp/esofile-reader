@@ -26,7 +26,7 @@ class SQLData(BaseData):
         ft = self.storage.file_table
 
         with self.storage.engine.connect() as conn:
-            conn.execute(ft.update().where(ft.c.id == self.id_).values(file_name=name))
+            conn.execute(ft.update_columns().where(ft.c.id == self.id_).values(file_name=name))
 
     def _get_table(self, column: str, ft: Table) -> Table:
         with self.storage.engine.connect() as conn:
