@@ -67,7 +67,6 @@ class DFData(BaseData):
         return list(self.tables.keys())
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
-        """ Store table in database. """
         index = self.tables[interval].index
         if isinstance(index, pd.DatetimeIndex):
             return index
@@ -88,8 +87,7 @@ class DFData(BaseData):
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
         all_variables = {}
         for interval in self.get_available_intervals():
-            ids = self.get_variables_dct(interval)
-            all_variables[interval] = ids
+            all_variables[interval] = self.get_variables_dct(interval)
         return all_variables
 
     def get_variable_ids(self, interval: str) -> List[int]:

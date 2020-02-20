@@ -69,6 +69,10 @@ class BaseFile:
         """ Get all variables for given interval. """
         return self.data.get_variables_dct(interval)
 
+    def get_header_df(self, interval: str):
+        """ Get all variables for given interval. """
+        return self.data.get_variables_df(interval)
+
     def rename(self, name: str) -> None:
         """ Set a new file name. """
         self.file_name = name
@@ -324,8 +328,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        variables = self.data.get_variables_dct(interval)
-        while variable in variables.values():
+        while self.search_tree.get_ids(*variable):
             i += 1
             variable = add_num()
 
