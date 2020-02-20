@@ -194,12 +194,12 @@ class TestParquetFrame(TestCase):
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_store_parquet(self):
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
         self.pqf.store_parquet("test_parquet.parquet", df)
         self.assertTrue(Path(self.pqf.root_path, "test_parquet.parquet").exists())
 
     def test_update_parquet(self):
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
         self.pqf.store_parquet("test_parquet.parquet", df)
         self.assertTrue(Path(self.pqf.root_path, "test_parquet.parquet").exists())
 

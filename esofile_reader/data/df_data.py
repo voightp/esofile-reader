@@ -106,7 +106,7 @@ class DFData(BaseData):
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
         cond = mi.get_level_values("id").isin(self.SPECIAL_COLUMNS)
-        return mi[cond].to_frame(index=False)
+        return mi[~cond].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
