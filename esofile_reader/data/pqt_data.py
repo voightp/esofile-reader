@@ -397,4 +397,9 @@ class ParquetData(DFData):
         self.tables = {k: ParquetFrame(v, k, pardir) for k, v in tables.items()}
 
     def relative_table_paths(self, rel_to: Path) -> List[str]:
-        return [str(tbl.relative_to(rel_to)) for tbl in self.tables.values()]
+        all_rel_paths = []
+        for tbl in self.tables.values():
+            rel_paths = [str(pth.relative_to(rel_to)) for pth in tbl.chunk_paths]
+            all_rel_paths.extend(rel_paths)
+
+        return all_rel_paths

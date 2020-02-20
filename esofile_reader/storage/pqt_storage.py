@@ -26,6 +26,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def store_file(self, results_file: ResultsFile) -> int:
+        """ Store results file as 'ParquetFile'. """
         id_ = self._id_generator()
         file = ParquetFile(
             id_=id_,
@@ -41,10 +42,12 @@ class ParquetStorage(DFStorage):
         return id_
 
     def delete_file(self, id_: int) -> None:
+        """ Delete file with given id. """
         shutil.rmtree(self.files[id_].path, ignore_errors=True)
         del self.files[id_]
 
     def save_as(self, dir_, name):
+        """ Save parquet storage into given location. . """
         # store json summary file
         files = [f.as_dict() for f in self.files.values()]
         tempson = str(Path(self.temp_dir, "files.json"))
@@ -63,20 +66,9 @@ class ParquetStorage(DFStorage):
         self.path = path
 
     def save(self):
+        """ Save parquet storage. """
         if not self.path:
             raise FileNotFoundError("Path not defined! Call 'save_as' first.")
         dir_ = self.path.parent
         name = self.path.with_suffix("").name
         self.save_as(dir_, name)
-
-
-if __name__ == "__main__":
-    p = Path(Path(__file__).parents[2], "tests", "eso_files", "eplusout1.eso")
-    # p = "C:/users/vojtechp1/desktop/eplusout.eso"
-    st = ParquetStorage()
-    st.store_file(EsoFile(p))
-    st.store_file(EsoFile(p))
-    st.store_file(EsoFile(p))
-    st.save_as(r"C:/users/vojte/desktop", "blabla")
-    st.delete_file(0)
-    st.save()

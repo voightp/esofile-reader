@@ -121,8 +121,7 @@ class ParquetFile(BaseFile):
         self.search_tree = search_tree
         self.totals = totals
         self.path = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
-        shutil.rmtree(self.path, ignore_errors=True)
-        self.path.mkdir()
+        self.path.mkdir(exist_ok=True)
         self.data = ParquetData(data.tables, self.path)
 
     def __del__(self):
@@ -136,5 +135,5 @@ class ParquetFile(BaseFile):
             "file_name": self.file_name,
             "file_created": self.file_created.timestamp(),
             "totals": self.totals,
-            "results_tables": self.data.relative_table_paths(self.path),
+            "results_dir": self.path.name,
         }

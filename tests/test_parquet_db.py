@@ -8,6 +8,7 @@ from esofile_reader.storage.sql_storage import SQLStorage
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader import TotalsFile
 from tests import ROOT
+from esofile_reader.data.pqt_data import ParquetFrame
 
 
 class TestParquetDB(unittest.TestCase):
@@ -71,6 +72,7 @@ class TestParquetDB(unittest.TestCase):
         self.assertFalse(path.exists())
 
     def test_06_save_storage(self):
+        ParquetFrame.CHUNK_SIZE = 10
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
         self.storage.save_as("foo", "bar")
