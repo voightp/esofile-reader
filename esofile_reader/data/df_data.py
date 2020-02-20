@@ -94,7 +94,7 @@ class DFData(BaseData):
 
     def get_variable_ids(self, interval: str) -> List[int]:
         mi = self.tables[interval].columns.get_level_values("id").tolist()
-        return list(filter(lambda x: x not in [N_DAYS_COLUMN, DAY_COLUMN], mi))
+        return list(filter(lambda x: x not in self.SPECIAL_COLUMNS, mi))
 
     def get_all_variable_ids(self) -> List[int]:
         all_ids = []
@@ -104,8 +104,9 @@ class DFData(BaseData):
         return all_ids
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
-        df = self.get_all_results(interval)
-        return df.columns.to_frame(index=False)
+        mi = self.tables[interval].columns
+        cond = mi.get_level_values("id").isin(self.SPECIAL_COLUMNS)
+        return mi[cond].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
@@ -160,11 +161,11 @@ class DFData(BaseData):
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
     def _get_special_column(
-        self,
-        interval: str,
-        name: str,
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            name: str,
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
@@ -177,27 +178,27 @@ class DFData(BaseData):
         return col
 
     def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
     def get_all_results(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
+        cond = mi.get_level_values("id").isin(self.SPECIAL_COLUMNS)
         return self.tables[interval].loc[:, ~cond].copy()
 
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
@@ -220,12 +221,12 @@ class DFData(BaseData):
         return df
 
     def _global_peak(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime,
-        end_date: datetime,
-        max_: bool = True,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
@@ -239,19 +240,19 @@ class DFData(BaseData):
         return df
 
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

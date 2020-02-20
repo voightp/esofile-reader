@@ -5,13 +5,14 @@ from typing import Sequence, List, Dict
 import pandas as pd
 
 from esofile_reader.utils.mini_classes import Variable
-
+from esofile_reader.constants import DAY_COLUMN, N_DAYS_COLUMN
 
 class BaseData(ABC):
     """
     An abstract class to define metadata for result storage.
 
     """
+    SPECIAL_COLUMNS = [DAY_COLUMN, N_DAYS_COLUMN]
 
     @abstractmethod
     def get_available_intervals(self) -> List[str]:
