@@ -189,6 +189,11 @@ class ParquetFrame:
 
     def store_parquet(self, chunk: str, df: pd.DataFrame) -> None:
         """ Save df as parquet. """
+        # stringify ids as parquet index cannot be numeric
+        header_df = df.columns.to_frame(index=False)
+        header_df["id"] = header_df["id"].astype(str)
+        df.columns = pd.MultiIndex.from_frame(header_df)
+
         table = pa.Table.from_pandas(df)
         pq.write_table(table, Path(self.root_path, chunk))
 
@@ -270,11 +275,6 @@ class ParquetFrame:
                 dfi.columns.get_level_values("id").tolist()
             )
             frames.append(chunk_df)
-
-            # stringify ids as parquet index cannot be numeric
-            header_df = dfi.columns.to_frame(index=False)
-            header_df["id"] = header_df["id"].astype(str)
-            dfi.columns = pd.MultiIndex.from_frame(header_df)
 
             self.store_parquet(chunk_name, dfi)
             start += self.CHUNK_SIZE
