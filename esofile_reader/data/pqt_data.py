@@ -54,7 +54,7 @@ class ParquetIndexer:
             if _is_id():
                 ids = all_ids.where(all_ids.isin(col)).dropna().tolist()
             elif _is_boolean() and self.frame.columns.size == len(col):
-                ids = all_ids.where(col).dropna().values
+                ids = all_ids.where(col).dropna().tolist()
             elif _is_tuple():
                 ids = [ix[0] for ix in col if ix in self.frame.columns]
             else:
@@ -85,20 +85,21 @@ class ParquetIndexer:
 
         if isinstance(key, tuple):
             row, col = key
-        else:
-            # simple scenario, work with full df
-            row = key
-            col = None
-
-        col = [col] if isinstance(col, (int, str, tuple)) else col
-        ids = []
-        for item in col:
-            if item in self.frame.columns:
-                ids.append(item[0])
-            elif item in self.frame.columns.get_level_values("id"):
-                ids.append(item)
+            if all(map(lambda x: isinstance(x, (bool, np.bool_)), col)):
+                ids = self.frame.columns.get_level_values("id")[col].tolist()
             else:
-                self.frame.insert_column(item, value)
+                col = [col] if isinstance(col, (int, str, tuple)) else col
+                ids = []
+                for item in col:
+                    if item in self.frame.columns:
+                        ids.append(item[0])
+                    elif item in self.frame.columns.get_level_values("id"):
+                        ids.append(item)
+                    else:
+                        self.frame.insert_column(item, value)
+        else:
+            row = key
+            ids = self.frame.columns.get_level_values("id").tolist()
 
         if ids:
             self.frame.update_columns(ids, value, rows=row)
@@ -128,6 +129,7 @@ class ParquetFrame:
 
     @property
     def chunk_paths(self) -> List[Path]:
+        """ Return list of absolute paths of all parquet chunks. """
         paths = []
         for chunk in self._chunks_table["chunk"].drop_duplicates().tolist():
             paths.append(Path(self.root_path, chunk))
@@ -186,15 +188,18 @@ class ParquetFrame:
             self.update_parquet(chunk_name, df)
 
     def store_parquet(self, chunk: str, df: pd.DataFrame) -> None:
+        """ Save df as parquet. """
         table = pa.Table.from_pandas(df)
         pq.write_table(table, Path(self.root_path, chunk))
 
     def update_parquet(self, chunk: str, df: pd.DataFrame) -> None:
+        """ Update previously stored parquet.  """
         with contextlib.suppress(FileNotFoundError):
             os.remove(Path(self.root_path, chunk))
         self.store_parquet(chunk, df)
 
     def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
+        """ Extract DataFrame from previously stored parquet file."""
 
         def to_int(val):
             try:
@@ -227,6 +232,7 @@ class ParquetFrame:
         return df
 
     def get_df(self, ids: List[int] = None) -> pd.DataFrame:
+        """ Get a single DataFrame from multiple parquet files. """
         if ids:
             pairs = self.get_chunk_id_pairs(ids)
         else:
@@ -236,15 +242,23 @@ class ParquetFrame:
         for chunk_name, ids in pairs.items():
             frames.append(self.get_df_from_parquet(chunk_name, ids=ids))
 
-        return pd.concat(frames, axis=1, sort=False)
+        try:
+            df = pd.concat(frames, axis=1, sort=False)
+        except ValueError:
+            # DataFrame is empty, create an empty dummy
+            df = pd.DataFrame(index=self.index, columns=self.columns)
+
+        return df
 
     @staticmethod
     def create_chunk(ids: List[int]) -> Tuple[str, pd.DataFrame]:
+        """ Create unique chunk name and a piece of reference table. """
         chunk_name = f"{str(uuid1())}.parquet"
         chunk_df = pd.DataFrame({"id": ids, "chunk": [chunk_name] * len(ids)})
         return chunk_name, chunk_df
 
     def store_df(self, df: pd.DataFrame) -> None:
+        """ Save DataFrame as a set of parquet files. """
         n = math.ceil(df.shape[1] / self.CHUNK_SIZE)
         start = 0
         frames = []
@@ -265,9 +279,19 @@ class ParquetFrame:
             self.store_parquet(chunk_name, dfi)
             start += self.CHUNK_SIZE
 
-        self._chunks_table = pd.concat(frames)
+        self._chunks_table = pd.concat(frames, ignore_index=True)
 
-    def add_column_item(self, variable: tuple, pos: int = None) -> None:
+    def update_columns(
+            self, ids: List[int], array: Sequence, rows: Union[slice, Sequence] = slice(None, None, None)
+    ) -> None:
+        """ Update column MultiIndex in stored parquet files. """
+        for chunk_name, _ in self.get_chunk_id_pairs(ids).items():
+            df = self.get_df_from_parquet(chunk_name)
+            df.loc[rows, df.columns.get_level_values("id").isin(ids)] = array
+            self.update_parquet(chunk_name, df)
+
+    def add_mi_column_item(self, variable: tuple, pos: int = None) -> None:
+        """ Insert or append new item into column MultiIndex. """
         mi = []
         if not pos or pos == len(self._columns):
             mi = self._columns.tolist()
@@ -283,18 +307,20 @@ class ParquetFrame:
                     mi.append(item)
         self._columns = pd.MultiIndex.from_tuples(mi, names=self._columns.names)
 
-    def update_columns(
-            self, ids: List[int], array: Sequence, rows: Union[slice, Sequence] = slice(None, None, None)
-    ) -> None:
-        for chunk_name, _ in self.get_chunk_id_pairs(ids).items():
-            df = self.get_df_from_parquet(chunk_name)
-            df.loc[rows, df.columns.get_level_values("id").isin(ids)] = array
-            self.update_parquet(chunk_name, df)
-
     def insert_column(self, item: Tuple[int, str, str, str, str], array: Sequence) -> None:
-        smallest = self._chunks_table.groupby("chunk").count().iloc[0]
-        chunk_name = smallest.name
-        count = smallest.iloc[0]
+        """ Insert new column into frame. """
+        if isinstance(item, (str, int)):
+            # special columns do not use numeric ids
+            item = (item, "", "", "", "")
+
+        try:
+            smallest = self._chunks_table.groupby("chunk").count().iloc[0]
+            chunk_name = smallest.name
+            count = smallest.iloc[0]
+        except IndexError:
+            # index error is raised when adding columns into empty frame
+            # setting count to chunk size will invoke a new parquet
+            count = self.CHUNK_SIZE
 
         if count == self.CHUNK_SIZE:
             # create a new chunk
@@ -314,11 +340,12 @@ class ParquetFrame:
             df[item] = array
             chunk_df = pd.DataFrame({"id": item[0], "chunk": [chunk_name]})
 
-        self.add_column_item(item, pos=pos)
-        self._chunks_table = self._chunks_table.append(chunk_df)
+        self.add_mi_column_item(item, pos=pos)
         self.update_parquet(chunk_name, df)
+        self._chunks_table = self._chunks_table.append(chunk_df, ignore_index=True)
 
     def get_all_chunk_id_pairs(self) -> Dict[str, None]:
+        """ Get a hash of all chunk name: ids pairs. """
         pairs = {}
         groups = self._chunks_table.groupby(["chunk"])
         for chunk_name, chunk_df in groups:
@@ -327,6 +354,7 @@ class ParquetFrame:
         return pairs
 
     def get_chunk_id_pairs(self, ids: List[int]) -> Dict[str, List[int]]:
+        """ Get a hash of chunk name: ids pairs for given ids. """
         pairs = {}
         out = self._chunks_table.loc[self._chunks_table["id"].isin(ids)]
         groups = out.groupby(["chunk"])
@@ -334,26 +362,33 @@ class ParquetFrame:
             pairs[chunk_name] = chunk_df.loc[:, "id"].tolist()
         return pairs
 
-    def drop(self, columns: List[int], **kwargs) -> None:
+    def drop(self, columns: List[int], inplace=True, level="id") -> None:
+        """ Drop columns with given ids from frame. """
+        ids = columns
         # update columns index
+        if level != "id":
+            raise IndexError("Parquet drop level needs to be 'id'.")
         mi = []
         for item in self._columns:
             id_ = item[0]
-            if id_ in columns:
+            if id_ not in ids:
                 mi.append(item)
         self._columns = pd.MultiIndex.from_tuples(mi, names=self._columns.names)
 
         # update parquet files
-        for chunk_name, ids in self.get_chunk_id_pairs(columns).items():
+        for chunk_name, chunk_ids in self.get_chunk_id_pairs(ids).items():
             df = self.get_df_from_parquet(chunk_name)
-            df.drop(columns=ids, inplace=True, level="id")
+            df.drop(columns=chunk_ids, inplace=True, level="id")
 
             if df.empty:
                 os.remove(Path(self.root_path, chunk_name))
             else:
                 self.update_parquet(chunk_name, df)
 
-        self._chunks_table.drop(self._chunks_table["id"].isin(columns).index, axis=1)
+        # update chunks reference
+        self._chunks_table.drop(
+            self._chunks_table.loc[self._chunks_table["id"].isin(ids)].index, axis=0, inplace=True
+        )
 
 
 class ParquetData(DFData):

@@ -7,7 +7,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from datetime import datetime
 from pathlib import Path
+import numpy as np
 
+# global incrementor to create unique parquet file for each test
 i = 0
 
 
@@ -177,6 +179,13 @@ class TestParquetFrame(TestCase):
         self.pqf.loc[:, var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
+    def test_loc_setter_boolean_arr(self):
+        new_col = [1, 2, 3]
+        arr = [False] * 7 + [True] + [False] * 6
+        self.test_df.loc[:, arr] = new_col
+        self.pqf.loc[:, arr] = new_col
+        assert_frame_equal(self.test_df, self.pqf.get_df())
+
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
@@ -204,23 +213,35 @@ class TestParquetFrame(TestCase):
         self.assertEqual(14, len(list(self.pqf.root_path.iterdir())))
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
-    # def test_insert_column(self):
-    #     self.fail()
-    #
-    # def test_get_all_chunk_id_pairs(self):
-    #     self.fail()
-    #
-    # def test_get_chunk_id_pairs(self):
-    #     self.fail()
-    #
-    # def test_drop(self):
-    #     self.fail()
-    #
-    # def test_delete_column_items(self):
-    #     self.fail()
-    #
-    # def test_update_column_item(self):
-    #     self.fail()
-    #
-    # def test_add_column_item(self):
-    #     self.fail()
+    def test_insert_column(self):
+        self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
+        assert_series_equal(
+            pd.Series(
+                ["a", "b", "c"],
+                name=(100, "this", "is", "dummy", "variable"),
+                index=pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+            ),
+            self.pqf[100]
+        )
+
+    def test_drop(self):
+        self.test_df.drop(columns=[6, 10], inplace=True, level="id")
+        self.pqf.drop(columns=[6, 10], inplace=True, level="id")
+        assert_frame_equal(self.test_df, self.pqf.get_df())
+
+    def test_drop_all(self):
+        self.test_df.drop(
+            columns=self.test_df.columns.get_level_values("id").tolist(), inplace=True, level="id"
+        )
+
+        self.pqf.drop(
+            columns=self.pqf.columns.get_level_values("id").tolist(), inplace=True, level="id"
+        )
+
+        self.assertTrue(self.pqf.get_df().empty)
+        assert_frame_equal(self.test_df, self.pqf.get_df(), check_column_type=False)
+
+        # add dummy variable to check frame
+        self.test_df["foo"] = [1, 2, 3]
+        self.pqf["foo"] = [1, 2, 3]
+        assert_frame_equal(self.test_df, self.pqf.get_df(), check_column_type=False)
