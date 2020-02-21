@@ -10,6 +10,7 @@ from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from pathlib import Path
+from typing import Union
 import json
 
 
@@ -128,12 +129,23 @@ class ParquetFile(BaseFile):
         print("REMOVING PARQUET FILE " + str(self.path))
         shutil.rmtree(self.path, ignore_errors=True)
 
+    @classmethod
+    def load_file(cls, path: Union[str, Path]):
+        pass
+
     def as_dict(self):
+        name = self.path.name
         return {
             "id_": self.id_,
+            "name": name,
             "file_path": str(self.file_path),
             "file_name": self.file_name,
             "file_created": self.file_created.timestamp(),
             "totals": self.totals,
-            "results_dir": self.path.name,
+            "chunks": self.data.get_all_chunks()
         }
+
+    def save_meta(self):
+        tempson = str(Path(self.path, f"info.json"))
+        with open(tempson, "w") as f:
+            json.dump(self.as_dict(), f, indent=4)

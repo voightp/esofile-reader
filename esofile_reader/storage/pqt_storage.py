@@ -49,10 +49,8 @@ class ParquetStorage(DFStorage):
     def save_as(self, dir_, name):
         """ Save parquet storage into given location. . """
         # store json summary file
-        files = [f.as_dict() for f in self.files.values()]
-        tempson = str(Path(self.temp_dir, "files.json"))
-        with open(tempson, "w") as f:
-            json.dump(files, f, indent=4)
+        for f in self.files.values():
+            f.save_meta()
 
         # store all the tempdir content
         zf = shutil.make_archive(str(Path(dir_, f"{name}")), "zip", self.temp_dir)

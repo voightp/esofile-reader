@@ -75,7 +75,7 @@ class TestParquetDB(unittest.TestCase):
         ParquetFrame.CHUNK_SIZE = 10
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
-        self.storage.save_as("foo", "bar")
+        self.storage.save_as("", "bar")
 
     #
     # def test_05_delete_file(self):

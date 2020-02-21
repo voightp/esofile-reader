@@ -128,12 +128,26 @@ class ParquetFrame:
         self._indexer[:, key] = value
 
     @property
+    def name(self):
+        return self.root_path.name
+
+    @property
+    def chunk_names(self) -> List[str]:
+        """ Return a list of all chunk names. """
+        names = []
+        for chunk in self._chunks_table["chunk"].drop_duplicates().tolist():
+            names.append(chunk)
+        return names
+
+    @property
     def chunk_paths(self) -> List[Path]:
         """ Return list of absolute paths of all parquet chunks. """
-        paths = []
-        for chunk in self._chunks_table["chunk"].drop_duplicates().tolist():
-            paths.append(Path(self.root_path, chunk))
-        return paths
+        return [Path(self.root_path, chunk) for chunk in self.chunk_names]
+
+    @property
+    def chunk_rel_paths(self) -> List[Path]:
+        """ Return list of paths relative to parent file directory. """
+        return [path.relative_to(path.parent) for path in self.chunk_paths]
 
     @property
     def index(self) -> pd.Index:
@@ -321,6 +335,7 @@ class ParquetFrame:
             # index error is raised when adding columns into empty frame
             # setting count to chunk size will invoke a new parquet
             count = self.CHUNK_SIZE
+            chunk_name = ""
 
         if count == self.CHUNK_SIZE:
             # create a new chunk
@@ -396,10 +411,8 @@ class ParquetData(DFData):
         super().__init__()
         self.tables = {k: ParquetFrame(v, k, pardir) for k, v in tables.items()}
 
-    def relative_table_paths(self, rel_to: Path) -> List[str]:
-        all_rel_paths = []
+    def get_all_chunks(self) -> Dict[str, List[str]]:
+        chunks = {}
         for tbl in self.tables.values():
-            rel_paths = [str(pth.relative_to(rel_to)) for pth in tbl.chunk_paths]
-            all_rel_paths.extend(rel_paths)
-
-        return all_rel_paths
+            chunks[tbl.name] = tbl.chunk_names
+        return chunks
