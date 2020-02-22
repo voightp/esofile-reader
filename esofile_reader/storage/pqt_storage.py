@@ -32,7 +32,7 @@ class ParquetStorage(DFStorage):
             id_=id_,
             file_path=results_file.file_path,
             file_name=results_file.file_name,
-            data=results_file.data,
+            tables=results_file.data.tables,
             file_created=results_file.file_created,
             search_tree=results_file.search_tree,
             totals=isinstance(results_file, TotalsFile),

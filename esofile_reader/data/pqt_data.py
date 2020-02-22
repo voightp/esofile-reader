@@ -15,7 +15,7 @@ import pyarrow.parquet as pq
 from esofile_reader.data.df_data import DFData
 
 
-class ParquetIndexer:
+class _ParquetIndexer:
     """
     Very simplified indexer to provide partial  compatibility
     with DataFrame.loc[]. Indexer attempts to slice columns
@@ -112,7 +112,7 @@ class ParquetFrame:
         self.root_path = Path(pardir, f"results-{name}").absolute()
         self.root_path.mkdir(exist_ok=True)
         self._chunks_table = None
-        self._indexer = ParquetIndexer(self)
+        self._indexer = _ParquetIndexer(self)
         self._index = df.index
         self._columns = df.columns
         self.store_df(df)
@@ -158,7 +158,7 @@ class ParquetFrame:
         return self._columns
 
     @property
-    def loc(self) -> ParquetIndexer:
+    def loc(self) -> _ParquetIndexer:
         return self._indexer
 
     @index.setter
@@ -217,7 +217,10 @@ class ParquetFrame:
             os.remove(Path(self.root_path, chunk))
         self.store_parquet(chunk, df)
 
-    def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
+    @classmethod
+    def read_parquets(
+            cls, paths: Union[Path, List[Path]], columns: List[str] = None
+    ) -> pd.DataFrame:
         """ Extract DataFrame from previously stored parquet file."""
 
         def to_int(val):
@@ -225,6 +228,30 @@ class ParquetFrame:
                 return int(val)
             except ValueError:
                 return val
+
+        paths = [paths] if not isinstance(paths, list) else paths
+        frames = []
+        for path in paths:
+            table = pq.read_pandas(
+                Path(path),
+                columns=columns,
+                memory_map=True
+            )
+            df = table.to_pandas()
+            del table  # not necessary, but a good practice
+            frames.append(df)
+
+        df = pd.concat(frames, axis=1, sort=False)
+
+        # destringify numeric ids
+        header_df = df.columns.to_frame(index=False)
+        header_df["id"] = header_df["id"].apply(to_int)
+        df.columns = pd.MultiIndex.from_frame(header_df)
+
+        return df
+
+    def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
+        """ Get DataFrame from given chunk. ."""
 
         if ids:
             mi = self.columns[self.columns.get_level_values("id").isin(ids)]
@@ -235,20 +262,7 @@ class ParquetFrame:
         else:
             columns = None
 
-        table = pq.read_pandas(
-            Path(self.root_path, chunk_name),
-            columns=columns,
-            memory_map=True
-        )
-        df = table.to_pandas()
-        del table  # not necessary, but a good practice
-
-        # destringify numeric ids
-        header_df = df.columns.to_frame(index=False)
-        header_df["id"] = header_df["id"].apply(to_int)
-        df.columns = pd.MultiIndex.from_frame(header_df)
-
-        return df
+        return self.read_parquets(Path(self.root_path, chunk_name), columns)
 
     def get_df(self, ids: List[int] = None) -> pd.DataFrame:
         """ Get a single DataFrame from multiple parquet files. """

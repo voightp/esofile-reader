@@ -15,12 +15,12 @@ class TestParquetData(unittest.TestCase):
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         _ef = EsoFile(file_path, ignore_peaks=True)
-        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data, _ef.file_created,
-                             _ef.search_tree, False, "")
+        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data.tables,
+                             _ef.file_created, _ef.search_tree, False, "")
 
     @classmethod
     def tearDownClass(cls):
-        del cls.ef
+        cls.ef = None
 
     def test_get_available_intervals(self):
         intervals = self.ef.data.get_available_intervals()
