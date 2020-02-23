@@ -1,16 +1,20 @@
+import contextlib
 import json
+import os
 import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
 from typing import Union
+from zipfile import ZipFile
 
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
+from esofile_reader.data.df_data import DFData
 from esofile_reader.data.pqt_data import ParquetData, ParquetFrame
 from esofile_reader.data.sql_data import SQLData
-from esofile_reader.data.df_data import DFData
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
@@ -104,6 +108,8 @@ class DFFile(BaseFile):
 
 
 class ParquetFile(BaseFile):
+    EXT = ".chf"
+
     def __init__(
             self,
             id_: int,
@@ -132,15 +138,27 @@ class ParquetFile(BaseFile):
         shutil.rmtree(self.path, ignore_errors=True)
 
     @classmethod
-    def load_file(cls, source_path: Union[str, Path], dest_dir: Union[str, Path]):
-        info = json.load(Path(source_path, "info.json"))
+    def load_file(cls, source_path: Union[str, Path], pardir: Union[str, Path]):
+        source_path = source_path if isinstance(source_path, Path) else Path(source_path)
+
+        # extract content in temp folder
+        with ZipFile(source_path, "r") as zf:
+            tempdir = Path(tempfile.mkdtemp())
+            zf.extractall(tempdir)
+
+        with open(Path(tempdir, "info.json"), "r") as f:
+            info = json.load(f)
 
         df_data = DFData()
         for dir_, names in info["chunks"].items():
             interval = dir_.split("-")[1]
-            paths = [Path(source_path, dir_, name) for name in names]
+            paths = [Path(tempdir, dir_, name) for name in names]
             df_data.populate_table(interval, ParquetFrame.read_parquets(paths))
 
+        # clean up temp files
+        shutil.rmtree(tempdir, ignore_errors=True)
+
+        # create variable search tree
         tree = Tree()
         tree.populate_tree(df_data.get_all_variables_dct())
 
@@ -152,15 +170,18 @@ class ParquetFile(BaseFile):
             tables=df_data.tables,
             totals=info["totals"],
             name=info["name"],
-            pardir=dest_dir,
+            pardir=pardir,
             search_tree=tree
         )
 
         return pqf
 
     def save_meta(self):
-        tempson = str(Path(self.path, f"info.json"))
-        with open(tempson, "w") as f:
+        path = Path(self.path, f"info.json")
+        with contextlib.suppress(FileNotFoundError):
+            path.unlink()
+
+        with open(str(path), "w") as f:
             json.dump({
                 "id": self.id_,
                 "name": self.path.name,
@@ -170,3 +191,19 @@ class ParquetFile(BaseFile):
                 "totals": self.totals,
                 "chunks": self.data.get_all_chunks()
             }, f, indent=4)
+
+    def save_as(self, dir_, name):
+        """ Save parquet storage into given location. . """
+        # store json summary file
+        self.save_meta()
+
+        # store all the tempdir content
+        zf = shutil.make_archive(str(Path(dir_, f"{name}")), "zip", self.path)
+
+        # change zip to custom extension
+        p = Path(zf)
+        path = p.with_suffix(self.EXT)
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path)
+        p.rename(path)
+        self.path = path

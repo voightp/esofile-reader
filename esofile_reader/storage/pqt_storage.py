@@ -1,11 +1,10 @@
-import json
+import contextlib
 import os
 import shutil
 import tempfile
 from pathlib import Path
-import contextlib
+from typing import Union
 
-from esofile_reader.eso_file import EsoFile
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.totals_file import TotalsFile
@@ -24,6 +23,17 @@ class ParquetStorage(DFStorage):
     def __del__(self):
         print("REMOVING PARQUET STORAGE " + str(self.temp_dir))
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    @classmethod
+    def load(cls, path: Union[str, Path]):
+        """ Load ParquetStorage from filesystem. """
+        path = path if isinstance(path, Path) else Path(path)
+        pqs = ParquetStorage(path)
+        files = [Path(path, d) for d in path.iterdir() if d.suffix == ParquetFile.EXT]
+        for f in files:
+            pqf = ParquetFile.load_file(f, pqs.temp_dir)
+            pqs.files[pqf.id_] = pqf
+        return pqs
 
     def store_file(self, results_file: ResultsFile) -> int:
         """ Store results file as 'ParquetFile'. """

@@ -1,14 +1,15 @@
 import os
 import unittest
-
+import shutil
 from pathlib import Path
+from pandas.testing import assert_frame_equal
+
 from esofile_reader import EsoFile
-from esofile_reader.data.sql_data import SQLData
-from esofile_reader.storage.sql_storage import SQLStorage
-from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader import TotalsFile
-from tests import ROOT
 from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.storage_files import ParquetFile
+from tests import ROOT
 
 
 class TestParquetDB(unittest.TestCase):
@@ -71,11 +72,36 @@ class TestParquetDB(unittest.TestCase):
         self.storage.delete_file(id1)
         self.assertFalse(path.exists())
 
-    def test_06_save_storage(self):
+    def test_06_save_load_parquet_file(self):
+        ParquetFrame.CHUNK_SIZE = 10
+        id_ = self.storage.store_file(self.ef1)
+        self.storage.files[id_].save_as("", "pqf")
+        self.assertTrue(Path("pqf.chf").exists())
+
+        pqf = ParquetFile.load_file("pqf.chf", "")
+        Path("pqf.chf").unlink()
+
+        self.assertEqual(self.ef1.file_path, pqf.file_path)
+        self.assertEqual(self.ef1.file_name, pqf.file_name)
+        self.assertEqual(self.ef1.file_created, pqf.file_created)
+        self.assertFalse(pqf.totals)
+        self.assertEqual(self.ef1.file_path, pqf.file_path)
+
+        for interval in self.ef1.available_intervals:
+            assert_frame_equal(
+                self.ef1.as_df(interval),
+                pqf.as_df(interval),
+                check_column_type=False
+            )
+
+        del pqf
+
+    def test_07_save_load_storage(self):
         ParquetFrame.CHUNK_SIZE = 10
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
-        self.storage.save_as("", "bar")
+        self.storage.save_as("", "pqs")
+        pqs = ParquetStorage.load("pqs.cfy")
 
     #
     # def test_05_delete_file(self):
