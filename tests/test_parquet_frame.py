@@ -45,7 +45,7 @@ class TestParquetFrame(TestCase):
 
         ParquetFrame.CHUNK_SIZE = 3
         global i
-        self.pqf = ParquetFrame(self.test_df, f"test-{i}")
+        self.pqf = ParquetFrame.from_df(self.test_df, f"test-{i}")
         i += 1
 
     def tearDown(self) -> None:
@@ -193,11 +193,6 @@ class TestParquetFrame(TestCase):
         self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
-    def test_store_parquet(self):
-        df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
-        self.pqf.store_parquet("test_parquet.parquet", df)
-        self.assertTrue(Path(self.pqf.root_path, "test_parquet.parquet").exists())
-
     def test_update_parquet(self):
         df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
         self.pqf.store_parquet("test_parquet.parquet", df)
@@ -209,7 +204,7 @@ class TestParquetFrame(TestCase):
     def test_store_df(self):
         # save each column as an independent parquet
         ParquetFrame.CHUNK_SIZE = 1
-        self.pqf = ParquetFrame(self.test_df, "some_name")
+        self.pqf = ParquetFrame.from_df(self.test_df, "some_name")
         self.assertEqual(14, len(list(self.pqf.root_path.iterdir())))
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
@@ -245,3 +240,19 @@ class TestParquetFrame(TestCase):
         self.test_df["foo"] = [1, 2, 3]
         self.pqf["foo"] = [1, 2, 3]
         assert_frame_equal(self.test_df, self.pqf.get_df(), check_column_type=False)
+
+    def test_save_load_info_parquets(self):
+        self.pqf.save_info_parquets()
+        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.INDEX_PARQUET).exists())
+        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.COLUMNS_PARQUET).exists())
+        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.CHUNKS_PARQUET).exists())
+
+        test_chunks = self.pqf._chunks_table.copy()
+        self.pqf._index = None
+        self.pqf._columns = None
+        self.pqf._chunks_table = None
+
+        self.pqf.load_info_parquets()
+        assert_index_equal(self.test_df.index, self.pqf.index)
+        assert_index_equal(self.test_df.columns, self.pqf.columns)
+        assert_frame_equal(test_chunks, self.pqf._chunks_table)

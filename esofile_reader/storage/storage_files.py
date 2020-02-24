@@ -115,23 +115,31 @@ class ParquetFile(BaseFile):
             id_: int,
             file_path: str,
             file_name: str,
-            tables: Dict[str, pd.DataFrame],
+            data: Union[DFData, str, Path],
             file_created: datetime,
-            search_tree,
             totals,
             pardir="",
-            name=None
+            search_tree: Tree = None,
+            name: str = None
     ):
         super().__init__()
         self.id_ = id_
         self.file_path = file_path
         self.file_name = file_name
         self.file_created = file_created
-        self.search_tree = search_tree
         self.totals = totals
         self.path = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.path.mkdir(exist_ok=True)
-        self.data = ParquetData(tables, self.path)
+        self.data = ParquetData.from_dfdata(data, self.path) \
+            if isinstance(data, DFData) \
+            else ParquetData.from_fs(data, self.path)
+
+        if search_tree:
+            self.search_tree = search_tree
+        else:
+            tree = Tree()
+            tree.populate_tree(self.data.get_all_variables_dct())
+            self.search_tree = tree
 
     def __del__(self):
         print("REMOVING PARQUET FILE " + str(self.path))
@@ -149,25 +157,15 @@ class ParquetFile(BaseFile):
         with open(Path(tempdir, "info.json"), "r") as f:
             info = json.load(f)
 
-        df_data = DFData()
-        for dir_, names in info["chunks"].items():
-            interval = dir_.split("-")[1]
-            paths = [Path(tempdir, dir_, name) for name in names]
-            df_data.populate_table(interval, ParquetFrame.read_parquets(paths))
-
         # clean up temp files
         shutil.rmtree(tempdir, ignore_errors=True)
-
-        # create variable search tree
-        tree = Tree()
-        tree.populate_tree(df_data.get_all_variables_dct())
 
         pqf = ParquetFile(
             id_=info["id"],
             file_path=info["file_path"],
             file_name=info["file_name"],
             file_created=datetime.fromtimestamp(info["file_created"]),
-            tables=df_data.tables,
+            data=df_data,
             totals=info["totals"],
             name=info["name"],
             pardir=pardir,

@@ -13,6 +13,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from esofile_reader.data.df_data import DFData
+from esofile_reader.utils.utils import to_int
+from esofile_reader.constants import *
 
 
 class _ParquetIndexer:
@@ -107,15 +109,17 @@ class _ParquetIndexer:
 
 class ParquetFrame:
     CHUNK_SIZE = 100
+    INDEX_PARQUET = "index.parquet"
+    COLUMNS_PARQUET = "columns.parquet"
+    CHUNKS_PARQUET = "chunks.parquet"
 
-    def __init__(self, df, name, pardir=""):
+    def __init__(self, name, pardir=""):
         self.root_path = Path(pardir, f"results-{name}").absolute()
         self.root_path.mkdir(exist_ok=True)
         self._chunks_table = None
         self._indexer = _ParquetIndexer(self)
-        self._index = df.index
-        self._columns = df.columns
-        self.store_df(df)
+        self._index = None
+        self._columns = None
 
     def __del__(self):
         print("REMOVING PARQUET FRAME " + str(self.root_path))
@@ -127,13 +131,24 @@ class ParquetFrame:
     def __setitem__(self, key, value):
         self._indexer[:, key] = value
 
+    @classmethod
+    def from_df(cls, df, name, pardir=""):
+        pqf = ParquetFrame(name, pardir)
+        pqf.store_df(df)
+        return pqf
+
+    @classmethod
+    def from_fs(cls, name, pardir=""):
+        pqf = ParquetFrame(name, pardir)
+        pqf.load_info_parquets()
+        return pqf
+
     @property
     def name(self):
         return self.root_path.name
 
     @property
     def chunk_names(self) -> List[str]:
-        """ Return a list of all chunk names. """
         names = []
         for chunk in self._chunks_table["chunk"].drop_duplicates().tolist():
             names.append(chunk)
@@ -141,12 +156,10 @@ class ParquetFrame:
 
     @property
     def chunk_paths(self) -> List[Path]:
-        """ Return list of absolute paths of all parquet chunks. """
         return [Path(self.root_path, chunk) for chunk in self.chunk_names]
 
     @property
     def chunk_rel_paths(self) -> List[Path]:
-        """ Return list of paths relative to parent file directory. """
         return [path.relative_to(path.parent) for path in self.chunk_paths]
 
     @property
@@ -201,54 +214,68 @@ class ParquetFrame:
             df.columns = pd.MultiIndex.from_tuples(mi, names=self._columns.names)
             self.update_parquet(chunk_name, df)
 
-    def store_parquet(self, chunk: str, df: pd.DataFrame) -> None:
-        """ Save df as parquet. """
-        # stringify ids as parquet index cannot be numeric
+    def save_info_parquets(self):
+        """ Save columns, index and chunk data as parquets. """
+        paths = [
+            Path(self.root_path, self.INDEX_PARQUET),
+            Path(self.root_path, self.COLUMNS_PARQUET),
+            Path(self.root_path, self.CHUNKS_PARQUET)
+        ]
+        for path in paths:
+            with contextlib.suppress(FileNotFoundError):
+                path.unlink()
+
+        index = self._index.to_frame(index=False)
+        pq.write_table(pa.Table.from_pandas(index), paths[0])
+
+        columns = self._columns.to_frame(index=False)
+        columns["id"] = columns["id"].astype(str)
+        pq.write_table(pa.Table.from_pandas(columns), paths[1])
+
+        chunks = self._chunks_table.copy()
+        chunks["id"] = chunks["id"].astype(str)
+        pq.write_table(pa.Table.from_pandas(chunks), paths[2])
+
+    def load_info_parquets(self):
+        """ Load index, columns and chunk parquets from fs. """
+        paths = [
+            Path(self.root_path, self.INDEX_PARQUET),
+            Path(self.root_path, self.COLUMNS_PARQUET),
+            Path(self.root_path, self.CHUNKS_PARQUET)
+        ]
+
+        for path in paths:
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"Cannot find info table: {path}. "
+                    f"File {self.root_path} cannot be loaded!"
+                )
+
+        index = pq.read_pandas(paths[0]).to_pandas().iloc[:, 0]
+        if index.name == TIMESTAMP_COLUMN:
+            index = pd.DatetimeIndex(index, name=TIMESTAMP_COLUMN)
+        else:
+            index = pd.Index(index, name=index.name)
+        self._index = pd.Index(index)
+
+        columns = pq.read_pandas(paths[1]).to_pandas()
+        columns["id"] = columns["id"].apply(to_int)
+        self._columns = pd.MultiIndex.from_frame(columns)
+
+        chunks = pq.read_pandas(paths[2]).to_pandas()
+        chunks["id"] = columns["id"].apply(to_int)
+        self._chunks_table = chunks
+
+    def update_parquet(self, chunk: str, df: pd.DataFrame) -> None:
+        """ Update previously stored parquet.  """
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(Path(self.root_path, chunk))
         header_df = df.columns.to_frame(index=False)
         header_df["id"] = header_df["id"].astype(str)
         df.columns = pd.MultiIndex.from_frame(header_df)
 
         table = pa.Table.from_pandas(df)
         pq.write_table(table, Path(self.root_path, chunk))
-
-    def update_parquet(self, chunk: str, df: pd.DataFrame) -> None:
-        """ Update previously stored parquet.  """
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(Path(self.root_path, chunk))
-        self.store_parquet(chunk, df)
-
-    @classmethod
-    def read_parquets(
-            cls, paths: Union[Path, List[Path]], columns: List[str] = None
-    ) -> pd.DataFrame:
-        """ Extract DataFrame from previously stored parquet file."""
-
-        def to_int(val):
-            try:
-                return int(val)
-            except ValueError:
-                return val
-
-        paths = [paths] if not isinstance(paths, list) else paths
-        frames = []
-        for path in paths:
-            table = pq.read_pandas(
-                Path(path),
-                columns=columns,
-                memory_map=True
-            )
-            df = table.to_pandas()
-            del table  # not necessary, but a good practice
-            frames.append(df)
-
-        df = pd.concat(frames, axis=1, sort=False)
-
-        # destringify numeric ids
-        header_df = df.columns.to_frame(index=False)
-        header_df["id"] = header_df["id"].apply(to_int)
-        df.columns = pd.MultiIndex.from_frame(header_df)
-
-        return df
 
     def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
         """ Get DataFrame from given chunk. ."""
@@ -262,7 +289,20 @@ class ParquetFrame:
         else:
             columns = None
 
-        return self.read_parquets(Path(self.root_path, chunk_name), columns)
+        table = pq.read_pandas(
+            Path(self.root_path, chunk_name),
+            columns=columns,
+            memory_map=True
+        )
+        df = table.to_pandas()
+        del table  # not necessary, but a good practice
+
+        # destringify numeric ids
+        header_df = df.columns.to_frame(index=False)
+        header_df["id"] = header_df["id"].apply(to_int)
+        df.columns = pd.MultiIndex.from_frame(header_df)
+
+        return df
 
     def get_df(self, ids: List[int] = None) -> pd.DataFrame:
         """ Get a single DataFrame from multiple parquet files. """
@@ -304,10 +344,12 @@ class ParquetFrame:
             )
             frames.append(chunk_df)
 
-            self.store_parquet(chunk_name, dfi)
+            self.update_parquet(chunk_name, dfi)
             start += self.CHUNK_SIZE
 
         self._chunks_table = pd.concat(frames, ignore_index=True)
+        self._columns = df.columns
+        self._index = df.index
 
     def update_columns(
             self, ids: List[int], array: Sequence, rows: Union[slice, Sequence] = slice(None, None, None)
@@ -421,9 +463,27 @@ class ParquetFrame:
 
 
 class ParquetData(DFData):
-    def __init__(self, tables, pardir):
+    def __init__(self):
         super().__init__()
-        self.tables = {k: ParquetFrame(v, k, pardir) for k, v in tables.items()}
+        self.tables = {}
+
+    @classmethod
+    def from_dfdata(cls, dfdata, pardir):
+        pqd = ParquetData()
+        pqd.tables = {k: ParquetFrame.from_df(v, k, pardir) for k, v in dfdata.tables.items()}
+        return pqd
+
+    @classmethod
+    def from_fs(cls, path, pardir):
+        root = Path(path)
+        pqd = ParquetData()
+
+        for p in [p for p in root.iterdir() if p.is_dir()]:
+            interval = str(p).split("-")[1]
+            pqf = ParquetFrame.from_fs(p.name, Path(pardir, p))
+            pqd.tables[interval] = pqf
+
+        return pqd
 
     def get_all_chunks(self) -> Dict[str, List[str]]:
         chunks = {}

@@ -41,3 +41,10 @@ def lower_args(func):
         return func(*low_args, **low_kwargs)
 
     return wrapper
+
+
+def to_int(val):
+    try:
+        return int(val)
+    except ValueError:
+        return val

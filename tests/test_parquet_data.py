@@ -15,8 +15,8 @@ class TestParquetData(unittest.TestCase):
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         _ef = EsoFile(file_path, ignore_peaks=True)
-        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data.tables,
-                             _ef.file_created, _ef.search_tree, False, "")
+        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data,
+                             _ef.file_created, False, "")
 
     @classmethod
     def tearDownClass(cls):
