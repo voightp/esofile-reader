@@ -469,24 +469,25 @@ class ParquetData(DFData):
 
     @classmethod
     def from_dfdata(cls, dfdata, pardir):
+        """ Create parquet data from DataFrame like class. """
         pqd = ParquetData()
         pqd.tables = {k: ParquetFrame.from_df(v, k, pardir) for k, v in dfdata.tables.items()}
         return pqd
 
     @classmethod
     def from_fs(cls, path, pardir):
+        """ Create parquet data from filesystem directory. """
         root = Path(path)
         pqd = ParquetData()
 
         for p in [p for p in root.iterdir() if p.is_dir()]:
-            interval = str(p).split("-")[1]
-            pqf = ParquetFrame.from_fs(p.name, Path(pardir, p))
+            interval = str(p.name).split("-")[1]
+            pqf = ParquetFrame.from_fs(interval, pardir)
             pqd.tables[interval] = pqf
 
         return pqd
 
-    def get_all_chunks(self) -> Dict[str, List[str]]:
-        chunks = {}
+    def save_info_parquets(self):
+        """ Store info parquets for all tables. """
         for tbl in self.tables.values():
-            chunks[tbl.name] = tbl.chunk_names
-        return chunks
+            tbl.save_info_parquets()

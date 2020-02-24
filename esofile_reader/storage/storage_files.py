@@ -146,35 +146,36 @@ class ParquetFile(BaseFile):
         shutil.rmtree(self.path, ignore_errors=True)
 
     @classmethod
-    def load_file(cls, source_path: Union[str, Path], pardir: Union[str, Path]):
+    def load_file(cls, source_path: Union[str, Path], dest_dir: Union[str, Path]):
         source_path = source_path if isinstance(source_path, Path) else Path(source_path)
 
         # extract content in temp folder
         with ZipFile(source_path, "r") as zf:
-            tempdir = Path(tempfile.mkdtemp())
-            zf.extractall(tempdir)
+            name = Path(source_path.name).with_suffix("")
+            file_dir = Path(dest_dir, name)
+            zf.extractall(file_dir)
 
-        with open(Path(tempdir, "info.json"), "r") as f:
+        with open(Path(file_dir, "info.json"), "r") as f:
             info = json.load(f)
-
-        # clean up temp files
-        shutil.rmtree(tempdir, ignore_errors=True)
 
         pqf = ParquetFile(
             id_=info["id"],
             file_path=info["file_path"],
             file_name=info["file_name"],
             file_created=datetime.fromtimestamp(info["file_created"]),
-            data=df_data,
+            data=file_dir,
             totals=info["totals"],
             name=info["name"],
-            pardir=pardir,
-            search_tree=tree
+            pardir=dest_dir,
         )
 
         return pqf
 
     def save_meta(self):
+        """ Store file metadata in filesystem. """
+        self.data.save_info_parquets()
+
+        # store attributes as json
         path = Path(self.path, f"info.json")
         with contextlib.suppress(FileNotFoundError):
             path.unlink()
@@ -187,7 +188,6 @@ class ParquetFile(BaseFile):
                 "file_name": self.file_name,
                 "file_created": self.file_created.timestamp(),
                 "totals": self.totals,
-                "chunks": self.data.get_all_chunks()
             }, f, indent=4)
 
     def save_as(self, dir_, name):
@@ -201,7 +201,10 @@ class ParquetFile(BaseFile):
         # change zip to custom extension
         p = Path(zf)
         path = p.with_suffix(self.EXT)
+
+        # remove previously stored files
         with contextlib.suppress(FileNotFoundError):
-            os.remove(path)
+            path.unlink()
+
         p.rename(path)
         self.path = path
