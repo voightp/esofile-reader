@@ -3,11 +3,14 @@ import json
 import os
 import shutil
 import tempfile
+import logging
+import io
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
 from typing import Union
 from zipfile import ZipFile
+from profilehooks import profile
 
 import pandas as pd
 
@@ -108,7 +111,7 @@ class DFFile(BaseFile):
 
 
 class ParquetFile(BaseFile):
-    EXT = ".chf"
+    EXT = ".cff"
 
     def __init__(
             self,
@@ -128,11 +131,12 @@ class ParquetFile(BaseFile):
         self.file_name = file_name
         self.file_created = file_created
         self.totals = totals
-        self.path = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
-        self.path.mkdir(exist_ok=True)
-        self.data = ParquetData.from_dfdata(data, self.path) \
+
+        self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
+        self.workdir.mkdir(exist_ok=True)
+        self.data = ParquetData.from_dfdata(data, self.workdir) \
             if isinstance(data, DFData) \
-            else ParquetData.from_fs(data, self.path)
+            else ParquetData.from_fs(data, self.workdir)
 
         if search_tree:
             self.search_tree = search_tree
@@ -142,69 +146,75 @@ class ParquetFile(BaseFile):
             self.search_tree = tree
 
     def __del__(self):
-        print("REMOVING PARQUET FILE " + str(self.path))
-        shutil.rmtree(self.path, ignore_errors=True)
+        print("REMOVING PARQUET FILE " + str(self.workdir))
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    @property
+    def name(self):
+        return self.workdir.name
 
     @classmethod
-    def load_file(cls, source_path: Union[str, Path], dest_dir: Union[str, Path]):
-        source_path = source_path if isinstance(source_path, Path) else Path(source_path)
+    @profile(entries=10, sort="time")
+    def load_file(cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path]):
+        source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
 
         # extract content in temp folder
-        with ZipFile(source_path, "r") as zf:
-            name = Path(source_path.name).with_suffix("")
-            file_dir = Path(dest_dir, name)
+        with ZipFile(source, "r") as zf:
+            tempdir = tempfile.mkdtemp()
+            tempson = zf.extract("info.json", path=tempdir)
+            with open(Path(tempson), "r") as f:
+                info = json.load(f)
+            shutil.rmtree(tempdir, ignore_errors=True)
+            file_dir = Path(dest_dir, info["name"])
             zf.extractall(file_dir)
 
-        with open(Path(file_dir, "info.json"), "r") as f:
-            info = json.load(f)
-
-        pqf = ParquetFile(
-            id_=info["id"],
-            file_path=info["file_path"],
-            file_name=info["file_name"],
-            file_created=datetime.fromtimestamp(info["file_created"]),
-            data=file_dir,
-            totals=info["totals"],
-            name=info["name"],
-            pardir=dest_dir,
-        )
+            pqf = ParquetFile(
+                id_=info["id"],
+                file_path=info["file_path"],
+                file_name=info["file_name"],
+                file_created=datetime.fromtimestamp(info["file_created"]),
+                data=file_dir,
+                totals=info["totals"],
+                name=info["name"],
+                pardir=dest_dir,
+            )
 
         return pqf
 
-    def save_meta(self):
-        """ Store file metadata in filesystem. """
+    @profile(entries=10, sort="time")
+    def save_as(self, dir_: Union[str, Path] = None, name: str = None) -> Union[Path, io.BytesIO]:
+        """ Save parquet storage into given location. """
+        # store json summary file
         self.data.save_info_parquets()
 
         # store attributes as json
-        path = Path(self.path, f"info.json")
+        info = Path(self.workdir, f"info.json")
         with contextlib.suppress(FileNotFoundError):
-            path.unlink()
+            info.unlink()
 
-        with open(str(path), "w") as f:
+        with open(str(info), "w") as f:
             json.dump({
                 "id": self.id_,
-                "name": self.path.name,
+                "name": self.name,
                 "file_path": str(self.file_path),
                 "file_name": self.file_name,
                 "file_created": self.file_created.timestamp(),
                 "totals": self.totals,
             }, f, indent=4)
 
-    def save_as(self, dir_, name):
-        """ Save parquet storage into given location. . """
-        # store json summary file
-        self.save_meta()
+        # use memory buffer if name or dir is not specified
+        if name is None or dir_ is None:
+            logging.info("Name or dir not specified. Saving zip into IO Buffer.")
+            device = io.BytesIO()
+        else:
+            device = Path(dir_, f"{name}{self.EXT}")
 
         # store all the tempdir content
-        zf = shutil.make_archive(str(Path(dir_, f"{name}")), "zip", self.path)
+        with ZipFile(device, "w") as zf:
+            zf.write(info, arcname=info.name)
+            for dir_ in [d for d in self.workdir.iterdir() if d.is_dir()]:
+                for file in [f for f in dir_.iterdir() if f.suffix == ".parquet"]:
+                    arcname = file.relative_to(self.workdir)
+                    zf.write(file, arcname=arcname)
 
-        # change zip to custom extension
-        p = Path(zf)
-        path = p.with_suffix(self.EXT)
-
-        # remove previously stored files
-        with contextlib.suppress(FileNotFoundError):
-            path.unlink()
-
-        p.rename(path)
-        self.path = path
+        return device

@@ -195,7 +195,7 @@ class TestParquetFrame(TestCase):
 
     def test_update_parquet(self):
         df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
-        self.pqf.store_parquet("test_parquet.parquet", df)
+        self.pqf.update_parquet("test_parquet.parquet", df)
         self.assertTrue(Path(self.pqf.root_path, "test_parquet.parquet").exists())
 
     def get_full_df(self):

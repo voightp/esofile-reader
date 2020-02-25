@@ -19,7 +19,14 @@ class TestParquetDB(unittest.TestCase):
         file_path2 = os.path.join(ROOT, "eso_files/eplusout1.eso")
         cls.ef1 = EsoFile(file_path1, ignore_peaks=True)
         cls.ef2 = EsoFile(file_path2, ignore_peaks=True)
-        cls.storage = None
+        cls.ef3 = TotalsFile(cls.ef2)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            Path("pqs" + ParquetStorage.EXT).unlink()
+        except FileNotFoundError:
+            pass
 
     def setUp(self):
         self.storage = ParquetStorage()
@@ -27,12 +34,8 @@ class TestParquetDB(unittest.TestCase):
     def tearDown(self):
         self.storage = None
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
     def test_01_set_up_db(self):
-        self.assertTrue(Path(self.storage.temp_dir).exists())
+        self.assertTrue(Path(self.storage.workdir).exists())
         self.assertIsNone(self.storage.path)
 
     def test_02_store_file(self):
@@ -66,20 +69,21 @@ class TestParquetDB(unittest.TestCase):
         id1 = self.storage.store_file(self.ef1)
         pqf = self.storage.files[id1]
 
-        path = pqf.path
+        path = pqf.workdir
         self.assertTrue(path.exists())
 
         self.storage.delete_file(id1)
         self.assertFalse(path.exists())
 
-    def test_06_save_load_parquet_file(self):
+    def test_06_save_parquet_file(self):
         ParquetFrame.CHUNK_SIZE = 10
         id_ = self.storage.store_file(self.ef1)
         self.storage.files[id_].save_as("", "pqf")
-        self.assertTrue(Path("pqf.chf").exists())
+        self.assertTrue(Path("pqf" + ParquetFile.EXT).exists())
 
-        pqf = ParquetFile.load_file("pqf.chf", "")
-        Path("pqf.chf").unlink()
+    def test_07_load_parquet_file(self):
+        pqf = ParquetFile.load_file("pqf" + ParquetFile.EXT, "")
+        Path("pqf"+ParquetFile.EXT).unlink()
 
         self.assertEqual(self.ef1.file_path, pqf.file_path)
         self.assertEqual(self.ef1.file_name, pqf.file_name)
@@ -94,64 +98,53 @@ class TestParquetDB(unittest.TestCase):
                 check_column_type=False
             )
 
-        del pqf
-
-    def test_07_save_load_storage(self):
+    def test_08_save_as_storage(self):
         ParquetFrame.CHUNK_SIZE = 10
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
+        self.storage.store_file(TotalsFile(self.ef2))
         self.storage.save_as("", "pqs")
-        pqs = ParquetStorage.load("pqs.cfy")
+        self.assertTrue(Path("pqs" + ParquetStorage.EXT).exists())
 
-    #
-    # def test_05_delete_file(self):
-    #     storage = SQLStorage()
-    #     id_ = storage.store_file(self.ef)
-    #     storage.delete_file(1)
-    #
-    #     self.assertListEqual(
-    #         list(storage.metadata.tables.keys()),
-    #         ["result-files"]
-    #     )
-    #
-    #     res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
-    #     self.assertEqual(res.fetchone()[0], "result-files")
-    #
-    # def test_06_load_all_files(self):
-    #     storage = SQLStorage()
-    #     self.maxDiff = None
-    #     id1 = storage.store_file(self.ef)
-    #     id2 = storage.store_file(EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso")))
-    #
-    #     db_file1 = storage.files[id1]
-    #     db_file2 = storage.files[id2]
-    #
-    #     del storage.files[id1]
-    #     del storage.files[id2]
-    #
-    #     storage.load_all_files()
-    #     loaded_db_files = storage.files.values()
-    #
-    #     for f, lf in zip([db_file1, db_file2], loaded_db_files):
-    #         self.assertEqual(f.file_name, lf.file_name)
-    #         self.assertEqual(f.file_path, lf.file_path)
-    #         self.assertEqual(f.id_, lf.id_)
-    #         self.assertEqual(len(f.search_tree.str_tree()), len(lf.search_tree.str_tree()))
-    #
-    #         for interval in f.available_intervals:
-    #             self.assertEqual(
-    #                 len(f.get_header_dictionary(interval)),
-    #                 len(lf.get_header_dictionary(interval))
-    #             )
-    #
-    # def test_07_delete_file_invalid(self):
-    #     storage = SQLStorage()
-    #     with self.assertRaises(KeyError):
-    #         storage.delete_file(1000)
-    #
-    # def test_08_get_all_file_names(self):
-    #     storage = SQLStorage()
-    #     storage.store_file(self.ef)
-    #     storage.load_all_files()
-    #     names = storage.get_all_file_names()
-    #     self.assertEqual(names, ["eplusout_all_intervals"])
+    def test_09_load_storage(self):
+        pqs = ParquetStorage.load("pqs" + ParquetStorage.EXT)
+
+        self.assertEqual(self.ef1.file_path, pqs.files[0].file_path)
+        self.assertEqual(self.ef1.file_name, pqs.files[0].file_name)
+        self.assertEqual(self.ef1.file_created, pqs.files[0].file_created)
+        self.assertFalse(pqs.files[0].totals)
+        self.assertEqual(self.ef1.file_path, pqs.files[0].file_path)
+
+        self.assertEqual(self.ef2.file_path, pqs.files[1].file_path)
+        self.assertEqual(self.ef2.file_name, pqs.files[1].file_name)
+        self.assertEqual(self.ef2.file_created, pqs.files[1].file_created)
+        self.assertFalse(pqs.files[1].totals)
+        self.assertEqual(self.ef2.file_path, pqs.files[1].file_path)
+
+        self.assertEqual(self.ef3.file_path, pqs.files[2].file_path)
+        self.assertEqual(self.ef3.file_name, pqs.files[2].file_name)
+        self.assertEqual(self.ef3.file_created, pqs.files[2].file_created)
+        self.assertTrue(pqs.files[2].totals)
+        self.assertEqual(self.ef3.file_path, pqs.files[2].file_path)
+
+        for interval in self.ef1.available_intervals:
+            assert_frame_equal(
+                self.ef1.as_df(interval),
+                pqs.files[0].as_df(interval),
+                check_column_type=False
+            )
+
+    def test_10_delete_file_save_storage(self):
+        pqs = ParquetStorage.load("pqs" + ParquetStorage.EXT)
+        pqs.delete_file(0)
+        pqs.delete_file(1)
+        pqs.save()
+
+        loaded_pqs = ParquetStorage.load(pqs.path)
+        for interval in self.ef3.available_intervals:
+            assert_frame_equal(
+                self.ef3.as_df(interval),
+                loaded_pqs.files[2].as_df(interval),
+                check_column_type=False
+            )
+        self.assertEqual(len(loaded_pqs.files.keys()), 1)
