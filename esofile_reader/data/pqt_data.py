@@ -485,8 +485,3 @@ class ParquetData(DFData):
             pqd.tables[interval] = pqf
 
         return pqd
-
-    def save_info_parquets(self):
-        """ Store info parquets for all tables. """
-        for tbl in self.tables.values():
-            tbl.save_info_parquets()

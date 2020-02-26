@@ -21,7 +21,7 @@ class ParquetStorage(DFStorage):
         super().__init__()
         self.files = {}
         self.path = Path(path) if path else path
-        self.workdir = tempfile.mkdtemp(prefix="chartify-")
+        self.workdir = Path(tempfile.mkdtemp(prefix="chartify-"))
 
     def __del__(self):
         print("REMOVING PARQUET STORAGE " + str(self.workdir))
@@ -37,18 +37,11 @@ class ParquetStorage(DFStorage):
 
         pqs = ParquetStorage(path)
         with ZipFile(path, "r") as zf:
-            # tmp = tempfile.mkdtemp()
-            # zf.extractall(tmp)
-            # for f in [p for p in Path(tmp).iterdir() if p.suffix == ParquetFile.EXT]:
-            #     print(f)
-            #     pqf = ParquetFile.load_file(f, pqs.workdir)
-            #     pqs.files[pqf.id_] = pqf
-            # shutil.rmtree(tmp, ignore_errors=True)
+            zf.extractall(pqs.workdir)
 
-            for name in zf.namelist():
-                bf = io.BytesIO(zf.read(name))
-                pqf = ParquetFile.load_file(bf, pqs.workdir)
-                pqs.files[pqf.id_] = pqf
+        for dir_ in [d for d in pqs.workdir.iterdir() if d.is_dir()]:
+            pqf = ParquetFile.load_file(dir_)
+            pqs.files[pqf.id_] = pqf
 
         return pqs
 
@@ -81,8 +74,13 @@ class ParquetStorage(DFStorage):
         # save all files
         with ZipFile(self.path, "w") as zf:
             for f in self.files.values():
-                p = f.save_as(self.workdir, f.name)
-                zf.write(p, arcname=f.name + ParquetFile.EXT)
+                info = f.save_meta()
+                zf.write(info, arcname=info.relative_to(self.workdir))
+
+            for file_dir in [d for d in self.workdir.iterdir() if d.is_dir()]:
+                for pqt_dir in [d for d in file_dir.iterdir() if d.is_dir()]:
+                    for file in [f for f in pqt_dir.iterdir() if f.suffix == ".parquet"]:
+                        zf.write(file, arcname=file.relative_to(self.workdir))
 
     def save(self):
         """ Save parquet storage. """
