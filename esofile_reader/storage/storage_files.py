@@ -154,7 +154,7 @@ class ParquetFile(BaseFile):
         return self.workdir.name
 
     @classmethod
-    @profile(entries=10, sort="time")
+    # @profile(entries=10, sort="time")
     def load_file(cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = "") -> "ParquetFile":
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
         if isinstance(source, io.BytesIO) or source.suffix == cls.EXT:
@@ -214,7 +214,7 @@ class ParquetFile(BaseFile):
 
         return info
 
-    @profile(entries=10, sort="time")
+    # @profile(entries=10, sort="time")
     def save_as(self, dir_: Union[str, Path] = None, name: str = None) -> Union[Path, io.BytesIO]:
         """ Save parquet storage into given location. """
         info = self.save_meta()

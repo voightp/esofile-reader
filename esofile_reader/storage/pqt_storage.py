@@ -28,7 +28,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    @profile(entries=10, sort="time")
+    # @profile(entries=10, sort="time")
     def load(cls, path: Union[str, Path]):
         """ Load ParquetStorage from filesystem. """
         path = path if isinstance(path, Path) else Path(path)
@@ -66,7 +66,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
         del self.files[id_]
 
-    @profile(entries=10, sort="time")
+    # @profile(entries=10, sort="time")
     def save_as(self, dir_, name):
         """ Save parquet storage into given location. """
         self.path = str(Path(dir_, f"{name}{self.EXT}"))

@@ -20,8 +20,13 @@ setuptools.setup(
         "License :: ",
         "Operating System :: Windows",
     ],
-    ext_modules=cythonize("./esofile_reader/processor/esofile_processor.pyx",
-                          annotate=True, compiler_directives={'language_level': "3"}),
+    ext_modules=cythonize(
+        "./esofile_reader/processor/esofile_processor.pyx",
+        annotate=True, compiler_directives={
+            'language_level': "3",
+            "profile": True,
+            "linetrace": True
+        }),
     zip_safe=False,
     install_requires=[
         "Cython >= 0.29.14",

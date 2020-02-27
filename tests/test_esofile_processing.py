@@ -60,7 +60,7 @@ class TestEsoFileProcessing(unittest.TestCase):
              "End of Data Dictionary"]
         g = (l for l in f)
 
-        header_dct, outputs = read_header(g, DefaultMonitor("foo"))
+        header_dct = read_header(g, DefaultMonitor("foo"))
 
         test_header = defaultdict(partial(defaultdict))
         test_header["hourly"][7] = Variable("hourly",
@@ -72,12 +72,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                                                   "Some meter",
                                                   "ach")
 
-        test_outputs = defaultdict(partial(defaultdict))
-        test_outputs["hourly"][7] = []
-        test_outputs["runperiod"][3676] = []
-
         self.assertDictEqual(header_dct, test_header)
-        self.assertDictEqual(outputs, test_outputs)
 
     def test_read_header2(self):
         f = ["7,1,Environment,Site Outdoor Air Drybulb Temperature [C] !Hourly",
@@ -89,11 +84,11 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_read_header3(self):
         with open(self.header_pth, "r") as f:
-            header, init_outputs = read_header(f, DefaultMonitor("foo"))
-            self.assertEqual(header.keys(), init_outputs.keys())
+            header = read_header(f, DefaultMonitor("foo"))
+            self.assertEqual(header.keys(), header.keys())
 
             for interval, variables in header.items():
-                self.assertEqual(variables.keys(), init_outputs[interval].keys())
+                self.assertEqual(variables.keys(), header[interval].keys())
 
             v1 = Variable("timestep", "Environment", "Site Direct Solar Radiation Rate per Area", "W/m2")
             v2 = Variable("hourly", "BLOCK1:ZONE1", "Zone Mean Radiant Temperature", "C")
@@ -147,11 +142,11 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_read_body(self):
         with open(self.header_pth, "r") as f:
-            _, init_outputs = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, DefaultMonitor("foo"))
 
         with open(self.body_pth, "r") as f:
             (env_names, raw_outputs, raw_peak_outputs, dates,
-             cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
+             cumulative_days, day_of_week) = read_body(f, 6, header, False, DefaultMonitor("dummy"))
 
             self.assertEqual(raw_outputs[0]["timestep"][7],
                              [15.65, 14.3, 14.15, 14.0, 12.8, 11.6, 10.899999999999999, 10.2, 11.05, 11.9,
@@ -218,11 +213,11 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_generate_peak_outputs(self):
         with open(self.header_pth, "r") as f:
-            header, init_outputs = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, DefaultMonitor("foo"))
 
         with open(self.body_pth, "r") as f:
             (env_names, _, raw_peak_outputs, dates,
-             cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
+             cumulative_days, day_of_week) = read_body(f, 6, header, False, DefaultMonitor("dummy"))
 
         dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
 
@@ -245,11 +240,11 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_generate_outputs(self):
         with open(self.header_pth, "r") as f:
-            header, init_outputs = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, DefaultMonitor("foo"))
 
         with open(self.body_pth, "r") as f:
             (env_names, raw_outputs, raw_peak_outputs, dates,
-             cumulative_days, day_of_week) = read_body(f, 6, init_outputs, False, DefaultMonitor("dummy"))
+             cumulative_days, day_of_week) = read_body(f, 6, header, False, DefaultMonitor("dummy"))
 
         dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
 
@@ -267,7 +262,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_create_tree(self):
         with open(self.header_pth, "r") as f:
-            header, init_outputs = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, DefaultMonitor("foo"))
             tree, dup_ids = create_tree(header)
 
             self.assertEqual(dup_ids, [])
