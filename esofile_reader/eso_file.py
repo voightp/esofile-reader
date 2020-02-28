@@ -61,12 +61,12 @@ class EsoFile(BaseFile):
     """
 
     def __init__(
-            self,
-            file_path: str,
-            monitor: Type[DefaultMonitor] = None,
-            autopopulate=True,
-            ignore_peaks: bool = True,
-            year: int = 2002,
+        self,
+        file_path: str,
+        monitor: Type[DefaultMonitor] = None,
+        autopopulate=True,
+        ignore_peaks: bool = True,
+        year: int = 2002,
     ):
         super().__init__()
         self.file_path = file_path
@@ -77,17 +77,15 @@ class EsoFile(BaseFile):
 
     @classmethod
     def process_multi_env_file(
-            cls,
-            file_path: str,
-            monitor: Type[DefaultMonitor] = None,
-            ignore_peaks: bool = True,
-            year: int = 2002,
+        cls,
+        file_path: str,
+        monitor: Type[DefaultMonitor] = None,
+        ignore_peaks: bool = True,
+        year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
         eso_files = []
-        content = read_file(
-            file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
-        )
+        content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
 
         content = [c for c in list(zip(*content))[::-1]]
         for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
@@ -108,10 +106,10 @@ class EsoFile(BaseFile):
         return eso_files
 
     def populate_content(
-            self,
-            monitor: Type[DefaultMonitor] = None,
-            ignore_peaks: bool = True,
-            year: int = 2002,
+        self,
+        monitor: Type[DefaultMonitor] = None,
+        ignore_peaks: bool = True,
+        year: int = 2002,
     ) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
@@ -123,9 +121,7 @@ class EsoFile(BaseFile):
 
         environment_names = content[0]
         if len(environment_names) == 1:
-            (self.data, self.peak_outputs, self.search_tree,) = [
-                c[0] for c in content[1:]
-            ]
+            (self.data, self.peak_outputs, self.search_tree,) = [c[0] for c in content[1:]]
         else:
             raise MultiEnvFileRequired(
                 f"Cannot populate file {self.file_path}. "
@@ -135,16 +131,16 @@ class EsoFile(BaseFile):
             )
 
     def _get_peak_results(
-            self,
-            variables: List[Variable],
-            output_type: str,
-            start_date: datetime = None,
-            end_date: datetime = None,
-            add_file_name: str = "row",
-            include_interval: bool = False,
-            include_id: bool = False,
-            part_match: bool = False,
-            timestamp_format: str = "default",
+        self,
+        variables: List[Variable],
+        output_type: str,
+        start_date: datetime = None,
+        end_date: datetime = None,
+        add_file_name: str = "row",
+        include_interval: bool = False,
+        include_id: bool = False,
+        part_match: bool = False,
+        timestamp_format: str = "default",
     ) -> pd.DataFrame:
         """ Return local peak results. """
         frames = []
@@ -172,10 +168,10 @@ class EsoFile(BaseFile):
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def get_results(
-            self,
-            variables: Union[Variable, List[Variable]],
-            output_type: str = "standard",
-            **kwargs
+        self,
+        variables: Union[Variable, List[Variable]],
+        output_type: str = "standard",
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.

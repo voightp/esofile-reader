@@ -29,8 +29,7 @@ class TestDFDB(unittest.TestCase):
             self.assertEqual(self.ef.file_created, self.storage.files[0].file_created)
             self.assertEqual(self.ef.search_tree, self.storage.files[0].search_tree)
             pd.testing.assert_frame_equal(
-                self.ef.data.tables[interval],
-                self.storage.files[0].data.tables[interval]
+                self.ef.data.tables[interval], self.storage.files[0].data.tables[interval]
             )
 
         self.assertFalse(self.storage.files[0].totals)
@@ -44,4 +43,4 @@ class TestDFDB(unittest.TestCase):
 
     def test_03_get_all_file_names(self):
         names = self.storage.get_all_file_names()
-        self.assertListEqual(names, ['eplusout_all_intervals'])
+        self.assertListEqual(names, ["eplusout_all_intervals"])

@@ -22,11 +22,9 @@ setuptools.setup(
     ],
     ext_modules=cythonize(
         "./esofile_reader/processor/esofile_processor.pyx",
-        annotate=True, compiler_directives={
-            'language_level': "3",
-            "profile": True,
-            "linetrace": True
-        }),
+        annotate=True,
+        compiler_directives={"language_level": "3", "profile": True, "linetrace": True},
+    ),
     zip_safe=False,
     install_requires=[
         "Cython >= 0.29.14",
@@ -37,6 +35,6 @@ setuptools.setup(
         "pytz >= 2019.3",
         "six >= 1.13.0",
         "coverage >= 5.0.3",
-        "SQLAlchemy==1.3.13"
-    ]
+        "SQLAlchemy==1.3.13",
+    ],
 )

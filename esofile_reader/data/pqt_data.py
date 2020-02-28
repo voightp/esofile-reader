@@ -60,13 +60,13 @@ class _ParquetIndexer:
             elif _is_tuple():
                 ids = [ix[0] for ix in col if ix in self.frame.columns]
             else:
-                raise IndexError("Cannot slice ParquetFrame. Column slice only "
-                                 "accepts list of int ids, boolean arrays or"
-                                 "multiindex tuples.")
-            if not ids:
-                raise KeyError(
-                    f"Cannot find ids: {', '.join([str(i) for i in col])}"
+                raise IndexError(
+                    "Cannot slice ParquetFrame. Column slice only "
+                    "accepts list of int ids, boolean arrays or"
+                    "multiindex tuples."
                 )
+            if not ids:
+                raise KeyError(f"Cannot find ids: {', '.join([str(i) for i in col])}")
         else:
             row = item
             ids = None  # this will pick up all columns
@@ -82,8 +82,10 @@ class _ParquetIndexer:
 
     def __setitem__(self, key, value):
         if not isinstance(value, (int, float, str, pd.Series, collections.Sequence)):
-            raise TypeError(f"Invalid value type: {value.__class__.__name__}, "
-                            f"only standard python types and arrays are allowed!")
+            raise TypeError(
+                f"Invalid value type: {value.__class__.__name__}, "
+                f"only standard python types and arrays are allowed!"
+            )
 
         if isinstance(key, tuple):
             row, col = key
@@ -181,12 +183,16 @@ class ParquetFrame:
     @columns.setter
     def columns(self, val: pd.MultiIndex):
         if not isinstance(val, (pd.Index, pd.MultiIndex)):
-            raise IndexError("Invalid index, columns needs to be "
-                             "an instance of pd.Index or pd.Multiindex.")
+            raise IndexError(
+                "Invalid index, columns needs to be "
+                "an instance of pd.Index or pd.Multiindex."
+            )
 
         if len(val) != len(self._columns):
-            raise IndexError(f"Invalid columns index! Input length '{len(val)}'"
-                             f"!= '{len(self._columns)}'")
+            raise IndexError(
+                f"Invalid columns index! Input length '{len(val)}'"
+                f"!= '{len(self._columns)}'"
+            )
         mi = []
         items = {}
         for orig, new in zip(self._columns, val):
@@ -215,7 +221,7 @@ class ParquetFrame:
         paths = [
             Path(self.root_path, self.INDEX_PARQUET),
             Path(self.root_path, self.COLUMNS_PARQUET),
-            Path(self.root_path, self.CHUNKS_PARQUET)
+            Path(self.root_path, self.CHUNKS_PARQUET),
         ]
         for path in paths:
             with contextlib.suppress(FileNotFoundError):
@@ -237,7 +243,7 @@ class ParquetFrame:
         paths = [
             Path(self.root_path, self.INDEX_PARQUET),
             Path(self.root_path, self.COLUMNS_PARQUET),
-            Path(self.root_path, self.CHUNKS_PARQUET)
+            Path(self.root_path, self.CHUNKS_PARQUET),
         ]
 
         for path in paths:
@@ -286,9 +292,7 @@ class ParquetFrame:
             columns = None
 
         table = pq.read_pandas(
-            Path(self.root_path, chunk_name),
-            columns=columns,
-            memory_map=True
+            Path(self.root_path, chunk_name), columns=columns, memory_map=True
         )
         df = table.to_pandas()
         del table  # not necessary, but a good practice
@@ -332,7 +336,7 @@ class ParquetFrame:
         start = 0
         frames = []
         for i in range(n):
-            dfi = df.iloc[:, start:start + self.CHUNK_SIZE]
+            dfi = df.iloc[:, start : start + self.CHUNK_SIZE]
 
             # create chunk reference df
             chunk_name, chunk_df = self.create_chunk(
@@ -348,7 +352,10 @@ class ParquetFrame:
         self._index = df.index
 
     def update_columns(
-            self, ids: List[int], array: Sequence, rows: Union[slice, Sequence] = slice(None, None, None)
+        self,
+        ids: List[int],
+        array: Sequence,
+        rows: Union[slice, Sequence] = slice(None, None, None),
     ) -> None:
         """ Update column MultiIndex in stored parquet files. """
         for chunk_name, _ in self.get_chunk_id_pairs(ids).items():
@@ -363,8 +370,10 @@ class ParquetFrame:
             mi = self._columns.tolist()
             mi.append(variable)
         elif pos < 0 or pos > len(self._columns):
-            raise IndexError(f"Invalid column position '{pos}'! "
-                             f"Position must be between 0 and {len(self._columns)}.")
+            raise IndexError(
+                f"Invalid column position '{pos}'! "
+                f"Position must be between 0 and {len(self._columns)}."
+            )
         else:
             for i, item in enumerate(self._columns):
                 if i == pos:
@@ -454,7 +463,9 @@ class ParquetFrame:
 
         # update chunks reference
         self._chunks_table.drop(
-            self._chunks_table.loc[self._chunks_table["id"].isin(ids)].index, axis=0, inplace=True
+            self._chunks_table.loc[self._chunks_table["id"].isin(ids)].index,
+            axis=0,
+            inplace=True,
         )
 
 
