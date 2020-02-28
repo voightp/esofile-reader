@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Type, List
+from typing import Type, List, Union
 
 try:
     from typing import ForwardRef
@@ -184,7 +184,10 @@ class EsoFile(BaseFile):
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def get_results(
-            self, variables: List[Variable], output_type: str = "standard", **kwargs
+            self,
+            variables: Union[Variable, List[Variable]],
+            output_type: str = "standard",
+            **kwargs
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
