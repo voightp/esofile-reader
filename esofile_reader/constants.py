@@ -12,26 +12,17 @@ TIMESTAMP_COLUMN = "timestamp"
 VALUE_COLUMN = "value"
 RANGE_COLUMN = "range"
 
-RATE_TO_ENERGY_DCT = {TS: False,
-                      H: False,
-                      D: True,
-                      M: True,
-                      A: True,
-                      RP: True}
+RATE_TO_ENERGY_DCT = {TS: False, H: False, D: True, M: True, A: True, RP: True}
 
 AVERAGED_UNITS = [
     "W",
     "W/m2",
     "C",
-    "deltaC"
-    "",
+    "deltaC" "",
     "W/m2-K",
     "ppm",
     "ach",
     "hr",
 ]
 
-SUMMED_UNITS = [
-    "J",
-    "J/m2"
-]
+SUMMED_UNITS = ["J", "J/m2"]

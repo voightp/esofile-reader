@@ -5,10 +5,9 @@ from typing import Dict, Generator, List
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, AVERAGED_UNITS, \
-    SUMMED_UNITS
+from esofile_reader.constants import *
+from esofile_reader.data.df_data import DFData
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
@@ -21,15 +20,45 @@ class TotalsFile(BaseFile):
     """
 
     VARIABLE_GROUPS = {
-        "AFN Zone", "Air System", "Baseboard", "Boiler", "Cooling Coil", "Chiller",
-        "Chilled Water Thermal Storage Tank", "Cooling Tower", "Earth Tube",
-        "Exterior Lights", "Debug Surface Solar Shading Model", "Electric Load Center",
-        "Environmental Impact", "Facility Total", "Facility", "Fan", "Generator",
-        "HVAC System", "Heat Exchanger", "Heating Coil", "Humidifier", "Inverter",
-        "Lights", "Other Equipment", "People", "Pump", "Refrigeration Zone Air Chiller",
-        "Refrigeration Air Chiller System", "Refrigeration Zone Case and Walk In",
-        "Schedule", "Site", "Surface", "System Node", "VRF Heat Pump", "Water Heater",
-        "Water to Water Heat Pump", "Water Use Equipment", "Zone", }
+        "AFN Zone",
+        "Air System",
+        "Baseboard",
+        "Boiler",
+        "Cooling Coil",
+        "Chiller",
+        "Chilled Water Thermal Storage Tank",
+        "Cooling Tower",
+        "Earth Tube",
+        "Exterior Lights",
+        "Debug Surface Solar Shading Model",
+        "Electric Load Center",
+        "Environmental Impact",
+        "Facility Total",
+        "Facility",
+        "Fan",
+        "Generator",
+        "HVAC System",
+        "Heat Exchanger",
+        "Heating Coil",
+        "Humidifier",
+        "Inverter",
+        "Lights",
+        "Other Equipment",
+        "People",
+        "Pump",
+        "Refrigeration Zone Air Chiller",
+        "Refrigeration Air Chiller System",
+        "Refrigeration Zone Case and Walk In",
+        "Schedule",
+        "Site",
+        "Surface",
+        "System Node",
+        "VRF Heat Pump",
+        "Water Heater",
+        "Water to Water Heat Pump",
+        "Water Use Equipment",
+        "Zone",
+    }
 
     SUBGROUPS = {
         "_WIN": "Windows",
@@ -46,12 +75,11 @@ class TotalsFile(BaseFile):
     }
 
     IGNORED_VARIABLES = {
-        "Performance Curve Input Variable", "Performance Curve Output Value"
+        "Performance Curve Input Variable",
+        "Performance Curve Output Value",
     }
 
-    IGNORED_UNITS = {
-        "kg/s"
-    }
+    IGNORED_UNITS = {"kg/s"}
 
     def __init__(self, result_file: ResultsFile):
         super().__init__()
@@ -97,8 +125,9 @@ class TotalsFile(BaseFile):
 
         return df.T
 
-    def _get_grouped_vars(self, id_gen: Generator[int, None, None],
-                          variables: Dict[int, List[Variable]]) -> pd.DataFrame:
+    def _get_grouped_vars(
+        self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+    ) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}
         rows, index = [], []
@@ -162,11 +191,11 @@ class TotalsFile(BaseFile):
 
             return df.loc[:, cond1 | cond2].columns.get_level_values("id")
 
-        outputs = DFStorage()
+        outputs = DFData()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
-            out = file.storage.get_all_results(interval)
+            out = file.data.get_all_results(interval)
 
             # find invalid ids
             ids = ignored_ids(out)
@@ -182,31 +211,38 @@ class TotalsFile(BaseFile):
             out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
 
             # get header variables and filter them
-            variable_dct = file.storage.get_variables_dct(interval)
+            variable_dct = file.data.get_variables_dct(interval)
             variable_dct = {k: v for k, v in variable_dct.items() if k not in ids}
 
             header_df = self._get_grouped_vars(id_gen, variable_dct)
 
             # join header data and numeric outputs
-            df = pd.merge(how="inner", left=header_df, right=out.T,
-                          left_index=True, right_index=True)
+            df = pd.merge(
+                how="inner",
+                left=header_df,
+                right=out.T,
+                left_index=True,
+                right_index=True,
+            )
 
             # create new totals DataFrame
             df.reset_index(drop=True, inplace=True)
-            df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
+            df.set_index(
+                ["group_id", "interval", "key", "variable", "units"], inplace=True
+            )
             df = self._calculate_totals(df)
 
             # restore index
             df.index = out.index
 
             try:
-                c1 = file.storage.get_number_of_days(interval)
+                c1 = file.data.get_number_of_days(interval)
                 df.insert(0, N_DAYS_COLUMN, c1)
             except KeyError:
                 pass
 
             try:
-                c1 = file.storage.get_days_of_week(interval)
+                c1 = file.data.get_days_of_week(interval)
                 df.insert(0, DAY_COLUMN, c1)
             except KeyError:
                 pass
@@ -224,7 +260,7 @@ class TotalsFile(BaseFile):
         self.file_name = f"{file.file_name} - totals"
         self.file_created = file.file_created  # use base file timestamp
 
-        self.storage, self._search_tree = self.process_totals(file)
+        self.data, self.search_tree = self.process_totals(file)
 
     def generate_diff(self, other_file: ResultsFile):
         """ Generate 'Diff' results file. """

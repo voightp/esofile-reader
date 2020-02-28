@@ -3,51 +3,48 @@ import unittest
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
-
+from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
 from esofile_reader import EsoFile, Variable
-from esofile_reader.constants import *
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storage.storage_files import ParquetFile
 from tests import ROOT
+from datetime import datetime
 
 
-class TestDFOutputs(unittest.TestCase):
+class TestParquetData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        ef = EsoFile(file_path, ignore_peaks=True)
-        SQLStorage.set_up_db()
-
-        id_ = SQLStorage.store_file(ef)
-        cls.sql_file = SQLStorage.FILES[id_]
+        _ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef = ParquetFile(0, _ef.file_path, _ef.file_name, _ef.data,
+                             _ef.file_created, False, "")
 
     @classmethod
     def tearDownClass(cls):
-        SQLStorage.ENGINE = None
-        SQLStorage.METADATA = None
+        cls.ef = None
 
     def test_get_available_intervals(self):
-        intervals = self.sql_file.storage.get_available_intervals()
+        intervals = self.ef.data.get_available_intervals()
         self.assertListEqual(
             intervals,
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     def test_get_datetime_index(self):
-        index = self.sql_file.storage.get_datetime_index("monthly")
+        index = self.ef.data.get_datetime_index("monthly")
         assert_index_equal(index, pd.DatetimeIndex(['2002-01-01', '2002-02-01', '2002-03-01', '2002-04-01',
                                                     '2002-05-01', '2002-06-01', '2002-07-01', '2002-08-01',
                                                     '2002-09-01', '2002-10-01', '2002-11-01', '2002-12-01'],
                                                    dtype='datetime64[ns]', name='timestamp', freq=None))
 
     def test_get_all_variables_dct(self):
-        variables = self.sql_file.storage.get_all_variables_dct()
+        variables = self.ef.data.get_all_variables_dct()
         self.assertListEqual(
             list(variables.keys()),
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     def test_get_variables_dct(self):
-        variables = self.sql_file.storage.get_variables_dct("daily")
+        variables = self.ef.data.get_variables_dct("daily")
         self.assertListEqual(
             list(variables.keys()),
             [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
@@ -55,7 +52,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_variable_ids(self):
-        ids = self.sql_file.storage.get_variable_ids("daily")
+        ids = self.ef.data.get_variable_ids("daily")
         self.assertListEqual(
             ids,
             [9, 15, 21, 27, 33, 299, 305, 311, 317, 323,
@@ -63,7 +60,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_all_variable_ids(self):
-        ids = self.sql_file.storage.get_all_variable_ids()
+        ids = self.ef.data.get_all_variable_ids()
         self.assertListEqual(
             ids,
             [7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431, 475, 519, 563, 950, 956, 8, 14, 20, 26, 32,
@@ -75,7 +72,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_get_variables_df(self):
-        df = self.sql_file.storage.get_variables_df("daily")
+        df = self.ef.data.get_variables_df("daily")
         self.assertListEqual(
             df.columns.tolist(),
             ["id", "interval", "key", "variable", "units"]
@@ -86,7 +83,7 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_all_variables_df(self):
-        df = self.sql_file.storage.get_all_variables_df()
+        df = self.ef.data.get_all_variables_df()
         self.assertListEqual(
             df.columns.tolist(),
             ["id", "interval", "key", "variable", "units"]
@@ -97,62 +94,68 @@ class TestDFOutputs(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        self.sql_file.storage.update_variable_name("timestep", 7, "FOO", "BAR")
-        with SQLStorage.ENGINE.connect() as conn:
-            table = self.sql_file.storage._get_results_table("timestep")
-            res = conn.execute(table.select().where(table.c.id == 7)).first()
-            var = (res[0], res[1], res[2], res[3], res[4])
-            self.assertTupleEqual(var, (7, 'timestep', 'FOO', 'BAR', 'W/m2'))
+        self.ef.data.update_variable_name("timestep", 7, "FOO", "BAR")
+        col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
 
-        self.sql_file.storage.update_variable_name("timestep", 7, "Environment",
-                                                   "Site Diffuse Solar Radiation Rate per Area")
-        with SQLStorage.ENGINE.connect() as conn:
-            table = self.sql_file.storage._get_results_table("timestep")
-            res = conn.execute(table.select().where(table.c.id == 7)).first()
-            var = (res[0], res[1], res[2], res[3], res[4])
-            self.assertTupleEqual(var,
-                                  (7, 'timestep', 'Environment', 'Site Diffuse Solar Radiation Rate per Area', 'W/m2'))
+        self.ef.data.update_variable_name("timestep", 7, "Environment",
+                                          "Site Diffuse Solar Radiation Rate per Area")
+        col2 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "Environment",
+                                                       "Site Diffuse Solar Radiation Rate per Area", "W/m2")]
+        self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
-        id_ = self.sql_file.storage.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
-        self.sql_file.storage.delete_variables("monthly", [id_])
+        id_ = self.ef.data.insert_variable(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
+        col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
+        self.assertListEqual(col.to_list(), list(range(12)))
+
+        self.ef.data.delete_variables("monthly", [id_])
+        with self.assertRaises(KeyError):
+            _ = self.ef.data.tables["monthly"][id_]
+
+    def test_remove_variable_invalid(self):
+        with self.assertRaises(KeyError):
+            self.ef.data.delete_variables("monthly", [100000])
 
     def test_update_variable(self):
-        original_vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.storage.update_variable("monthly", 983, list(range(12)))
-        vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
+        self.ef.data.update_variable_results("monthly", 983, list(range(12)))
+        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
 
-        self.sql_file.storage.update_variable("monthly", 983, original_vals)
+        self.ef.data.update_variable_results("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
-        original_vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0]
-        self.sql_file.storage.update_variable("monthly", 983, list(range(11)))
-        vals = self.sql_file.storage.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
+        self.ef.data.update_variable_results("monthly", 983, list(range(11)))
+        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
 
-        self.sql_file.storage.update_variable("monthly", 983, original_vals)
+        self.ef.data.update_variable_results("monthly", 983, original_vals)
+
+    def test_get_special_column_invalid(self):
+        with self.assertRaises(KeyError):
+            self.ef.data._get_special_column("FOO", "timestep")
 
     def test_get_number_of_days(self):
-        col = self.sql_file.storage.get_number_of_days("monthly")
+        col = self.ef.data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
     def test_get_days_of_week(self):
-        col = self.sql_file.storage.get_days_of_week("daily")
+        col = self.ef.data.get_days_of_week("daily")
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 
     def test_get_all_results(self):
-        df = self.sql_file.storage.get_all_results("daily")
+        df = self.ef.data.get_all_results("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
     def test_get_results(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983])
+        df = self.ef.data.get_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame([
             [18.948067, 2.582339e+08],
             [18.879265, 6.594828e+08],
@@ -176,13 +179,13 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_sliced(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 6, 1))
+        df = self.ef.data.get_results("monthly", [324, 983],
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 6, 1))
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
-        test_index = pd.Index([pd.datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
+        test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
             [24.993765, 3.762886e+09],
@@ -197,17 +200,17 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day(self):
-        df = self.sql_file.storage.get_results("daily", [323, 982],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 4, 3),
-                                               include_day=True)
+        df = self.ef.data.get_results("daily", [323, 982],
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 4, 3),
+                                      include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (982, "daily", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, 4, i) for i in range(1, 4)],
+            [[datetime(2002, 4, i) for i in range(1, 4)],
              ["Monday", "Tuesday", "Wednesday"]], names=["timestamp", "day"])
 
         test_df = pd.DataFrame([
@@ -224,17 +227,17 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day_from_date(self):
-        df = self.sql_file.storage.get_results("monthly", [324, 983],
-                                               start_date=pd.datetime(2002, 4, 1),
-                                               end_date=pd.datetime(2002, 6, 1),
-                                               include_day=True)
+        df = self.ef.data.get_results("monthly", [324, 983],
+                                      start_date=datetime(2002, 4, 1),
+                                      end_date=datetime(2002, 6, 1),
+                                      include_day=True)
         test_columns = pd.MultiIndex.from_tuples([(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                                                   (983, "monthly", "CHILLER", "Chiller Electric Energy", "J")],
                                                  names=["id", "interval", "key", "variable", "units"])
 
         # days of week are picked up from actual date when not available on df
         test_index = pd.MultiIndex.from_arrays(
-            [[pd.datetime(2002, i, 1) for i in range(4, 7)],
+            [[datetime(2002, i, 1) for i in range(4, 7)],
              ["Monday", "Wednesday", "Saturday"]], names=["timestamp", "day"])
         test_df = pd.DataFrame([
             [23.129456, 2.573239e+09],
@@ -251,10 +254,10 @@ class TestDFOutputs(unittest.TestCase):
 
     def test_get_results_invalid_ids(self):
         with self.assertRaises(KeyError):
-            _ = self.sql_file.storage.get_results("daily", [7])
+            _ = self.ef.data.get_results("daily", [7])
 
     def test_get_global_max_results(self):
-        df = self.sql_file.storage.get_global_max_results("monthly", [324, 983])
+        df = self.ef.data.get_global_max_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
              (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "timestamp"),
@@ -262,7 +265,7 @@ class TestDFOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [27.007450, pd.datetime(2002, 7, 1), 5.093662e+09, pd.datetime(2002, 7, 1)],
+            [27.007450, datetime(2002, 7, 1), 5.093662e+09, datetime(2002, 7, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])
@@ -272,7 +275,7 @@ class TestDFOutputs(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_global_min_results(self):
-        df = self.sql_file.storage.get_global_min_results("monthly", [324, 983])
+        df = self.ef.data.get_global_min_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [(324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
              (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "timestamp"),
@@ -280,7 +283,7 @@ class TestDFOutputs(unittest.TestCase):
              (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp")],
             names=["id", "interval", "key", "variable", "units", "data"])
         test_df = pd.DataFrame([
-            [18.520034, pd.datetime(2002, 12, 1), 1.945721e+08, pd.datetime(2002, 12, 1)],
+            [18.520034, datetime(2002, 12, 1), 1.945721e+08, datetime(2002, 12, 1)],
         ], columns=test_columns)
 
         # need to drop id as pandas does not treat Index([324, 983])
@@ -288,3 +291,52 @@ class TestDFOutputs(unittest.TestCase):
         df = df.droplevel("id", axis=1)
         test_df = test_df.droplevel("id", axis=1)
         assert_frame_equal(df, test_df)
+
+    def test_df_dt_slicer(self):
+        index = pd.DatetimeIndex(pd.date_range("2002-01-01", freq="d", periods=5))
+        df = pd.DataFrame({"a": list(range(5))}, index=index)
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=datetime(2002, 1, 2), end_date=None),
+            df.iloc[1:, :]
+        )
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=None, end_date=datetime(2002, 1, 2)),
+            df.iloc[:2, :]
+        )
+
+        pd.testing.assert_frame_equal(
+            df_dt_slicer(df, start_date=datetime(2002, 1, 2), end_date=datetime(2002, 1, 2)),
+            df.iloc[[1], :]
+        )
+
+    def test_sr_dt_slicer(self):
+        index = pd.DatetimeIndex(pd.date_range("2002-01-01", freq="d", periods=5))
+        sr = pd.Series(list(range(5)), index=index)
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=datetime(2002, 1, 2), end_date=None),
+            sr.iloc[1:],
+        )
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=None, end_date=datetime(2002, 1, 2)),
+            sr.iloc[:2]
+        )
+
+        pd.testing.assert_series_equal(
+            sr_dt_slicer(sr, start_date=datetime(2002, 1, 2), end_date=datetime(2002, 1, 2)),
+            sr.iloc[[1]]
+        )
+
+    def test_load_invalid_parquet_file(self):
+        with self.assertRaises(IOError):
+            ParquetFile.load_file("foo.bar")
+
+    def test_parquet_file_as_bytes(self):
+        import io
+        out = self.ef.save_as()
+        self.assertIsInstance(out, io.BytesIO)
+
+

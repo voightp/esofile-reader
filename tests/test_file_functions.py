@@ -28,7 +28,7 @@ class TestFileFunctions(unittest.TestCase):
                               'monthly', 'runperiod', 'annual'])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.ef.storage.get_all_variable_ids()), 114)
+        self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.file_created, datetime))
@@ -42,9 +42,15 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.storage.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
-                                                                                    "variable", "units"])
-        self.assertEqual(len(self.ef.storage.get_all_variables_df().index), 114)
+        names = ["id", "interval", "key", "variable", "units"]
+        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), names)
+        self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
+
+        frames = []
+        for interval in self.ef.available_intervals:
+            frames.append(self.ef.get_header_df(interval))
+        df = pd.concat(frames, axis=0)
+        assert_frame_equal(df, self.ef.data.get_all_variables_df())
 
     def test_rename(self):
         original = self.ef.file_name
@@ -180,12 +186,12 @@ class TestFileFunctions(unittest.TestCase):
         id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
 
-        ids = self.ef._search_tree.get_ids(*var)
+        ids = self.ef.search_tree.get_ids(*var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
         self.ef.remove_outputs(var)
-        ids = self.ef._search_tree.get_ids(*var)
+        ids = self.ef.search_tree.get_ids(*var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
@@ -216,7 +222,7 @@ class TestFileFunctions(unittest.TestCase):
         test_mi = pd.MultiIndex.from_tuples([("Custom Key - sum", "Custom Variable", "J")],
                                             names=["key", "variable", "units"])
         test_index = pd.MultiIndex.from_product([["eplusout_all_intervals"],
-                                                 [pd.datetime(2002, i, 1) for i in range(1, 13)]],
+                                                 [datetime(2002, i, 1) for i in range(1, 13)]],
                                                 names=["file", "timestamp"])
         test_df = pd.DataFrame([[5.164679e+08],
                                 [1.318966e+09],
@@ -233,9 +239,17 @@ class TestFileFunctions(unittest.TestCase):
         assert_frame_equal(df, test_df)
         self.ef.remove_outputs(var)
 
+    def test_aggregate_invalid_variables(self):
+        vars = [
+            Variable("hourly", "invalid", "variable1", "units"),
+            Variable("hourly", "invalid", "variable", "units")
+        ]
+        with self.assertRaises(CannotAggregateVariables):
+            self.ef.aggregate_variables(vars, "sum")
+
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.storage.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

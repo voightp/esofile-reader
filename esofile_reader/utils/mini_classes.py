@@ -13,11 +13,12 @@ Variable = namedtuple("Variable", "interval key variable units")
 IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
 
 # type hint to wrap all result types
-ResultsFile = Union[ForwardRef("EsoFile"),
-                    ForwardRef("DiffFile"),
-                    ForwardRef("TotalsFile"),
-                    ForwardRef("DatabaseFile")]
+ResultsFile = Union[
+    ForwardRef("EsoFile"),
+    ForwardRef("DiffFile"),
+    ForwardRef("TotalsFile"),
+    ForwardRef("DatabaseFile"),
+]
 
 # type hint to wrap all storage types
-Storage = Union[ForwardRef("SQLStorage"),
-                ForwardRef("DFStorage")]
+Data = Union[ForwardRef("SQLData"), ForwardRef("DFData")]

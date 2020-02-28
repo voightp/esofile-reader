@@ -13,15 +13,20 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/voightp/esofile-reader.git",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages("esofile_reader"),
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "License :: ",
         "Operating System :: Windows",
     ],
-    ext_modules=cythonize("./esofile_reader/processing/esofile_processor.pyx",
-                          annotate=False, compiler_directives={'language_level': "3"}),
+    ext_modules=cythonize(
+        "./esofile_reader/processor/esofile_processor.pyx",
+        annotate=True, compiler_directives={
+            'language_level': "3",
+            "profile": True,
+            "linetrace": True
+        }),
     zip_safe=False,
     install_requires=[
         "Cython >= 0.29.14",

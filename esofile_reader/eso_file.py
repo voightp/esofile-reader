@@ -1,32 +1,29 @@
 import logging
 import os
 from datetime import datetime
-from typing import Type, List, _ForwardRef
+from typing import Type, List, Union
+
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
 
 import pandas as pd
 
-from esofile_reader.base_file import BaseFile, IncompleteFile
+from esofile_reader.base_file import BaseFile
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
+from esofile_reader.utils.exceptions import *
 from esofile_reader.utils.mini_classes import Variable, ResultsFile
 
 try:
-    from esofile_reader.processing.esofile_processor import read_file
+    from esofile_reader.processor.esofile_processor import read_file
 except ModuleNotFoundError:
     import pyximport
 
-    pyximport.install()
-    from esofile_reader.processing.esofile_processor import read_file
-
-
-class PeaksNotIncluded(Exception):
-    """ Exception is raised when 'EsoFile' has been processed without peaks. """
-    pass
-
-
-class MultiEnvFileRequired(Exception):
-    """ Exception raised when populating single 'EsoFile' with multi env data."""
+    pyximport.install(pyximport=True, language_level=3)
+    from esofile_reader.processor.esofile_processor import read_file
 
 
 class EsoFile(BaseFile):
@@ -41,7 +38,7 @@ class EsoFile(BaseFile):
         A full path of the ESO file.
     file_created : datetime.datetime
         Time and date when the ESO file has been generated (extracted from original Eso file).
-    storage : {DFOutputs, SQLOutputs}
+    data : {DFData, SQLData}
         A class to store results data
         {period : {ID : (key name, variable name, units)}}
 
@@ -63,8 +60,14 @@ class EsoFile(BaseFile):
 
     """
 
-    def __init__(self, file_path: str, monitor: Type[DefaultMonitor] = None, autopopulate=True,
-                 ignore_peaks: bool = True, year: int = 2002):
+    def __init__(
+            self,
+            file_path: str,
+            monitor: Type[DefaultMonitor] = None,
+            autopopulate=True,
+            ignore_peaks: bool = True,
+            year: int = 2002,
+    ):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
@@ -73,83 +76,89 @@ class EsoFile(BaseFile):
             self.populate_content(monitor=monitor, ignore_peaks=ignore_peaks, year=year)
 
     @classmethod
-    def process_multi_env_file(cls, file_path: str, monitor: Type[DefaultMonitor] = None,
-                               ignore_peaks: bool = True, year: int = 2002) -> List[_ForwardRef('EsoFile')]:
+    def process_multi_env_file(
+            cls,
+            file_path: str,
+            monitor: Type[DefaultMonitor] = None,
+            ignore_peaks: bool = True,
+            year: int = 2002,
+    ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
         eso_files = []
         content = read_file(
-            file_path,
-            monitor=monitor,
-            ignore_peaks=ignore_peaks,
-            year=year
+            file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
         )
 
-        if content:
-            content = [c for c in list(zip(*content))[::-1]]
-            for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
-                ef = EsoFile(file_path, autopopulate=False)
-                ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+        content = [c for c in list(zip(*content))[::-1]]
+        for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
+            ef = EsoFile(file_path, autopopulate=False)
+            ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
 
-                # last processed environment uses a plain name
-                # this is in place to only assign distinct names for
-                # 'sizing' results which are reported first
-                name = os.path.splitext(os.path.basename(file_path))[0]
-                ef.file_name = f"{name} - {environment}" if i > 0 else name
-                ef.storage = outputs
-                ef.peak_outputs = peak_outputs
-                ef._search_tree = tree
+            # last processed environment uses a plain name
+            # this is in place to only assign distinct names for
+            # 'sizing' results which are reported first
+            name = os.path.splitext(os.path.basename(file_path))[0]
+            ef.file_name = f"{name} - {environment}" if i > 0 else name
+            ef.data = outputs
+            ef.peak_outputs = peak_outputs
+            ef.search_tree = tree
 
-                eso_files.append(ef)
-        else:
-            raise IncompleteFile(f"Unexpected end of the file reached!\n"
-                                 f"File '{file_path}' is not complete.")
+            eso_files.append(ef)
 
         return eso_files
 
-    def populate_content(self, monitor: Type[DefaultMonitor] = None,
-                         ignore_peaks: bool = True, year: int = 2002) -> None:
+    def populate_content(
+            self,
+            monitor: Type[DefaultMonitor] = None,
+            ignore_peaks: bool = True,
+            year: int = 2002,
+    ) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
         self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
 
         content = read_file(
-            self.file_path,
-            monitor=monitor,
-            ignore_peaks=ignore_peaks,
-            year=year
+            self.file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
         )
 
-        if content:
-            environment_names = content[0]
-            if len(environment_names) == 1:
-                (
-                    self.storage,
-                    self.peak_outputs,
-                    self._search_tree,
-                ) = [c[0] for c in content[1:]]
-            else:
-                raise MultiEnvFileRequired(f"Cannot populate file {self.file_path}. "
-                                           f"as there are multiple environments included.\n"
-                                           f"Use 'EsoFile.process_multi_env_file' to "
-                                           f"generate multiple files.")
+        environment_names = content[0]
+        if len(environment_names) == 1:
+            (self.data, self.peak_outputs, self.search_tree,) = [
+                c[0] for c in content[1:]
+            ]
         else:
-            raise IncompleteFile(f"Unexpected end of the file reached!\n"
-                                 f"File '{self.file_path}' is not complete.")
+            raise MultiEnvFileRequired(
+                f"Cannot populate file {self.file_path}. "
+                f"as there are multiple environments included.\n"
+                f"Use 'EsoFile.process_multi_env_file' to "
+                f"generate multiple files."
+            )
 
-    def _get_peak_results(self, variables: List[Variable], output_type: str,
-                          start_date: datetime = None, end_date: datetime = None,
-                          add_file_name: str = "row", include_interval: bool = False,
-                          include_id: bool = False, part_match: bool = False,
-                          timestamp_format: str = "default") -> pd.DataFrame:
+    def _get_peak_results(
+            self,
+            variables: List[Variable],
+            output_type: str,
+            start_date: datetime = None,
+            end_date: datetime = None,
+            add_file_name: str = "row",
+            include_interval: bool = False,
+            include_id: bool = False,
+            part_match: bool = False,
+            timestamp_format: str = "default",
+    ) -> pd.DataFrame:
         """ Return local peak results. """
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)
 
         for interval, ids in groups.items():
             try:
-                df = self.peak_outputs[output_type].get_results(interval, ids, start_date, end_date)
+                df = self.peak_outputs[output_type].get_results(
+                    interval, ids, start_date, end_date
+                )
             except KeyError:
-                logging.warning(f"There are no peak outputs stored for interval: '{interval}'.")
+                logging.warning(
+                    f"There are no peak outputs stored for interval: '{interval}'."
+                )
                 continue
 
             if not include_id:
@@ -162,8 +171,12 @@ class EsoFile(BaseFile):
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def get_results(self, variables: List[Variable], output_type: str = "standard",
-                    **kwargs) -> pd.DataFrame:
+    def get_results(
+            self,
+            variables: Union[Variable, List[Variable]],
+            output_type: str = "standard",
+            **kwargs
+    ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
 
@@ -214,15 +227,22 @@ class EsoFile(BaseFile):
         """
         if output_type in ["local_max", "local_min"]:
             if self.peak_outputs:
-                ignore = ["units_system", "rate_to_energy_dct",
-                          "rate_units", "energy_units", "include_day"]
+                ignore = [
+                    "units_system",
+                    "rate_to_energy_dct",
+                    "rate_units",
+                    "energy_units",
+                    "include_day",
+                ]
                 kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
                 df = self._get_peak_results(variables, output_type, **kwargs)
 
             else:
-                raise PeaksNotIncluded("Peak values are not included, it's "
-                                       "required to add kwarg 'ignore_peaks=False' "
-                                       "when processing the file.")
+                raise PeaksNotIncluded(
+                    "Peak values are not included, it's "
+                    "required to add kwarg 'ignore_peaks=False' "
+                    "when processing the file."
+                )
         else:
             df = super().get_results(variables, output_type=output_type, **kwargs)
 

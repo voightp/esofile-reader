@@ -6,8 +6,12 @@ from esofile_reader.constants import *
 from esofile_reader.conversion_tables import energy_table, rate_table, si_to_ip
 
 
-def apply_conversion(df: pd.DataFrame, orig_units: List[str], new_units: List[str],
-                     conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]]) -> pd.DataFrame:
+def apply_conversion(
+    df: pd.DataFrame,
+    orig_units: List[str],
+    new_units: List[str],
+    conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
+) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
         cnd = df.columns.get_level_values("units") == old
@@ -32,7 +36,9 @@ def apply_conversion(df: pd.DataFrame, orig_units: List[str], new_units: List[st
     return df
 
 
-def convert_units(df: pd.DataFrame, units_system: str, rate_units: str, energy_units) -> pd.DataFrame:
+def convert_units(
+    df: pd.DataFrame, units_system: str, rate_units: str, energy_units
+) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
 
@@ -53,8 +59,10 @@ def convert_units(df: pd.DataFrame, units_system: str, rate_units: str, energy_u
         if inp:
             if units != inp[0]:
                 # TODO remove for distribution
-                raise AssertionError(f"Original units '{units}' do not match "
-                                     f"converted units '{inp[0]}'.")
+                raise AssertionError(
+                    f"Original units '{units}' do not match "
+                    f"converted units '{inp[0]}'."
+                )
             else:
                 conversion_inputs.append(inp)
 
@@ -67,8 +75,13 @@ def convert_units(df: pd.DataFrame, units_system: str, rate_units: str, energy_u
     return apply_conversion(df, orig_units, new_units, conversion_ratios)
 
 
-def update_multiindex(df: pd.DataFrame, level: Union[str, int], old_vals: List[str],
-                      new_vals: List[str], axis: int = 1) -> None:
+def update_multiindex(
+    df: pd.DataFrame,
+    level: Union[str, int],
+    old_vals: List[str],
+    new_vals: List[str],
+    axis: int = 1,
+) -> None:
     """ Replace multiindex values on a specific level inplace. """
 
     def replace(val):
@@ -97,8 +110,9 @@ def update_multiindex(df: pd.DataFrame, level: Union[str, int], old_vals: List[s
 
 def rate_and_energy_units(units: List[str]) -> bool:
     """ Check if all units are rate and energy. """
-    return all(map(lambda x: x in ("J", "W"), units)) \
-           or all(map(lambda x: x in ("J/m2", "W/m2"), units))
+    return all(map(lambda x: x in ("J", "W"), units)) or all(
+        map(lambda x: x in ("J/m2", "W/m2"), units)
+    )
 
 
 def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
@@ -107,7 +121,9 @@ def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     return 3600 / timedelta.seconds
 
 
-def convert_rate_to_energy(df: pd.DataFrame, interval: str, n_days: int = None) -> pd.DataFrame:
+def convert_rate_to_energy(
+    df: pd.DataFrame, interval: str, n_days: int = None
+) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
     if interval == H or interval == TS:
         n_steps = get_n_steps(df.index)

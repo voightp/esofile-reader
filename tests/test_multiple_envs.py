@@ -2,6 +2,7 @@ import unittest
 from tests import ROOT
 import os
 from esofile_reader.eso_file import EsoFile
+from esofile_reader.utils.exceptions import MultiEnvFileRequired
 
 
 class TestMultipleEnvs(unittest.TestCase):
@@ -29,8 +30,12 @@ class TestMultipleEnvs(unittest.TestCase):
             self.assertTrue(ef.complete)
 
     def test_tree(self):
-        trees = [ef._search_tree.str_tree() for ef in self.efs]
+        trees = [ef.search_tree.str_tree() for ef in self.efs]
         self.assertEqual(len(set(trees)), 1)
+
+    def test_multienv_file_required(self):
+        with self.assertRaises(MultiEnvFileRequired):
+            EsoFile(os.path.join(ROOT, "eso_files/multiple_environments.eso"))
 
 
 if __name__ == '__main__':

@@ -3,14 +3,13 @@ from typing import Iterable, Any, Dict, List
 import pandas as pd
 from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
 
-from esofile_reader.utils.utils import profile
-
 
 def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     name = f"{file_id}-results-{interval}"
 
     table = Table(
-        name, metadata,
+        name,
+        metadata,
         Column("id", Integer, primary_key=True, index=True, autoincrement=True),
         Column("interval", String(50)),
         Column("key", String(50)),
@@ -27,10 +26,7 @@ def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Tab
 def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     name = f"{file_id}-index-{interval}"
 
-    table = Table(
-        name, metadata,
-        Column("value", DateTime)
-    )
+    table = Table(name, metadata, Column("value", DateTime))
 
     table.create()
 
@@ -40,10 +36,7 @@ def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Ta
 def create_n_days_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     name = f"{file_id}-n_days-{interval}"
 
-    table = Table(
-        name, metadata,
-        Column("value", Integer)
-    )
+    table = Table(name, metadata, Column("value", Integer))
 
     table.create()
 
@@ -53,10 +46,7 @@ def create_n_days_table(metadata: MetaData, file_id: int, interval: str) -> Tabl
 def create_day_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     name = f"{file_id}-day-{interval}"
 
-    table = Table(
-        name, metadata,
-        Column("value", String(10))
-    )
+    table = Table(name, metadata, Column("value", String(10)))
 
     table.create()
 
@@ -70,7 +60,6 @@ def create_value_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
     return ins
 
 
-@profile
 def destringify_values(df: pd.DataFrame, separator="\t"):
     """ Transform joined str field into numeric columns. """
     names = df.index.names
@@ -85,7 +74,6 @@ def destringify_values(df: pd.DataFrame, separator="\t"):
     return df
 
 
-@profile
 def merge_df_values(df: pd.DataFrame, separator: str) -> pd.Series:
     """ Merge all column values into a single str pd.Series. """
     df = df.astype(str)

@@ -5,15 +5,11 @@ import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.utils.mini_classes import ResultsFile, Storage
+from esofile_reader.data.df_data import DFData
+from esofile_reader.utils.mini_classes import ResultsFile, Data
 from esofile_reader.utils.search_tree import Tree
 from esofile_reader.utils.utils import incremental_id_gen
-
-
-class NoSharedVariables(Exception):
-    """ Raised when source diff files have no common variables. """
-    pass
+from esofile_reader.utils.exceptions import *
 
 
 class DiffFile(BaseFile):
@@ -28,9 +24,9 @@ class DiffFile(BaseFile):
         self.populate_content(first_file, other_file)
 
     @staticmethod
-    def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFStorage:
+    def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFData:
         """ Calculate difference between two results files. """
-        diff = DFStorage()
+        diff = DFData()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
@@ -58,16 +54,16 @@ class DiffFile(BaseFile):
                 df.columns = pd.MultiIndex.from_frame(header_df)
 
                 try:
-                    c1 = file.storage.get_number_of_days(interval).loc[index_cond]
-                    c2 = other_file.storage.get_number_of_days(interval).loc[index_cond]
+                    c1 = file.data.get_number_of_days(interval).loc[index_cond]
+                    c2 = other_file.data.get_number_of_days(interval).loc[index_cond]
                     if c1.equals(c2):
                         df.insert(0, N_DAYS_COLUMN, c1)
                 except KeyError:
                     pass
 
                 try:
-                    c1 = file.storage.get_days_of_week(interval).loc[index_cond]
-                    c2 = other_file.storage.get_days_of_week(interval).loc[index_cond]
+                    c1 = file.data.get_days_of_week(interval).loc[index_cond]
+                    c2 = other_file.data.get_days_of_week(interval).loc[index_cond]
                     if c1.equals(c2):
                         df.insert(0, DAY_COLUMN, c1)
                 except KeyError:
@@ -77,15 +73,19 @@ class DiffFile(BaseFile):
 
         return diff
 
-    def process_diff(self, first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Storage, Tree]:
+    def process_diff(
+        self, first_file: ResultsFile, other_file: ResultsFile
+    ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}
         data = self.calculate_diff(first_file, other_file)
 
         intervals = data.get_available_intervals()
         if not intervals:
-            raise NoSharedVariables(f"Cannot generate diff file. Files '{first_file.file_name}' "
-                                    f" and '{other_file.file_name} do not have any shared variables.")
+            raise NoSharedVariables(
+                f"Cannot generate diff file. Files '{first_file.file_name}' "
+                f" and '{other_file.file_name} do not have any shared variables."
+            )
         else:
             for interval in intervals:
                 header[interval] = data.get_variables_dct(interval)
@@ -101,4 +101,4 @@ class DiffFile(BaseFile):
         self.file_name = f"{first_file.file_name} - {other_file.file_name} - diff"
         self.file_created = datetime.utcnow()
 
-        self.storage, self._search_tree = self.process_diff(first_file, other_file)
+        self.data, self.search_tree = self.process_diff(first_file, other_file)

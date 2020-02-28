@@ -4,16 +4,6 @@ import pandas as pd
 from esofile_reader.constants import *
 
 
-class IntervalNotAvailable(KeyError):
-    """ Raise an exception when interval is not included in results. """
-    pass
-
-
-class CannotFindEnvironment(Exception):
-    """ Raise and exception when there isn't any suitable interval to find environment dates. """
-    pass
-
-
 def update_dt_format(df, timestamp_format):
     """ Set specified 'datetime' str format. """
     if TIMESTAMP_COLUMN in df.index.names:
@@ -87,8 +77,20 @@ def parse_result_dt(date, month, day, hour, end_min):
 
 def is_end_day(month, day):
     """ Check if day us the month end day. """
-    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+    months = {
+        1: 31,
+        2: 28,
+        3: 31,
+        4: 30,
+        5: 31,
+        6: 30,
+        7: 31,
+        8: 31,
+        9: 30,
+        10: 31,
+        11: 30,
+        12: 31,
+    }
     return day == months[month]
 
 
@@ -138,8 +140,20 @@ def get_num_of_days(cumulative_days):
 
 def month_end_date(date):
     """ Return month end date of a given date. """
-    months = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-              7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+    months = {
+        1: 31,
+        2: 28,
+        3: 31,
+        4: 30,
+        5: 31,
+        6: 30,
+        7: 31,
+        8: 31,
+        9: 30,
+        10: 31,
+        11: 30,
+        12: 31,
+    }
     end_date = date.replace(day=months[date.month])
     return end_date
 
@@ -158,7 +172,12 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
     else:
         if current_step_data == (12, 31, 24, 60):
             return True
-        elif first_step_data == current_step_data and previous_step_data != (12, 31, 24, 60):
+        elif first_step_data == current_step_data and previous_step_data != (
+            12,
+            31,
+            24,
+            60,
+        ):
             return True  # duplicate date -> increment year
         else:
             return False

@@ -1,7 +1,8 @@
 import os
 import unittest
 
-from esofile_reader import EsoFile
+from esofile_reader import EsoFile, TotalsFile
+from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
@@ -13,28 +14,29 @@ class TestSqlDB(unittest.TestCase):
         cls.ef = EsoFile(file_path, ignore_peaks=True)
 
     def test_01_store_file_not_set_up(self):
-        SQLStorage.ENGINE = None
-        SQLStorage.METADATA = None
+        storage = SQLStorage()
+        storage.engine = None
+        storage.metadata = None
         with self.assertRaises(AttributeError):
-            SQLStorage.store_file(self.ef)
+            storage.store_file(self.ef)
 
     def test_02_set_up_db(self):
-        SQLStorage.set_up_db()
-        self.assertIsNotNone(SQLStorage.ENGINE)
-        self.assertIsNotNone(SQLStorage.METADATA)
-        self.assertListEqual(list(SQLStorage.METADATA.tables.keys()), ["result-files"])
+        storage = SQLStorage()
+        self.assertIsNotNone(storage.engine)
+        self.assertIsNotNone(storage.metadata)
+        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
 
         self.assertListEqual(
-            list(SQLStorage.METADATA.tables.keys()),
+            list(storage.metadata.tables.keys()),
             ["result-files"]
         )
 
-        res = SQLStorage.ENGINE.execute("""SELECT name FROM sqlite_master""")
+        res = storage.engine.execute("""SELECT name FROM sqlite_master""")
         self.assertEqual(res.fetchone()[0], "result-files")
 
     def test_03_store_file(self):
-        SQLStorage.set_up_db()
-        SQLStorage.store_file(self.ef)
+        storage = SQLStorage()
+        storage.store_file(self.ef)
         tables = [
             'result-files', '1-results-timestep', '1-index-timestep',
             '1-day-timestep', '1-results-hourly', '1-index-hourly', '1-day-hourly',
@@ -44,50 +46,50 @@ class TestSqlDB(unittest.TestCase):
             '1-index-annual', '1-n_days-annual'
         ]
 
-        self.assertListEqual(list(SQLStorage.METADATA.tables.keys()), tables)
+        self.assertListEqual(list(storage.metadata.tables.keys()), tables)
 
-        res = SQLStorage.ENGINE.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertListEqual([i[0] for i in res.fetchall()], tables)
 
     def test_04_store_file_totals(self):
-        SQLStorage.set_up_db()
-        id_ = SQLStorage.store_file(self.ef, totals=True)
-        res = SQLStorage.ENGINE.execute(f"""SELECT totals FROM 'result-files' WHERE id={id_};""").scalar()
+        storage = SQLStorage()
+        id_ = storage.store_file(TotalsFile(self.ef))
+        res = storage.engine.execute(f"""SELECT totals FROM 'result-files' WHERE id={id_};""").scalar()
         self.assertTrue(res)
 
     def test_05_delete_file(self):
-        SQLStorage.set_up_db()
-        SQLStorage.store_file(self.ef)
-        SQLStorage.delete_file(1)
+        storage = SQLStorage()
+        id_ = storage.store_file(self.ef)
+        storage.delete_file(1)
 
         self.assertListEqual(
-            list(SQLStorage.METADATA.tables.keys()),
+            list(storage.metadata.tables.keys()),
             ["result-files"]
         )
 
-        res = SQLStorage.ENGINE.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertEqual(res.fetchone()[0], "result-files")
 
     def test_06_load_all_files(self):
-        SQLStorage.set_up_db()
+        storage = SQLStorage()
         self.maxDiff = None
-        id1 = SQLStorage.store_file(self.ef)
-        id2 = SQLStorage.store_file(EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso")))
+        id1 = storage.store_file(self.ef)
+        id2 = storage.store_file(EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso")))
 
-        db_file1 = SQLStorage.FILES[id1]
-        db_file2 = SQLStorage.FILES[id2]
+        db_file1 = storage.files[id1]
+        db_file2 = storage.files[id2]
 
-        del SQLStorage.FILES[id1]
-        del SQLStorage.FILES[id2]
+        del storage.files[id1]
+        del storage.files[id2]
 
-        SQLStorage.load_all_files()
-        loaded_db_files = SQLStorage.FILES.values()
+        storage.load_all_files()
+        loaded_db_files = storage.files.values()
 
         for f, lf in zip([db_file1, db_file2], loaded_db_files):
             self.assertEqual(f.file_name, lf.file_name)
             self.assertEqual(f.file_path, lf.file_path)
             self.assertEqual(f.id_, lf.id_)
-            self.assertEqual(len(f._search_tree.str_tree()), len(lf._search_tree.str_tree()))
+            self.assertEqual(len(f.search_tree.str_tree()), len(lf.search_tree.str_tree()))
 
             for interval in f.available_intervals:
                 self.assertEqual(
@@ -96,12 +98,13 @@ class TestSqlDB(unittest.TestCase):
                 )
 
     def test_07_delete_file_invalid(self):
+        storage = SQLStorage()
         with self.assertRaises(KeyError):
-            SQLStorage.delete_file(1000)
+            storage.delete_file(1000)
 
     def test_08_get_all_file_names(self):
-        SQLStorage.set_up_db()
-        SQLStorage.store_file(self.ef)
-        SQLStorage.load_all_files()
-        names = SQLStorage.get_all_file_names()
+        storage = SQLStorage()
+        storage.store_file(self.ef)
+        storage.load_all_files()
+        names = storage.get_all_file_names()
         self.assertEqual(names, ["eplusout_all_intervals"])
