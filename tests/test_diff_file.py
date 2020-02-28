@@ -2,6 +2,7 @@ import os
 from pandas.testing import assert_series_equal
 from unittest import TestCase
 from esofile_reader import EsoFile, DiffFile
+from esofile_reader.utils.exceptions import NoSharedVariables
 from esofile_reader.constants import *
 
 from tests import ROOT
@@ -43,3 +44,16 @@ class TestDiffFile(TestCase):
         shapes = [(4392, 3), (183, 3), (6, 3)]
         for interval, test_shape in zip(diff.available_intervals, shapes):
             self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
+
+    def test_no_shared_intervals(self):
+        ef1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+        ef2 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+
+        del ef1.data.tables["hourly"]
+        del ef1.data.tables["daily"]
+
+        del ef2.data.tables["monthly"]
+        del ef2.data.tables["runperiod"]
+
+        with self.assertRaises(NoSharedVariables):
+            DiffFile(ef1, ef2)

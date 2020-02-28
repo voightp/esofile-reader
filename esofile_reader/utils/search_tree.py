@@ -136,8 +136,6 @@ class Tree:
             if self._match(node, cond[level], part_match=part_match):
                 for nd in node.children:
                     self._loop(nd, level, ids, cond, part_match=part_match)
-            else:
-                pass
 
         # Condition not applied, loop through all children
         else:

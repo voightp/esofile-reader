@@ -14,7 +14,6 @@ from esofile_reader.data.df_functions import (
 )
 from esofile_reader.storage.sql_functions import destringify_values
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.utils.utils import profile
 
 
 class SQLData(BaseData):
@@ -116,7 +115,6 @@ class SQLData(BaseData):
 
         return datetime_index
 
-    @profile
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
         variables_dct = {}
         table = self._get_results_table(interval)
@@ -185,8 +183,8 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             conn.execute(
                 table.update()
-                .where(table.c.id == id_)
-                .values(key=key_name, variable=var_name)
+                    .where(table.c.id == id_)
+                    .values(key=key_name, variable=var_name)
             )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
@@ -241,19 +239,17 @@ class SQLData(BaseData):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
-        table = self._get_n_days_table(interval)
+        try:
+            table = self._get_n_days_table(interval)
+        except KeyError:
+            raise KeyError(f"'{N_DAYS_COLUMN}' column is not available "
+                           f"on the given data set.")
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            if res:
-                sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
-            else:
-                raise KeyError(
-                    f"'{N_DAYS_COLUMN}' column is not available "
-                    f"on the given data set."
-                )
+            sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -262,18 +258,18 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
-        table = self._get_day_table(interval)
+        try:
+            table = self._get_day_table(interval)
+        except KeyError:
+            raise KeyError(
+                f"'{DAY_COLUMN}' column is not available " f"on the given data set."
+            )
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            if res:
-                sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
-            else:
-                raise KeyError(
-                    f"'{DAY_COLUMN}' column is not available " f"on the given data set."
-                )
+            sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -282,12 +278,12 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
@@ -329,12 +325,12 @@ class SQLData(BaseData):
         return df
 
     def _global_peak(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime,
-        end_date: datetime,
-        max_: bool = True,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
@@ -348,19 +344,19 @@ class SQLData(BaseData):
         return df
 
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

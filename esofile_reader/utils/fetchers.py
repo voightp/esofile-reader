@@ -8,7 +8,6 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.utils.exceptions import NoResults
 
 
 def get_results(
@@ -115,10 +114,6 @@ def _get_results(file, variables, **kwargs):
         eso_file = file
     else:
         eso_file = EsoFile(file, ignore_peaks=ignore_peaks)
-
-    if not eso_file.complete:
-        msg = f"Cannot load results!\nFile '{eso_file.file_name}' is not complete."
-        raise NoResults(msg)
 
     return eso_file.get_results(variables, **kwargs)
 

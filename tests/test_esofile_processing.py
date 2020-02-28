@@ -1,11 +1,13 @@
 import datetime
 import os
 import unittest
+import logging
 
 from esofile_reader.processor.esofile_processor import *
 from esofile_reader.processor.esofile_processor import (_process_statement, _process_header_line,
                                                         _process_interval_line)
 
+from esofile_reader import EsoFile
 from esofile_reader.base_file import IncompleteFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable
@@ -310,6 +312,18 @@ class TestEsoFileProcessing(unittest.TestCase):
         with self.assertRaises(ValueError):
             read_file(os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"))
 
+    def test_logging_level_info(self):
+        logging.basicConfig(level=logging.INFO)
+        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+        logging.basicConfig(level=logging.WARNING)
+
+    def test_monitor_zero_division(self):
+        monitor = DefaultMonitor("dummy")
+        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), monitor=monitor)
+        monitor.processing_times[8] = 0
+        monitor.processing_times[1] = 0
+        with self.assertRaises(ZeroDivisionError):
+            monitor.report_time()
 
 if __name__ == "__main__":
     unittest.main()

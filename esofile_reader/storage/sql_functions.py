@@ -3,8 +3,6 @@ from typing import Iterable, Any, Dict, List
 import pandas as pd
 from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
 
-from esofile_reader.utils.utils import profile
-
 
 def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Table:
     name = f"{file_id}-results-{interval}"
@@ -62,7 +60,6 @@ def create_value_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
     return ins
 
 
-@profile
 def destringify_values(df: pd.DataFrame, separator="\t"):
     """ Transform joined str field into numeric columns. """
     names = df.index.names
@@ -77,7 +74,6 @@ def destringify_values(df: pd.DataFrame, separator="\t"):
     return df
 
 
-@profile
 def merge_df_values(df: pd.DataFrame, separator: str) -> pd.Series:
     """ Merge all column values into a single str pd.Series. """
     df = df.astype(str)

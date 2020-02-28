@@ -555,4 +555,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
         raise BlankLineError(msg)
 
     except StopIteration:
-        raise IncompleteFile(f"File '{file_path}' is not complete!")
+        msg = f"File '{file_path}' is not complete!"
+        monitor.processing_failed(msg)
+        raise IncompleteFile(msg)

@@ -51,8 +51,9 @@ class BaseFile:
     def __repr__(self):
         return (
             f"File: {self.file_name}"
-            f"\nPath: {self.file_path}"
-            f"\nCreated: {self.file_created}"
+            f"\n\tPath: {self.file_path}"
+            f"\n\tCreated: {self.file_created}"
+            f"\n\tAvailable intervals: [{', '.join(self.available_intervals)}]"
         )
 
     @property
@@ -65,11 +66,11 @@ class BaseFile:
         """ Get all available intervals. """
         return self.data.get_available_intervals()
 
-    def get_header_dictionary(self, interval: str):
+    def get_header_dictionary(self, interval: str) -> Dict[int, Variable]:
         """ Get all variables for given interval. """
         return self.data.get_variables_dct(interval)
 
-    def get_header_df(self, interval: str):
+    def get_header_df(self, interval: str) -> pd.DataFrame:
         """ Get all variables for given interval. """
         return self.data.get_variables_df(interval)
 
@@ -77,7 +78,7 @@ class BaseFile:
         """ Set a new file name. """
         self.file_name = name
 
-    def populate_content(self, *args, **kwargs):
+    def populate_content(self, *args, **kwargs) -> None:
         """ Populate instance attributes. """
         pass
 
@@ -351,7 +352,7 @@ class BaseFile:
             )
         elif ids:
             # remove current item to avoid item duplicity
-            self.search_tree.remove_variables([variable])
+            self.search_tree.remove_variables(variable)
 
             # create new variable and add it into tree
             new_var = self.create_header_variable(interval, key_name, var_name, units)

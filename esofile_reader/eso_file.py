@@ -89,27 +89,21 @@ class EsoFile(BaseFile):
             file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
         )
 
-        if content:
-            content = [c for c in list(zip(*content))[::-1]]
-            for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
-                ef = EsoFile(file_path, autopopulate=False)
-                ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+        content = [c for c in list(zip(*content))[::-1]]
+        for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
+            ef = EsoFile(file_path, autopopulate=False)
+            ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
 
-                # last processed environment uses a plain name
-                # this is in place to only assign distinct names for
-                # 'sizing' results which are reported first
-                name = os.path.splitext(os.path.basename(file_path))[0]
-                ef.file_name = f"{name} - {environment}" if i > 0 else name
-                ef.data = outputs
-                ef.peak_outputs = peak_outputs
-                ef.search_tree = tree
+            # last processed environment uses a plain name
+            # this is in place to only assign distinct names for
+            # 'sizing' results which are reported first
+            name = os.path.splitext(os.path.basename(file_path))[0]
+            ef.file_name = f"{name} - {environment}" if i > 0 else name
+            ef.data = outputs
+            ef.peak_outputs = peak_outputs
+            ef.search_tree = tree
 
-                eso_files.append(ef)
-        else:
-            raise IncompleteFile(
-                f"Unexpected end of the file reached!\n"
-                f"File '{file_path}' is not complete."
-            )
+            eso_files.append(ef)
 
         return eso_files
 
@@ -127,23 +121,17 @@ class EsoFile(BaseFile):
             self.file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
         )
 
-        if content:
-            environment_names = content[0]
-            if len(environment_names) == 1:
-                (self.data, self.peak_outputs, self.search_tree,) = [
-                    c[0] for c in content[1:]
-                ]
-            else:
-                raise MultiEnvFileRequired(
-                    f"Cannot populate file {self.file_path}. "
-                    f"as there are multiple environments included.\n"
-                    f"Use 'EsoFile.process_multi_env_file' to "
-                    f"generate multiple files."
-                )
+        environment_names = content[0]
+        if len(environment_names) == 1:
+            (self.data, self.peak_outputs, self.search_tree,) = [
+                c[0] for c in content[1:]
+            ]
         else:
-            raise IncompleteFile(
-                f"Unexpected end of the file reached!\n"
-                f"File '{self.file_path}' is not complete."
+            raise MultiEnvFileRequired(
+                f"Cannot populate file {self.file_path}. "
+                f"as there are multiple environments included.\n"
+                f"Use 'EsoFile.process_multi_env_file' to "
+                f"generate multiple files."
             )
 
     def _get_peak_results(

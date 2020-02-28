@@ -223,28 +223,23 @@ class SQLStorage(BaseStorage):
                         ]
                     ).where(files.c.id == id_)
                 ).first()
-            if res:
-                data = SQLData(res[0], self)
 
-                tree = Tree()
-                tree.populate_tree(data.get_all_variables_dct())
+            data = SQLData(res[0], self)
 
-                db_file = SQLFile(
-                    id_=res[0],
-                    file_path=res[1],
-                    file_name=res[2],
-                    sql_data=data,
-                    file_created=res[3],
-                    search_tree=tree,
-                    totals=res[4]
-                )
+            tree = Tree()
+            tree.populate_tree(data.get_all_variables_dct())
 
-                self.files[id_] = db_file
+            db_file = SQLFile(
+                id_=res[0],
+                file_path=res[1],
+                file_name=res[2],
+                sql_data=data,
+                file_created=res[3],
+                search_tree=tree,
+                totals=res[4]
+            )
 
-            else:
-                raise KeyError(
-                    f"Cannot load file id '{id_}'.\n" f"{traceback.format_exc()}"
-                )
+            self.files[id_] = db_file
 
         return ids
 

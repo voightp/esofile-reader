@@ -1,11 +1,11 @@
 import unittest
 from datetime import datetime
+from pandas.testing import assert_index_equal
 
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.data.df_data import DFData
-from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.search_tree import Tree
@@ -144,9 +144,30 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertEqual(df.index.name, "range")
 
     def test_sql_results(self):
-        variables = [Variable("range", "ZoneA", "Temperature", "C"),
-                     Variable("range", "ZoneB", "Temperature", "C")]
+        variables = [
+            Variable("range", "ZoneA", "Temperature", "C"),
+            Variable("range", "ZoneB", "Temperature", "C")
+        ]
         df1 = self.bf.get_results(variables)
         df2 = self.db_bf.get_results(variables)
 
         pd.testing.assert_frame_equal(df1, df2)
+
+    def test_get_results_include_day(self):
+        variables = [
+            Variable("range", "ZoneA", "Temperature", "C"),
+            Variable("range", "ZoneB", "Temperature", "C")
+        ]
+        df = self.bf.get_results(variables, include_day=True, add_file_name="")
+        assert_index_equal(
+            pd.RangeIndex(start=0, stop=3, step=1, name="range"),
+            df.index
+        )
+
+    def test_sql_no_n_days_column(self):
+        with self.assertRaises(KeyError):
+            self.db_bf.data.get_number_of_days("range")
+
+    def test_sql_no_day_column(self):
+        with self.assertRaises(KeyError):
+            self.db_bf.data.get_days_of_week("range")

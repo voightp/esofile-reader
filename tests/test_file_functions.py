@@ -42,9 +42,15 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNotNone(self.ef_peaks.peak_outputs)
 
     def test_header_df(self):
-        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
-                                                                                    "variable", "units"])
+        names = ["id", "interval", "key", "variable", "units"]
+        self.assertEqual(self.ef.data.get_all_variables_df().columns.to_list(), names)
         self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
+
+        frames = []
+        for interval in self.ef.available_intervals:
+            frames.append(self.ef.get_header_df(interval))
+        df = pd.concat(frames, axis=0)
+        assert_frame_equal(df, self.ef.data.get_all_variables_df())
 
     def test_rename(self):
         original = self.ef.file_name
@@ -232,6 +238,14 @@ class TestFileFunctions(unittest.TestCase):
                                 [3.891442e+08]], index=test_index, columns=test_mi)
         assert_frame_equal(df, test_df)
         self.ef.remove_outputs(var)
+
+    def test_aggregate_invalid_variables(self):
+        vars = [
+            Variable("hourly", "invalid", "variable1", "units"),
+            Variable("hourly", "invalid", "variable", "units")
+        ]
+        with self.assertRaises(CannotAggregateVariables):
+            self.ef.aggregate_variables(vars, "sum")
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
