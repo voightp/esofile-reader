@@ -3,7 +3,7 @@ from datetime import datetime
 
 from esofile_reader.constants import *
 from esofile_reader.processor.interval_processor import *
-from esofile_reader.processor.interval_processor import (_to_timestamp, _gen_dt)
+from esofile_reader.processor.interval_processor import _to_timestamp, _gen_dt
 from esofile_reader.utils.mini_classes import IntervalTuple
 
 
@@ -14,7 +14,9 @@ class TestIntervalProcessing(unittest.TestCase):
         df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}, index=index)
         df = update_dt_format(df, "%Y-%m---%d")
 
-        self.assertListEqual(df.index.to_list(), ['2018-01---01', '2018-01---02', '2018-01---03'])
+        self.assertListEqual(
+            df.index.to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]
+        )
         self.assertEqual(df.index.name, TIMESTAMP_COLUMN)
 
     def test_update_dt_format_column(self):
@@ -23,7 +25,9 @@ class TestIntervalProcessing(unittest.TestCase):
         df = pd.DataFrame({"a": [1, 2, 3], "b": dates})
         df = update_dt_format(df, "%Y-%m---%d")
 
-        self.assertListEqual(df["b"].to_list(), ['2018-01---01', '2018-01---02', '2018-01---03'])
+        self.assertListEqual(
+            df["b"].to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]
+        )
 
     def test_datetime_helper_year_end(self):
         d = (12, 31, 24, 60)
@@ -101,15 +105,9 @@ class TestIntervalProcessing(unittest.TestCase):
         self.assertEqual(out, [350, 350])
 
     def test_get_num_of_days(self):
-        days = {
-            M: [10, 20, 30],
-            RP: [100],
-            A: [1]
-        }
+        days = {M: [10, 20, 30], RP: [100], A: [1]}
         out = get_num_of_days(days)
-        self.assertEqual(out, {"monthly": [10, 10, 10],
-                               "runperiod": [100],
-                               "annual": [100]})
+        self.assertEqual(out, {"monthly": [10, 10, 10], "runperiod": [100], "annual": [100]})
 
     def test_month_end_date(self):
         dates = [datetime(2002, i + 1, 10, 1) for i in range(12)]
@@ -125,7 +123,7 @@ class TestIntervalProcessing(unittest.TestCase):
             datetime(2002, 9, 30, 1),
             datetime(2002, 10, 31, 1),
             datetime(2002, 11, 30, 1),
-            datetime(2002, 12, 31, 1)
+            datetime(2002, 12, 31, 1),
         ]
         for date, end_date in zip(dates, end_dates):
             self.assertEqual(month_end_date(date), end_date)
@@ -133,23 +131,17 @@ class TestIntervalProcessing(unittest.TestCase):
     def test_incr_year_env_monthly(self):
         self.assertTrue(
             incr_year_env(
-                IntervalTuple(1, 1, 0, 0),
-                IntervalTuple(1, 1, 0, 0),
-                IntervalTuple(2, 1, 0, 0)
+                IntervalTuple(1, 1, 0, 0), IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0)
             )
         )
         self.assertTrue(
             incr_year_env(
-                IntervalTuple(2, 1, 0, 0),
-                IntervalTuple(1, 1, 0, 0),
-                IntervalTuple(2, 1, 0, 0)
+                IntervalTuple(2, 1, 0, 0), IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0)
             )
         )
         self.assertFalse(
             incr_year_env(
-                IntervalTuple(1, 1, 0, 0),
-                IntervalTuple(2, 1, 0, 0),
-                IntervalTuple(3, 1, 0, 0)
+                IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0), IntervalTuple(3, 1, 0, 0)
             )
         )
 
@@ -158,21 +150,17 @@ class TestIntervalProcessing(unittest.TestCase):
             incr_year_env(
                 IntervalTuple(1, 1, 1, 0),
                 IntervalTuple(12, 31, 24, 60),
-                IntervalTuple(1, 1, 1, 0)
+                IntervalTuple(1, 1, 1, 0),
             )
         )
         self.assertTrue(
             incr_year_env(
-                IntervalTuple(1, 1, 1, 0),
-                IntervalTuple(1, 1, 1, 0),
-                IntervalTuple(1, 1, 2, 0)
+                IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 2, 0)
             )
         )
         self.assertFalse(
             incr_year_env(
-                IntervalTuple(1, 1, 1, 0),
-                IntervalTuple(1, 1, 2, 0),
-                IntervalTuple(1, 1, 3, 0)
+                IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 2, 0), IntervalTuple(1, 1, 3, 0)
             )
         )
 
@@ -190,9 +178,14 @@ class TestIntervalProcessing(unittest.TestCase):
             IntervalTuple(3, 1, 0, 0),
         ]
         dt_envs = _gen_dt(envs, 2002)
-        self.assertEqual(dt_envs,
-                         [datetime(2002, 1, 1, 0, 0, 0), datetime(2002, 2, 1, 0, 0, 0),
-                          datetime(2002, 3, 1, 0, 0, 0)])
+        self.assertEqual(
+            dt_envs,
+            [
+                datetime(2002, 1, 1, 0, 0, 0),
+                datetime(2002, 2, 1, 0, 0, 0),
+                datetime(2002, 3, 1, 0, 0, 0),
+            ],
+        )
 
     def test__gen_dt_span_year(self):
         envs = [
@@ -201,9 +194,14 @@ class TestIntervalProcessing(unittest.TestCase):
             IntervalTuple(1, 1, 1, 60),
         ]
         dt_envs = _gen_dt(envs, 2002)
-        self.assertEqual(dt_envs,
-                         [datetime(2002, 12, 31, 23, 00, 00), datetime(2003, 1, 1, 00, 00, 00),
-                          datetime(2003, 1, 1, 1, 00, 00)])
+        self.assertEqual(
+            dt_envs,
+            [
+                datetime(2002, 12, 31, 23, 00, 00),
+                datetime(2003, 1, 1, 00, 00, 00),
+                datetime(2003, 1, 1, 1, 00, 00),
+            ],
+        )
 
     def test_convert_to_dt_index(self):
         env_dct = {
@@ -216,15 +214,24 @@ class TestIntervalProcessing(unittest.TestCase):
                 IntervalTuple(1, 1, 0, 0),
                 IntervalTuple(2, 1, 0, 0),
                 IntervalTuple(3, 1, 0, 0),
-            ]
+            ],
         }
         dates = convert_to_dt_index(env_dct, 2002)
-        self.assertEqual(dates, {
-            "hourly": [datetime(2002, 12, 31, 23, 00, 00), datetime(2003, 1, 1, 00, 00, 00),
-                       datetime(2003, 1, 1, 1, 00, 00)],
-            "monthly": [datetime(2002, 1, 1, 0, 0, 0), datetime(2002, 2, 1, 0, 0, 0),
-                        datetime(2002, 3, 1, 0, 0, 0)]
-        })
+        self.assertEqual(
+            dates,
+            {
+                "hourly": [
+                    datetime(2002, 12, 31, 23, 00, 00),
+                    datetime(2003, 1, 1, 00, 00, 00),
+                    datetime(2003, 1, 1, 1, 00, 00),
+                ],
+                "monthly": [
+                    datetime(2002, 1, 1, 0, 0, 0),
+                    datetime(2002, 2, 1, 0, 0, 0),
+                    datetime(2002, 3, 1, 0, 0, 0),
+                ],
+            },
+        )
 
     def test_update_start_dates(self):
         env_dct = {
@@ -234,10 +241,15 @@ class TestIntervalProcessing(unittest.TestCase):
             "runperiod": [datetime(2002, 1, 1, 0, 0)],
         }
         update_start_dates(env_dct)
-        self.assertEqual(env_dct, {"hourly": [datetime(2002, 5, 26, 0, 0), datetime(2002, 5, 26, 1, 0)],
-                                   "monthly": [datetime(2002, 5, 26, 0, 0)],
-                                   "annual": [datetime(2002, 5, 26, 0, 0)],
-                                   "runperiod": [datetime(2002, 5, 26, 0, 0)]})
+        self.assertEqual(
+            env_dct,
+            {
+                "hourly": [datetime(2002, 5, 26, 0, 0), datetime(2002, 5, 26, 1, 0)],
+                "monthly": [datetime(2002, 5, 26, 0, 0)],
+                "annual": [datetime(2002, 5, 26, 0, 0)],
+                "runperiod": [datetime(2002, 5, 26, 0, 0)],
+            },
+        )
 
 
 if __name__ == "__main__":

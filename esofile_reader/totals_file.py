@@ -218,18 +218,12 @@ class TotalsFile(BaseFile):
 
             # join header data and numeric outputs
             df = pd.merge(
-                how="inner",
-                left=header_df,
-                right=out.T,
-                left_index=True,
-                right_index=True,
+                how="inner", left=header_df, right=out.T, left_index=True, right_index=True,
             )
 
             # create new totals DataFrame
             df.reset_index(drop=True, inplace=True)
-            df.set_index(
-                ["group_id", "interval", "key", "variable", "units"], inplace=True
-            )
+            df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
             df = self._calculate_totals(df)
 
             # restore index

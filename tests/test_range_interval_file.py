@@ -26,14 +26,19 @@ class TestRangeIntervalFile(unittest.TestCase):
             (3, "range", "ZoneC", "Temperature", "C"),
             (4, "range", "ZoneC", "Heating Load", "W"),
         ]
-        columns = pd.MultiIndex.from_tuples(variables, names=["id", "interval", "key",
-                                                              "variable", "units"])
+        columns = pd.MultiIndex.from_tuples(
+            variables, names=["id", "interval", "key", "variable", "units"]
+        )
         index = pd.RangeIndex(start=0, stop=3, step=1, name="range")
-        results = pd.DataFrame([
-            [25.123, 27.456, 14.546, 1000],
-            [25.123, 27.456, 14.546, 2000],
-            [25.123, 27.456, 14.546, 3000]
-        ], columns=columns, index=index)
+        results = pd.DataFrame(
+            [
+                [25.123, 27.456, 14.546, 1000],
+                [25.123, 27.456, 14.546, 2000],
+                [25.123, 27.456, 14.546, 3000],
+            ],
+            columns=columns,
+            index=index,
+        )
 
         data = DFData()
         data.populate_table("range", results)
@@ -63,8 +68,10 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertTrue(self.bf.complete)
 
     def test_header_df(self):
-        self.assertEqual(self.bf.data.get_all_variables_df().columns.to_list(), ["id", "interval", "key",
-                                                                                 "variable", "units"])
+        self.assertEqual(
+            self.bf.data.get_all_variables_df().columns.to_list(),
+            ["id", "interval", "key", "variable", "units"],
+        )
         self.assertEqual(len(self.bf.data.get_all_variables_df().index), 4)
 
     def test_find_ids(self):
@@ -73,7 +80,12 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertEqual(ids, [3])
 
     def test_find_ids_part_invalid(self):
-        v = Variable(interval="range", key="BLOCK1:ZONE1", variable="Zone People Occupant Count", units="")
+        v = Variable(
+            interval="range",
+            key="BLOCK1:ZONE1",
+            variable="Zone People Occupant Count",
+            units="",
+        )
         ids = self.bf.find_ids(v, part_match=False)
         self.assertEqual(ids, [])
 
@@ -83,13 +95,19 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
-        v = Variable(interval="range", key="BLOCK1", variable="Zone People Occupant Count", units="")
+        v = Variable(
+            interval="range", key="BLOCK1", variable="Zone People Occupant Count", units=""
+        )
         out = self.bf._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):
-        v1 = self.bf.create_header_variable(interval="range", key="ZoneC", var="Temperature", units="C")
-        self.assertTupleEqual(v1, Variable(interval="range", key="ZoneC (1)", variable="Temperature", units="C"))
+        v1 = self.bf.create_header_variable(
+            interval="range", key="ZoneC", var="Temperature", units="C"
+        )
+        self.assertTupleEqual(
+            v1, Variable(interval="range", key="ZoneC (1)", variable="Temperature", units="C")
+        )
 
     def test_rename_variable(self):
         v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")
@@ -125,13 +143,21 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_aggregate_variables(self):
         v = Variable(interval="range", key=None, variable="Temperature", units="C")
         id_, var = self.bf.aggregate_variables(v, "sum")
-        self.assertEqual(var, Variable(interval="range", key="Custom Key - sum",
-                                       variable="Temperature", units="C"))
+        self.assertEqual(
+            var,
+            Variable(
+                interval="range", key="Custom Key - sum", variable="Temperature", units="C"
+            ),
+        )
         self.bf.remove_outputs(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1])
-        _, v2 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2])
+        _, v1 = self.bf.add_output(
+            "range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1]
+        )
+        _, v2 = self.bf.add_output(
+            "range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2]
+        )
 
         with self.assertRaises(CannotAggregateVariables):
             _ = self.bf.aggregate_variables([v1, v2], "sum")
@@ -141,14 +167,13 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_as_df(self):
         df = self.bf.as_df("range")
         self.assertTupleEqual(df.shape, (3, 4))
-        self.assertListEqual(df.columns.names, ["id", "interval", "key",
-                                                "variable", "units"])
+        self.assertListEqual(df.columns.names, ["id", "interval", "key", "variable", "units"])
         self.assertEqual(df.index.name, "range")
 
     def test_sql_results(self):
         variables = [
             Variable("range", "ZoneA", "Temperature", "C"),
-            Variable("range", "ZoneB", "Temperature", "C")
+            Variable("range", "ZoneB", "Temperature", "C"),
         ]
         df1 = self.bf.get_results(variables)
         df2 = self.db_bf.get_results(variables)
@@ -158,13 +183,10 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_get_results_include_day(self):
         variables = [
             Variable("range", "ZoneA", "Temperature", "C"),
-            Variable("range", "ZoneB", "Temperature", "C")
+            Variable("range", "ZoneB", "Temperature", "C"),
         ]
         df = self.bf.get_results(variables, include_day=True, add_file_name="")
-        assert_index_equal(
-            pd.RangeIndex(start=0, stop=3, step=1, name="range"),
-            df.index
-        )
+        assert_index_equal(pd.RangeIndex(start=0, stop=3, step=1, name="range"), df.index)
 
     def test_sql_no_n_days_column(self):
         with self.assertRaises(KeyError):
@@ -185,18 +207,15 @@ class TestRangeIntervalFile(unittest.TestCase):
         loaded_pqf = loaded_pqs.files[id_]
 
         assert_index_equal(
-            pqf.data.tables["range"].index,
-            loaded_pqf.data.tables["range"].index
+            pqf.data.tables["range"].index, loaded_pqf.data.tables["range"].index
         )
 
         assert_index_equal(
-            pqf.data.tables["range"].columns,
-            loaded_pqf.data.tables["range"].columns
+            pqf.data.tables["range"].columns, loaded_pqf.data.tables["range"].columns
         )
 
         assert_frame_equal(
-            pqf.data.tables["range"].get_df(),
-            loaded_pqf.data.tables["range"].get_df()
+            pqf.data.tables["range"].get_df(), loaded_pqf.data.tables["range"].get_df()
         )
 
         path.unlink()

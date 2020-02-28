@@ -143,17 +143,14 @@ class SQLStorage(BaseStorage):
                 if N_DAYS_COLUMN in outputs.columns:
                     n_days_table = create_n_days_table(self.metadata, id_, interval)
                     conn.execute(
-                        n_days_table.insert(),
-                        create_value_insert(outputs[N_DAYS_COLUMN]),
+                        n_days_table.insert(), create_value_insert(outputs[N_DAYS_COLUMN]),
                     )
                     f_upd[f"{interval}_n_days_table"] = n_days_table.name
 
                 # store 'day of week' data
                 if DAY_COLUMN in outputs.columns:
                     day_table = create_day_table(self.metadata, id_, interval)
-                    conn.execute(
-                        day_table.insert(), create_value_insert(outputs[DAY_COLUMN])
-                    )
+                    conn.execute(day_table.insert(), create_value_insert(outputs[DAY_COLUMN]))
                     f_upd[f"{interval}_day_table"] = day_table.name
 
                 conn.execute(f.update().where(f.c.id == id_).values(f_upd))
@@ -165,7 +162,7 @@ class SQLStorage(BaseStorage):
                     sql_data=SQLData(id_, self),
                     file_created=results_file.file_created,
                     search_tree=results_file.search_tree,
-                    totals=isinstance(results_file, TotalsFile)
+                    totals=isinstance(results_file, TotalsFile),
                 )
 
         # store file in a class attribute
@@ -230,7 +227,7 @@ class SQLStorage(BaseStorage):
                 sql_data=data,
                 file_created=res[3],
                 search_tree=tree,
-                totals=res[4]
+                totals=res[4],
             )
 
             self.files[id_] = db_file

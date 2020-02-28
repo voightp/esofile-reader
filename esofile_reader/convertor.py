@@ -60,8 +60,7 @@ def convert_units(
             if units != inp[0]:
                 # TODO remove for distribution
                 raise AssertionError(
-                    f"Original units '{units}' do not match "
-                    f"converted units '{inp[0]}'."
+                    f"Original units '{units}' do not match " f"converted units '{inp[0]}'."
                 )
             else:
                 conversion_inputs.append(inp)

@@ -17,35 +17,41 @@ class TestOutputsConversion(unittest.TestCase):
         assert_frame_equal(out, test_df)
 
     def test_apply_conversion_peak(self):
-        columns = pd.MultiIndex.from_tuples([(1, "bar", "value"), (2, "bar", "ts")],
-                                            names=["id", "units", "data"])
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
+        )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
         out = apply_conversion(df, ["bar"], ["foo"], [2])
 
-        test_mi = pd.MultiIndex.from_tuples([(1, "foo", "value"), (2, "foo", "ts")],
-                                            names=["id", "units", "data"])
+        test_mi = pd.MultiIndex.from_tuples(
+            [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
+        )
         test_df = pd.DataFrame([[0.5, 1], [1, 2]], columns=test_mi)
         assert_frame_equal(out, test_df)
 
     def test_apply_conversion_callable(self):
-        columns = pd.MultiIndex.from_tuples([(1, "bar", "value"), (2, "bar", "ts")],
-                                            names=["id", "units", "data"])
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
+        )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
         out = apply_conversion(df, ["bar"], ["foo"], [lambda x: 2 * x])
 
-        test_mi = pd.MultiIndex.from_tuples([(1, "foo", "value"), (2, "foo", "ts")],
-                                            names=["id", "units", "data"])
+        test_mi = pd.MultiIndex.from_tuples(
+            [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
+        )
         test_df = pd.DataFrame([[2, 1], [4, 2]], columns=test_mi)
         assert_frame_equal(out, test_df)
 
     def test_apply_conversion_array(self):
-        columns = pd.MultiIndex.from_tuples([(1, "bar", "value"), (2, "bar", "ts")],
-                                            names=["id", "units", "data"])
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
+        )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
         out = apply_conversion(df, ["bar"], ["foo"], [[2, 4]])
 
-        test_mi = pd.MultiIndex.from_tuples([(1, "foo", "value"), (2, "foo", "ts")],
-                                            names=["id", "units", "data"])
+        test_mi = pd.MultiIndex.from_tuples(
+            [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
+        )
         test_df = pd.DataFrame([[0.5, 1], [0.5, 2]], columns=test_mi)
         assert_frame_equal(out, test_df)
 
@@ -86,12 +92,18 @@ class TestOutputsConversion(unittest.TestCase):
         assert_frame_equal(out, test_df)
 
     def test_convert_units_si_to_ip(self):
-        columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2"), (3, "deltaC")], names=["id", "units"])
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "m"), (2, "W/m2"), (3, "deltaC")], names=["id", "units"]
+        )
         df = pd.DataFrame([[1, 1, 1], [2, 2, 2]], columns=columns)
         out = convert_units(df, "IP", "W", "J")
 
-        test_mi = pd.MultiIndex.from_tuples([(1, "ft"), (2, "W/m2"), (3, "deltaF")], names=["id", "units"])
-        test_df = pd.DataFrame([[1 / 0.3048, 1, 1.8], [2 / 0.30479999953, 2, 3.6]], columns=test_mi)
+        test_mi = pd.MultiIndex.from_tuples(
+            [(1, "ft"), (2, "W/m2"), (3, "deltaF")], names=["id", "units"]
+        )
+        test_df = pd.DataFrame(
+            [[1 / 0.3048, 1, 1.8], [2 / 0.30479999953, 2, 3.6]], columns=test_mi
+        )
         assert_frame_equal(out, test_df)
 
     def test_convert_units_no_valid(self):
@@ -142,49 +154,77 @@ class TestOutputsConversion(unittest.TestCase):
 
     def test_rate_to_energy_hourly(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
-        index = pd.Index(pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN)
+        index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN
+        )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
 
         df = convert_rate_to_energy(df, H)
 
-        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
-        test_index = pd.Index(pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN)
-        test_df = pd.DataFrame([[1, 1 * 3600], [2, None], [3, 3 * 3600]], index=test_index, columns=test_columns)
+        test_columns = pd.MultiIndex.from_tuples(
+            [(1, "m"), (2, "J/m2")], names=["id", "units"]
+        )
+        test_index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN
+        )
+        test_df = pd.DataFrame(
+            [[1, 1 * 3600], [2, None], [3, 3 * 3600]], index=test_index, columns=test_columns
+        )
 
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_daily(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
-        index = pd.Index(pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN)
+        index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN
+        )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
 
         df = convert_rate_to_energy(df, D)
 
-        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
-        test_index = pd.Index(pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN)
-        test_df = pd.DataFrame([[1, 1 * 3600 * 24], [2, None], [3, 3 * 3600 * 24]],
-                               index=test_index, columns=test_columns)
+        test_columns = pd.MultiIndex.from_tuples(
+            [(1, "m"), (2, "J/m2")], names=["id", "units"]
+        )
+        test_index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN
+        )
+        test_df = pd.DataFrame(
+            [[1, 1 * 3600 * 24], [2, None], [3, 3 * 3600 * 24]],
+            index=test_index,
+            columns=test_columns,
+        )
 
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_n_days(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
-        index = pd.Index(pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN)
+        index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
+        )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
         nd_df = pd.DataFrame({"n_days": [30, 30, 31]}, index=index)
 
         df = convert_rate_to_energy(df, M, nd_df["n_days"])
 
-        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
-        test_index = pd.Index(pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN)
-        test_df = pd.DataFrame([[1, 1 * 3600 * 24 * 30], [2, None], [3, 3 * 3600 * 24 * 31]],
-                               index=test_index, columns=test_columns)
+        test_columns = pd.MultiIndex.from_tuples(
+            [(1, "m"), (2, "J/m2")], names=["id", "units"]
+        )
+        test_index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
+        )
+        test_df = pd.DataFrame(
+            [[1, 1 * 3600 * 24 * 30], [2, None], [3, 3 * 3600 * 24 * 31]],
+            index=test_index,
+            columns=test_columns,
+        )
 
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_na(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "FOO/m2")], names=["id", "units"])
-        index = pd.Index(pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN)
+        index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
+        )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
         nd_df = pd.DataFrame({"n_days": [30, 30, 31]}, index=index)
 
@@ -193,7 +233,9 @@ class TestOutputsConversion(unittest.TestCase):
 
     def test_rate_to_energy_missing_ndays(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "FOO/m2")], names=["id", "units"])
-        index = pd.Index(pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN)
+        index = pd.Index(
+            pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
+        )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
 
         with self.assertRaises(TypeError):

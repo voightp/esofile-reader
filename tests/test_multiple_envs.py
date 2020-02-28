@@ -38,5 +38,5 @@ class TestMultipleEnvs(unittest.TestCase):
             EsoFile(os.path.join(ROOT, "eso_files/multiple_environments.eso"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -53,17 +53,10 @@ class TestParquetDB(unittest.TestCase):
         id1 = self.storage.store_file(self.ef1)
         id2 = self.storage.store_file(self.ef2)
         self.assertListEqual(
-            ["eplusout_all_intervals", "eplusout1"],
-            self.storage.get_all_file_names()
+            ["eplusout_all_intervals", "eplusout1"], self.storage.get_all_file_names()
         )
-        self.assertEqual(
-            "eplusout_all_intervals",
-            self.storage.files[id1].file_name
-        )
-        self.assertEqual(
-            "eplusout1",
-            self.storage.files[id2].file_name
-        )
+        self.assertEqual("eplusout_all_intervals", self.storage.files[id1].file_name)
+        self.assertEqual("eplusout1", self.storage.files[id2].file_name)
 
     def test_05_delete_file_(self):
         id1 = self.storage.store_file(self.ef1)
@@ -83,7 +76,7 @@ class TestParquetDB(unittest.TestCase):
 
     def test_07_load_parquet_file(self):
         pqf = ParquetFile.load_file("pqf" + ParquetFile.EXT, "")
-        Path("pqf"+ParquetFile.EXT).unlink()
+        Path("pqf" + ParquetFile.EXT).unlink()
 
         self.assertEqual(self.ef1.file_path, pqf.file_path)
         self.assertEqual(self.ef1.file_name, pqf.file_name)
@@ -93,9 +86,7 @@ class TestParquetDB(unittest.TestCase):
 
         for interval in self.ef1.available_intervals:
             assert_frame_equal(
-                self.ef1.as_df(interval),
-                pqf.as_df(interval),
-                check_column_type=False
+                self.ef1.as_df(interval), pqf.as_df(interval), check_column_type=False
             )
 
     def test_08_save_as_storage(self):
@@ -129,9 +120,7 @@ class TestParquetDB(unittest.TestCase):
 
         for interval in self.ef1.available_intervals:
             assert_frame_equal(
-                self.ef1.as_df(interval),
-                pqs.files[0].as_df(interval),
-                check_column_type=False
+                self.ef1.as_df(interval), pqs.files[0].as_df(interval), check_column_type=False
             )
 
     def test_10_delete_file_save_storage(self):
@@ -145,7 +134,7 @@ class TestParquetDB(unittest.TestCase):
             assert_frame_equal(
                 self.ef3.as_df(interval),
                 loaded_pqs.files[2].as_df(interval),
-                check_column_type=False
+                check_column_type=False,
             )
         self.assertEqual(len(loaded_pqs.files.keys()), 1)
 

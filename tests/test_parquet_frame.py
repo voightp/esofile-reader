@@ -14,7 +14,6 @@ i = 0
 
 
 class TestParquetFrame(TestCase):
-
     def setUp(self) -> None:
         test_variables = [
             (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
@@ -37,11 +36,15 @@ class TestParquetFrame(TestCase):
         test_index = pd.DatetimeIndex(
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
         )
-        self.test_df = pd.DataFrame([
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        ], columns=test_columns, index=test_index)
+        self.test_df = pd.DataFrame(
+            [
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+            ],
+            columns=test_columns,
+            index=test_index,
+        )
 
         ParquetFrame.CHUNK_SIZE = 3
         global i
@@ -58,11 +61,13 @@ class TestParquetFrame(TestCase):
     def test_index(self):
         assert_index_equal(
             pd.DatetimeIndex(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"),
-            self.pqf.index
+            self.pqf.index,
         )
 
     def test_index_setter(self):
-        new_index = pd.DatetimeIndex(pd.date_range("2003-1-1", freq="d", periods=3), name="timestamp")
+        new_index = pd.DatetimeIndex(
+            pd.date_range("2003-1-1", freq="d", periods=3), name="timestamp"
+        )
         self.pqf.index = new_index
         assert_index_equal(new_index, self.pqf.index)
 
@@ -71,10 +76,7 @@ class TestParquetFrame(TestCase):
             assert_index_equal(new_index, tbl.index)
 
     def test_columns(self):
-        assert_index_equal(
-            self.test_df.columns,
-            self.pqf.columns
-        )
+        assert_index_equal(self.test_df.columns, self.pqf.columns)
 
     def test_columns_setter(self):
         new_variables = [
@@ -97,15 +99,9 @@ class TestParquetFrame(TestCase):
         new_columns = pd.MultiIndex.from_tuples(new_variables, names=names)
         self.pqf.columns = new_columns
 
-        assert_index_equal(
-            new_columns,
-            self.pqf.columns
-        )
+        assert_index_equal(new_columns, self.pqf.columns)
 
-        assert_index_equal(
-            new_columns,
-            self.pqf.get_df().columns
-        )
+        assert_index_equal(new_columns, self.pqf.get_df().columns)
 
     def test_columns_setter_invalid_class(self):
         with self.assertRaises(IndexError):
@@ -120,8 +116,7 @@ class TestParquetFrame(TestCase):
         # default 'self.test_df[2]' would return pd.DataFrame
         # with truncated multiindex
         assert_series_equal(
-            self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
-            self.pqf[2]
+            self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")], self.pqf[2]
         )
 
     def test_column_indexing_df(self):
@@ -133,13 +128,13 @@ class TestParquetFrame(TestCase):
     def test_column_indexing_mi(self):
         assert_series_equal(
             self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
-            self.pqf[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]
+            self.pqf[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
         )
 
     def test_column_indexing_mi_list(self):
         assert_frame_equal(
             self.test_df[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
-            self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]]
+            self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
         )
 
     def test_column_indexing_invalid(self):
@@ -152,14 +147,14 @@ class TestParquetFrame(TestCase):
 
     def test_loc_slice_rows(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)]
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
         )
 
     def test_loc(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]]
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
         )
 
     def test_invalid_loc(self):
@@ -209,8 +204,8 @@ class TestParquetFrame(TestCase):
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-        self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
-        self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
+        self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
+        self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_loc_invalid_setter(self):
@@ -242,9 +237,11 @@ class TestParquetFrame(TestCase):
             pd.Series(
                 ["a", "b", "c"],
                 name=(100, "this", "is", "dummy", "variable"),
-                index=pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+                index=pd.Index(
+                    pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
+                ),
             ),
-            self.pqf[100]
+            self.pqf[100],
         )
 
     def test_insert_column_middle(self):
@@ -274,9 +271,11 @@ class TestParquetFrame(TestCase):
             pd.Series(
                 ["a", "b", "c"],
                 name=(100, "this", "is", "dummy", "variable"),
-                index=pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+                index=pd.Index(
+                    pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
+                ),
             ),
-            self.pqf[100]
+            self.pqf[100],
         )
 
     def test_drop(self):
@@ -290,7 +289,9 @@ class TestParquetFrame(TestCase):
 
     def test_drop_all(self):
         self.test_df.drop(
-            columns=self.test_df.columns.get_level_values("id").tolist(), inplace=True, level="id"
+            columns=self.test_df.columns.get_level_values("id").tolist(),
+            inplace=True,
+            level="id",
         )
 
         self.pqf.drop(

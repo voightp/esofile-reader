@@ -42,7 +42,7 @@ class DefaultMonitor:
 
     def intervals_finished(self):
         if logging.root.level == logging.INFO:
-            print() # newline
+            print()  # newline
         self.report_progress(5, "Interval processing finished!")
 
     def search_tree_finished(self):

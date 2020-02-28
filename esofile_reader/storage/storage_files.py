@@ -55,14 +55,14 @@ class SQLFile(BaseFile):
     """
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            sql_data: SQLData,
-            file_created: datetime,
-            search_tree: Tree,
-            totals: bool
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        sql_data: SQLData,
+        file_created: datetime,
+        search_tree: Tree,
+        totals: bool,
     ):
         super().__init__()
         self.id_ = id_
@@ -114,16 +114,16 @@ class ParquetFile(BaseFile):
     EXT = ".cff"
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            data: Union[DFData, str, Path],
-            file_created: datetime,
-            totals,
-            pardir="",
-            search_tree: Tree = None,
-            name: str = None
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        data: Union[DFData, str, Path],
+        file_created: datetime,
+        totals,
+        pardir="",
+        search_tree: Tree = None,
+        name: str = None,
     ):
         super().__init__()
         self.id_ = id_
@@ -134,9 +134,11 @@ class ParquetFile(BaseFile):
 
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
-        self.data = ParquetData.from_dfdata(data, self.workdir) \
-            if isinstance(data, DFData) \
+        self.data = (
+            ParquetData.from_dfdata(data, self.workdir)
+            if isinstance(data, DFData)
             else ParquetData.from_fs(data, self.workdir)
+        )
 
         if search_tree:
             self.search_tree = search_tree
@@ -154,7 +156,9 @@ class ParquetFile(BaseFile):
 
     @classmethod
     # @profile(entries=10, sort="time")
-    def load_file(cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = "") -> "ParquetFile":
+    def load_file(
+        cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
+    ) -> "ParquetFile":
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
         if isinstance(source, io.BytesIO) or source.suffix == cls.EXT:
             # extract content in temp folder
@@ -202,19 +206,25 @@ class ParquetFile(BaseFile):
             info.unlink()
 
         with open(str(info), "w") as f:
-            json.dump({
-                "id": self.id_,
-                "name": self.name,
-                "file_path": str(self.file_path),
-                "file_name": self.file_name,
-                "file_created": self.file_created.timestamp(),
-                "totals": self.totals,
-            }, f, indent=4)
+            json.dump(
+                {
+                    "id": self.id_,
+                    "name": self.name,
+                    "file_path": str(self.file_path),
+                    "file_name": self.file_name,
+                    "file_created": self.file_created.timestamp(),
+                    "totals": self.totals,
+                },
+                f,
+                indent=4,
+            )
 
         return info
 
     # @profile(entries=10, sort="time")
-    def save_as(self, dir_: Union[str, Path] = None, name: str = None) -> Union[Path, io.BytesIO]:
+    def save_as(
+        self, dir_: Union[str, Path] = None, name: str = None
+    ) -> Union[Path, io.BytesIO]:
         """ Save parquet storage into given location. """
         info = self.save_meta()
 

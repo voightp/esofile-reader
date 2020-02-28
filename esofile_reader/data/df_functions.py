@@ -8,9 +8,7 @@ from esofile_reader.constants import *
 from esofile_reader.processor.interval_processor import parse_result_dt
 
 
-def merge_peak_outputs(
-    timestamp_df: pd.DataFrame, values_df: pd.DataFrame
-) -> pd.DataFrame:
+def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:
     """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
     df = pd.concat({TIMESTAMP_COLUMN: timestamp_df, VALUE_COLUMN: values_df}, axis=1)
     df.columns.set_names(names="data", level=0, inplace=True)
@@ -72,9 +70,7 @@ def _local_peaks(
     return df
 
 
-def create_peak_outputs(
-    interval: str, df: pd.DataFrame, max_: bool = True
-) -> pd.DataFrame:
+def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> pd.DataFrame:
     """ Create DataFrame for peak minimums. """
 
     max_indexes = {
@@ -125,9 +121,7 @@ def slicer(
     return df
 
 
-def df_dt_slicer(
-    df: pd.DataFrame, start_date: datetime, end_date: datetime
-) -> pd.DataFrame:
+def df_dt_slicer(df: pd.DataFrame, start_date: datetime, end_date: datetime) -> pd.DataFrame:
     """ Slice df 'vertically'. """
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]

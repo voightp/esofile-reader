@@ -26,10 +26,7 @@ class TestSqlDB(unittest.TestCase):
         self.assertIsNotNone(storage.metadata)
         self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
 
-        self.assertListEqual(
-            list(storage.metadata.tables.keys()),
-            ["result-files"]
-        )
+        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
 
         res = storage.engine.execute("""SELECT name FROM sqlite_master""")
         self.assertEqual(res.fetchone()[0], "result-files")
@@ -38,12 +35,25 @@ class TestSqlDB(unittest.TestCase):
         storage = SQLStorage()
         storage.store_file(self.ef)
         tables = [
-            'result-files', '1-results-timestep', '1-index-timestep',
-            '1-day-timestep', '1-results-hourly', '1-index-hourly', '1-day-hourly',
-            '1-results-daily', '1-index-daily', '1-day-daily', '1-results-monthly',
-            '1-index-monthly', '1-n_days-monthly', '1-results-runperiod',
-            '1-index-runperiod', '1-n_days-runperiod', '1-results-annual',
-            '1-index-annual', '1-n_days-annual'
+            "result-files",
+            "1-results-timestep",
+            "1-index-timestep",
+            "1-day-timestep",
+            "1-results-hourly",
+            "1-index-hourly",
+            "1-day-hourly",
+            "1-results-daily",
+            "1-index-daily",
+            "1-day-daily",
+            "1-results-monthly",
+            "1-index-monthly",
+            "1-n_days-monthly",
+            "1-results-runperiod",
+            "1-index-runperiod",
+            "1-n_days-runperiod",
+            "1-results-annual",
+            "1-index-annual",
+            "1-n_days-annual",
         ]
 
         self.assertListEqual(list(storage.metadata.tables.keys()), tables)
@@ -54,18 +64,17 @@ class TestSqlDB(unittest.TestCase):
     def test_04_store_file_totals(self):
         storage = SQLStorage()
         id_ = storage.store_file(TotalsFile(self.ef))
-        res = storage.engine.execute(f"""SELECT totals FROM 'result-files' WHERE id={id_};""").scalar()
+        res = storage.engine.execute(
+            f"""SELECT totals FROM 'result-files' WHERE id={id_};"""
+        ).scalar()
         self.assertTrue(res)
 
     def test_05_delete_file(self):
         storage = SQLStorage()
-        id_ = storage.store_file(self.ef)
+        _ = storage.store_file(self.ef)
         storage.delete_file(1)
 
-        self.assertListEqual(
-            list(storage.metadata.tables.keys()),
-            ["result-files"]
-        )
+        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
 
         res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertEqual(res.fetchone()[0], "result-files")
@@ -94,7 +103,7 @@ class TestSqlDB(unittest.TestCase):
             for interval in f.available_intervals:
                 self.assertEqual(
                     len(f.get_header_dictionary(interval)),
-                    len(lf.get_header_dictionary(interval))
+                    len(lf.get_header_dictionary(interval)),
                 )
 
     def test_07_delete_file_invalid(self):
