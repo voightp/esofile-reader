@@ -51,6 +51,7 @@ class BaseFile:
     def __repr__(self):
         return (
             f"File: {self.file_name}"
+            f"\n\tClass: {self.__class__.__name__}"
             f"\n\tPath: {self.file_path}"
             f"\n\tCreated: {self.file_created}"
             f"\n\tAvailable intervals: [{', '.join(self.available_intervals)}]"
