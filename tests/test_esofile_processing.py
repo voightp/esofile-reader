@@ -317,13 +317,14 @@ class TestEsoFileProcessing(unittest.TestCase):
         EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
         logging.basicConfig(level=logging.WARNING)
 
-    def test_monitor_zero_division(self):
+    def test_monitor_zero_division_catched(self):
         monitor = DefaultMonitor("dummy")
         EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), monitor=monitor)
+
         monitor.processing_times[8] = 0
         monitor.processing_times[1] = 0
-        with self.assertRaises(ZeroDivisionError):
-            monitor.report_time()
+        monitor.report_time()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,14 +17,13 @@ from esofile_reader.utils.mini_classes import ResultsFile
 class ParquetStorage(DFStorage):
     EXT = ".cfs"
 
-    def __init__(self, path=None):
+    def __init__(self, path: Union[str, Path] = None):
         super().__init__()
         self.files = {}
         self.path = Path(path) if path else path
         self.workdir = Path(tempfile.mkdtemp(prefix="chartify-"))
 
     def __del__(self):
-        print("REMOVING PARQUET STORAGE " + str(self.workdir))
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod

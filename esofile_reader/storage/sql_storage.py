@@ -1,5 +1,4 @@
 import contextlib
-import traceback
 from typing import List
 
 import pandas as pd
@@ -18,7 +17,6 @@ from sqlalchemy import (
 
 from esofile_reader.constants import *
 from esofile_reader.data.sql_data import SQLData
-from esofile_reader.storage.storage_files import SQLFile
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.storage.sql_functions import (
     create_results_table,
@@ -28,10 +26,10 @@ from esofile_reader.storage.sql_functions import (
     create_n_days_table,
     create_day_table,
 )
+from esofile_reader.storage.storage_files import SQLFile
+from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
-from esofile_reader.utils.utils import profile
-from esofile_reader.totals_file import TotalsFile
 
 
 class SQLStorage(BaseStorage):
@@ -47,7 +45,6 @@ class SQLStorage(BaseStorage):
     def file_table(self):
         return self.metadata.tables[self.FILE_TABLE]
 
-    @profile
     def set_up_db(self, path=None, echo=False):
         path = path if path else ":memory:"
 
@@ -90,7 +87,6 @@ class SQLStorage(BaseStorage):
 
         return engine, metadata
 
-    @profile
     def store_file(self, results_file: ResultsFile) -> int:
         if not self.metadata or not self.engine:
             raise AttributeError(
@@ -177,7 +173,6 @@ class SQLStorage(BaseStorage):
 
         return id_
 
-    @profile
     def delete_file(self, id_: int) -> None:
         files = self.metadata.tables[self.FILE_TABLE]
 
@@ -203,7 +198,6 @@ class SQLStorage(BaseStorage):
 
         del self.files[id_]
 
-    @profile
     def load_all_files(self) -> List[SQLFile]:
         files = self.metadata.tables[self.FILE_TABLE]
 

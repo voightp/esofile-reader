@@ -329,3 +329,14 @@ class TestParquetData(unittest.TestCase):
             sr_dt_slicer(sr, start_date=datetime(2002, 1, 2), end_date=datetime(2002, 1, 2)),
             sr.iloc[[1]]
         )
+
+    def test_load_invalid_parquet_file(self):
+        with self.assertRaises(IOError):
+            ParquetFile.load_file("foo.bar")
+
+    def test_parquet_file_as_bytes(self):
+        import io
+        out = self.ef.save_as()
+        self.assertIsInstance(out, io.BytesIO)
+
+

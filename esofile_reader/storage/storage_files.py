@@ -146,7 +146,6 @@ class ParquetFile(BaseFile):
             self.search_tree = tree
 
     def __del__(self):
-        print("REMOVING PARQUET FILE " + str(self.workdir))
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @property

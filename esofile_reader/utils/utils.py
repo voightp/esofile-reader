@@ -19,17 +19,6 @@ def incremental_id_gen():
         yield i
 
 
-def profile(func):
-    def inner_func(*args, **kwargs):
-        s = time.perf_counter()
-        res = func(*args, **kwargs)
-        e = time.perf_counter()
-        print(f"Func: {func.__name__} - time: '{e - s}'s")
-        return res
-
-    return inner_func
-
-
 def lower_args(func):
     def wrapper(*args, **kwargs):
         low_args = []

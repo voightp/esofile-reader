@@ -148,3 +148,12 @@ class TestParquetDB(unittest.TestCase):
                 check_column_type=False
             )
         self.assertEqual(len(loaded_pqs.files.keys()), 1)
+
+    def test_11_invalid_extension(self):
+        with self.assertRaises(IOError):
+            ParquetStorage.load("test.foo")
+
+    def test_12_path_not_set(self):
+        with self.assertRaises(FileNotFoundError):
+            pqs = ParquetStorage()
+            pqs.save()

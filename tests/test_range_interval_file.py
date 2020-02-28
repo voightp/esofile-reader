@@ -1,12 +1,14 @@
 import unittest
 from datetime import datetime
-from pandas.testing import assert_index_equal
+from pandas.testing import assert_index_equal, assert_frame_equal
+from pathlib import Path
 
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.data.df_data import DFData
 from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.search_tree import Tree
 
@@ -171,3 +173,30 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_sql_no_day_column(self):
         with self.assertRaises(KeyError):
             self.db_bf.data.get_days_of_week("range")
+
+    def test_parquet_file(self):
+        path = Path("range_pqs" + ParquetStorage.EXT)
+        pqs = ParquetStorage(path)
+        id_ = pqs.store_file(self.bf)
+        pqf = pqs.files[id_]
+
+        pqs.save()
+        loaded_pqs = ParquetStorage.load(path)
+        loaded_pqf = loaded_pqs.files[id_]
+
+        assert_index_equal(
+            pqf.data.tables["range"].index,
+            loaded_pqf.data.tables["range"].index
+        )
+
+        assert_index_equal(
+            pqf.data.tables["range"].columns,
+            loaded_pqf.data.tables["range"].columns
+        )
+
+        assert_frame_equal(
+            pqf.data.tables["range"].get_df(),
+            loaded_pqf.data.tables["range"].get_df()
+        )
+
+        path.unlink()

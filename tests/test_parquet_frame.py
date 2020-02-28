@@ -1,13 +1,13 @@
-from unittest import TestCase
-import pandas as pd
-from esofile_reader.data.pqt_data import ParquetFrame
-from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
-import shutil
-import pyarrow as pa
-import pyarrow.parquet as pq
 from datetime import datetime
 from pathlib import Path
-import numpy as np
+from unittest import TestCase
+
+import pandas as pd
+import pyarrow.parquet as pq
+from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
+
+from esofile_reader import Variable
+from esofile_reader.data.pqt_data import ParquetFrame
 
 # global incrementor to create unique parquet file for each test
 i = 0
@@ -50,6 +50,10 @@ class TestParquetFrame(TestCase):
 
     def tearDown(self) -> None:
         self.pqf = None
+
+    def test_name(self):
+        global i
+        self.assertEqual(f"results-test-{i - 1}", self.pqf.name)
 
     def test_index(self):
         assert_index_equal(
@@ -158,6 +162,10 @@ class TestParquetFrame(TestCase):
             self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]]
         )
 
+    def test_invalid_loc(self):
+        with self.assertRaises(IndexError):
+            _ = self.pqf.loc[:, ["a", "b", "c", 1.1234]]
+
     def test_setter_new_var(self):
         new_col = [1, 2, 3]
         new_var = (20, "daily", "new", "dummy", "variable")
@@ -179,6 +187,18 @@ class TestParquetFrame(TestCase):
         self.pqf.loc[:, var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
+    def test_loc_setter_id(self):
+        new_col = [2, 3, 4]
+        var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
+        self.test_df.loc[:, var] = new_col
+        self.pqf.loc[:, var[0]] = new_col
+        assert_frame_equal(self.test_df, self.pqf.get_df())
+
+    def test_loc_setter_all(self):
+        self.test_df.loc[:] = 1
+        self.pqf.loc[:] = 1
+        assert_frame_equal(self.test_df, self.pqf.get_df())
+
     def test_loc_setter_boolean_arr(self):
         new_col = [1, 2, 3]
         arr = [False] * 7 + [True] + [False] * 6
@@ -192,6 +212,10 @@ class TestParquetFrame(TestCase):
         self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
         self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
+
+    def test_loc_invalid_setter(self):
+        with self.assertRaises(TypeError):
+            self.pqf.loc[:, 1] = pd.DataFrame({"a": [1, 2, 3]})
 
     def test_update_parquet(self):
         df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
@@ -208,8 +232,44 @@ class TestParquetFrame(TestCase):
         self.assertEqual(14, len(list(self.pqf.root_path.iterdir())))
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
+    def test_add_mi_column_item_invalid_pos(self):
+        with self.assertRaises(IndexError):
+            self.pqf.add_mi_column_item(Variable("hourly", "this", "is", "dummy"), pos=100)
+
     def test_insert_column(self):
         self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
+        assert_series_equal(
+            pd.Series(
+                ["a", "b", "c"],
+                name=(100, "this", "is", "dummy", "variable"),
+                index=pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+            ),
+            self.pqf[100]
+        )
+
+    def test_insert_column_middle(self):
+        self.pqf.drop([5])
+        self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
+
+        test_variables = [
+            (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+            (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
+            (3, "daily", "BLOCK1:ZONE3", "Zone Temperature", "C"),
+            (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
+            (6, "daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
+            (100, "this", "is", "dummy", "variable"),
+            (0, "daily", "BLOCK1:ZONE1_WALL_5_0_0_0_0_0_WIN", "Window Gain", "W"),
+            (8, "daily", "BLOCK1:ZONE1_WALL_6_0_0_0_0_0_WIN", "Window Lost", "W"),
+            (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
+            (10, "daily", "BLOCK1:ZONE2_WALL_4_8_9", "Wall Gain", "W"),
+            (11, "daily", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
+            (12, "daily", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
+            (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
+            (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
+        ]
+        names = ["id", "interval", "key", "variable", "units"]
+        test_columns = pd.MultiIndex.from_tuples(test_variables, names=names)
+        assert_index_equal(test_columns, self.pqf.columns)
         assert_series_equal(
             pd.Series(
                 ["a", "b", "c"],
@@ -223,6 +283,10 @@ class TestParquetFrame(TestCase):
         self.test_df.drop(columns=[6, 10], inplace=True, level="id")
         self.pqf.drop(columns=[6, 10], inplace=True, level="id")
         assert_frame_equal(self.test_df, self.pqf.get_df())
+
+    def test_drop_invalid_level(self):
+        with self.assertRaises(IndexError):
+            self.pqf.drop(columns=[1, 2, 3], level="key")
 
     def test_drop_all(self):
         self.test_df.drop(
@@ -256,3 +320,11 @@ class TestParquetFrame(TestCase):
         assert_index_equal(self.test_df.index, self.pqf.index)
         assert_index_equal(self.test_df.columns, self.pqf.columns)
         assert_frame_equal(test_chunks, self.pqf._chunks_table)
+
+    def test_load_missing_parquets(self):
+        self.pqf.save_info_parquets()
+        index_path = Path(self.pqf.root_path, self.pqf.INDEX_PARQUET)
+        index_path.unlink()
+
+        with self.assertRaises(FileNotFoundError):
+            self.pqf.load_info_parquets()

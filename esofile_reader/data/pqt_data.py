@@ -87,16 +87,17 @@ class _ParquetIndexer:
 
         if isinstance(key, tuple):
             row, col = key
+            col = [col] if isinstance(col, (str, int, tuple)) else col
+
             if all(map(lambda x: isinstance(x, (bool, np.bool_)), col)):
                 ids = self.frame.columns.get_level_values("id")[col].tolist()
             else:
-                col = [col] if isinstance(col, (int, str, tuple)) else col
                 ids = []
                 for item in col:
-                    if item in self.frame.columns:
-                        ids.append(item[0])
-                    elif item in self.frame.columns.get_level_values("id"):
+                    if item in self.frame.columns.get_level_values("id"):
                         ids.append(item)
+                    elif item in self.frame.columns:
+                        ids.append(item[0])
                     else:
                         self.frame.insert_column(item, value)
         else:
@@ -122,7 +123,6 @@ class ParquetFrame:
         self._columns = None
 
     def __del__(self):
-        print("REMOVING PARQUET FRAME " + str(self.root_path))
         shutil.rmtree(self.root_path, ignore_errors=True)
 
     def __getitem__(self, item):
@@ -157,10 +157,6 @@ class ParquetFrame:
     @property
     def chunk_paths(self) -> List[Path]:
         return [Path(self.root_path, chunk) for chunk in self.chunk_names]
-
-    @property
-    def chunk_rel_paths(self) -> List[Path]:
-        return [path.relative_to(path.parent) for path in self.chunk_paths]
 
     @property
     def index(self) -> pd.Index:
@@ -384,10 +380,10 @@ class ParquetFrame:
             item = (item, "", "", "", "")
 
         try:
-            smallest = self._chunks_table.groupby("chunk").count().iloc[0]
-            chunk_name = smallest.name
-            count = smallest.iloc[0]
-        except IndexError:
+            counted = self._chunks_table.groupby("chunk").count()
+            count = counted["id"].min()
+            chunk_name = counted["id"].idxmin()
+        except ValueError:
             # index error is raised when adding columns into empty frame
             # setting count to chunk size will invoke a new parquet
             count = self.CHUNK_SIZE
