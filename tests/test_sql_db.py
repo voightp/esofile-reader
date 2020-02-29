@@ -25,7 +25,6 @@ class TestSqlDB(unittest.TestCase):
         self.assertIsNotNone(storage.engine)
         self.assertIsNotNone(storage.metadata)
         self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
-
         self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
 
         res = storage.engine.execute("""SELECT name FROM sqlite_master""")

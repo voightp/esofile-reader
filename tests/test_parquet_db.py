@@ -1,7 +1,7 @@
 import os
 import unittest
-import shutil
 from pathlib import Path
+
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile
