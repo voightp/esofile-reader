@@ -57,6 +57,7 @@ class EsoFile(BaseFile):
     ------
     IncompleteFile
     BlankLineError
+    MultiEnvFileRequired
 
     """
 
