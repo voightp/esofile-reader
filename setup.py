@@ -6,7 +6,6 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="esofile_reader",
-    version="0.1.0",
     author="Vojtech Panek",
     author_email="vojtechpanek@seznam.cz",
     description="Package to read and process E+ output files.",
