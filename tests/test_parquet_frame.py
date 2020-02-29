@@ -100,7 +100,6 @@ class TestParquetFrame(TestCase):
         self.pqf.columns = new_columns
 
         assert_index_equal(new_columns, self.pqf.columns)
-
         assert_index_equal(new_columns, self.pqf.get_df().columns)
 
     def test_columns_setter_invalid_class(self):

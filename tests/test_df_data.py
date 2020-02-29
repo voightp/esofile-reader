@@ -109,125 +109,21 @@ class TestDFData(unittest.TestCase):
 
     def test_get_all_variable_ids(self):
         ids = self.ef.data.get_all_variable_ids()
+        # fmt: off
         self.assertListEqual(
             ids,
             [
-                7,
-                13,
-                19,
-                25,
-                31,
-                297,
-                303,
-                309,
-                315,
-                321,
-                327,
-                333,
-                339,
-                431,
-                475,
-                519,
-                563,
-                950,
-                956,
-                8,
-                14,
-                20,
-                26,
-                32,
-                298,
-                304,
-                310,
-                316,
-                322,
-                328,
-                334,
-                340,
-                432,
-                476,
-                520,
-                564,
-                951,
-                981,
-                9,
-                15,
-                21,
-                27,
-                33,
-                299,
-                305,
-                311,
-                317,
-                323,
-                329,
-                335,
-                341,
-                433,
-                477,
-                521,
-                565,
-                952,
-                982,
-                10,
-                16,
-                22,
-                28,
-                34,
-                300,
-                306,
-                312,
-                318,
-                324,
-                330,
-                336,
-                342,
-                434,
-                478,
-                522,
-                566,
-                953,
-                983,
-                11,
-                17,
-                23,
-                29,
-                35,
-                301,
-                307,
-                313,
-                319,
-                325,
-                331,
-                337,
-                343,
-                435,
-                479,
-                523,
-                567,
-                954,
-                984,
-                12,
-                18,
-                24,
-                30,
-                36,
-                302,
-                308,
-                314,
-                320,
-                326,
-                332,
-                338,
-                344,
-                436,
-                480,
-                524,
-                568,
-                955,
-                985,
-            ],
+                7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431,
+                475, 519, 563, 950, 956, 8, 14, 20, 26, 32, 298, 304, 310, 316,
+                322, 328, 334, 340, 432, 476, 520, 564, 951, 981, 9, 15, 21, 27,
+                33, 299, 305, 311, 317, 323, 329, 335, 341, 433, 477, 521, 565,
+                952, 982, 10, 16, 22, 28, 34, 300, 306, 312, 318, 324, 330, 336,
+                342, 434, 478, 522, 566, 953, 983, 11, 17, 23, 29, 35, 301, 307,
+                313, 319, 325, 331, 337, 343, 435, 479, 523, 567, 954, 984, 12,
+                18, 24, 30, 36, 302, 308, 314, 320, 326, 332, 338, 344, 436, 480,
+                524, 568, 955, 985, ],
         )
+        # fmt: on
 
     def test_get_variables_df(self):
         df = self.ef.data.get_variables_df("daily")
@@ -250,16 +146,14 @@ class TestDFData(unittest.TestCase):
         self.ef.data.update_variable_name(
             "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
         )
-        col2 = self.ef.data.tables["timestep"].loc[
-            :,
-            (
-                7,
-                "timestep",
-                "Environment",
-                "Site Diffuse Solar Radiation Rate per Area",
-                "W/m2",
-            ),
-        ]
+        v = (
+            7,
+            "timestep",
+            "Environment",
+            "Site Diffuse Solar Radiation Rate per Area",
+            "W/m2",
+        )
+        col2 = self.ef.data.tables["timestep"].loc[:, v]
         self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
@@ -282,7 +176,6 @@ class TestDFData(unittest.TestCase):
         self.ef.data.update_variable_results("monthly", 983, list(range(12)))
         vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
-
         self.ef.data.update_variable_results("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
@@ -290,7 +183,6 @@ class TestDFData(unittest.TestCase):
         self.ef.data.update_variable_results("monthly", 983, list(range(11)))
         vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
-
         self.ef.data.update_variable_results("monthly", 983, original_vals)
 
     def test_get_special_column_invalid(self):
@@ -363,7 +255,7 @@ class TestDFData(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
             columns=test_columns,
             index=test_index,
         )
@@ -398,7 +290,7 @@ class TestDFData(unittest.TestCase):
         )
 
         test_df = pd.DataFrame(
-            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08],],
+            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08], ],
             columns=test_columns,
             index=test_index,
         )
@@ -432,7 +324,7 @@ class TestDFData(unittest.TestCase):
             names=["timestamp", "day"],
         )
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
             columns=test_columns,
             index=test_index,
         )
@@ -467,7 +359,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
+            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
             columns=test_columns,
         )
 
@@ -496,7 +388,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],
+            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
             columns=test_columns,
         )
 

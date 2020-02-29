@@ -9,7 +9,6 @@ from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN
-from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT
 
@@ -25,12 +24,12 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_available_intervals(self):
         self.assertListEqual(
-            self.ef.available_intervals,
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
+            self.ef.available_intervals,
         )
 
     def test_all_ids(self):
-        self.assertEqual(len(self.ef.data.get_all_variable_ids()), 114)
+        self.assertEqual(114, len(self.ef.data.get_all_variable_ids()))
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.file_created, datetime))
@@ -40,20 +39,20 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(
-            self.ef.data.get_all_variables_df().columns.to_list(),
             ["id", "interval", "key", "variable", "units"],
+            self.ef.data.get_all_variables_df().columns.to_list(),
         )
         self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name
         self.ef.rename("foo")
+
         stmnt = f"SELECT file_name FROM 'result-files' WHERE id={self.ef.id_}"
         res = self.storage.engine.execute(stmnt).scalar()
 
         self.assertEqual("foo", res)
         self.assertEqual("foo", self.ef.file_name)
-
         self.ef.rename(original)
 
     def test__add_file_name_row(self):
@@ -89,7 +88,6 @@ class TestFileFunctions(unittest.TestCase):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
         df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
-
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], index], names=["file", "timestamp"]
         )
@@ -102,7 +100,6 @@ class TestFileFunctions(unittest.TestCase):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
         df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
-
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], ["01-01", "02-01", "03-01"]],
             names=["file", "timestamp"],
@@ -120,14 +117,14 @@ class TestFileFunctions(unittest.TestCase):
             units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
-        self.assertEqual(ids, [13])
+        self.assertListEqual([13], ids)
 
     def test_find_ids_part_match(self):
         v = Variable(
             interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
         )
         ids = self.ef.find_ids(v, part_match=True)
-        self.assertEqual(ids, [13])
+        self.assertListEqual([13], ids)
 
     def test_find_ids_part_invalid(self):
         v = Variable(
@@ -137,7 +134,7 @@ class TestFileFunctions(unittest.TestCase):
             units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
-        self.assertEqual(ids, [])
+        self.assertListEqual([], ids)
 
     def test__find_pairs(self):
         v = Variable(
@@ -147,25 +144,24 @@ class TestFileFunctions(unittest.TestCase):
             units="",
         )
         out = self.ef._find_pairs(v, part_match=False)
-        self.assertDictEqual(out, {"timestep": [13]})
+        self.assertDictEqual( {"timestep": [13]}, out)
 
     def test__find_pairs_part_match(self):
         v = Variable(
             interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=True)
-        self.assertDictEqual(out, {"timestep": [13]})
+        self.assertDictEqual({"timestep": [13]}, out)
 
     def test__find_pairs_invalid(self):
         v = Variable(
             interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=False)
-        self.assertDictEqual(out, {})
+        self.assertDictEqual( {}, out)
 
     def test_create_new_header_variable(self):
         v1 = self.ef.create_header_variable("timestep", "dummy", "variable", "foo")
-
         self.assertTupleEqual(
             v1, Variable(interval="timestep", key="dummy", variable="variable", units="foo")
         )
