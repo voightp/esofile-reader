@@ -1,3 +1,9 @@
+    [build-system]
+    requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
+
+    [tool.setuptools_scm]
+    write_to = "esofile_reader/version.py"
+
     [tool.black]
     py36 = true
     line-length = 96
@@ -19,3 +25,5 @@
       | blib2to3
       | tests/data
     )/
+
+
