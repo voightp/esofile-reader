@@ -1,4 +1,5 @@
-import setuptools, sys
+import setuptools
+import sys
 from pathlib import Path
 from Cython.Build import cythonize
 
@@ -20,6 +21,7 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: ",
         "Operating System :: OS Independent",
     ],
