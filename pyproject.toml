@@ -5,7 +5,6 @@
     write_to = "esofile_reader/version.py"
 
     [tool.black]
-    py36 = true
     line-length = 96
 
     include = '\.pyi?$'
