@@ -1,17 +1,14 @@
-import contextlib
-import os
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Union
 from zipfile import ZipFile
-from profilehooks import profile
-import io
 
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
+from esofile_reader.processor.monitor import DefaultMonitor
 
 
 class ParquetStorage(DFStorage):
@@ -44,7 +41,7 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFile) -> int:
+    def store_file(self, results_file: ResultsFile, monitor: DefaultMonitor = None) -> int:
         """ Store results file as 'ParquetFile'. """
         id_ = self._id_generator()
         file = ParquetFile(

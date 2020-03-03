@@ -21,6 +21,7 @@ from esofile_reader.data.sql_data import SQLData
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
+from esofile_reader.processor.monitor import DefaultMonitor
 
 
 class SQLFile(BaseFile):
@@ -124,6 +125,7 @@ class ParquetFile(BaseFile):
         pardir="",
         search_tree: Tree = None,
         name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         super().__init__()
         self.id_ = id_
@@ -135,9 +137,9 @@ class ParquetFile(BaseFile):
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
         self.data = (
-            ParquetData.from_dfdata(data, self.workdir)
+            ParquetData.from_dfdata(data, self.workdir, monitor=monitor)
             if isinstance(data, DFData)
-            else ParquetData.from_fs(data, self.workdir)
+            else ParquetData.from_fs(data, self.workdir, monitor=monitor)
         )
 
         if search_tree:
