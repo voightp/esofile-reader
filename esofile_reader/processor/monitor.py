@@ -62,10 +62,10 @@ class DefaultMonitor:
         self.report_processing_time()
 
     def storing_started(self):
-        self.processing_times[9] = time.perf_counter()
+        self.report_progress(9, "Storing finished!")
 
     def storing_finished(self):
-        self.processing_times[10] = time.perf_counter()
+        self.report_progress(10, "Storing started!")
         self.report_storing_time()
 
     def reset_progress(self, new_progress=0, new_max=0):
@@ -96,18 +96,19 @@ class DefaultMonitor:
     def report_progress(self, identifier, text):
         self.processing_times[identifier] = time.perf_counter()
 
-        if identifier == -1:
-            msg = f"\t{identifier} - {text}"
-        else:
-            elapsed, delta = self.calc_time(identifier)
-            if identifier == 1:
-                logging.info("*" * 80)
-                logging.info(f"\tFile: '{self.name}'")
-                msg = f"\t{identifier} - {text: <30}"
+        if identifier not in [9, 10]:
+            if identifier == -1:
+                msg = f"\t{identifier} - {text}"
             else:
-                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
+                elapsed, delta = self.calc_time(identifier)
+                if identifier == 1:
+                    logging.info("*" * 80)
+                    logging.info(f"\tFile: '{self.name}'")
+                    msg = f"\t{identifier} - {text: <30}"
+                else:
+                    msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
 
-        logging.info(msg)
+            logging.info(msg)
 
     def report_processing_time(self):
         try:
