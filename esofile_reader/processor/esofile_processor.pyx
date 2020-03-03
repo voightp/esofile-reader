@@ -97,8 +97,10 @@ def read_header(eso_file, monitor):
         A dictionary of eso file header line with populated values.
 
     """
+    # //@formatter:off
     cdef int chunk, counter, id_
     cdef str raw_line, key_nm, var_nm, units, interval
+    # //@formatter:on
 
     header_dct = defaultdict(partial(defaultdict))
 
@@ -244,6 +246,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
     Processed ESO file data.
 
      """
+    # //@formatter:off
     cdef int chunk, counter, line_id
     cdef list line, split_line
     cdef double res
@@ -263,6 +266,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
     cdef dict dates = {}
     cdef dict cumulative_days = {}
     cdef dict days_of_week = {}
+    # //@formatter:on
 
     chunk = monitor.chunk_size
     counter = monitor.counter
@@ -390,7 +394,7 @@ def create_header_df(
     return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
 
 
-def generate_peak_outputs(raw_peak_outputs, header, dates):
+def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
     """ Transform processed peak output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
 
@@ -415,12 +419,15 @@ def generate_peak_outputs(raw_peak_outputs, header, dates):
         max_df = create_peak_outputs(interval, df)
         max_peaks.populate_table(interval, max_df)
 
+        monitor.update_progress(i=step)
+
+    # Peak outputs are stored in dictionary to distinguish min and max
     peak_outputs = {"local_min": min_peaks, "local_max": max_peaks}
 
     return peak_outputs
 
 
-def generate_outputs(raw_outputs, header, dates, other_data):
+def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     """ Transform processed output data into DataFrame like classes. """
     column_names = ["id", "interval", "key", "variable", "units"]
     outputs = DFData()
@@ -445,7 +452,9 @@ def generate_outputs(raw_outputs, header, dates, other_data):
             except KeyError:
                 pass
 
+        # store the data in  DFData class
         outputs.populate_table(interval, df)
+        monitor.update_progress(i=step)
 
     return outputs
 
@@ -472,10 +481,12 @@ def remove_duplicates(ids, header_dct, outputs_dct):
 
 def process_file(file, monitor, year, ignore_peaks=True):
     """ Process raw EnergyPlus output file. """
+    # //@formatter:off
     cdef int last_standard_item_id
     cdef list all_outputs = []
     cdef list all_peak_outputs = []
     cdef list trees = []
+    # //@formatter:on
 
     # process first few standard lines, ignore timestamp
     version, timestamp = _process_statement(next(file))
@@ -492,9 +503,15 @@ def process_file(file, monitor, year, ignore_peaks=True):
     orig_header = read_header(file, monitor)
     monitor.header_finished()
 
-    # Read body to obtain outputs and environment dictionaries.
+    # Read body to obtain outputs and environment dictionaries
     content = read_body(file, last_standard_item_id, orig_header, ignore_peaks, monitor)
     monitor.body_finished()
+
+    # Get a fraction for each table and tree generated
+    environments = content[0]
+    n_tables = len(orig_header.keys()) if ignore_peaks else len(orig_header.keys()) * 2
+    n_steps = n_tables * len(environments) + len(environments)
+    step = (monitor.max_progress * (1 - monitor.PROGRESS_FRACTION)) / n_steps
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
         # Generate datetime data
@@ -505,6 +522,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
         header = deepcopy(orig_header)
         tree, dup_ids = create_tree(header)
         trees.append(tree)
+        monitor.update_progress(step)
         monitor.search_tree_finished()
 
         if dup_ids:
@@ -512,22 +530,25 @@ def process_file(file, monitor, year, ignore_peaks=True):
             remove_duplicates(dup_ids, header, out)
 
         if not ignore_peaks:
-            peak_outputs = generate_peak_outputs(peak, header, dates)
+            peak_outputs = generate_peak_outputs(peak, header, dates, monitor, step)
         else:
             peak_outputs = None
         all_peak_outputs.append(peak_outputs)
 
         # transform standard dictionaries into DataFrame like Output classes
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
-        outputs = generate_outputs(out, header, dates, other_data)
+        outputs = generate_outputs(out, header, dates, other_data, monitor, step)
         all_outputs.append(outputs)
 
         monitor.output_cls_gen_finished()
 
+    # update progress to compensate for reminder
+    if monitor.progress != monitor.max_progress:
+        monitor.update_progress()
+
     monitor.processing_finished()
 
-    # content[0] stores environment names
-    return content[0], all_outputs, all_peak_outputs, trees
+    return environments, all_outputs, all_peak_outputs, trees
 
 
 def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
@@ -537,12 +558,14 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     monitor.processing_started()
 
     # count number of lines to report progress
+    # //@formatter:off
     cdef int i
+    # //@formatter:on
     with open(file_path, "rb") as f:
         i = 0
         for _ in f:
             i += 1
-    monitor.preprocess(i + 1)
+    monitor.set_chunk_size(n_lines=i + 1)
     monitor.preprocessing_finished()
 
     try:

@@ -6,21 +6,24 @@ import time
 
 
 class DefaultMonitor:
+    # processing raw file takes approximately 70% of total time
+    PROGRESS_FRACTION = 0.7
+
     def __init__(self, path):
         self.path = path
         self.processing_times = {}
         self.n_lines = -1
-        self.n_steps = -1
         self.chunk_size = -1
-        self.counter = 0
+        self.max_progress = 50
         self.progress = 0
+        self.counter = 0
 
     @property
     def name(self):
         return os.path.basename(self.path)
 
-    def preprocess(self, n_lines):
-        n_steps = 20
+    def set_chunk_size(self, n_lines):
+        n_steps = int(self.PROGRESS_FRACTION * self.max_progress)
         self.n_lines = n_lines
         self.chunk_size = n_lines // n_steps
 
@@ -47,6 +50,7 @@ class DefaultMonitor:
 
     def search_tree_finished(self):
         self.report_progress(6, "Tree gen finished!")
+        logging.info("\nProcessing outputs")
 
     def output_cls_gen_finished(self):
         self.report_progress(7, "Output cls gen finished!")
@@ -55,11 +59,11 @@ class DefaultMonitor:
         self.report_progress(8, "Processing finished!")
         self.report_time()
 
-    def update_progress(self):
-        self.progress += 1
+    def update_progress(self, i=1):
+        self.progress += i
         self.counter = 0
         if logging.root.level == logging.INFO:
-            print(".", end="")
+            print("." * int(i), end="")
             sys.stdout.flush()
 
     def calc_time(self, identifier):
