@@ -41,11 +41,11 @@ class DefaultMonitor:
         logging.info("\nProcessing results")
 
     def body_finished(self):
+        if logging.root.level == logging.INFO:
+            print("", flush=True)  # newline
         self.report_progress(4, "File successfully read!")
 
     def intervals_finished(self):
-        if logging.root.level == logging.INFO:
-            print()  # newline
         self.report_progress(5, "Interval processing finished!")
 
     def search_tree_finished(self):
@@ -53,29 +53,44 @@ class DefaultMonitor:
         logging.info("\nProcessing outputs")
 
     def output_cls_gen_finished(self):
+        if logging.root.level == logging.INFO:
+            print("", flush=True)  # newline
         self.report_progress(7, "Output cls gen finished!")
 
     def processing_finished(self):
         self.report_progress(8, "Processing finished!")
-        self.report_time()
+        self.report_processing_time()
+
+    def storing_started(self):
+        self.processing_times[9] = time.perf_counter()
+
+    def storing_finished(self):
+        self.processing_times[10] = time.perf_counter()
+        self.report_storing_time()
+
+    def reset_progress(self, new_progress=0, new_max=0):
+        self.progress = new_progress
+        self.max_progress = new_max
 
     def update_progress(self, i=1):
         self.progress += i
         self.counter = 0
         if logging.root.level == logging.INFO:
-            print("." * int(i), end="")
-            sys.stdout.flush()
+            print("." * int(i), end="", flush=True)
 
     def calc_time(self, identifier):
-        start = self.processing_times[1]
-        current = self.processing_times[identifier]
-
         if identifier == 1:
             return None, None
 
-        elapsed = current - start
+        # get first, current and previous processing times
+        current = self.processing_times[identifier]
+        start = self.processing_times[1]
         previous = self.processing_times[identifier - 1]
+
+        # calculate total elapsed time and time from last interval
+        elapsed = current - start
         delta = current - previous
+
         return elapsed, delta
 
     def report_progress(self, identifier, text):
@@ -89,17 +104,19 @@ class DefaultMonitor:
                 logging.info("*" * 80)
                 logging.info(f"\tFile: '{self.name}'")
                 msg = f"\t{identifier} - {text: <30}"
-            elif identifier == 8:
-                msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s"
             else:
                 msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
 
         logging.info(msg)
 
-    def report_time(self):
+    def report_processing_time(self):
         try:
             abs_proc = self.n_lines / (self.processing_times[8] - self.processing_times[1])
         except ZeroDivisionError:
             logging.exception(f"Unexpected processing time." f"{traceback.format_exc()}")
             abs_proc = -1
         logging.info(f"\n\t>> Results processing speed: {abs_proc:.0f} lines per s")
+
+    def report_storing_time(self):
+        t = self.processing_times[10] - self.processing_times[9]
+        logging.info(f"\t>> File {self.name} stored in: {t:.5f}s")

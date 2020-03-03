@@ -64,7 +64,7 @@ class EsoFile(BaseFile):
     def __init__(
         self,
         file_path: str,
-        monitor: Type[DefaultMonitor] = None,
+        monitor: DefaultMonitor = None,
         autopopulate=True,
         ignore_peaks: bool = True,
         year: int = 2002,
@@ -107,10 +107,7 @@ class EsoFile(BaseFile):
         return eso_files
 
     def populate_content(
-        self,
-        monitor: Type[DefaultMonitor] = None,
-        ignore_peaks: bool = True,
-        year: int = 2002,
+        self, monitor: Type[DefaultMonitor] = None, ignore_peaks: bool = True, year: int = 2002,
     ) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
@@ -153,9 +150,7 @@ class EsoFile(BaseFile):
                     interval, ids, start_date, end_date
                 )
             except KeyError:
-                logging.warning(
-                    f"There are no peak outputs stored for interval: '{interval}'."
-                )
+                logging.warning(f"There are no peak outputs stored for interval: '{interval}'.")
                 continue
 
             if not include_id:

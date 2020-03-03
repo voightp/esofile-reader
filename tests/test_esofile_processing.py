@@ -388,7 +388,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
         monitor.processing_times[8] = 0
         monitor.processing_times[1] = 0
-        monitor.report_time()
+        monitor.report_processing_time()
 
 
 # fmt: on

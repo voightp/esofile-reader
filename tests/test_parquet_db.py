@@ -1,3 +1,4 @@
+import logging
 import os
 import unittest
 from pathlib import Path
@@ -7,9 +8,12 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import EsoFile
 from esofile_reader import TotalsFile
 from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.storage_files import ParquetFile
 from tests import ROOT
+
+logging.basicConfig(level=logging.INFO)
 
 
 class TestParquetDB(unittest.TestCase):
@@ -146,3 +150,17 @@ class TestParquetDB(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             pqs = ParquetStorage()
             pqs.save()
+
+    def test_12_test_storage_monitor(self):
+        monitor = DefaultMonitor("foo")
+        ef = EsoFile(
+            os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
+        )
+        pqs = ParquetStorage()
+        id_ = pqs.store_file(ef, monitor=monitor)
+        self.assertEqual(0, id_)
+
+        monitor = DefaultMonitor("bar")
+        tf = TotalsFile(ef)
+        id_ = pqs.store_file(tf, monitor=monitor)
+        self.assertEqual(1, id_)
