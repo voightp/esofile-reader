@@ -63,6 +63,7 @@ class DefaultMonitor:
 
     def storing_started(self):
         self.report_progress(9, "Storing finished!")
+        logging.info("\nStoring file")
 
     def storing_finished(self):
         self.report_progress(10, "Storing started!")
@@ -120,4 +121,6 @@ class DefaultMonitor:
 
     def report_storing_time(self):
         t = self.processing_times[10] - self.processing_times[9]
+        if logging.root.level == logging.INFO:
+            print("", flush=True)  # newline
         logging.info(f"\t>> File {self.name} stored in: {t:.5f}s")

@@ -80,7 +80,7 @@ class EsoFile(BaseFile):
     def process_multi_env_file(
         cls,
         file_path: str,
-        monitor: Type[DefaultMonitor] = None,
+        monitor: DefaultMonitor = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
@@ -107,7 +107,7 @@ class EsoFile(BaseFile):
         return eso_files
 
     def populate_content(
-        self, monitor: Type[DefaultMonitor] = None, ignore_peaks: bool = True, year: int = 2002,
+        self, monitor: DefaultMonitor = None, ignore_peaks: bool = True, year: int = 2002,
     ) -> None:
         """ Process the eso file to populate attributes. """
         self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
