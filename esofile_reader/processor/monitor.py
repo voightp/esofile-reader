@@ -1,8 +1,7 @@
 import logging
 import os
-import sys
-import traceback
 import time
+import traceback
 
 
 class DefaultMonitor:

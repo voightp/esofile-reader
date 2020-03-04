@@ -1,16 +1,16 @@
+import math
 import shutil
 import tempfile
-import math
 from pathlib import Path
 from typing import Union
 from zipfile import ZipFile
 
 from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
-from esofile_reader.processor.monitor import DefaultMonitor
 
 
 class ParquetStorage(DFStorage):
@@ -26,7 +26,6 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    # @profile(entries=10, sort="time")
     def load(cls, path: Union[str, Path]):
         """ Load ParquetStorage from filesystem. """
         path = path if isinstance(path, Path) else Path(path)
@@ -79,7 +78,6 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
         del self.files[id_]
 
-    # @profile(entries=10, sort="time")
     def save_as(self, dir_, name):
         """ Save parquet storage into given location. """
         self.path = str(Path(dir_, f"{name}{self.EXT}"))
