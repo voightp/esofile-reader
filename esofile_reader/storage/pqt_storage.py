@@ -52,8 +52,8 @@ class ParquetStorage(DFStorage):
                 n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
                 n_steps += n
 
-            monitor.storing_started()
             monitor.reset_progress(new_max=n_steps)
+            monitor.storing_started()
 
         id_ = self._id_generator()
         file = ParquetFile(
