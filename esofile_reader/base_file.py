@@ -1,4 +1,5 @@
 import logging
+import traceback
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
 
@@ -304,9 +305,7 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def create_header_variable(
-        self, interval: str, key: str, var: str, units: str
-    ) -> Variable:
+    def create_header_variable(self, interval: str, key: str, var: str, units: str) -> Variable:
         """ Create unique header variable. """
 
         def add_num():
@@ -474,8 +473,6 @@ class BaseFile:
         """ Return the file as a single DataFrame. """
         try:
             df = self.data.get_all_results(interval)
-
         except KeyError:
-            raise KeyError(f"Cannot find interval: '{interval}'.")
-
+            raise KeyError(f"Cannot find interval: '{interval}'.\n{traceback.format_exc()}")
         return df

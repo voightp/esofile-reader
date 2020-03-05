@@ -36,7 +36,7 @@ class SQLFile(BaseFile):
     file_name: str
         File name of the reference file.
     sql_data: SQLData
-        A class to hold result tables.
+        Processed SQL data instance.
     file_created: datetime
         A creation datetime of the reference file.
     search_tree: Tree
@@ -107,6 +107,37 @@ class DFFile(BaseFile):
 
 
 class ParquetFile(BaseFile):
+    """
+    A class to represent database results set.
+
+    Attributes need to be populated from one of file
+    wrappers ('EsoFile', 'DiffFile', 'TotalsFile').
+
+    Tables are stored in filesystem as pyarrow parquets.
+
+    Attributes
+    ----------
+    id_ : int
+        Unique id identifier.
+    file_path: str
+        A file path of the reference file.
+    file_name: str
+        File name of the reference file.
+    data: {DFData, path like}
+        Original tables.
+    file_created: datetime
+        A creation datetime of the reference file.
+    search_tree: Tree
+        Search tree instance.
+    totals: bool
+        A flag to check if the reference file was 'totals'.
+
+    Notes
+    -----
+    Reference file must be complete!
+
+    """
+
     EXT = ".cff"
 
     def __init__(
@@ -128,7 +159,6 @@ class ParquetFile(BaseFile):
         self.file_name = file_name
         self.file_created = file_created
         self.totals = totals
-
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
         self.data = (
@@ -155,7 +185,9 @@ class ParquetFile(BaseFile):
     def load_file(
         cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
     ) -> "ParquetFile":
+        """ Load parquet storage into given location. """
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
+
         if isinstance(source, io.BytesIO) or source.suffix == cls.EXT:
             # extract content in temp folder
             with ZipFile(source, "r") as zf:
@@ -192,6 +224,7 @@ class ParquetFile(BaseFile):
         return pqf
 
     def save_meta(self) -> Path:
+        """ Save index parquets and json info. """
         # store column, index and chunk table parquets
         for tbl in self.data.tables.values():
             tbl.save_info_parquets()
@@ -217,7 +250,6 @@ class ParquetFile(BaseFile):
 
         return info
 
-    # @profile(entries=10, sort="time")
     def save_as(
         self, dir_: Union[str, Path] = None, name: str = None
     ) -> Union[Path, io.BytesIO]:

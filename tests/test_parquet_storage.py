@@ -16,7 +16,7 @@ from tests import ROOT
 logging.basicConfig(level=logging.INFO)
 
 
-class TestParquetDB(unittest.TestCase):
+class TestParquetStorage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path1 = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
@@ -102,7 +102,7 @@ class TestParquetDB(unittest.TestCase):
         self.assertTrue(Path("pqs" + ParquetStorage.EXT).exists())
 
     def test_09_load_storage(self):
-        pqs = ParquetStorage.load("pqs" + ParquetStorage.EXT)
+        pqs = ParquetStorage.load_storage("pqs" + ParquetStorage.EXT)
 
         self.assertEqual(self.ef1.file_path, pqs.files[0].file_path)
         self.assertEqual(self.ef1.file_name, pqs.files[0].file_name)
@@ -128,12 +128,12 @@ class TestParquetDB(unittest.TestCase):
             )
 
     def test_10_delete_file_save_storage(self):
-        pqs = ParquetStorage.load("pqs" + ParquetStorage.EXT)
+        pqs = ParquetStorage.load_storage("pqs" + ParquetStorage.EXT)
         pqs.delete_file(0)
         pqs.delete_file(1)
         pqs.save()
 
-        loaded_pqs = ParquetStorage.load(pqs.path)
+        loaded_pqs = ParquetStorage.load_storage(pqs.path)
         for interval in self.ef3.available_intervals:
             assert_frame_equal(
                 self.ef3.as_df(interval),
@@ -144,14 +144,14 @@ class TestParquetDB(unittest.TestCase):
 
     def test_11_invalid_extension(self):
         with self.assertRaises(IOError):
-            ParquetStorage.load("test.foo")
+            ParquetStorage.load_storage("test.foo")
 
     def test_12_path_not_set(self):
         with self.assertRaises(FileNotFoundError):
             pqs = ParquetStorage()
             pqs.save()
 
-    def test_12_test_storage_monitor(self):
+    def test_12_storage_monitor(self):
         monitor = DefaultMonitor("foo")
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
@@ -164,3 +164,36 @@ class TestParquetDB(unittest.TestCase):
         tf = TotalsFile(ef)
         id_ = pqs.store_file(tf, monitor=monitor)
         self.assertEqual(1, id_)
+
+    def test_13_merge_storages(self):
+        self.storage.store_file(self.ef1)
+        self.storage.store_file(self.ef2)
+
+        self.storage.save_as("", "pqs1")
+        self.storage.save_as("", "pqs2")
+
+        p1 = Path("pqs1" + ParquetStorage.EXT)
+        p2 = Path("pqs2" + ParquetStorage.EXT)
+
+        self.storage.merge_with([p1, p2])
+        ef1_files = [
+            f for f in self.storage.files.values() if f.file_name == self.ef1.file_name
+        ]
+        ef2_files = [
+            f for f in self.storage.files.values() if f.file_name == self.ef2.file_name
+        ]
+
+        self.assertEqual(6, len(self.storage.files))
+
+        for interval in self.ef1.available_intervals:
+            test_df = self.ef1.as_df(interval)
+            for f in ef1_files:
+                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+
+        for interval in self.ef2.available_intervals:
+            test_df = self.ef2.as_df(interval)
+            for f in ef2_files:
+                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+
+        p1.unlink()
+        p2.unlink()

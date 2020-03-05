@@ -152,12 +152,8 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.remove_outputs(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_output(
-            "range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1]
-        )
-        _, v2 = self.bf.add_output(
-            "range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2]
-        )
+        _, v1 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1])
+        _, v2 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2])
 
         with self.assertRaises(CannotAggregateVariables):
             _ = self.bf.aggregate_variables([v1, v2], "sum")
@@ -203,7 +199,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         pqf = pqs.files[id_]
 
         pqs.save()
-        loaded_pqs = ParquetStorage.load(path)
+        loaded_pqs = ParquetStorage.load_storage(path)
         loaded_pqf = loaded_pqs.files[id_]
 
         assert_index_equal(
