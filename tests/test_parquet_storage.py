@@ -179,12 +179,15 @@ class TestParquetDB(unittest.TestCase):
 
         self.assertEqual(6, len(self.storage.files))
 
+        for f in self.storage.files.values():
+            print(f.id_)
+            print(f)
+
         for interval in self.ef1.available_intervals:
             test_df = self.ef1.as_df(interval)
             assert_frame_equal(
                 test_df, self.storage.files[0].as_df(interval), check_column_type=False
             )
-            print(self.storage.files[2])
             assert_frame_equal(
                 test_df, self.storage.files[2].as_df(interval), check_column_type=False
             )

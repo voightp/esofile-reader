@@ -474,5 +474,5 @@ class BaseFile:
         try:
             df = self.data.get_all_results(interval)
         except KeyError:
-            raise KeyError(f"Cannot find interval: '{interval}'." f"\n{traceback.format_exc()}")
+            raise KeyError(f"Cannot find interval: '{interval}'.\n{traceback.format_exc()}")
         return df
