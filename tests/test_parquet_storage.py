@@ -184,6 +184,7 @@ class TestParquetDB(unittest.TestCase):
             assert_frame_equal(
                 test_df, self.storage.files[0].as_df(interval), check_column_type=False
             )
+            print(self.storage.files[2])
             assert_frame_equal(
                 test_df, self.storage.files[2].as_df(interval), check_column_type=False
             )

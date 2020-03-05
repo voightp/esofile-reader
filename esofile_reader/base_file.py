@@ -1,4 +1,5 @@
 import logging
+import traceback
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
 
@@ -473,6 +474,5 @@ class BaseFile:
         try:
             df = self.data.get_all_results(interval)
         except KeyError:
-            raise KeyError(f"Cannot find interval: '{interval}'.")
-
+            raise KeyError(f"Cannot find interval: '{interval}'." f"\n{traceback.format_exc()}")
         return df
