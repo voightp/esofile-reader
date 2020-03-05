@@ -16,7 +16,7 @@ from tests import ROOT
 logging.basicConfig(level=logging.INFO)
 
 
-class TestParquetDB(unittest.TestCase):
+class TestParquetStorage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path1 = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
@@ -176,36 +176,24 @@ class TestParquetDB(unittest.TestCase):
         p2 = Path("pqs2" + ParquetStorage.EXT)
 
         self.storage.merge_with([p1, p2])
+        ef1_files = [
+            f for f in self.storage.files.values() if f.file_name == self.ef1.file_name
+        ]
+        ef2_files = [
+            f for f in self.storage.files.values() if f.file_name == self.ef2.file_name
+        ]
 
         self.assertEqual(6, len(self.storage.files))
 
-        for f in self.storage.files.values():
-            print(f.id_)
-            print(f)
-
         for interval in self.ef1.available_intervals:
             test_df = self.ef1.as_df(interval)
-            assert_frame_equal(
-                test_df, self.storage.files[0].as_df(interval), check_column_type=False
-            )
-            assert_frame_equal(
-                test_df, self.storage.files[2].as_df(interval), check_column_type=False
-            )
-            assert_frame_equal(
-                test_df, self.storage.files[4].as_df(interval), check_column_type=False
-            )
+            for f in ef1_files:
+                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
 
         for interval in self.ef2.available_intervals:
             test_df = self.ef2.as_df(interval)
-            assert_frame_equal(
-                test_df, self.storage.files[1].as_df(interval), check_column_type=False
-            )
-            assert_frame_equal(
-                test_df, self.storage.files[3].as_df(interval), check_column_type=False
-            )
-            assert_frame_equal(
-                test_df, self.storage.files[5].as_df(interval), check_column_type=False
-            )
+            for f in ef2_files:
+                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
 
         p1.unlink()
         p2.unlink()
