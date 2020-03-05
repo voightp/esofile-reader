@@ -1,13 +1,12 @@
-import contextlib
-import os
+import math
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Union
 from zipfile import ZipFile
-from profilehooks import profile
-import io
 
+from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.totals_file import TotalsFile
@@ -27,7 +26,6 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    # @profile(entries=10, sort="time")
     def load(cls, path: Union[str, Path]):
         """ Load ParquetStorage from filesystem. """
         path = path if isinstance(path, Path) else Path(path)
@@ -44,8 +42,18 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFile) -> int:
+    def store_file(self, results_file: ResultsFile, monitor: DefaultMonitor = None) -> int:
         """ Store results file as 'ParquetFile'. """
+        if monitor:
+            # number of steps is equal to number of parquet files
+            n_steps = 0
+            for tbl in results_file.data.tables.values():
+                n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
+                n_steps += n
+
+            monitor.reset_progress(new_max=n_steps)
+            monitor.storing_started()
+
         id_ = self._id_generator()
         file = ParquetFile(
             id_=id_,
@@ -56,8 +64,13 @@ class ParquetStorage(DFStorage):
             search_tree=results_file.search_tree,
             totals=isinstance(results_file, TotalsFile),
             pardir=self.workdir,
+            monitor=monitor,
         )
         self.files[id_] = file
+
+        if monitor:
+            monitor.storing_finished()
+
         return id_
 
     def delete_file(self, id_: int) -> None:
@@ -65,7 +78,6 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
         del self.files[id_]
 
-    # @profile(entries=10, sort="time")
     def save_as(self, dir_, name):
         """ Save parquet storage into given location. """
         self.path = str(Path(dir_, f"{name}{self.EXT}"))

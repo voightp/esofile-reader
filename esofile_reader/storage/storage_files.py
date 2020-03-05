@@ -1,23 +1,19 @@
 import contextlib
+import io
 import json
-import os
+import logging
 import shutil
 import tempfile
-import logging
-import io
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
 from typing import Union
 from zipfile import ZipFile
-from profilehooks import profile
-
-import pandas as pd
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
-from esofile_reader.data.pqt_data import ParquetData, ParquetFrame
+from esofile_reader.data.pqt_data import ParquetData
 from esofile_reader.data.sql_data import SQLData
+from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
 from esofile_reader.utils.mini_classes import ResultsFile
 from esofile_reader.utils.search_tree import Tree
@@ -124,6 +120,7 @@ class ParquetFile(BaseFile):
         pardir="",
         search_tree: Tree = None,
         name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         super().__init__()
         self.id_ = id_
@@ -135,9 +132,9 @@ class ParquetFile(BaseFile):
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
         self.data = (
-            ParquetData.from_dfdata(data, self.workdir)
+            ParquetData.from_dfdata(data, self.workdir, monitor=monitor)
             if isinstance(data, DFData)
-            else ParquetData.from_fs(data, self.workdir)
+            else ParquetData.from_fs(data, self.workdir, monitor=monitor)
         )
 
         if search_tree:
@@ -155,7 +152,6 @@ class ParquetFile(BaseFile):
         return self.workdir.name
 
     @classmethod
-    # @profile(entries=10, sort="time")
     def load_file(
         cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
     ) -> "ParquetFile":

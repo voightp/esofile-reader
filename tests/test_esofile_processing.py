@@ -1,7 +1,7 @@
 import datetime
+import logging
 import os
 import unittest
-import logging
 
 from esofile_reader.processor.esofile_processor import *
 from esofile_reader.processor.esofile_processor import (
@@ -17,6 +17,7 @@ from esofile_reader.utils.mini_classes import Variable
 from tests import ROOT
 
 
+# fmt: off
 class TestEsoFileProcessing(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -262,16 +263,18 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
+        monitor = DefaultMonitor("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, monitor)
 
         with open(self.body_pth, "r") as f:
-            (env_names, _, raw_peak_outputs, dates, cumulative_days, day_of_week) = read_body(
-                f, 6, header, False, DefaultMonitor("dummy")
-            )
+            content = read_body(f, 6, header, False, monitor)
+            env_names, _, raw_peak_outputs, dates, cumulative_days, day_of_week = content
 
         dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
-        outputs = generate_peak_outputs(raw_peak_outputs[0], header, dates)
+        outputs = generate_peak_outputs(
+            raw_peak_outputs[0], header, dates, monitor, 1
+        )
 
         min_outputs = outputs["local_min"]
         max_outputs = outputs["local_max"]
@@ -289,8 +292,9 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
+        monitor = DefaultMonitor("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, monitor)
 
         with open(self.body_pth, "r") as f:
             (
@@ -305,7 +309,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
-        outputs = generate_outputs(raw_outputs[0], header, dates, other_data)
+        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, monitor, 1)
 
         for interval, df in outputs.tables.items():
             if N_DAYS_COLUMN in df.columns:
@@ -384,8 +388,9 @@ class TestEsoFileProcessing(unittest.TestCase):
 
         monitor.processing_times[8] = 0
         monitor.processing_times[1] = 0
-        monitor.report_time()
+        monitor.report_processing_time()
 
 
+# fmt: on
 if __name__ == "__main__":
     unittest.main()

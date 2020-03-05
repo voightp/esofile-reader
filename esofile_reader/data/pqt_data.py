@@ -12,9 +12,10 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from esofile_reader.data.df_data import DFData
-from esofile_reader.utils.utils import to_int
 from esofile_reader.constants import *
+from esofile_reader.data.df_data import DFData
+from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.utils.utils import to_int
 
 
 class _ParquetIndexer:
@@ -134,9 +135,9 @@ class ParquetFrame:
         self._indexer[:, key] = value
 
     @classmethod
-    def from_df(cls, df, name, pardir=""):
+    def from_df(cls, df, name, pardir="", monitor: DefaultMonitor = None):
         pqf = ParquetFrame(name, pardir)
-        pqf.store_df(df)
+        pqf.store_df(df, monitor=monitor)
         return pqf
 
     @classmethod
@@ -190,8 +191,7 @@ class ParquetFrame:
 
         if len(val) != len(self._columns):
             raise IndexError(
-                f"Invalid columns index! Input length '{len(val)}'"
-                f"!= '{len(self._columns)}'"
+                f"Invalid columns index! Input length '{len(val)}'" f"!= '{len(self._columns)}'"
             )
         mi = []
         items = {}
@@ -330,7 +330,7 @@ class ParquetFrame:
         chunk_df = pd.DataFrame({"id": ids, "chunk": [chunk_name] * len(ids)})
         return chunk_name, chunk_df
 
-    def store_df(self, df: pd.DataFrame) -> None:
+    def store_df(self, df: pd.DataFrame, monitor: DefaultMonitor = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         n = math.ceil(df.shape[1] / self.CHUNK_SIZE)
         start = 0
@@ -346,6 +346,9 @@ class ParquetFrame:
 
             self.update_parquet(chunk_name, dfi)
             start += self.CHUNK_SIZE
+
+            if monitor:
+                monitor.update_progress()
 
         self._chunks_table = pd.concat(frames, ignore_index=True)
         self._columns = df.columns
@@ -475,14 +478,15 @@ class ParquetData(DFData):
         self.tables = {}
 
     @classmethod
-    def from_dfdata(cls, dfdata, pardir):
+    def from_dfdata(cls, dfdata, pardir, monitor: DefaultMonitor = None):
         """ Create parquet data from DataFrame like class. """
         pqd = ParquetData()
-        pqd.tables = {k: ParquetFrame.from_df(v, k, pardir) for k, v in dfdata.tables.items()}
+        for k, v in dfdata.tables.items():
+            pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, monitor=monitor)
         return pqd
 
     @classmethod
-    def from_fs(cls, path, pardir):
+    def from_fs(cls, path, pardir, monitor: DefaultMonitor = None):
         """ Create parquet data from filesystem directory. """
         pqd = ParquetData()
 
