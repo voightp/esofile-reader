@@ -36,6 +36,7 @@ class TestParquetStorage(unittest.TestCase):
         self.storage = ParquetStorage()
 
     def tearDown(self):
+        del self.storage
         self.storage = None
 
     def test_01_set_up_db(self):
