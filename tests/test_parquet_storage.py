@@ -62,7 +62,7 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual("eplusout_all_intervals", self.storage.files[id1].file_name)
         self.assertEqual("eplusout1", self.storage.files[id2].file_name)
 
-    def test_05_delete_file_(self):
+    def test_05_delete_file(self):
         id1 = self.storage.store_file(self.ef1)
         pqf = self.storage.files[id1]
 
@@ -92,6 +92,7 @@ class TestParquetStorage(unittest.TestCase):
             assert_frame_equal(
                 self.ef1.as_df(interval), pqf.as_df(interval), check_column_type=False
             )
+        pqf.clean_up()
 
     def test_08_save_as_storage(self):
         ParquetFrame.CHUNK_SIZE = 10
@@ -151,7 +152,7 @@ class TestParquetStorage(unittest.TestCase):
             pqs = ParquetStorage()
             pqs.save()
 
-    def test_12_storage_monitor(self):
+    def test_13_storage_monitor(self):
         monitor = DefaultMonitor("foo")
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
@@ -165,7 +166,7 @@ class TestParquetStorage(unittest.TestCase):
         id_ = pqs.store_file(tf, monitor=monitor)
         self.assertEqual(1, id_)
 
-    def test_13_merge_storages(self):
+    def test_14_merge_storages(self):
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
 

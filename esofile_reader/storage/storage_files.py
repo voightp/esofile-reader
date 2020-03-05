@@ -174,8 +174,11 @@ class ParquetFile(BaseFile):
             tree.populate_tree(self.data.get_all_variables_dct())
             self.search_tree = tree
 
-    def __del__(self):
-        shutil.rmtree(self.workdir, ignore_errors=True)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.clean_up()
 
     @property
     def name(self):
@@ -222,6 +225,9 @@ class ParquetFile(BaseFile):
         )
 
         return pqf
+
+    def clean_up(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
 
     def save_meta(self) -> Path:
         """ Save index parquets and json info. """

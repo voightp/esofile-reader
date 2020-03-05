@@ -118,7 +118,7 @@ class ParquetStorage(DFStorage):
                 # update parquet frame root
                 for table in file.data.tables.values():
                     table_name = table.name
-                    table.root_path = Path(new_workdir, table_name)
+                    table.workdir = Path(new_workdir, table_name)
 
                 # assign updated attributes
                 file.workdir = new_workdir
