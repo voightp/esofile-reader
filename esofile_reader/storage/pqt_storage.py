@@ -80,7 +80,7 @@ class ParquetStorage(DFStorage):
 
     def save_as(self, dir_, name):
         """ Save parquet storage into given location. """
-        self.path = str(Path(dir_, f"{name}{self.EXT}"))
+        self.path = Path(dir_, f"{name}{self.EXT}")
 
         with ZipFile(self.path, "w") as zf:
             for f in self.files.values():
