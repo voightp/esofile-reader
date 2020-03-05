@@ -118,7 +118,7 @@ class ParquetFrame:
     CHUNKS_PARQUET = "chunks.parquet"
 
     def __init__(self, name, pardir=""):
-        self.root_path = Path(pardir, f"results-{name}").absolute()
+        self.root_path = Path(pardir, f"table-{name}").absolute()
         self.root_path.mkdir(exist_ok=True)
         self._chunks_table = None
         self._indexer = _ParquetIndexer(self)

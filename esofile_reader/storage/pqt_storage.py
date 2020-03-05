@@ -2,7 +2,7 @@ import math
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 from zipfile import ZipFile
 
 from esofile_reader.data.pqt_data import ParquetFrame
@@ -26,7 +26,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    def load(cls, path: Union[str, Path]):
+    def load_storage(cls, path: Union[str, Path]):
         """ Load ParquetStorage from filesystem. """
         path = path if isinstance(path, Path) else Path(path)
         if path.suffix != cls.EXT:
@@ -82,7 +82,6 @@ class ParquetStorage(DFStorage):
         """ Save parquet storage into given location. """
         self.path = str(Path(dir_, f"{name}{self.EXT}"))
 
-        # save all files
         with ZipFile(self.path, "w") as zf:
             for f in self.files.values():
                 info = f.save_meta()
@@ -100,3 +99,31 @@ class ParquetStorage(DFStorage):
         dir_ = self.path.parent
         name = self.path.with_suffix("").name
         self.save_as(dir_, name)
+
+    def merge_with(self, storage_path: Union[str, List[str]]) -> None:
+        """ Merge this storage with arbitrary number of other ones. """
+        paths = storage_path if isinstance(storage_path, list) else [storage_path]
+
+        for path in paths:
+            pqs = ParquetStorage.load_storage(path)
+            for id_, file in pqs.files.items():
+                # create new identifiers in case that id already exists
+                new_id = self._id_generator() if id_ in self.files.keys() else id_
+                new_name = f"file-{new_id}"
+                new_workdir = Path(self.workdir, new_name)
+
+                # clone all the parquet data
+                shutil.copytree(file.workdir, new_workdir)
+
+                # update parquet frame root
+                for table in file.data.tables.values():
+                    table_name = table.name
+                    table.root_path = Path(new_workdir, table_name)
+
+                # assign updated attributes
+                file.workdir = new_workdir
+                file.id_ = new_id
+
+                self.files[new_id] = file
+
+            del pqs
