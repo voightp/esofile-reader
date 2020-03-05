@@ -48,12 +48,14 @@ class TestParquetFrame(TestCase):
 
         ParquetFrame.CHUNK_SIZE = 3
         global i
+        print(i)
         self.pqf = ParquetFrame.from_df(self.test_df, f"test-{i}")
         i += 1
 
     def tearDown(self) -> None:
         self.pqf.clean_up()
         self.pqf = None
+        print(f"Tear down {i}")
 
     def test_name(self):
         global i
@@ -221,6 +223,8 @@ class TestParquetFrame(TestCase):
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_store_df(self):
+        self.pqf.clean_up()  # clean setUp storage
+
         # save each column as an independent parquet
         ParquetFrame.CHUNK_SIZE = 1
         self.pqf = ParquetFrame.from_df(self.test_df, "some_name")

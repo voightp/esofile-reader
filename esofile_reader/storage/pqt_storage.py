@@ -55,16 +55,13 @@ class ParquetStorage(DFStorage):
             monitor.storing_started()
 
         id_ = self._id_generator()
-        file = ParquetFile(
+        file = ParquetFile.from_results_file(
             id_=id_,
-            file_path=results_file.file_path,
-            file_name=results_file.file_name,
-            data=results_file.data,
-            file_created=results_file.file_created,
-            search_tree=results_file.search_tree,
-            totals=isinstance(results_file, TotalsFile),
+            results_file=results_file,
             pardir=self.workdir,
-            monitor=monitor,
+            name="",
+            monitor=monitor
+
         )
         self.files[id_] = file
 

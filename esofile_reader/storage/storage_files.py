@@ -4,6 +4,7 @@ import json
 import logging
 import shutil
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Union
@@ -51,14 +52,14 @@ class SQLFile(BaseFile):
     """
 
     def __init__(
-        self,
-        id_: int,
-        file_path: str,
-        file_name: str,
-        sql_data: SQLData,
-        file_created: datetime,
-        search_tree: Tree,
-        totals: bool,
+            self,
+            id_: int,
+            file_path: str,
+            file_name: str,
+            sql_data: SQLData,
+            file_created: datetime,
+            search_tree: Tree,
+            totals: bool,
     ):
         super().__init__()
         self.id_ = id_
@@ -136,22 +137,29 @@ class ParquetFile(BaseFile):
     -----
     Reference file must be complete!
 
+    Workdir needs to be cleaned up. This can be done
+    either by calling 'clean_up()' or working with file
+    with context manager:
+
+    with ParquetFile.from_results_file(*args, **kwargs) as pqs:
+        ...
+
     """
 
     EXT = ".cff"
 
     def __init__(
-        self,
-        id_: int,
-        file_path: str,
-        file_name: str,
-        data: Union[DFData, str, Path],
-        file_created: datetime,
-        totals,
-        pardir="",
-        search_tree: Tree = None,
-        name: str = None,
-        monitor: DefaultMonitor = None,
+            self,
+            id_: int,
+            file_path: str,
+            file_name: str,
+            data: Union[DFData, str, Path],
+            file_created: datetime,
+            totals,
+            pardir="",
+            search_tree: Tree = None,
+            name: str = None,
+            monitor: DefaultMonitor = None,
     ):
         super().__init__()
         self.id_ = id_
@@ -185,8 +193,32 @@ class ParquetFile(BaseFile):
         return self.workdir.name
 
     @classmethod
+    def from_results_file(
+            cls,
+            id_: int,
+            results_file: ResultsFile,
+            pardir: str = "",
+            name: str = None,
+            monitor: DefaultMonitor = None
+    ):
+        pqs = ParquetFile(
+            id_=id_,
+            file_path=results_file.file_path,
+            file_name=results_file.file_name,
+            data=results_file.data,
+            file_created=results_file.file_created,
+            search_tree=results_file.search_tree,
+            totals=isinstance(results_file, TotalsFile),
+            pardir=pardir,
+            name=name,
+            monitor=monitor
+        )
+
+        return pqs
+
+    @classmethod
     def load_file(
-        cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
+            cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
     ) -> "ParquetFile":
         """ Load parquet storage into given location. """
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
@@ -257,7 +289,7 @@ class ParquetFile(BaseFile):
         return info
 
     def save_as(
-        self, dir_: Union[str, Path] = None, name: str = None
+            self, dir_: Union[str, Path] = None, name: str = None
     ) -> Union[Path, io.BytesIO]:
         """ Save parquet storage into given location. """
         info = self.save_meta()
