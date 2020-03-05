@@ -56,7 +56,7 @@ class TestParquetFrame(TestCase):
 
     def test_name(self):
         global i
-        self.assertEqual(f"results-test-{i - 1}", self.pqf.name)
+        self.assertEqual(f"table-test-{i - 1}", self.pqf.name)
 
     def test_index(self):
         assert_index_equal(
