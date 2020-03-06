@@ -36,6 +36,7 @@ class TestParquetStorage(unittest.TestCase):
         self.storage = ParquetStorage()
 
     def tearDown(self):
+        del self.storage
         self.storage = None
 
     def test_01_set_up_db(self):
@@ -62,7 +63,7 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual("eplusout_all_intervals", self.storage.files[id1].file_name)
         self.assertEqual("eplusout1", self.storage.files[id2].file_name)
 
-    def test_05_delete_file_(self):
+    def test_05_delete_file(self):
         id1 = self.storage.store_file(self.ef1)
         pqf = self.storage.files[id1]
 
@@ -92,6 +93,7 @@ class TestParquetStorage(unittest.TestCase):
             assert_frame_equal(
                 self.ef1.as_df(interval), pqf.as_df(interval), check_column_type=False
             )
+        pqf.clean_up()
 
     def test_08_save_as_storage(self):
         ParquetFrame.CHUNK_SIZE = 10
@@ -151,7 +153,7 @@ class TestParquetStorage(unittest.TestCase):
             pqs = ParquetStorage()
             pqs.save()
 
-    def test_12_storage_monitor(self):
+    def test_13_storage_monitor(self):
         monitor = DefaultMonitor("foo")
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
@@ -165,7 +167,7 @@ class TestParquetStorage(unittest.TestCase):
         id_ = pqs.store_file(tf, monitor=monitor)
         self.assertEqual(1, id_)
 
-    def test_13_merge_storages(self):
+    def test_14_merge_storages(self):
         self.storage.store_file(self.ef1)
         self.storage.store_file(self.ef2)
 
@@ -197,3 +199,20 @@ class TestParquetStorage(unittest.TestCase):
 
         p1.unlink()
         p2.unlink()
+
+    def test_15_parquet_file_context_manager(self):
+        with ParquetFile(
+                id_=0,
+                file_path=self.ef1.file_path,
+                file_name=self.ef1.file_name,
+                data=self.ef1.data,
+                file_created=self.ef1.file_created,
+                search_tree=self.ef1.search_tree,
+                totals=isinstance(self.ef1, TotalsFile),
+                pardir="",
+                name="foo",
+                monitor=None
+        ) as pqf:
+            workdir = pqf.workdir
+            self.assertTrue(workdir.exists())
+        self.assertFalse(workdir.exists())

@@ -117,16 +117,21 @@ class ParquetFrame:
     COLUMNS_PARQUET = "columns.parquet"
     CHUNKS_PARQUET = "chunks.parquet"
 
-    def __init__(self, name, pardir=""):
-        self.root_path = Path(pardir, f"table-{name}").absolute()
-        self.root_path.mkdir(exist_ok=True)
+    def __init__(self, name, pardir="", df: pd.DataFrame = None):
+        self.workdir = Path(pardir, f"table-{name}").absolute()
+        self.workdir.mkdir(exist_ok=True)
         self._chunks_table = None
         self._indexer = _ParquetIndexer(self)
         self._index = None
         self._columns = None
+        if df is not None:
+            self.store_df(df)
 
-    def __del__(self):
-        shutil.rmtree(self.root_path, ignore_errors=True)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.clean_up()
 
     def __getitem__(self, item):
         return self._indexer[:, item]
@@ -146,9 +151,12 @@ class ParquetFrame:
         pqf.load_info_parquets()
         return pqf
 
+    def clean_up(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
     @property
     def name(self):
-        return self.root_path.name
+        return self.workdir.name
 
     @property
     def chunk_names(self) -> List[str]:
@@ -159,7 +167,7 @@ class ParquetFrame:
 
     @property
     def chunk_paths(self) -> List[Path]:
-        return [Path(self.root_path, chunk) for chunk in self.chunk_names]
+        return [Path(self.workdir, chunk) for chunk in self.chunk_names]
 
     @property
     def index(self) -> pd.Index:
@@ -219,9 +227,9 @@ class ParquetFrame:
     def save_info_parquets(self):
         """ Save columns, index and chunk data as parquets. """
         paths = [
-            Path(self.root_path, self.INDEX_PARQUET),
-            Path(self.root_path, self.COLUMNS_PARQUET),
-            Path(self.root_path, self.CHUNKS_PARQUET),
+            Path(self.workdir, self.INDEX_PARQUET),
+            Path(self.workdir, self.COLUMNS_PARQUET),
+            Path(self.workdir, self.CHUNKS_PARQUET),
         ]
         for path in paths:
             with contextlib.suppress(FileNotFoundError):
@@ -241,16 +249,15 @@ class ParquetFrame:
     def load_info_parquets(self):
         """ Load index, columns and chunk parquets from fs. """
         paths = [
-            Path(self.root_path, self.INDEX_PARQUET),
-            Path(self.root_path, self.COLUMNS_PARQUET),
-            Path(self.root_path, self.CHUNKS_PARQUET),
+            Path(self.workdir, self.INDEX_PARQUET),
+            Path(self.workdir, self.COLUMNS_PARQUET),
+            Path(self.workdir, self.CHUNKS_PARQUET),
         ]
 
         for path in paths:
             if not path.exists():
                 raise FileNotFoundError(
-                    f"Cannot find info table: {path}. "
-                    f"File {self.root_path} cannot be loaded!"
+                    f"Cannot find info table: {path}. " f"File {self.workdir} cannot be loaded!"
                 )
 
         index = pq.read_pandas(paths[0]).to_pandas().iloc[:, 0]
@@ -271,13 +278,13 @@ class ParquetFrame:
     def update_parquet(self, chunk: str, df: pd.DataFrame) -> None:
         """ Update previously stored parquet.  """
         with contextlib.suppress(FileNotFoundError):
-            os.remove(Path(self.root_path, chunk))
+            os.remove(Path(self.workdir, chunk))
         header_df = df.columns.to_frame(index=False)
         header_df["id"] = header_df["id"].astype(str)
         df.columns = pd.MultiIndex.from_frame(header_df)
 
         table = pa.Table.from_pandas(df)
-        pq.write_table(table, Path(self.root_path, chunk))
+        pq.write_table(table, Path(self.workdir, chunk))
 
     def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
         """ Get DataFrame from given chunk. ."""
@@ -291,9 +298,7 @@ class ParquetFrame:
         else:
             columns = None
 
-        table = pq.read_pandas(
-            Path(self.root_path, chunk_name), columns=columns, memory_map=True
-        )
+        table = pq.read_pandas(Path(self.workdir, chunk_name), columns=columns, memory_map=True)
         df = table.to_pandas()
         del table  # not necessary, but a good practice
 
@@ -460,7 +465,7 @@ class ParquetFrame:
             df.drop(columns=chunk_ids, inplace=True, level="id")
 
             if df.empty:
-                os.remove(Path(self.root_path, chunk_name))
+                os.remove(Path(self.workdir, chunk_name))
             else:
                 self.update_parquet(chunk_name, df)
 

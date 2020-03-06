@@ -55,16 +55,13 @@ class ParquetStorage(DFStorage):
             monitor.storing_started()
 
         id_ = self._id_generator()
-        file = ParquetFile(
+        file = ParquetFile.from_results_file(
             id_=id_,
-            file_path=results_file.file_path,
-            file_name=results_file.file_name,
-            data=results_file.data,
-            file_created=results_file.file_created,
-            search_tree=results_file.search_tree,
-            totals=isinstance(results_file, TotalsFile),
+            results_file=results_file,
             pardir=self.workdir,
-            monitor=monitor,
+            name="",
+            monitor=monitor
+
         )
         self.files[id_] = file
 
@@ -118,7 +115,7 @@ class ParquetStorage(DFStorage):
                 # update parquet frame root
                 for table in file.data.tables.values():
                     table_name = table.name
-                    table.root_path = Path(new_workdir, table_name)
+                    table.workdir = Path(new_workdir, table_name)
 
                 # assign updated attributes
                 file.workdir = new_workdir

@@ -52,6 +52,7 @@ class TestParquetFrame(TestCase):
         i += 1
 
     def tearDown(self) -> None:
+        self.pqf.clean_up()
         self.pqf = None
 
     def test_name(self):
@@ -214,16 +215,18 @@ class TestParquetFrame(TestCase):
     def test_update_parquet(self):
         df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
         self.pqf.update_parquet("test_parquet.parquet", df)
-        self.assertTrue(Path(self.pqf.root_path, "test_parquet.parquet").exists())
+        self.assertTrue(Path(self.pqf.workdir, "test_parquet.parquet").exists())
 
     def get_full_df(self):
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_store_df(self):
+        self.pqf.clean_up()  # clean setUp storage
+
         # save each column as an independent parquet
         ParquetFrame.CHUNK_SIZE = 1
         self.pqf = ParquetFrame.from_df(self.test_df, "some_name")
-        self.assertEqual(14, len(list(self.pqf.root_path.iterdir())))
+        self.assertEqual(14, len(list(self.pqf.workdir.iterdir())))
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_add_mi_column_item_invalid_pos(self):
@@ -307,9 +310,9 @@ class TestParquetFrame(TestCase):
 
     def test_save_load_info_parquets(self):
         self.pqf.save_info_parquets()
-        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.INDEX_PARQUET).exists())
-        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.COLUMNS_PARQUET).exists())
-        self.assertTrue(Path(self.pqf.root_path, ParquetFrame.CHUNKS_PARQUET).exists())
+        self.assertTrue(Path(self.pqf.workdir, ParquetFrame.INDEX_PARQUET).exists())
+        self.assertTrue(Path(self.pqf.workdir, ParquetFrame.COLUMNS_PARQUET).exists())
+        self.assertTrue(Path(self.pqf.workdir, ParquetFrame.CHUNKS_PARQUET).exists())
 
         test_chunks = self.pqf._chunks_table.copy()
         self.pqf._index = None
@@ -323,8 +326,13 @@ class TestParquetFrame(TestCase):
 
     def test_load_missing_parquets(self):
         self.pqf.save_info_parquets()
-        index_path = Path(self.pqf.root_path, self.pqf.INDEX_PARQUET)
+        index_path = Path(self.pqf.workdir, self.pqf.INDEX_PARQUET)
         index_path.unlink()
 
         with self.assertRaises(FileNotFoundError):
             self.pqf.load_info_parquets()
+
+    def test_parquet_frame_context_maneger(self):
+        with ParquetFrame(df=self.test_df, name="test") as pqf:
+            assert_frame_equal(self.test_df, pqf.get_df())
+        self.assertFalse(pqf.workdir.exists())
