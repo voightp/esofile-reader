@@ -48,14 +48,12 @@ class TestParquetFrame(TestCase):
 
         ParquetFrame.CHUNK_SIZE = 3
         global i
-        print(i)
         self.pqf = ParquetFrame.from_df(self.test_df, f"test-{i}")
         i += 1
 
     def tearDown(self) -> None:
         self.pqf.clean_up()
         self.pqf = None
-        print(f"Tear down {i}")
 
     def test_name(self):
         global i
@@ -333,3 +331,8 @@ class TestParquetFrame(TestCase):
 
         with self.assertRaises(FileNotFoundError):
             self.pqf.load_info_parquets()
+
+    def test_parquet_frame_context_maneger(self):
+        with ParquetFrame(df=self.test_df, name="test") as pqf:
+            assert_frame_equal(self.test_df, pqf.get_df())
+        self.assertFalse(pqf.workdir.exists())

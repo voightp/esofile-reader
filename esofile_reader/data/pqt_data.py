@@ -117,13 +117,15 @@ class ParquetFrame:
     COLUMNS_PARQUET = "columns.parquet"
     CHUNKS_PARQUET = "chunks.parquet"
 
-    def __init__(self, name, pardir=""):
+    def __init__(self, name, pardir="", df: pd.DataFrame = None):
         self.workdir = Path(pardir, f"table-{name}").absolute()
         self.workdir.mkdir(exist_ok=True)
         self._chunks_table = None
         self._indexer = _ParquetIndexer(self)
         self._index = None
         self._columns = None
+        if df is not None:
+            self.store_df(df)
 
     def __enter__(self):
         return self
