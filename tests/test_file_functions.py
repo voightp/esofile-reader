@@ -75,9 +75,7 @@ class TestFileFunctions(unittest.TestCase):
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
         )
-        assert_frame_equal(
-            out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi)
-        )
+        assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
 
     def test__add_file_name_invalid(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
@@ -337,6 +335,16 @@ class TestFileFunctions(unittest.TestCase):
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
             _ = self.ef.as_df("foo")
+
+    def test__find_pairs_by_id(self):
+        pairs = self.ef._find_pairs([31, 32, 297, 298,])
+        self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
+
+    def test__find_pairs_by_interval_id(self):
+        pairs = self.ef._find_pairs(
+            [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
+        )
+        self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
 
 if __name__ == "__main__":

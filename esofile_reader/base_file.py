@@ -2,6 +2,7 @@ import logging
 import traceback
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
+from collections import defaultdict
 
 import pandas as pd
 
@@ -144,23 +145,38 @@ class BaseFile:
 
         """
         variables = variables if isinstance(variables, list) else [variables]
-        out = {}
+        out = defaultdict(list)
 
-        for variable in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in variable]
-
-            pairs = self.search_tree.get_pairs(
-                interval=interval, key=key, variable=var, units=units, part_match=part_match,
-            )
-            if not pairs:
-                continue
-
-            for k, v in pairs.items():
-                if k in out.keys():
-                    out[k].extend(pairs[k])
+        if all(map(lambda x: isinstance(x, int), variables)):
+            header = self.data.get_all_variables_df()
+            df = header.loc[header["id"].isin(variables), ["interval", "id"]]
+            grouped = df.groupby("interval", sort=False, group_keys=False)
+            for interval, df in grouped:
+                out[interval] = df["id"].tolist()
+        else:
+            for variable in variables:
+                if (
+                    len(variable) == 2
+                    and isinstance(variable[0], str)
+                    and isinstance(variable[1], int)
+                ):
+                    out[variable[0]].append(variable[1])
                 else:
-                    out[k] = pairs[k]
+                    # stringify potential integers
+                    v = [str(r) if isinstance(r, int) else r for r in variable]
+                    interval, key, var, units = v
+                    pairs = self.search_tree.get_pairs(
+                        interval=interval,
+                        key=key,
+                        variable=var,
+                        units=units,
+                        part_match=part_match,
+                    )
+                    if not pairs:
+                        continue
 
+                    for k, v in pairs.items():
+                        out[k].extend(pairs[k])
         return out
 
     def find_ids(
