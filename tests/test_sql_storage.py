@@ -2,23 +2,17 @@ import os
 import unittest
 
 from esofile_reader import EsoFile, TotalsFile
-from esofile_reader.data.sql_data import SQLData
 from esofile_reader.storage.sql_storage import SQLStorage
-from tests import ROOT
+from tests import ROOT, EF_ALL_INTERVALS
 
 
 class TestSqlDB(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True)
-
     def test_01_store_file_not_set_up(self):
         storage = SQLStorage()
         storage.engine = None
         storage.metadata = None
         with self.assertRaises(AttributeError):
-            storage.store_file(self.ef)
+            storage.store_file(EF_ALL_INTERVALS)
 
     def test_02_set_up_db(self):
         storage = SQLStorage()
@@ -32,7 +26,7 @@ class TestSqlDB(unittest.TestCase):
 
     def test_03_store_file(self):
         storage = SQLStorage()
-        storage.store_file(self.ef)
+        storage.store_file(EF_ALL_INTERVALS)
         tables = [
             "result-files",
             "1-results-timestep",
@@ -62,7 +56,7 @@ class TestSqlDB(unittest.TestCase):
 
     def test_04_store_file_totals(self):
         storage = SQLStorage()
-        id_ = storage.store_file(TotalsFile(self.ef))
+        id_ = storage.store_file(TotalsFile(EF_ALL_INTERVALS))
         res = storage.engine.execute(
             f"""SELECT totals FROM 'result-files' WHERE id={id_};"""
         ).scalar()
@@ -70,7 +64,7 @@ class TestSqlDB(unittest.TestCase):
 
     def test_05_delete_file(self):
         storage = SQLStorage()
-        _ = storage.store_file(self.ef)
+        _ = storage.store_file(EF_ALL_INTERVALS)
         storage.delete_file(1)
 
         self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
@@ -81,7 +75,7 @@ class TestSqlDB(unittest.TestCase):
     def test_06_load_all_files(self):
         storage = SQLStorage()
         self.maxDiff = None
-        id1 = storage.store_file(self.ef)
+        id1 = storage.store_file(EF_ALL_INTERVALS)
         id2 = storage.store_file(EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso")))
 
         db_file1 = storage.files[id1]
@@ -112,7 +106,7 @@ class TestSqlDB(unittest.TestCase):
 
     def test_08_get_all_file_names(self):
         storage = SQLStorage()
-        storage.store_file(self.ef)
+        storage.store_file(EF_ALL_INTERVALS)
         storage.load_all_files()
         names = storage.get_all_file_names()
         self.assertEqual(names, ["eplusout_all_intervals"])

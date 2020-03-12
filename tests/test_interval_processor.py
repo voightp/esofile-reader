@@ -1,7 +1,6 @@
 import unittest
 from datetime import datetime
 
-from esofile_reader.constants import *
 from esofile_reader.processor.interval_processor import *
 from esofile_reader.processor.interval_processor import _to_timestamp, _gen_dt
 from esofile_reader.utils.mini_classes import IntervalTuple

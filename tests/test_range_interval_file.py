@@ -1,14 +1,14 @@
 import unittest
 from datetime import datetime
-from pandas.testing import assert_index_equal, assert_frame_equal
 from pathlib import Path
 
 import pandas as pd
+from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.data.df_data import DFData
-from esofile_reader.storage.sql_storage import SQLStorage
 from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.sql_storage import SQLStorage
 from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.utils.search_tree import Tree
 
@@ -111,9 +111,9 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_rename_variable(self):
         v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")
-        self.bf.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        self.bf.rename_variable(v, key_name="NEW5", var_name="VARIABLE")
 
-        v = Variable(interval="range", key="NEW", variable="VARIABLE", units="")
+        v = Variable(interval="range", key="NEW5", variable="VARIABLE", units="")
         ids = self.bf.find_ids(v)
         self.assertListEqual(ids, [3])
 

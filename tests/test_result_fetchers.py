@@ -9,20 +9,18 @@ from esofile_reader import EsoFile, get_results
 from esofile_reader import Variable
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.eso_file import PeaksNotIncluded
-from tests import ROOT
+from tests import ROOT, EF1
 
 
 class TestResultFetching(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        file_path1 = os.path.join(ROOT, "eso_files/eplusout1.eso")
-        file_path2 = os.path.join(ROOT, "eso_files/eplusout2.eso")
-        cls.ef1 = EsoFile(file_path1, ignore_peaks=True)
-        cls.ef2 = EsoFile(file_path2, ignore_peaks=False)
+        file_path = os.path.join(ROOT, "eso_files/eplusout2.eso")
+        cls.ef1 = EsoFile(file_path, ignore_peaks=False)
 
     def test_get_results(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v)
+        df = get_results(EF1, v)
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -78,7 +76,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_start_date(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, start_date=datetime(2002, 4, 15))
+        df = get_results(EF1, v, start_date=datetime(2002, 4, 15))
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -105,7 +103,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_end_date(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, end_date=datetime(2002, 8, 10))
+        df = get_results(EF1, v, end_date=datetime(2002, 8, 10))
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -132,7 +130,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_global_max(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, output_type="global_max")
+        df = get_results(EF1, v, output_type="global_max")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -153,7 +151,7 @@ class TestResultFetching(unittest.TestCase):
     def test_get_results_output_type_start_end_date(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(
-            self.ef1,
+            EF1,
             v,
             output_type="global_max",
             start_date=datetime(2002, 4, 10),
@@ -178,7 +176,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_global_min(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, output_type="global_min")
+        df = get_results(EF1, v, output_type="global_min")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -198,7 +196,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_local_max(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef2, v, output_type="local_max")
+        df = get_results(self.ef1, v, output_type="local_max")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -237,7 +235,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_local_min(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef2, v, output_type="local_min")
+        df = get_results(self.ef1, v, output_type="local_min")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -277,16 +275,16 @@ class TestResultFetching(unittest.TestCase):
     def test_get_results_output_type_local_na(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         with self.assertRaises(PeaksNotIncluded):
-            _ = get_results(self.ef1, v, output_type="local_min")
+            _ = get_results(EF1, v, output_type="local_min")
 
     def test_get_results_output_type_invalid(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         with self.assertRaises(InvalidOutputType):
-            _ = get_results(self.ef1, v, output_type="foo")
+            _ = get_results(EF1, v, output_type="foo")
 
     def test_get_results_add_file_name(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, add_file_name="")
+        df = get_results(EF1, v, add_file_name="")
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -312,7 +310,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_include_interval(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, add_file_name="")
+        df = get_results(EF1, v, add_file_name="")
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -339,7 +337,7 @@ class TestResultFetching(unittest.TestCase):
     def test_get_results_include_day(self):
         v = Variable("daily", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(
-            self.ef1,
+            EF1,
             v,
             add_file_name="",
             start_date=datetime(2002, 4, 1),
@@ -377,7 +375,7 @@ class TestResultFetching(unittest.TestCase):
             Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
             Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
         ]
-        df = get_results(self.ef1, v, units_system="SI")
+        df = get_results(EF1, v, units_system="SI")
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -424,7 +422,7 @@ class TestResultFetching(unittest.TestCase):
             Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
             Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
         ]
-        df = get_results(self.ef1, v, units_system="IP")
+        df = get_results(EF1, v, units_system="IP")
 
         test_names = ["key", "variable", "units"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -472,7 +470,7 @@ class TestResultFetching(unittest.TestCase):
             Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
         ]
         with self.assertRaises(InvalidUnitsSystem):
-            _ = get_results(self.ef1, v, units_system="FOO")
+            _ = get_results(EF1, v, units_system="FOO")
 
     def test_get_results_rate_to_energy(self):
         rate_to_energy = {
@@ -485,12 +483,10 @@ class TestResultFetching(unittest.TestCase):
         }
 
         v = [
-            Variable(
-                None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"
-            ),
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy)
+        df = get_results(EF1, v, rate_to_energy_dct=rate_to_energy)
 
         self.assertListEqual(df.columns.get_level_values("units").tolist(), ["J/m2", "J"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 217800, 5)
@@ -513,16 +509,12 @@ class TestResultFetching(unittest.TestCase):
         }
 
         v = [
-            Variable(
-                None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"
-            ),
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy, rate_units="kW")
+        df = get_results(EF1, v, rate_to_energy_dct=rate_to_energy, rate_units="kW")
 
-        self.assertListEqual(
-            df.columns.get_level_values("units").tolist(), ["kW/m2", "kW"] * 4
-        )
+        self.assertListEqual(df.columns.get_level_values("units").tolist(), ["kW/m2", "kW"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 0.0605, 5)
         self.assertAlmostEqual(df.iloc[7, 1], 0.0932176797185792, 5)
         self.assertAlmostEqual(df.iloc[0, 2], 0.072375, 5)
@@ -543,16 +535,12 @@ class TestResultFetching(unittest.TestCase):
         }
 
         v = [
-            Variable(
-                None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"
-            ),
+            Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(self.ef1, v, rate_to_energy_dct=rate_to_energy, energy_units="MJ")
+        df = get_results(EF1, v, rate_to_energy_dct=rate_to_energy, energy_units="MJ")
 
-        self.assertListEqual(
-            df.columns.get_level_values("units").tolist(), ["MJ/m2", "MJ"] * 4
-        )
+        self.assertListEqual(df.columns.get_level_values("units").tolist(), ["MJ/m2", "MJ"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 0.21780, 5)
         self.assertAlmostEqual(df.iloc[7, 1], 0.33558, 5)
         self.assertAlmostEqual(df.iloc[0, 2], 6.2532, 5)
@@ -564,7 +552,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_timestamp_format(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef1, v, add_file_name="", timestamp_format="%m-%d")
+        df = get_results(EF1, v, add_file_name="", timestamp_format="%m-%d")
 
         dates = ["04-01", "05-01", "06-01", "07-01", "08-01", "09-01"]
         self.assertListEqual(df.index.tolist(), dates)
@@ -577,17 +565,17 @@ class TestResultFetching(unittest.TestCase):
         self.assertIsNotNone(ef.peak_outputs)
 
     def test_multiple_files_invalid_variable(self):
-        files = [self.ef1, self.ef2]
+        files = [EF1, self.ef1]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, v))
 
     def test_multiple_files_invalid_variables(self):
-        files = [self.ef1, self.ef2]
+        files = [EF1, self.ef1]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, [v, v]))
 
     def test_get_results_multiple_files(self):
-        files = [self.ef1, self.ef2]
+        files = [EF1, self.ef1]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(files, v, add_file_name="column")
 

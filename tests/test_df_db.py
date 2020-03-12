@@ -11,22 +11,22 @@ class TestDFDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = DFStorage()
-        cls.ef = EF_ALL_INTERVALS
 
     def test_01_store_file(self):
-        id1 = self.storage.store_file(self.ef)
-        id2 = self.storage.store_file(TotalsFile(self.ef))
+        id1 = self.storage.store_file(EF_ALL_INTERVALS)
+        id2 = self.storage.store_file(TotalsFile(EF_ALL_INTERVALS))
 
         self.assertEqual(id1, 0)
         self.assertEqual(id2, 1)
 
-        for interval in self.ef.available_intervals:
-            self.assertEqual(self.ef.file_name, self.storage.files[0].file_name)
-            self.assertEqual(self.ef.file_path, self.storage.files[0].file_path)
-            self.assertEqual(self.ef.file_created, self.storage.files[0].file_created)
-            self.assertEqual(self.ef.search_tree, self.storage.files[0].search_tree)
+        for interval in EF_ALL_INTERVALS.available_intervals:
+            self.assertEqual(EF_ALL_INTERVALS.file_name, self.storage.files[0].file_name)
+            self.assertEqual(EF_ALL_INTERVALS.file_path, self.storage.files[0].file_path)
+            self.assertEqual(EF_ALL_INTERVALS.file_created, self.storage.files[0].file_created)
+            self.assertEqual(EF_ALL_INTERVALS.search_tree, self.storage.files[0].search_tree)
             pd.testing.assert_frame_equal(
-                self.ef.data.tables[interval], self.storage.files[0].data.tables[interval]
+                EF_ALL_INTERVALS.data.tables[interval],
+                self.storage.files[0].data.tables[interval],
             )
 
         self.assertFalse(self.storage.files[0].totals)

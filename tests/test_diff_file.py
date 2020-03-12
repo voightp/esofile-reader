@@ -10,10 +10,6 @@ from tests import EF1, EF2, EF_ALL_INTERVALS, ROOT
 
 
 class TestDiffFile(TestCase):
-    ef1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-    ef2 = EsoFile(os.path.join(ROOT, "eso_files/eplusout2.eso"))
-    ef3 = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-
     def test_process_diff_identical_files(self):
         diff = DiffFile(EF1, EF1)
         for interval in diff.available_intervals:

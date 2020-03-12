@@ -169,9 +169,9 @@ class TestFileFunctions(unittest.TestCase):
             variable="Zone People Occupant Count",
             units="",
         )
-        self.ef.rename_variable(v1, key_name="NEW", var_name="VARIABLE")
+        self.ef.rename_variable(v1, key_name="NEW1", var_name="VARIABLE")
 
-        v2 = Variable(interval="timestep", key="NEW", variable="VARIABLE", units="")
+        v2 = Variable(interval="timestep", key="NEW1", variable="VARIABLE", units="")
         ids = self.ef.find_ids(v2)
         self.assertListEqual(ids, [13])
 
@@ -181,16 +181,8 @@ class TestFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
-        v = Variable(
-            interval="timestep",
-            key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
-            units="",
-        )
-        self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
-
         v = Variable(interval="timestep", key="foo", variable="", units="")
-        out = self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        out = self.ef.rename_variable(v, key_name="NEW2", var_name="VARIABLE")
         self.assertIsNone(out)
 
     def test_rename_variable_invalid_names(self):
