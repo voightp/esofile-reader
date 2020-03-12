@@ -4,16 +4,15 @@ import unittest
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
-from esofile_reader import EsoFile, Variable
-from tests import ROOT
+from esofile_reader import Variable
+from tests import EF_ALL_INTERVALS
 from datetime import datetime
 
 
 class TestDFData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef = EF_ALL_INTERVALS
 
     def test_get_available_intervals(self):
         intervals = self.ef.data.get_available_intervals()
@@ -255,7 +254,7 @@ class TestDFData(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -290,7 +289,7 @@ class TestDFData(unittest.TestCase):
         )
 
         test_df = pd.DataFrame(
-            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08], ],
+            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08],],
             columns=test_columns,
             index=test_index,
         )
@@ -324,7 +323,7 @@ class TestDFData(unittest.TestCase):
             names=["timestamp", "day"],
         )
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -359,7 +358,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
+            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
             columns=test_columns,
         )
 
@@ -388,7 +387,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
+            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],
             columns=test_columns,
         )
 

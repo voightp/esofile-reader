@@ -8,14 +8,14 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import EsoFile, Variable
 from esofile_reader.base_file import CannotAggregateVariables, BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN
-from tests import ROOT
+from tests import ROOT, EF_ALL_INTERVALS
 
 
 class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef = EF_ALL_INTERVALS
         cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_base_file_populate_content(self):
@@ -75,9 +75,7 @@ class TestFileFunctions(unittest.TestCase):
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
         )
-        assert_frame_equal(
-            out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi)
-        )
+        assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
 
     def test__add_file_name_invalid(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
@@ -174,16 +172,21 @@ class TestFileFunctions(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        v = Variable(
+        v1 = Variable(
             interval="timestep",
             key="BLOCK1:ZONE1",
             variable="Zone People Occupant Count",
             units="",
         )
-        self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        self.ef.rename_variable(v1, key_name="NEW", var_name="VARIABLE")
 
-        v = Variable(interval="timestep", key="NEW", variable="VARIABLE", units="")
-        ids = self.ef.find_ids(v)
+        v2 = Variable(interval="timestep", key="NEW", variable="VARIABLE", units="")
+        ids = self.ef.find_ids(v2)
+        self.assertListEqual(ids, [13])
+
+        # revert change
+        self.ef.rename_variable(v2, key_name=v1.key, var_name=v1.variable)
+        ids = self.ef.find_ids(v1)
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):

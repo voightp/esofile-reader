@@ -1,20 +1,17 @@
-import os
 import unittest
 
 import pandas as pd
-from esofile_reader import EsoFile
-from esofile_reader.data.df_data import DFData
-from esofile_reader.storage.df_storage import DFStorage
+
 from esofile_reader import TotalsFile
-from tests import ROOT
+from esofile_reader.storage.df_storage import DFStorage
+from tests import EF_ALL_INTERVALS
 
 
 class TestDFDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
         cls.storage = DFStorage()
-        cls.ef = EsoFile(file_path, ignore_peaks=True)
+        cls.ef = EF_ALL_INTERVALS
 
     def test_01_store_file(self):
         id1 = self.storage.store_file(self.ef)

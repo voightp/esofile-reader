@@ -10,16 +10,14 @@ from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN
 from esofile_reader.storage.sql_storage import SQLStorage
-from tests import ROOT
+from tests import ROOT, EF_ALL_INTERVALS
 
 
 class TestFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        f = EsoFile(file_path, ignore_peaks=True)
         cls.storage = SQLStorage()
-        id_ = cls.storage.store_file(f)
+        id_ = cls.storage.store_file(EF_ALL_INTERVALS)
         cls.ef = cls.storage.files[id_]
 
     def test_available_intervals(self):
@@ -71,9 +69,7 @@ class TestFileFunctions(unittest.TestCase):
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
         )
-        assert_frame_equal(
-            out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi)
-        )
+        assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
 
     def test__add_file_name_invalid(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
@@ -144,7 +140,7 @@ class TestFileFunctions(unittest.TestCase):
             units="",
         )
         out = self.ef._find_pairs(v, part_match=False)
-        self.assertDictEqual( {"timestep": [13]}, out)
+        self.assertDictEqual({"timestep": [13]}, out)
 
     def test__find_pairs_part_match(self):
         v = Variable(
@@ -158,7 +154,7 @@ class TestFileFunctions(unittest.TestCase):
             interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=False)
-        self.assertDictEqual( {}, out)
+        self.assertDictEqual({}, out)
 
     def test_create_new_header_variable(self):
         v1 = self.ef.create_header_variable("timestep", "dummy", "variable", "foo")
@@ -167,16 +163,21 @@ class TestFileFunctions(unittest.TestCase):
         )
 
     def test_rename_variable(self):
-        v = Variable(
+        v1 = Variable(
             interval="timestep",
             key="BLOCK1:ZONE1",
             variable="Zone People Occupant Count",
             units="",
         )
-        self.ef.rename_variable(v, key_name="NEW", var_name="VARIABLE")
+        self.ef.rename_variable(v1, key_name="NEW", var_name="VARIABLE")
 
-        v = Variable(interval="timestep", key="NEW", variable="VARIABLE", units="")
-        ids = self.ef.find_ids(v)
+        v2 = Variable(interval="timestep", key="NEW", variable="VARIABLE", units="")
+        ids = self.ef.find_ids(v2)
+        self.assertListEqual(ids, [13])
+
+        # revert change
+        self.ef.rename_variable(v2, key_name=v1.key, var_name=v1.variable)
+        ids = self.ef.find_ids(v1)
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
