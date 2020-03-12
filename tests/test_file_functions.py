@@ -337,11 +337,11 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.as_df("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = self.ef._find_pairs([31, 32, 297, 298,])
+        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_by_interval_id(self):
-        pairs = self.ef._find_pairs(
+        pairs = EF_ALL_INTERVALS._find_pairs(
             [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
         )
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
