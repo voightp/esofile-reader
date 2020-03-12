@@ -3,9 +3,9 @@ import unittest
 from datetime import datetime
 
 import pandas as pd
-from esofile_reader.eso_file import PeaksNotIncluded
-from esofile_reader.base_file import IncompleteFile
+
 from esofile_reader import EsoFile, Variable
+from esofile_reader.eso_file import PeaksNotIncluded
 from tests import ROOT
 
 

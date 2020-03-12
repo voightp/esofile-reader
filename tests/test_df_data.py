@@ -1,28 +1,23 @@
-import os
 import unittest
+from datetime import datetime
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
+
+from esofile_reader import Variable
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
-from esofile_reader import EsoFile, Variable
-from tests import ROOT
-from datetime import datetime
+from tests import EF_ALL_INTERVALS
 
 
 class TestDFData(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef = EsoFile(file_path, ignore_peaks=True)
-
     def test_get_available_intervals(self):
-        intervals = self.ef.data.get_available_intervals()
+        intervals = EF_ALL_INTERVALS.data.get_available_intervals()
         self.assertListEqual(
             intervals, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     def test_get_datetime_index(self):
-        index = self.ef.data.get_datetime_index("monthly")
+        index = EF_ALL_INTERVALS.data.get_datetime_index("monthly")
         assert_index_equal(
             index,
             pd.DatetimeIndex(
@@ -47,14 +42,14 @@ class TestDFData(unittest.TestCase):
         )
 
     def test_get_all_variables_dct(self):
-        variables = self.ef.data.get_all_variables_dct()
+        variables = EF_ALL_INTERVALS.data.get_all_variables_dct()
         self.assertListEqual(
             list(variables.keys()),
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
         )
 
     def test_get_variables_dct(self):
-        variables = self.ef.data.get_variables_dct("daily")
+        variables = EF_ALL_INTERVALS.data.get_variables_dct("daily")
         self.assertListEqual(
             list(variables.keys()),
             [
@@ -81,7 +76,7 @@ class TestDFData(unittest.TestCase):
         )
 
     def test_get_variable_ids(self):
-        ids = self.ef.data.get_variable_ids("daily")
+        ids = EF_ALL_INTERVALS.data.get_variable_ids("daily")
         self.assertListEqual(
             ids,
             [
@@ -108,7 +103,7 @@ class TestDFData(unittest.TestCase):
         )
 
     def test_get_all_variable_ids(self):
-        ids = self.ef.data.get_all_variable_ids()
+        ids = EF_ALL_INTERVALS.data.get_all_variable_ids()
         # fmt: off
         self.assertListEqual(
             ids,
@@ -126,24 +121,26 @@ class TestDFData(unittest.TestCase):
         # fmt: on
 
     def test_get_variables_df(self):
-        df = self.ef.data.get_variables_df("daily")
+        df = EF_ALL_INTERVALS.data.get_variables_df("daily")
         self.assertListEqual(
             df.columns.tolist(), ["id", "interval", "key", "variable", "units"]
         )
         self.assertTupleEqual(df.shape, (19, 5))
 
     def test_all_variables_df(self):
-        df = self.ef.data.get_all_variables_df()
+        df = EF_ALL_INTERVALS.data.get_all_variables_df()
         self.assertListEqual(
             df.columns.tolist(), ["id", "interval", "key", "variable", "units"]
         )
         self.assertTupleEqual(df.shape, (114, 5))
 
     def test_rename_variable(self):
-        self.ef.data.update_variable_name("timestep", 7, "FOO", "BAR")
-        col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
+        EF_ALL_INTERVALS.data.update_variable_name("timestep", 7, "FOO", "BAR")
+        col1 = EF_ALL_INTERVALS.data.tables["timestep"].loc[
+            :, (7, "timestep", "FOO", "BAR", "W/m2")
+        ]
 
-        self.ef.data.update_variable_name(
+        EF_ALL_INTERVALS.data.update_variable_name(
             "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
         )
         v = (
@@ -153,58 +150,60 @@ class TestDFData(unittest.TestCase):
             "Site Diffuse Solar Radiation Rate per Area",
             "W/m2",
         )
-        col2 = self.ef.data.tables["timestep"].loc[:, v]
+        col2 = EF_ALL_INTERVALS.data.tables["timestep"].loc[:, v]
         self.assertListEqual(col1.tolist(), col2.tolist())
 
     def test_add_remove_variable(self):
-        id_ = self.ef.data.insert_variable(
+        id_ = EF_ALL_INTERVALS.data.insert_variable(
             Variable("monthly", "FOO", "BAR", "C"), list(range(12))
         )
-        col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
+        col = EF_ALL_INTERVALS.data.tables["monthly"].loc[
+            :, (id_, "monthly", "FOO", "BAR", "C")
+        ]
         self.assertListEqual(col.to_list(), list(range(12)))
 
-        self.ef.data.delete_variables("monthly", [id_])
+        EF_ALL_INTERVALS.data.delete_variables("monthly", [id_])
         with self.assertRaises(KeyError):
-            _ = self.ef.data.tables["monthly"][id_]
+            _ = EF_ALL_INTERVALS.data.tables["monthly"][id_]
 
     def test_remove_variable_invalid(self):
         with self.assertRaises(KeyError):
-            self.ef.data.delete_variables("monthly", [100000])
+            EF_ALL_INTERVALS.data.delete_variables("monthly", [100000])
 
     def test_update_variable(self):
-        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable_results("monthly", 983, list(range(12)))
-        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = EF_ALL_INTERVALS.data.get_results("monthly", 983).iloc[:, 0]
+        EF_ALL_INTERVALS.data.update_variable_results("monthly", 983, list(range(12)))
+        vals = EF_ALL_INTERVALS.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
-        self.ef.data.update_variable_results("monthly", 983, original_vals)
+        EF_ALL_INTERVALS.data.update_variable_results("monthly", 983, original_vals)
 
     def test_update_variable_invalid(self):
-        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable_results("monthly", 983, list(range(11)))
-        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
+        original_vals = EF_ALL_INTERVALS.data.get_results("monthly", 983).iloc[:, 0]
+        EF_ALL_INTERVALS.data.update_variable_results("monthly", 983, list(range(11)))
+        vals = EF_ALL_INTERVALS.data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
-        self.ef.data.update_variable_results("monthly", 983, original_vals)
+        EF_ALL_INTERVALS.data.update_variable_results("monthly", 983, original_vals)
 
     def test_get_special_column_invalid(self):
         with self.assertRaises(KeyError):
-            self.ef.data._get_special_column("FOO", "timestep")
+            EF_ALL_INTERVALS.data._get_special_column("FOO", "timestep")
 
     def test_get_number_of_days(self):
-        col = self.ef.data.get_number_of_days("monthly")
+        col = EF_ALL_INTERVALS.data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
     def test_get_days_of_week(self):
-        col = self.ef.data.get_days_of_week("daily")
+        col = EF_ALL_INTERVALS.data.get_days_of_week("daily")
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 
     def test_get_all_results(self):
-        df = self.ef.data.get_all_results("daily")
+        df = EF_ALL_INTERVALS.data.get_all_results("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
     def test_get_results(self):
-        df = self.ef.data.get_results("monthly", [324, 983])
+        df = EF_ALL_INTERVALS.data.get_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
@@ -240,7 +239,7 @@ class TestDFData(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_sliced(self):
-        df = self.ef.data.get_results(
+        df = EF_ALL_INTERVALS.data.get_results(
             "monthly",
             [324, 983],
             start_date=datetime(2002, 4, 1),
@@ -255,7 +254,7 @@ class TestDFData(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -268,7 +267,7 @@ class TestDFData(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day(self):
-        df = self.ef.data.get_results(
+        df = EF_ALL_INTERVALS.data.get_results(
             "daily",
             [323, 982],
             start_date=datetime(2002, 4, 1),
@@ -290,7 +289,7 @@ class TestDFData(unittest.TestCase):
         )
 
         test_df = pd.DataFrame(
-            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08], ],
+            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08],],
             columns=test_columns,
             index=test_index,
         )
@@ -303,7 +302,7 @@ class TestDFData(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_results_include_day_from_date(self):
-        df = self.ef.data.get_results(
+        df = EF_ALL_INTERVALS.data.get_results(
             "monthly",
             [324, 983],
             start_date=datetime(2002, 4, 1),
@@ -324,7 +323,7 @@ class TestDFData(unittest.TestCase):
             names=["timestamp", "day"],
         )
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -338,10 +337,10 @@ class TestDFData(unittest.TestCase):
 
     def test_get_results_invalid_ids(self):
         with self.assertRaises(KeyError):
-            _ = self.ef.data.get_results("daily", [7])
+            _ = EF_ALL_INTERVALS.data.get_results("daily", [7])
 
     def test_get_global_max_results(self):
-        df = self.ef.data.get_global_max_results("monthly", [324, 983])
+        df = EF_ALL_INTERVALS.data.get_global_max_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
@@ -359,7 +358,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
+            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
             columns=test_columns,
         )
 
@@ -370,7 +369,7 @@ class TestDFData(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     def test_get_global_min_results(self):
-        df = self.ef.data.get_global_min_results("monthly", [324, 983])
+        df = EF_ALL_INTERVALS.data.get_global_min_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
@@ -388,7 +387,7 @@ class TestDFData(unittest.TestCase):
             names=["id", "interval", "key", "variable", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
+            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],
             columns=test_columns,
         )
 

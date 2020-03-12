@@ -1,8 +1,9 @@
-import unittest
-from tests import ROOT
 import os
+import unittest
+
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.utils.exceptions import MultiEnvFileRequired
+from tests import ROOT
 
 
 class TestMultipleEnvs(unittest.TestCase):

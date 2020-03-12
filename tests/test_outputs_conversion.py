@@ -1,5 +1,4 @@
 import unittest
-import pandas as pd
 
 from pandas.testing import assert_frame_equal
 
@@ -161,9 +160,7 @@ class TestOutputsConversion(unittest.TestCase):
 
         df = convert_rate_to_energy(df, H)
 
-        test_columns = pd.MultiIndex.from_tuples(
-            [(1, "m"), (2, "J/m2")], names=["id", "units"]
-        )
+        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
         test_index = pd.Index(
             pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN
         )
@@ -182,9 +179,7 @@ class TestOutputsConversion(unittest.TestCase):
 
         df = convert_rate_to_energy(df, D)
 
-        test_columns = pd.MultiIndex.from_tuples(
-            [(1, "m"), (2, "J/m2")], names=["id", "units"]
-        )
+        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
         test_index = pd.Index(
             pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN
         )
@@ -206,9 +201,7 @@ class TestOutputsConversion(unittest.TestCase):
 
         df = convert_rate_to_energy(df, M, nd_df["n_days"])
 
-        test_columns = pd.MultiIndex.from_tuples(
-            [(1, "m"), (2, "J/m2")], names=["id", "units"]
-        )
+        test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
         test_index = pd.Index(
             pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
         )
