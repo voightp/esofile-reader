@@ -5,10 +5,9 @@ from datetime import datetime
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, get_results
 from esofile_reader import Variable
+from esofile_reader import get_results
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
-from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.storage.storage_files import ParquetFile
 from tests import ROOT, EF1
 
@@ -482,10 +481,3 @@ class TestResultFetchingParquetFile(unittest.TestCase):
 
         dates = ["04-01", "05-01", "06-01", "07-01", "08-01", "09-01"]
         self.assertListEqual(df.index.tolist(), dates)
-
-    def test_get_results_report_progress(self):
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-
-    def test_get_results_ignore_peaks(self):
-        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
-        self.assertIsNotNone(ef.peak_outputs)

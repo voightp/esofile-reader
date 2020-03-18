@@ -1,21 +1,16 @@
-import os
 import unittest
 
-from esofile_reader import EsoFile, DiffFile, TotalsFile
-from tests import ROOT, EF_ALL_INTERVALS
+from esofile_reader import DiffFile, TotalsFile
+from tests import EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
 class TestFileGeneration(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_eso_file(self):
         self.assertTrue(EF_ALL_INTERVALS.complete)
 
     def test_peak_eso_file(self):
-        self.assertTrue(self.ef_peaks.complete)
+        self.assertTrue(EF_ALL_INTERVALS_PEAKS.complete)
 
     def test_eso_file_to_totals_file(self):
         tf = TotalsFile(EF_ALL_INTERVALS)
@@ -35,7 +30,7 @@ class TestFileGeneration(unittest.TestCase):
         self.assertTrue(tf.complete)
 
     def test_generate_diff_eso_file(self):
-        df = EF_ALL_INTERVALS.generate_diff(self.ef_peaks)
+        df = EF_ALL_INTERVALS.generate_diff(EF_ALL_INTERVALS_PEAKS)
         self.assertTrue(df.complete)
 
     def test_generate_diff_totals_file(self):

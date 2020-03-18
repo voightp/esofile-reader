@@ -1,9 +1,8 @@
-import os
 import unittest
 
-from esofile_reader import EsoFile, TotalsFile
+from esofile_reader import TotalsFile
 from esofile_reader.storage.sql_storage import SQLStorage
-from tests import ROOT, EF_ALL_INTERVALS
+from tests import EF_ALL_INTERVALS, EF1
 
 
 class TestSqlDB(unittest.TestCase):
@@ -76,7 +75,7 @@ class TestSqlDB(unittest.TestCase):
         storage = SQLStorage()
         self.maxDiff = None
         id1 = storage.store_file(EF_ALL_INTERVALS)
-        id2 = storage.store_file(EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso")))
+        id2 = storage.store_file(EF1)
 
         db_file1 = storage.files[id1]
         db_file2 = storage.files[id2]

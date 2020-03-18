@@ -9,14 +9,10 @@ from esofile_reader import EsoFile, get_results
 from esofile_reader import Variable
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.eso_file import PeaksNotIncluded
-from tests import ROOT, EF1
+from tests import ROOT, EF1, EF2_PEAKS
 
 
 class TestResultFetching(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout2.eso")
-        cls.ef2 = EsoFile(file_path, ignore_peaks=False)
 
     def test_get_results(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -196,7 +192,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_local_max(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef2, v, output_type="local_max")
+        df = get_results(EF2_PEAKS, v, output_type="local_max")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -235,7 +231,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_local_min(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        df = get_results(self.ef2, v, output_type="local_min")
+        df = get_results(EF2_PEAKS, v, output_type="local_min")
 
         test_names = ["key", "variable", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
@@ -557,25 +553,22 @@ class TestResultFetching(unittest.TestCase):
         dates = ["04-01", "05-01", "06-01", "07-01", "08-01", "09-01"]
         self.assertListEqual(df.index.tolist(), dates)
 
-    def test_get_results_report_progress(self):
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-
     def test_get_results_ignore_peaks(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
         self.assertIsNotNone(ef.peak_outputs)
 
     def test_multiple_files_invalid_variable(self):
-        files = [EF1, self.ef2]
+        files = [EF1, EF2_PEAKS]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, v))
 
     def test_multiple_files_invalid_variables(self):
-        files = [EF1, self.ef2]
+        files = [EF1, EF2_PEAKS]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, [v, v]))
 
     def test_get_results_multiple_files(self):
-        files = [EF1, self.ef2]
+        files = [EF1, EF2_PEAKS]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(files, v, add_file_name="column")
 
