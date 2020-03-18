@@ -42,7 +42,6 @@ class _ParquetIndexer:
         def _is_tuple():
             return all(map(lambda x: isinstance(x, tuple), col))
 
-        reduce_dim = True
         if isinstance(item, tuple):
             row, col = item
 
@@ -74,10 +73,6 @@ class _ParquetIndexer:
 
         df = self.frame.get_df(ids=ids)
         df = df.loc[row]
-
-        if len(df.columns) == 1 and reduce_dim:
-            # reduce dimension
-            df = df.iloc[:, 0]
 
         return df
 

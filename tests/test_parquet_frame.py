@@ -111,14 +111,6 @@ class TestParquetFrame(TestCase):
         with self.assertRaises(IndexError):
             self.pqf.columns = pd.Index(list("abcdefghijklm"))
 
-    def test_column_indexing_sr(self):
-        # the indexing behaviour works a bit strange here.
-        # default 'self.test_df[2]' would return pd.DataFrame
-        # with truncated multiindex
-        assert_series_equal(
-            self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")], self.pqf[2]
-        )
-
     def test_column_indexing_df(self):
         assert_frame_equal(self.test_df[[2]], self.pqf[[2]])
 
@@ -126,8 +118,9 @@ class TestParquetFrame(TestCase):
         assert_frame_equal(self.test_df[[2, 5, 8]], self.pqf[[2, 5, 8]])
 
     def test_column_indexing_mi(self):
-        assert_series_equal(
-            self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
+        print(self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")])
+        assert_frame_equal(
+            self.test_df[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
             self.pqf[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
         )
 
@@ -147,14 +140,14 @@ class TestParquetFrame(TestCase):
 
     def test_loc_slice_rows(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
-            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
+            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
+            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
         )
 
     def test_loc(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
-            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
+            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
         )
 
     def test_invalid_loc(self):
@@ -204,8 +197,8 @@ class TestParquetFrame(TestCase):
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-        self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
-        self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
+        self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
+        self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_loc_invalid_setter(self):
@@ -235,14 +228,14 @@ class TestParquetFrame(TestCase):
 
     def test_insert_column(self):
         self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
-        assert_series_equal(
-            pd.Series(
-                ["a", "b", "c"],
-                name=(100, "this", "is", "dummy", "variable"),
-                index=pd.Index(
-                    pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
-                ),
-            ),
+        columns = pd.MultiIndex.from_tuples(
+            [(100, "this", "is", "dummy", "variable")],
+            names=["id", "interval", "key", "variable", "units"]
+        )
+        index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+
+        assert_frame_equal(
+            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns),
             self.pqf[100],
         )
 
@@ -266,17 +259,14 @@ class TestParquetFrame(TestCase):
             (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
             (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
         ]
-        names = ["id", "interval", "key", "variable", "units"]
-        test_columns = pd.MultiIndex.from_tuples(test_variables, names=names)
-        assert_index_equal(test_columns, self.pqf.columns)
-        assert_series_equal(
-            pd.Series(
-                ["a", "b", "c"],
-                name=(100, "this", "is", "dummy", "variable"),
-                index=pd.Index(
-                    pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
-                ),
-            ),
+        columns = pd.MultiIndex.from_tuples(
+            [(100, "this", "is", "dummy", "variable")],
+            names=["id", "interval", "key", "variable", "units"]
+        )
+        index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+
+        assert_frame_equal(
+            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns),
             self.pqf[100],
         )
 

@@ -169,14 +169,14 @@ class TestParquetData(unittest.TestCase):
                 "W/m2",
             ),
         ]
-        self.assertListEqual(col1.tolist(), col2.tolist())
+        self.assertListEqual(col1.iloc[:, 0].tolist(), col2.iloc[:, 0].tolist())
 
     def test_add_remove_variable(self):
         id_ = self.ef.data.insert_variable(
             Variable("monthly", "FOO", "BAR", "C"), list(range(12))
         )
         col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
-        self.assertListEqual(col.to_list(), list(range(12)))
+        self.assertListEqual(col.iloc[:, 0].to_list(), list(range(12)))
 
         self.ef.data.delete_variables("monthly", [id_])
         with self.assertRaises(KeyError):

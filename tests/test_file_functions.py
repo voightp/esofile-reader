@@ -8,14 +8,10 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import EsoFile, Variable
 from esofile_reader.base_file import CannotAggregateVariables, BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN
-from tests import ROOT, EF_ALL_INTERVALS
+from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
 class TestFileFunctions(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        file_path = os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso")
-        cls.ef_peaks = EsoFile(file_path, ignore_peaks=False)
 
     def test_base_file_populate_content(self):
         bf = BaseFile()
@@ -38,8 +34,8 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNone(EF_ALL_INTERVALS.peak_outputs)
 
     def test_peak_complete(self):
-        self.assertTrue(self.ef_peaks.complete)
-        self.assertIsNotNone(self.ef_peaks.peak_outputs)
+        self.assertTrue(EF_ALL_INTERVALS_PEAKS.complete)
+        self.assertIsNotNone(EF_ALL_INTERVALS_PEAKS.peak_outputs)
 
     def test_header_df(self):
         names = ["id", "interval", "key", "variable", "units"]
@@ -337,7 +333,7 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.as_df("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])
+        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298, ])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_by_interval_id(self):

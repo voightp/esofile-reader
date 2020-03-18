@@ -197,9 +197,6 @@ class DFData(BaseData):
         df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
 
-        if isinstance(df, pd.Series):
-            df = pd.DataFrame(df)
-
         if include_day:
             try:
                 days = self.get_days_of_week(interval, start_date, end_date)
