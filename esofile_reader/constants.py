@@ -18,11 +18,13 @@ AVERAGED_UNITS = [
     "W",
     "W/m2",
     "C",
-    "deltaC" "",
+    "deltaC" ,
+    "",
     "W/m2-K",
     "ppm",
     "ach",
     "hr",
+    "%"
 ]
 
 SUMMED_UNITS = ["J", "J/m2"]
