@@ -130,8 +130,8 @@ class ParquetFile(BaseFile):
         A creation datetime of the reference file.
     search_tree: Tree
         Search tree instance.
-    totals: bool
-        A flag to check if the reference file was 'totals'.
+    type_: str
+        The original results file class.
 
     Notes
     -----
@@ -155,8 +155,8 @@ class ParquetFile(BaseFile):
             file_name: str,
             data: Union[DFData, str, Path],
             file_created: datetime,
-            totals,
-            pardir="",
+            type_: str,
+            pardir:str ="",
             search_tree: Tree = None,
             name: str = None,
             monitor: DefaultMonitor = None,
@@ -166,7 +166,7 @@ class ParquetFile(BaseFile):
         self.file_path = file_path
         self.file_name = file_name
         self.file_created = file_created
-        self.totals = totals
+        self.type_ = type_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
         self.data = (
@@ -208,7 +208,7 @@ class ParquetFile(BaseFile):
             data=results_file.data,
             file_created=results_file.file_created,
             search_tree=results_file.search_tree,
-            totals=isinstance(results_file, TotalsFile),
+            type_=results_file.__class__.__name__,
             pardir=pardir,
             name=name,
             monitor=monitor
@@ -251,7 +251,7 @@ class ParquetFile(BaseFile):
             file_name=info["file_name"],
             file_created=datetime.fromtimestamp(info["file_created"]),
             data=file_dir,
-            totals=info["totals"],
+            type_=info["type"],
             name=info["name"],
             pardir=file_dir.parent,
         )
@@ -280,7 +280,7 @@ class ParquetFile(BaseFile):
                     "file_path": str(self.file_path),
                     "file_name": self.file_name,
                     "file_created": self.file_created.timestamp(),
-                    "totals": self.totals,
+                    "type": self.type_,
                 },
                 f,
                 indent=4,
