@@ -42,13 +42,13 @@ class TestParquetStorage(unittest.TestCase):
     def test_02_store_file(self):
         self.storage.store_file(EF_ALL_INTERVALS)
         self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
-        self.assertFalse(self.storage.files[0].totals)
+        self.assertEqual("EsoFile", self.storage.files[0].type_)
 
     def test_03_store_totals_file(self):
         tf = TotalsFile(EF_ALL_INTERVALS)
         self.storage.store_file(tf)
         self.assertEqual("eplusout_all_intervals - totals", self.storage.files[0].file_name)
-        self.assertTrue(self.storage.files[0].totals)
+        self.assertEqual("TotalsFile", self.storage.files[0].type_)
 
     def test_04_store_multiple_files(self):
         id1 = self.storage.store_file(EF_ALL_INTERVALS)
@@ -82,7 +82,7 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual(EF_ALL_INTERVALS.file_path, pqf.file_path)
         self.assertEqual(EF_ALL_INTERVALS.file_name, pqf.file_name)
         self.assertEqual(EF_ALL_INTERVALS.file_created, pqf.file_created)
-        self.assertFalse(pqf.totals)
+        self.assertEqual(EF_ALL_INTERVALS.__class__.__name__, pqf.type_)
         self.assertEqual(EF_ALL_INTERVALS.file_path, pqf.file_path)
 
         for interval in EF_ALL_INTERVALS.available_intervals:
@@ -105,19 +105,19 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual(EF_ALL_INTERVALS.file_path, pqs.files[0].file_path)
         self.assertEqual(EF_ALL_INTERVALS.file_name, pqs.files[0].file_name)
         self.assertEqual(EF_ALL_INTERVALS.file_created, pqs.files[0].file_created)
-        self.assertFalse(pqs.files[0].totals)
+        self.assertEqual(EF_ALL_INTERVALS.__class__.__name__, pqs.files[0].type_)
         self.assertEqual(EF_ALL_INTERVALS.file_path, pqs.files[0].file_path)
 
         self.assertEqual(EF1.file_path, pqs.files[1].file_path)
         self.assertEqual(EF1.file_name, pqs.files[1].file_name)
         self.assertEqual(EF1.file_created, pqs.files[1].file_created)
-        self.assertFalse(pqs.files[1].totals)
+        self.assertEqual(EF1.__class__.__name__, pqs.files[1].type_)
         self.assertEqual(EF1.file_path, pqs.files[1].file_path)
 
         self.assertEqual(self.tf.file_path, pqs.files[2].file_path)
         self.assertEqual(self.tf.file_name, pqs.files[2].file_name)
         self.assertEqual(self.tf.file_created, pqs.files[2].file_created)
-        self.assertTrue(pqs.files[2].totals)
+        self.assertEqual(self.tf.__class__.__name__, pqs.files[2].type_)
         self.assertEqual(self.tf.file_path, pqs.files[2].file_path)
 
         for interval in EF_ALL_INTERVALS.available_intervals:
@@ -204,7 +204,7 @@ class TestParquetStorage(unittest.TestCase):
             data=EF_ALL_INTERVALS.data,
             file_created=EF_ALL_INTERVALS.file_created,
             search_tree=EF_ALL_INTERVALS.search_tree,
-            totals=isinstance(EF_ALL_INTERVALS, TotalsFile),
+            type_=EF_ALL_INTERVALS.__class__.__name__,
             pardir="",
             name="foo",
             monitor=None,

@@ -1,6 +1,7 @@
 import unittest
 
 from esofile_reader import DiffFile, TotalsFile
+from esofile_reader.utils.exceptions import NoSharedVariables
 from tests import EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
@@ -35,7 +36,7 @@ class TestFileGeneration(unittest.TestCase):
 
     def test_generate_diff_totals_file(self):
         tf = EF_ALL_INTERVALS.generate_totals()
-        df = tf.generate_diff(EF_ALL_INTERVALS)
+        df = tf.generate_diff(tf)
         self.assertTrue(df.complete)
 
 
