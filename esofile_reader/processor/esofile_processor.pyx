@@ -330,7 +330,12 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
                 all_cumulative_days.append(cumulative_days)
 
             else:
-                interval, date, other = _process_interval_line(line_id, line)
+                try:
+                    interval, date, other = _process_interval_line(line_id, line)
+                except ValueError:
+                    msg = f"Unexpected value in line '{raw_line}'."
+                    monitor.processing_failed(msg)
+                    raise InvalidLineSyntax(msg)
 
                 # Populate last environment list with interval line
                 dates[interval].append(date)
@@ -353,11 +358,16 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
         else:
             # current line represents a result, replace nan values from the last step
             peak_res = None
-            if ignore_peaks:
-                res = float(line[0])
-            else:
-                res = float(line[0])
-                peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
+            try:
+                if ignore_peaks:
+                    res = float(line[0])
+                else:
+                    res = float(line[0])
+                    peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
+            except ValueError:
+                msg = f"Unexpected value in line '{raw_line}'."
+                monitor.processing_failed(msg)
+                raise InvalidLineSyntax(msg)
 
             outputs[interval][line_id][-1] = res
             if peak_res:

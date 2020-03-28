@@ -375,7 +375,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             read_file(self.incomplete)
 
     def test_non_numeric_line(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidLineSyntax):
             read_file(os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"))
 
     def test_logging_level_info(self):
