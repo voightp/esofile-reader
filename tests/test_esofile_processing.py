@@ -14,6 +14,7 @@ from esofile_reader import EsoFile
 from esofile_reader.base_file import IncompleteFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.utils.exceptions import InvalidLineSyntax, BlankLineError
 from tests import ROOT
 
 
@@ -56,7 +57,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_header_line3(self):
         line = "302,1,InteriorEquipment,Electricity,[J], !Hourly"
-        with self.assertRaises(InvalidLineSyntax):
+        with self.assertRaises(AttributeError):
             _process_header_line(line)
 
     def test_read_header1(self):
@@ -361,7 +362,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_body_invalid_line(self):
         f = (line for line in ["this is wrong!"])
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidLineSyntax):
             read_body(f, 6, {"a": []}, False, DefaultMonitor("foo"))
 
     def test_body_blank_line(self):

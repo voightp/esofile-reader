@@ -4,7 +4,6 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import partial
 from typing import Dict, List
-from collections import deque
 
 import cython
 import numpy as np
@@ -62,11 +61,8 @@ def _process_header_line(line):
 
     pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
 
-    try:
-        line_id, _, key, var, units, interval = pattern.search(line).groups()
-
-    except AttributeError:
-        raise InvalidLineSyntax(f"Unexpected header line syntax: {line}")
+    # this raises attribute error when there's some unexpected line syntax
+    line_id, _, key, var, units, interval = pattern.search(line).groups()
 
     # 'var' variable is 'None' for 'Meter' variable
     if var is None:
@@ -121,9 +117,12 @@ def read_header(eso_file, monitor):
             if "End of Data Dictionary" in raw_line:
                 break
             elif raw_line == "":
+                monitor.processing_failed("Empty line!")
                 raise BlankLineError
             else:
-                raise AttributeError
+                msg = f"Unexpected line syntax: '{raw_line}'!"
+                monitor.processing_failed(msg)
+                raise InvalidLineSyntax(msg)
 
         header_dct[interval][id_] = Variable(interval, key_nm, var_nm, units)
 
@@ -287,9 +286,12 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
             if "End of Data" in raw_line:
                 break
             elif raw_line == "":
+                monitor.processing_failed(f"Empty line!.")
                 raise BlankLineError
             else:
-                raise ValueError(f"Invalid line: '{raw_line}'.")
+                msg = f"Unexpected line syntax: '{raw_line}'!"
+                monitor.processing_failed(msg)
+                raise InvalidLineSyntax(msg)
 
         if line_id <= highest_interval_id:
             if line_id == 1:
@@ -351,14 +353,11 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
         else:
             # current line represents a result, replace nan values from the last step
             peak_res = None
-            try:
-                if ignore_peaks:
-                    res = float(line[0])
-                else:
-                    res = float(line[0])
-                    peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
-            except ValueError:
-                raise ValueError(f"Unexpected value on line {line_id}: " f"{raw_line}")
+            if ignore_peaks:
+                res = float(line[0])
+            else:
+                res = float(line[0])
+                peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
 
             outputs[interval][line_id][-1] = res
             if peak_res:
@@ -571,11 +570,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
-
-    except BlankLineError:
-        msg = f"There's a blank line in file '{file_path}'."
-        monitor.processing_failed(msg)
-        raise BlankLineError(msg)
 
     except StopIteration:
         msg = f"File '{file_path}' is not complete!"
