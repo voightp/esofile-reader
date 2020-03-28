@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import re
 from collections import defaultdict
 from copy import deepcopy
@@ -475,17 +476,18 @@ def create_tree(header_dct):
     return tree, dup_ids
 
 
-def remove_duplicates(ids, header_dct, outputs_dct):
+def remove_duplicates(dup_ids, header_dct, outputs_dct):
     """ Remove duplicate outputs from results set. """
-    intervals = header_dct.keys()
-    for id_ in ids:
-        for interval in intervals:
-            for dct in [header_dct, outputs_dct]:
-                try:
-                    del dct[interval][id_]
-                    print(f"Removing duplicate variable '{id_}'.")
-                except KeyError:
-                    pass
+    for id_, v in dup_ids.items():
+        logging.info(
+            f"Duplicate variable found, removing variable id: '{id_}' - "
+            f"{v.interval} | {v.key} | {v.variable} | {v.units}."
+        )
+        for dct in [header_dct, outputs_dct]:
+            try:
+                del dct[v.interval][id_]
+            except KeyError:
+                pass
 
 
 def process_file(file, monitor, year, ignore_peaks=True):

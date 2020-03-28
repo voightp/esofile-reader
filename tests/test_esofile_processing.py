@@ -326,7 +326,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             header = read_header(f, DefaultMonitor("foo"))
             tree, dup_ids = create_tree(header)
 
-            self.assertEqual(dup_ids, [])
+            self.assertEqual(dup_ids, {})
 
             dup1 = Variable(
                 "runperiod",
@@ -343,17 +343,20 @@ class TestEsoFileProcessing(unittest.TestCase):
             header["daily"][627] = dup2
 
             tree, dup_ids = create_tree(header)
-            self.assertListEqual(dup_ids, [626, 627, 625])
+            self.assertDictEqual(dup_ids, {626: dup2, 627: dup2, 625: dup1})
 
     def test_remove_duplicates(self):
-        ids = [1, 2]
-        header_dct = {"foo": {1: "a", 2: "b", 3: "c"}}
-        outputs_dct = {"foo": {1: "a", 3: "c"}}
+        v1 = Variable("hourly", "a" ,"b", "c")
+        v2 = Variable("hourly", "d" ,"e", "f")
+        v3 = Variable("hourly", "g" ,"h", "i")
+        ids = {1: v1, 2: v2}
+        header_dct = {"hourly": {1: v1, 2: v2, 3: v3}}
+        outputs_dct = {"hourly": {1: v1, 3: v3}}
 
         remove_duplicates(ids, header_dct, outputs_dct)
 
-        self.assertEqual(header_dct["foo"], {3: "c"})
-        self.assertEqual(outputs_dct["foo"], {3: "c"})
+        self.assertEqual(header_dct["hourly"], {3: v3})
+        self.assertEqual(outputs_dct["hourly"], {3: v3})
 
     def test_header_invalid_line(self):
         f = (line for line in ["this is wrong!"])
