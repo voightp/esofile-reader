@@ -79,8 +79,6 @@ class TotalsFile(BaseFile):
         "Performance Curve Output Value",
     }
 
-    IGNORED_UNITS = {"kg/s"}
-
     def __init__(self, result_file: ResultsFile):
         super().__init__()
         self.populate_content(result_file)
@@ -126,7 +124,7 @@ class TotalsFile(BaseFile):
         return df.T
 
     def _get_grouped_vars(
-        self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+            self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
     ) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}
@@ -187,7 +185,7 @@ class TotalsFile(BaseFile):
                 srs.append(sr.str.contains(w))
 
             cond1 = pd.DataFrame(srs).apply(lambda x: x.any()).tolist()
-            cond2 = df.columns.get_level_values("units").isin(self.IGNORED_UNITS)
+            cond2 = df.columns.get_level_values("units").isin(IGNORED_UNITS)
 
             return df.loc[:, cond1 | cond2].columns.get_level_values("id")
 
