@@ -27,45 +27,45 @@ class DefaultMonitor:
         self.chunk_size = n_lines // n_steps
 
     def processing_failed(self, info):
-        self.report_progress(-1, info)
+        self.report_progress(-1, f"processing failed\n\t{info}")
 
     def processing_started(self):
-        self.report_progress(1, "Processing started!")
+        self.report_progress(1, "pre-processing!")
 
-    def preprocessing_finished(self):
-        self.report_progress(2, "Pre-processing finished!")
+    def header_started(self):
+        self.report_progress(2, "processing data dictionary!")
 
-    def header_finished(self):
-        self.report_progress(3, "Header successfully read!")
-        logging.info("\nProcessing results")
+    def body_started(self):
+        self.report_progress(3, "processing data!")
 
-    def body_finished(self):
+    def intervals_started(self):
         if logging.root.level == logging.INFO:
             print("", flush=True)  # newline
-        self.report_progress(4, "File successfully read!")
+        self.report_progress(4, "processing intervals!")
 
-    def intervals_finished(self):
-        self.report_progress(5, "Interval processing finished!")
+    def search_tree_started(self):
+        self.report_progress(5, "generating search tree!")
 
-    def search_tree_finished(self):
-        self.report_progress(6, "Tree gen finished!")
-        logging.info("\nProcessing outputs")
+    def peak_outputs_started(self, peaks_ignored):
+        self.report_progress(
+            6, "skipping peak tables!" if peaks_ignored else "generating peak tables!"
+        )
 
-    def output_cls_gen_finished(self):
-        if logging.root.level == logging.INFO:
-            print("", flush=True)  # newline
-        self.report_progress(7, "Output cls gen finished!")
+    def outputs_started(self):
+        self.report_progress(7, "generating tables!")
 
     def processing_finished(self):
-        self.report_progress(8, "Processing finished!")
+        if logging.root.level == logging.INFO:
+            print("", flush=True)  # newline
+        self.report_progress(8, "processing finished!")
         self.report_processing_time()
 
     def storing_started(self):
-        self.report_progress(9, "Storing finished!")
+        self.report_progress(9, "writing parquets!")
         logging.info("\nStoring file")
 
     def storing_finished(self):
-        self.report_progress(10, "Storing started!")
+        self.report_progress(10, "parquets written!")
         self.report_storing_time()
 
     def reset_progress(self, new_progress=0, new_max=0):

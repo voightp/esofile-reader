@@ -511,12 +511,12 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
+    monitor.header_started()
     orig_header = read_header(file, monitor)
-    monitor.header_finished()
 
     # Read body to obtain outputs and environment dictionaries
+    monitor.body_started()
     content = read_body(file, last_standard_item_id, orig_header, ignore_peaks, monitor)
-    monitor.body_finished()
 
     # Get a fraction for each table and tree generated
     environments = content[0]
@@ -526,20 +526,21 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
         # Generate datetime data
+        monitor.intervals_started()
         dates, n_days = interval_processor(dates, cumulative_days, year)
-        monitor.intervals_finished()
 
         # Create a 'search tree' to allow searching for variables
+        monitor.search_tree_started()
         header = deepcopy(orig_header)
         tree, dup_ids = create_tree(header)
         trees.append(tree)
         monitor.update_progress(step)
-        monitor.search_tree_finished()
 
         if dup_ids:
             # remove duplicates from header and outputs
             remove_duplicates(dup_ids, header, out)
 
+        monitor.peak_outputs_started(ignore_peaks)
         if not ignore_peaks:
             peak_outputs = generate_peak_outputs(peak, header, dates, monitor, step)
         else:
@@ -547,11 +548,10 @@ def process_file(file, monitor, year, ignore_peaks=True):
         all_peak_outputs.append(peak_outputs)
 
         # transform standard dictionaries into DataFrame like Output classes
+        monitor.outputs_started()
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
         outputs = generate_outputs(out, header, dates, other_data, monitor, step)
         all_outputs.append(outputs)
-
-        monitor.output_cls_gen_finished()
 
     # update progress to compensate for reminder
     if monitor.progress != monitor.max_progress:
@@ -577,7 +577,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
         for _ in f:
             i += 1
     monitor.set_chunk_size(n_lines=i + 1)
-    monitor.preprocessing_finished()
 
     try:
         with open(file_path, "r") as file:
