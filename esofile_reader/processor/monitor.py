@@ -62,7 +62,6 @@ class DefaultMonitor:
 
     def storing_started(self):
         self.report_progress(9, "writing parquets!")
-        logging.info("\nStoring file")
 
     def storing_finished(self):
         self.report_progress(10, "parquets written!")
