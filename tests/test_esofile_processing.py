@@ -15,6 +15,7 @@ from esofile_reader.base_file import IncompleteFile
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.search_tree import Tree
 from tests import ROOT
 
 
@@ -324,7 +325,8 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_create_tree(self):
         with open(self.header_pth, "r") as f:
             header = read_header(f, DefaultMonitor("foo"))
-            tree, dup_ids = create_tree(header)
+            tree = Tree()
+            dup_ids = tree.populate_tree(header)
 
             self.assertEqual(dup_ids, {})
 
@@ -342,7 +344,8 @@ class TestEsoFileProcessing(unittest.TestCase):
             header["daily"][626] = dup2
             header["daily"][627] = dup2
 
-            tree, dup_ids = create_tree(header)
+            tree = Tree()
+            dup_ids = tree.populate_tree(header)
             self.assertDictEqual(dup_ids, {626: dup2, 627: dup2, 625: dup1})
 
     def test_remove_duplicates(self):

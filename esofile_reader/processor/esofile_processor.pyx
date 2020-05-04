@@ -466,13 +466,6 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     return outputs
 
 
-def create_tree(header_dct):
-    """ Generate a search tree. """
-    tree = Tree()
-    dup_ids = tree.populate_tree(header_dct)
-    return tree, dup_ids
-
-
 def remove_duplicates(dup_ids, header_dct, outputs_dct):
     """ Remove duplicate outputs from results set. """
     for id_, v in dup_ids.items():
@@ -529,7 +522,9 @@ def process_file(file, monitor, year, ignore_peaks=True):
         # Create a 'search tree' to allow searching for variables
         monitor.search_tree_started()
         header = deepcopy(orig_header)
-        tree, dup_ids = create_tree(header)
+
+        tree = Tree()
+        dup_ids = tree.populate_tree(header)
         trees.append(tree)
         monitor.update_progress(step)
 
