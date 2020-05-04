@@ -331,7 +331,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        while self.search_tree.get_ids(*variable):
+        while self.search_tree.variable_exists(*variable):
             i += 1
             variable = add_num()
 
@@ -342,12 +342,12 @@ class BaseFile:
     ) -> Tuple[int, Variable]:
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
-        interval, key, var, units = variable
+        interval, key, type_, units = variable
 
-        new_type = var if not new_type else new_type
+        new_type = type_ if not new_type else new_type
         new_key = key if not new_key else new_key
 
-        if (not new_type and not new_key) or (key == new_key and var == new_type):
+        if (not new_type and not new_key) or (key == new_key and type_ == new_type):
             logging.warning(
                 "Cannot rename variable! Type and key are "
                 "not specified or are the same as original variable."

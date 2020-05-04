@@ -159,6 +159,16 @@ class Tree:
                 self._loop(nd, level, ids, cond, part_match=part_match)
 
     @lower_args
+    def variable_exists(self, interval: str, key: str, type: str, units: str) -> bool:
+        """ Check if variable exists. """
+        cond = [interval, type, key, units]
+        ids = []
+        for nd in self.root.children:
+            level = -1
+            self._loop(nd, level, ids, cond)
+        return bool(ids)
+
+    @lower_args
     def get_ids(
             self,
             interval: str = None,
