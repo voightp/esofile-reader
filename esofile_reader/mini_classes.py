@@ -12,7 +12,7 @@ Variable = namedtuple("Variable", "interval key type units")
 # A mini class to store interval data
 IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
 
-# type hint to wrap all result types
+# type_ hint to wrap all result types
 ResultsFile = Union[
     ForwardRef("EsoFile"),
     ForwardRef("DiffFile"),
@@ -20,5 +20,5 @@ ResultsFile = Union[
     ForwardRef("DatabaseFile"),
 ]
 
-# type hint to wrap all storage types
+# type_ hint to wrap all storage types
 Data = Union[ForwardRef("SQLData"), ForwardRef("DFData")]

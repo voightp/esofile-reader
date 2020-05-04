@@ -67,22 +67,23 @@ class Tree:
 
     def str_tree(self) -> str:
         """ A string representation of a tree. """
+
+        def _loopstr(node: Node, level: int, lst: list) -> None:
+            """ Create a string representation of a tree. """
+            level += 1
+            tabs = level * "\t"
+            if node.children:
+                lst.append("{}{}\n".format(tabs, node.key))
+                for child in node.children:
+                    _loopstr(child, level, lst)
+            else:
+                lst.append("{}{}\n\n".format(tabs, node.key))
+
         level = -1
         lst = []
-        self._loopstr(self.root, level, lst)
+        _loopstr(self.root, level, lst)
         st = str.join("", lst)
         return st
-
-    def _loopstr(self, node: Node, level: int, lst: list) -> None:
-        """ Create a string representation of a tree. """
-        level += 1
-        tabs = level * "\t"
-        if node.children:
-            lst.append("{}{}\n".format(tabs, node.key))
-            for child in node.children:
-                self._loopstr(child, level, lst)
-        else:
-            lst.append("{}{}\n\n".format(tabs, node.key))
 
     @staticmethod
     def _add_node(nd_name: str, parent: Node) -> Node:
@@ -91,40 +92,34 @@ class Tree:
         try:
             nd = next(ch for ch in children if ch.key == nd_name)
         except StopIteration:
-            nd = None
-
-        if not nd:
             nd = Node(parent, nd_name)
             parent.children.append(nd)
-
         return nd
 
     @lower_args
     def add_branch(
-            self, interval: str, key: str, var: str, units: str, id_: int
+            self, id_: int, interval: str, key: str, type_: str, units: str,
     ) -> Optional[int]:
         """ Append a branch to the tree. """
-        pth = [interval.lower(), var.lower(), key.lower(), units.lower()]
+        pth = [interval.lower(), type_.lower(), key.lower(), units.lower()]
         parent = self.root
-
         for nd_name in pth:
             parent = self._add_node(nd_name, parent)
-
         # add 'leaf'
         val = Node(parent, id_)
         val.children = None
-        if parent.children:
+        if not parent.children:
+            parent.children.append(val)
+        else:
             # there's already a leaf, variable is a duplicate
             return id_
-
-        parent.children.append(val)
 
     def populate_tree(self, header_dct: Dict[str, Dict[int, Variable]]) -> Dict[int, Variable]:
         """ Create a search tree. """
         duplicates = {}
         for interval, data in header_dct.items():
             for id_, var in data.items():
-                dup_id = self.add_branch(interval, var.key, var.type, var.units, id_)
+                dup_id = self.add_branch(id_, interval, var.key, var.type, var.units)
                 if dup_id:
                     duplicates[dup_id] = var
         return duplicates
@@ -173,19 +168,19 @@ class Tree:
             self,
             interval: str = None,
             key: str = None,
-            type: str = None,
+            type_: str = None,
             units: str = None,
             part_match: bool = False
     ) -> List[int]:
         """ Find variable ids for given arguments. """
-        cond = [interval, type, key, units]
+        cond = [interval, type_, key, units]
         ids = []
         for nd in self.root.children:
             level = -1
             self._loop(nd, level, ids, cond, part_match=part_match)
         if not ids:
             logging.warning(
-                f"Variable: '{interval} : {key} " f": {type} : {units}' not found!"
+                f"Variable: '{interval} : {key} " f": {type_} : {units}' not found!"
             )
         return ids
 
@@ -194,14 +189,13 @@ class Tree:
             self,
             interval: str = None,
             key: str = None,
-            type: str = None,
+            type_: str = None,
             units: str = None,
             part_match: bool = False
     ) -> Dict[str, List[int]]:
         """ Find interval : variable ids pairs for given arguments. """
-        cond = [type, key, units]
+        cond = [type_, key, units]
         pairs = {}
-
         for node in self.root.children:
             level = -1
             ids = []
@@ -221,7 +215,7 @@ class Tree:
 
         if not pairs:
             logging.warning(
-                f"Variable: '{interval} : {key} " f": {type} : {units}' not found!"
+                f"Variable: '{interval} : {key} " f": {type_} : {units}' not found!"
             )
 
         return pairs
@@ -268,6 +262,5 @@ class Tree:
 
     def add_variable(self, id_: int, variable: Variable) -> bool:
         """ Add new variable into the tree. """
-        interval, key, var, units = variable
-        duplicate_id = self.add_branch(interval, key, var, units, id_)
+        duplicate_id = self.add_branch(id_, *variable)
         return not bool(duplicate_id)

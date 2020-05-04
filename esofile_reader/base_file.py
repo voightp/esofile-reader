@@ -168,7 +168,7 @@ class BaseFile:
                     pairs = self.search_tree.get_pairs(
                         interval=interval,
                         key=key,
-                        type=var,
+                        type_=var,
                         units=units,
                         part_match=part_match,
                     )
@@ -189,7 +189,7 @@ class BaseFile:
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
             ids = self.search_tree.get_ids(
-                interval=interval, key=key, type=var, units=units, part_match=part_match,
+                interval=interval, key=key, type_=var, units=units, part_match=part_match,
             )
             if not ids:
                 continue
@@ -230,7 +230,7 @@ class BaseFile:
         end_date : datetime like object, default None
             An end date for requested results.
         output_type : {'standard', global_max','global_min'}
-            Requested type of results.
+            Requested type_ of results.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
         include_interval : bool
@@ -245,7 +245,7 @@ class BaseFile:
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
         units_system : {'SI', 'IP'}
-            Selected units type for requested outputs.
+            Selected units type_ for requested outputs.
         rate_to_energy_dct : dct
             Defines if 'rate' will be converted to energy.
         rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
@@ -279,7 +279,7 @@ class BaseFile:
 
         if output_type not in res:
             raise InvalidOutputType(
-                f"Invalid output type '{output_type}' "
+                f"Invalid output type_ '{output_type}' "
                 f"requested.\n'output_type' kwarg must be"
                 f" one of '{', '.join(res.keys())}'."
             )

@@ -63,14 +63,14 @@ def _process_header_line(line):
     pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
 
     # this raises attribute error when there's some unexpected line syntax
-    line_id, _, key, var, units, interval = pattern.search(line).groups()
+    line_id, _, key, type_, units, interval = pattern.search(line).groups()
 
-    # 'var' variable is 'None' for 'Meter' variable
-    if var is None:
-        var = key
+    # 'type' variable is 'None' for 'Meter' variable
+    if type_ is None:
+        type_ = key
         key = "Cumulative Meter" if "Cumulative" in key else "Meter"
 
-    return int(line_id), key, var, units, interval.lower()
+    return int(line_id), key, type_, units, interval.lower()
 
 
 def read_header(eso_file, monitor):

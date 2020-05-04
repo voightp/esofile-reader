@@ -242,7 +242,7 @@ class ParquetFile(BaseFile):
                 info = json.load(f)
                 file_dir = source
         else:
-            raise IOError(f"Invalid file type loaded. Only '{cls.EXT}' files are allowed")
+            raise IOError(f"Invalid file type_ loaded. Only '{cls.EXT}' files are allowed")
 
         pqf = ParquetFile(
             id_=info["id"],
