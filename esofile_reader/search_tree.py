@@ -223,10 +223,10 @@ class Tree:
     def _rem_loop(self, node: Node, level: int, cond: List[str]) -> None:
         """ Recursively remove nodes. """
 
-        def remove_recursively(_node):
-            parent = _node.parent
+        def remove_recursively(n):
+            parent = n.parent
             if parent:
-                parent.children.remove(_node)
+                parent.children.remove(n)
                 if not parent.children:
                     # remove node only if there are no children left
                     remove_recursively(parent)
@@ -241,16 +241,16 @@ class Tree:
         # Handle if filtering condition applied
         if cond[level]:
             if self._match(node, cond[level]):
-                for nd in node.children:
+                for nd in node.children[::-1]:
                     self._rem_loop(nd, level, cond)
         else:
-            for nd in node.children:
+            for nd in node.children[::-1]:
                 self._rem_loop(nd, level, cond)
 
     @lower_args
     def remove_variable(self, interval: str, key: str, type: str, units: str) -> None:
         cond = [interval, type, key, units]
-        for nd in self.root.children:
+        for nd in self.root.children[::-1]:
             level = -1
             self._rem_loop(nd, level, cond)
 

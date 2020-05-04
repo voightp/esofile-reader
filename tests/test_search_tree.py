@@ -128,7 +128,21 @@ class TestSearchTree(unittest.TestCase):
         self.assertListEqual([], self.tree.get_ids(*v))
 
     def test_remove_variables(self):
-        self.fail()
+        v1 = Variable("monthly", None, None, None)
+        v2 = Variable("daily", None, "Zone Temperature", None)
+        self.tree.remove_variables([v1, v2])
+        self.assertListEqual(
+            [4, 5, 6, 9, 10], self.tree.get_ids(*Variable(None, None, None, None))
+        )
 
     def test_add_variable(self):
-        self.fail()
+        v = Variable("this", "is", "new", "variable")
+        res = self.tree.add_variable(17, v)
+        self.assertTrue(res)
+        self.assertListEqual([17], self.tree.get_ids(*v))
+
+    def test_add_variable_invalid(self):
+        v = Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C")
+        res = self.tree.add_variable(17, v)
+        self.assertFalse(res)
+        self.assertListEqual([1], self.tree.get_ids(*v))
