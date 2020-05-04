@@ -25,7 +25,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v)
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -53,7 +53,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(os.path.join(ROOT, "eso_files/eplusout1.eso"), v)
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -81,7 +81,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, start_date=datetime(2002, 4, 15))
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -108,7 +108,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, end_date=datetime(2002, 8, 10))
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -135,7 +135,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, output_type="global_max")
 
-        test_names = ["key", "variable", "units", "data"]
+        test_names = ["key", "type", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C", "value"),
@@ -161,7 +161,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
             end_date=datetime(2002, 6, 10),
         )
 
-        test_names = ["key", "variable", "units", "data"]
+        test_names = ["key", "type", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C", "value"),
@@ -181,7 +181,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, output_type="global_min")
 
-        test_names = ["key", "variable", "units", "data"]
+        test_names = ["key", "type", "units", "data"]
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C", "value"),
@@ -211,7 +211,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, add_file_name="")
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -237,7 +237,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(self.pqf, v, add_file_name="")
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -270,7 +270,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
             include_day=True,
         )
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], names=test_names
         )
@@ -302,7 +302,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         ]
         df = get_results(self.pqf, v, units_system="SI")
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
@@ -349,7 +349,7 @@ class TestResultFetchingParquetFile(unittest.TestCase):
         ]
         df = get_results(self.pqf, v, units_system="IP")
 
-        test_names = ["key", "variable", "units"]
+        test_names = ["key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK1:ZONEA", "Zone Mean Air Temperature", "F"),

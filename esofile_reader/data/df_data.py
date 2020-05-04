@@ -74,8 +74,12 @@ class DFData(BaseData):
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
         def create_variable(sr):
             return (
-                sr["id"],
-                Variable(sr["interval"], sr["key"], sr["variable"], sr["units"]),
+                sr[ID_LEVEL],
+                Variable(
+                    sr[INTERVAL_LEVEL],
+                    sr[KEY_LEVEL],
+                    sr[TYPE_LEVEL],
+                    sr[UNITS_LEVEL]),
             )
 
         header_df = self.get_variables_df(interval)
@@ -91,7 +95,7 @@ class DFData(BaseData):
         return all_variables
 
     def get_variable_ids(self, interval: str) -> List[int]:
-        mi = self.tables[interval].columns.get_level_values("id").tolist()
+        mi = self.tables[interval].columns.get_level_values(ID_LEVEL).tolist()
         return list(filter(lambda x: x not in self.SPECIAL_COLUMNS, mi))
 
     def get_all_variable_ids(self) -> List[int]:
@@ -103,7 +107,7 @@ class DFData(BaseData):
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values("id").isin(self.SPECIAL_COLUMNS)
+        cond = mi.get_level_values(ID_LEVEL).isin(self.SPECIAL_COLUMNS)
         return mi[~cond].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -116,7 +120,7 @@ class DFData(BaseData):
             self, interval: str, id_: int, new_key: str, new_type: str
     ) -> None:
         mi_df = self.tables[interval].columns.to_frame(index=False)
-        mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [new_key, new_type]
+        mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
     def insert_variable(self, variable: Variable, array: Sequence) -> None:
@@ -146,11 +150,11 @@ class DFData(BaseData):
                 f"df length is {df_length}!\nVariable cannot be updated."
             )
         else:
-            cond = self.tables[interval].columns.get_level_values("id") == id_
+            cond = self.tables[interval].columns.get_level_values(ID_LEVEL) == id_
             self.tables[interval].loc[:, cond] = array
 
     def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
-        all_ids = self.tables[interval].columns.get_level_values("id")
+        all_ids = self.tables[interval].columns.get_level_values(ID_LEVEL)
         if not all(map(lambda x: x in all_ids, ids)):
             raise KeyError(
                 f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
@@ -158,13 +162,13 @@ class DFData(BaseData):
                 f"are not included."
             )
 
-        self.tables[interval].drop(columns=ids, inplace=True, level="id")
+        self.tables[interval].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def _get_special_column(
             self, interval: str, name: str, start_date: datetime = None,
             end_date: datetime = None,
     ) -> pd.Series:
-        if name not in self.tables[interval].columns.get_level_values("id"):
+        if name not in self.tables[interval].columns.get_level_values(ID_LEVEL):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
 
         col = slicer(self.tables[interval], name, start_date, end_date)
@@ -186,7 +190,7 @@ class DFData(BaseData):
 
     def get_all_results(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values("id").isin(self.SPECIAL_COLUMNS)
+        cond = mi.get_level_values(ID_LEVEL).isin(self.SPECIAL_COLUMNS)
         return self.tables[interval].loc[:, ~cond].copy()
 
     def get_results(

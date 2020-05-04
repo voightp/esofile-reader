@@ -214,7 +214,7 @@ class TestSQLData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame(
@@ -255,7 +255,7 @@ class TestSQLData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
@@ -284,7 +284,7 @@ class TestSQLData(unittest.TestCase):
                 (323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (982, "daily", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -319,7 +319,7 @@ class TestSQLData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -360,7 +360,7 @@ class TestSQLData(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "variable", "units", "data"],
+            names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
@@ -382,7 +382,7 @@ class TestSQLData(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "variable", "units", "data"],
+            names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],

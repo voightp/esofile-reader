@@ -157,9 +157,9 @@ class TestFileFunctions(unittest.TestCase):
         self.assertDictEqual({}, out)
 
     def test_create_new_header_variable(self):
-        v1 = self.ef.create_header_variable("timestep", "dummy", "variable", "foo")
+        v1 = self.ef.create_header_variable("timestep", "dummy", "type", "foo")
         self.assertTupleEqual(
-            v1, Variable(interval="timestep", key="dummy", type="variable", units="foo")
+            v1, Variable(interval="timestep", key="dummy", type="type", units="foo")
         )
 
     def test_rename_variable(self):
@@ -199,22 +199,22 @@ class TestFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [19])
 
     def test_add_output(self):
-        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
-        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+        id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
         self.ef.remove_outputs(var)
 
     def test_add_two_outputs(self):
-        id_, var1 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
-        self.assertTupleEqual(var1, Variable("runperiod", "new", "variable", "C"))
+        id_, var1 = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
 
-        id_, var2 = self.ef.add_output("runperiod", "new", "variable", "C", [1])
-        self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "variable", "C"))
+        id_, var2 = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
         self.ef.remove_outputs(var1)
         self.ef.remove_outputs(var2)
 
     def test_add_output_test_tree(self):
-        id_, var = self.ef.add_output("runperiod", "new", "variable", "C", [1])
-        self.assertTupleEqual(var, Variable("runperiod", "new", "variable", "C"))
+        id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
         ids = self.ef.search_tree.get_ids(*var)
         self.assertIsNot(ids, [])
@@ -225,12 +225,12 @@ class TestFileFunctions(unittest.TestCase):
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.ef.add_output("timestep", "new", "variable", "C", [1])
+        out = self.ef.add_output("timestep", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_interval(self):
         with self.assertRaises(KeyError):
-            _ = self.ef.add_output("foo", "new", "variable", "C", [1])
+            _ = self.ef.add_output("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(
@@ -259,7 +259,7 @@ class TestFileFunctions(unittest.TestCase):
         df = self.ef.get_results(var)
 
         test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "variable", "units"]
+            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
         )
         test_index = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], [datetime(2002, i, 1) for i in range(1, 13)]],
@@ -309,7 +309,7 @@ class TestFileFunctions(unittest.TestCase):
     def test_as_df(self):
         df = self.ef.as_df("hourly")
         self.assertTupleEqual(df.shape, (8760, 19))
-        self.assertListEqual(df.columns.names, ["id", "interval", "key", "variable", "units"])
+        self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_interval(self):

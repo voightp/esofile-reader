@@ -175,7 +175,7 @@ class TestPeakResults(unittest.TestCase):
             )
             self.assertEqual(r.index.names, ["file", None])
             self.assertEqual(
-                r.columns.names, ["id", "interval", "key", "variable", "units", "data"]
+                r.columns.names, ["id", "interval", "key", "type", "units", "data"]
             )
 
             r = EF_ALL_INTERVALS_PEAKS.get_results(
@@ -188,7 +188,7 @@ class TestPeakResults(unittest.TestCase):
             )
             self.assertEqual(r.index.names, [None])
             self.assertEqual(
-                r.columns.names, ["file", "id", "interval", "key", "variable", "units", "data"]
+                r.columns.names, ["file", "id", "interval", "key", "type", "units", "data"]
             )
 
             r = EF_ALL_INTERVALS_PEAKS.get_results(
@@ -201,7 +201,7 @@ class TestPeakResults(unittest.TestCase):
             )
             self.assertEqual(r.index.names, [None])
             self.assertEqual(
-                r.columns.names, ["id", "interval", "key", "variable", "units", "data"]
+                r.columns.names, ["id", "interval", "key", "type", "units", "data"]
             )
 
     def test_timestamp_format(self):

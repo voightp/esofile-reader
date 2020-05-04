@@ -9,7 +9,7 @@ except ImportError:
     from typing import _ForwardRef as ForwardRef
 
 import pandas as pd
-
+from esofile_reader.constants import *
 from esofile_reader.base_file import BaseFile
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.processor.monitor import DefaultMonitor
@@ -154,10 +154,10 @@ class EsoFile(BaseFile):
                 continue
 
             if not include_id:
-                df.columns = df.columns.droplevel("id")
+                df.columns = df.columns.droplevel(ID_LEVEL)
 
             if not include_interval:
-                df.columns = df.columns.droplevel("interval")
+                df.columns = df.columns.droplevel(INTERVAL_LEVEL)
 
             frames.append(df)
 

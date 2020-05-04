@@ -101,7 +101,7 @@ class TotalsFile(BaseFile):
     @staticmethod
     def _calculate_totals(df: pd.DataFrame) -> pd.DataFrame:
         """ Handle totals generation."""
-        cnd = df.index.get_level_values("units").isin(AVERAGED_UNITS)
+        cnd = df.index.get_level_values(UNITS_LEVEL).isin(AVERAGED_UNITS)
         mi_df = df.index.to_frame(index=False)
         mi_df.drop_duplicates(inplace=True)
 
@@ -110,16 +110,16 @@ class TotalsFile(BaseFile):
         sum_df = df.loc[~cnd]
 
         # group variables and apply functions
-        avg_df = avg_df.groupby(by="group_id", sort=False).mean()
-        sum_df = sum_df.groupby(by="group_id", sort=False).sum()
+        avg_df = avg_df.groupby(by=GROUP_ID_LEVEL, sort=False).mean()
+        sum_df = sum_df.groupby(by=GROUP_ID_LEVEL, sort=False).sum()
 
         # index gets lost in 'groupby'
         df = pd.concat([avg_df, sum_df])
         df.reset_index(inplace=True, drop=False)
-        df = pd.merge(mi_df, df, on="group_id")
-        df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
+        df = pd.merge(mi_df, df, on=GROUP_ID_LEVEL)
+        df.set_index([GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]], inplace=True)
 
-        df.index.set_names("id", level="group_id", inplace=True)
+        df.index.set_names(ID_LEVEL, level=GROUP_ID_LEVEL, inplace=True)
 
         return df.T
 
@@ -130,30 +130,30 @@ class TotalsFile(BaseFile):
         groups = {}
         rows, index = [], []
         for id_, var in variables.items():
-            interval, key, variable, units = var
+            interval, key, type, units = var
 
             # variable can be grouped only if it's included as avg or sum
             group = units in SUMMED_UNITS or units in AVERAGED_UNITS
 
             # init group string to be the same as variable
-            gr_str = variable
+            gr_str = type
             w = self._get_keyword(key, self.SUBGROUPS)
 
             if group:
                 if key == "Cumulative Meter" or key == "Meter":
-                    if "#" in variable:
+                    if "#" in type:
                         # use last substring as a key
-                        gr_str = variable.split("#")[-1]
-                        variable = gr_str
+                        gr_str = type.split("#")[-1]
+                        type = gr_str
                 elif w:
                     gr_str = w + " " + gr_str
                     key = w  # assign a new key based on subgroup keyword
                 else:
                     # assign key based on 'Variable' category
                     # the category is missing, use a first word in 'Variable' string
-                    key = self._get_group_key(variable, self.VARIABLE_GROUPS)
+                    key = self._get_group_key(type, self.VARIABLE_GROUPS)
                     if not key:
-                        key = variable.split(maxsplit=1)[0]
+                        key = type.split(maxsplit=1)[0]
 
                 if gr_str in groups:
                     # variable group already exist, get id of the existing group
@@ -168,9 +168,9 @@ class TotalsFile(BaseFile):
                 group_id = next(id_gen)
 
             index.append(id_)
-            rows.append((group_id, interval, key, variable, units))
+            rows.append((group_id, interval, key, type, units))
 
-        cols = ["group_id", "interval", "key", "variable", "units"]
+        cols = [GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]]
 
         return pd.DataFrame(rows, columns=cols, index=index)
 
@@ -179,15 +179,15 @@ class TotalsFile(BaseFile):
 
         def ignored_ids(df):
             srs = []
-            sr = df.columns.get_level_values("variable")
+            sr = df.columns.get_level_values(TYPE_LEVEL)
 
             for w in self.IGNORED_VARIABLES:
                 srs.append(sr.str.contains(w))
 
             cond1 = pd.DataFrame(srs).apply(lambda x: x.any()).tolist()
-            cond2 = df.columns.get_level_values("units").isin(IGNORED_UNITS)
+            cond2 = df.columns.get_level_values(UNITS_LEVEL).isin(IGNORED_UNITS)
 
-            return df.loc[:, cond1 | cond2].columns.get_level_values("id")
+            return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
 
         outputs = DFData()
         id_gen = incremental_id_gen()
@@ -206,7 +206,7 @@ class TotalsFile(BaseFile):
                 continue
 
             # leave only 'id' column as header data will be added
-            out.columns = out.columns.droplevel(["interval", "key", "variable", "units"])
+            out.columns = out.columns.droplevel(COLUMN_LEVELS[1:])
 
             # get header variables and filter them
             variable_dct = file.data.get_variables_dct(interval)
@@ -221,7 +221,7 @@ class TotalsFile(BaseFile):
 
             # create new totals DataFrame
             df.reset_index(drop=True, inplace=True)
-            df.set_index(["group_id", "interval", "key", "variable", "units"], inplace=True)
+            df.set_index([GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]], inplace=True)
             df = self._calculate_totals(df)
 
             # restore index

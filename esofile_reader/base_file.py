@@ -149,10 +149,10 @@ class BaseFile:
 
         if all(map(lambda x: isinstance(x, int), variables)):
             header = self.data.get_all_variables_df()
-            df = header.loc[header["id"].isin(variables), ["interval", "id"]]
-            grouped = df.groupby("interval", sort=False, group_keys=False)
+            df = header.loc[header[ID_LEVEL].isin(variables), [INTERVAL_LEVEL, ID_LEVEL]]
+            grouped = df.groupby(INTERVAL_LEVEL, sort=False, group_keys=False)
             for interval, df in grouped:
-                out[interval] = df["id"].tolist()
+                out[interval] = df[ID_LEVEL].tolist()
         else:
             for variable in variables:
                 if (
@@ -312,10 +312,10 @@ class BaseFile:
                 df = convert_units(df, units_system, rate_units, energy_units)
 
             if not include_id:
-                df.columns = df.columns.droplevel("id")
+                df.columns = df.columns.droplevel(ID_LEVEL)
 
             if not include_interval:
-                df.columns = df.columns.droplevel("interval")
+                df.columns = df.columns.droplevel(INTERVAL_LEVEL)
 
             frames.append(df)
 
@@ -349,7 +349,7 @@ class BaseFile:
 
         if (not new_type and not new_key) or (key == new_key and var == new_type):
             logging.warning(
-                "Cannot rename variable! Variable and key names are "
+                "Cannot rename variable! Type and key are "
                 "not specified or are the same as original variable."
             )
         elif ids:
@@ -429,8 +429,8 @@ class BaseFile:
         interval, ids = list(groups.items())[0]
 
         df = self.data.get_results(interval, ids)
-        variables = df.columns.get_level_values("variable").tolist()
-        units = df.columns.get_level_values("units").tolist()
+        variables = df.columns.get_level_values(TYPE_LEVEL).tolist()
+        units = df.columns.get_level_values(UNITS_LEVEL).tolist()
 
         if len(set(units)) == 1:
             # no processing required

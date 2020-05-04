@@ -141,14 +141,14 @@ class TestParquetData(unittest.TestCase):
     def test_get_variables_df(self):
         df = self.ef.data.get_variables_df("daily")
         self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "variable", "units"]
+            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
         )
         self.assertTupleEqual(df.shape, (19, 5))
 
     def test_all_variables_df(self):
         df = self.ef.data.get_all_variables_df()
         self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "variable", "units"]
+            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
         )
         self.assertTupleEqual(df.shape, (114, 5))
 
@@ -227,7 +227,7 @@ class TestParquetData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame(
@@ -268,7 +268,7 @@ class TestParquetData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
@@ -297,7 +297,7 @@ class TestParquetData(unittest.TestCase):
                 (323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (982, "daily", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -332,7 +332,7 @@ class TestParquetData(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "variable", "units"],
+            names=["id", "interval", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -373,7 +373,7 @@ class TestParquetData(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "variable", "units", "data"],
+            names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
@@ -402,7 +402,7 @@ class TestParquetData(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "variable", "units", "data"],
+            names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],

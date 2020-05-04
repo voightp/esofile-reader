@@ -10,8 +10,8 @@ from esofile_reader.processor.interval_processor import parse_result_dt
 
 def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:
     """ Group 'value' and 'timestamp' columns to be adjacent for each id. """
-    df = pd.concat({TIMESTAMP_COLUMN: timestamp_df, VALUE_COLUMN: values_df}, axis=1)
-    df.columns.set_names(names="data", level=0, inplace=True)
+    df = pd.concat({TIMESTAMP_COLUMN: timestamp_df, VALUE_LEVEL: values_df}, axis=1)
+    df.columns.set_names(names=DATA_LEVEL, level=0, inplace=True)
 
     # move data index to lowest level
     names = list(df.columns.names)
@@ -99,7 +99,7 @@ def slicer(
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
 
-    all_ids = df.columns.get_level_values("id")
+    all_ids = df.columns.get_level_values(ID_LEVEL)
     if not all(map(lambda x: x in all_ids, ids)):
         raise KeyError(
             f"Cannot slice df, ids: '{', '.join([str(id_) for id_ in ids])}',"
@@ -107,7 +107,7 @@ def slicer(
             f" are not included."
         )
 
-    cond = df.columns.get_level_values("id").isin(ids)
+    cond = df.columns.get_level_values(ID_LEVEL).isin(ids)
 
     if start_date and end_date:
         df = df.loc[start_date:end_date, cond]

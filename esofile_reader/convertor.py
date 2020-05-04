@@ -14,13 +14,13 @@ def apply_conversion(
 ) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
-        cnd = df.columns.get_level_values("units") == old
+        cnd = df.columns.get_level_values(UNITS_LEVEL) == old
         if all(map(lambda x: not x, cnd)):
             # no applicable units
             continue
 
-        if "data" in df.columns.names:
-            cnd = cnd & (df.columns.get_level_values("data") == "value")
+        if DATA_LEVEL in df.columns.names:
+            cnd = cnd & (df.columns.get_level_values(DATA_LEVEL) == VALUE_LEVEL)
 
         if isinstance(ratio, (float, int)):
             df.loc[:, cnd] = df.loc[:, cnd] / ratio
@@ -31,7 +31,7 @@ def apply_conversion(
         else:
             df.loc[:, cnd] = df.loc[:, cnd].div(ratio, axis=0)
 
-    update_multiindex(df, "units", orig_units, new_units)
+    update_multiindex(df, UNITS_LEVEL, orig_units, new_units)
 
     return df
 
@@ -42,7 +42,7 @@ def convert_units(
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
 
-    for units in set(df.columns.get_level_values("units")):
+    for units in set(df.columns.get_level_values(UNITS_LEVEL)):
         inp = None
 
         if units == "J" and energy_units != "J":

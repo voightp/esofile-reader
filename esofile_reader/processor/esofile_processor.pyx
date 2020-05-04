@@ -406,20 +406,18 @@ def create_header_df(
 
 def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
     """ Transform processed peak output data into DataFrame like classes. """
-    column_names = ["id", "interval", "key", "variable", "units"]
-
     min_peaks = DFData()
     max_peaks = DFData()
 
     for interval, values in raw_peak_outputs.items():
-        df_values = create_values_df(values, column_names[0])
+        df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
-            header[interval], interval, column_names[0], column_names[1:]
+            header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
 
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
 
-        df.set_index(keys=column_names[1:], append=True, inplace=True)
+        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
@@ -439,18 +437,17 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
 
 def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     """ Transform processed output data into DataFrame like classes. """
-    column_names = ["id", "interval", "key", "variable", "units"]
     outputs = DFData()
 
     for interval, values in raw_outputs.items():
-        df_values = create_values_df(values, column_names[0])
+        df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
-            header[interval], interval, column_names[0], column_names[1:]
+            header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
 
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
 
-        df.set_index(keys=column_names[1:], append=True, inplace=True)
+        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 

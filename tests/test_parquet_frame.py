@@ -31,7 +31,7 @@ class TestParquetFrame(TestCase):
             (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
             (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
         ]
-        names = ["id", "interval", "key", "variable", "units"]
+        names = ["id", "interval", "key", "type", "units"]
         test_columns = pd.MultiIndex.from_tuples(test_variables, names=names)
         test_index = pd.DatetimeIndex(
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
@@ -96,7 +96,7 @@ class TestParquetFrame(TestCase):
             (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
             (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
         ]
-        names = ["id", "interval", "key", "variable", "units"]
+        names = ["id", "interval", "key", "type", "units"]
         new_columns = pd.MultiIndex.from_tuples(new_variables, names=names)
         self.pqf.columns = new_columns
 
@@ -156,14 +156,14 @@ class TestParquetFrame(TestCase):
 
     def test_setter_new_var(self):
         new_col = [1, 2, 3]
-        new_var = (20, "daily", "new", "dummy", "variable")
+        new_var = (20, "daily", "new", "dummy", "type")
         self.test_df[new_var] = new_col
         self.pqf[new_var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_setter_update_var(self):
         new_col = [1, 2, 3]
-        new_var = (20, "daily", "new", "dummy", "variable")
+        new_var = (20, "daily", "new", "dummy", "type")
         self.test_df[new_var] = new_col
         self.pqf[new_var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
@@ -227,10 +227,10 @@ class TestParquetFrame(TestCase):
             self.pqf.add_mi_column_item(Variable("hourly", "this", "is", "dummy"), pos=100)
 
     def test_insert_column(self):
-        self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
+        self.pqf.insert_column(((100, "this", "is", "dummy", "type")), ["a", "b", "c"])
         columns = pd.MultiIndex.from_tuples(
-            [(100, "this", "is", "dummy", "variable")],
-            names=["id", "interval", "key", "variable", "units"]
+            [(100, "this", "is", "dummy", "type")],
+            names=["id", "interval", "key", "type", "units"]
         )
         index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
 
@@ -241,7 +241,7 @@ class TestParquetFrame(TestCase):
 
     def test_insert_column_middle(self):
         self.pqf.drop([5])
-        self.pqf.insert_column(((100, "this", "is", "dummy", "variable")), ["a", "b", "c"])
+        self.pqf.insert_column(((100, "this", "is", "dummy", "type")), ["a", "b", "c"])
 
         test_variables = [
             (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
@@ -249,7 +249,7 @@ class TestParquetFrame(TestCase):
             (3, "daily", "BLOCK1:ZONE3", "Zone Temperature", "C"),
             (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
             (6, "daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
-            (100, "this", "is", "dummy", "variable"),
+            (100, "this", "is", "dummy", "type"),
             (0, "daily", "BLOCK1:ZONE1_WALL_5_0_0_0_0_0_WIN", "Window Gain", "W"),
             (8, "daily", "BLOCK1:ZONE1_WALL_6_0_0_0_0_0_WIN", "Window Lost", "W"),
             (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
@@ -260,8 +260,8 @@ class TestParquetFrame(TestCase):
             (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
         ]
         columns = pd.MultiIndex.from_tuples(
-            [(100, "this", "is", "dummy", "variable")],
-            names=["id", "interval", "key", "variable", "units"]
+            [(100, "this", "is", "dummy", "type")],
+            names=["id", "interval", "key", "type", "units"]
         )
         index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
 

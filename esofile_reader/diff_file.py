@@ -4,7 +4,7 @@ from typing import Tuple
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
 from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
 from esofile_reader.id_generators import incremental_id_gen
@@ -36,8 +36,8 @@ class DiffFile(BaseFile):
             df1 = file.as_df(interval)
             df2 = other_file.as_df(interval)
 
-            df1.columns = df1.columns.droplevel("id")
-            df2.columns = df2.columns.droplevel("id")
+            df1.columns = df1.columns.droplevel(ID_LEVEL)
+            df2.columns = df2.columns.droplevel(ID_LEVEL)
 
             index_cond = df1.index.intersection(df2.index).tolist()
             columns_cond = df1.columns.intersection(df2.columns).tolist()
@@ -49,7 +49,7 @@ class DiffFile(BaseFile):
                 # create new id for each record
                 ids = [next(id_gen) for _ in range(len(df.columns))]
                 header_df = df.columns.to_frame(index=False)
-                header_df.insert(0, "id", ids)
+                header_df.insert(0, ID_LEVEL, ids)
 
                 df.columns = pd.MultiIndex.from_frame(header_df)
 
@@ -74,7 +74,7 @@ class DiffFile(BaseFile):
         return diff
 
     def process_diff(
-        self, first_file: ResultsFile, other_file: ResultsFile
+            self, first_file: ResultsFile, other_file: ResultsFile
     ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}

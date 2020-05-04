@@ -58,7 +58,7 @@ class _ParquetIndexer:
             # transform for compatibility with further checks
             col = [col] if isinstance(col, (int, str, tuple)) else col
 
-            all_ids = self.frame.columns.get_level_values("id").to_series()
+            all_ids = self.frame.columns.get_level_values(ID_LEVEL).to_series()
             if _is_id():
                 ids = all_ids.where(all_ids.isin(col)).dropna().tolist()
             elif _is_boolean() and self.frame.columns.size == len(col):
@@ -94,11 +94,11 @@ class _ParquetIndexer:
             col = [col] if isinstance(col, (str, int, tuple)) else col
 
             if all(map(lambda x: isinstance(x, (bool, np.bool_)), col)):
-                ids = self.frame.columns.get_level_values("id")[col].tolist()
+                ids = self.frame.columns.get_level_values(ID_LEVEL)[col].tolist()
             else:
                 ids = []
                 for item in col:
-                    if item in self.frame.columns.get_level_values("id"):
+                    if item in self.frame.columns.get_level_values(ID_LEVEL):
                         ids.append(item)
                     elif item in self.frame.columns:
                         ids.append(item[0])
@@ -106,7 +106,7 @@ class _ParquetIndexer:
                         self.frame.insert_column(item, value)
         else:
             row = key
-            ids = self.frame.columns.get_level_values("id").tolist()
+            ids = self.frame.columns.get_level_values(ID_LEVEL).tolist()
 
         if ids:
             self.frame.update_columns(ids, value, rows=row)
@@ -240,11 +240,11 @@ class ParquetFrame:
         pq.write_table(pa.Table.from_pandas(index), paths[0])
 
         columns = self._columns.to_frame(index=False)
-        columns["id"] = columns["id"].astype(str)
+        columns[ID_LEVEL] = columns[ID_LEVEL].astype(str)
         pq.write_table(pa.Table.from_pandas(columns), paths[1])
 
         chunks = self._chunks_table.copy()
-        chunks["id"] = chunks["id"].astype(str)
+        chunks[ID_LEVEL] = chunks[ID_LEVEL].astype(str)
         pq.write_table(pa.Table.from_pandas(chunks), paths[2])
 
     def load_info_parquets(self):
@@ -269,11 +269,11 @@ class ParquetFrame:
         self._index = pd.Index(index)
 
         columns = pq.read_pandas(paths[1]).to_pandas()
-        columns["id"] = columns["id"].apply(to_int)
+        columns[ID_LEVEL] = columns[ID_LEVEL].apply(to_int)
         self._columns = pd.MultiIndex.from_frame(columns)
 
         chunks = pq.read_pandas(paths[2]).to_pandas()
-        chunks["id"] = columns["id"].apply(to_int)
+        chunks[ID_LEVEL] = columns[ID_LEVEL].apply(to_int)
         self._chunks_table = chunks
 
     def update_parquet(self, chunk: str, df: pd.DataFrame) -> None:
@@ -281,7 +281,7 @@ class ParquetFrame:
         with contextlib.suppress(FileNotFoundError):
             os.remove(Path(self.workdir, chunk))
         header_df = df.columns.to_frame(index=False)
-        header_df["id"] = header_df["id"].astype(str)
+        header_df[ID_LEVEL] = header_df[ID_LEVEL].astype(str)
         df.columns = pd.MultiIndex.from_frame(header_df)
 
         table = pa.Table.from_pandas(df)
@@ -291,7 +291,7 @@ class ParquetFrame:
         """ Get DataFrame from given chunk. ."""
 
         if ids:
-            mi = self.columns[self.columns.get_level_values("id").isin(ids)]
+            mi = self.columns[self.columns.get_level_values(ID_LEVEL).isin(ids)]
             columns = []
             for ix in mi:
                 s = rf"('{ix[0]}', '{ix[1]}', '{ix[2]}', '{ix[3]}', '{ix[4]}')"
@@ -305,7 +305,7 @@ class ParquetFrame:
 
         # destringify numeric ids
         header_df = df.columns.to_frame(index=False)
-        header_df["id"] = header_df["id"].apply(to_int)
+        header_df[ID_LEVEL] = header_df[ID_LEVEL].apply(to_int)
         df.columns = pd.MultiIndex.from_frame(header_df)
 
         return df
@@ -333,7 +333,7 @@ class ParquetFrame:
     def create_chunk(ids: List[int]) -> Tuple[str, pd.DataFrame]:
         """ Create unique chunk name and a piece of reference table. """
         chunk_name = f"{str(uuid1())}.parquet"
-        chunk_df = pd.DataFrame({"id": ids, "chunk": [chunk_name] * len(ids)})
+        chunk_df = pd.DataFrame({ID_LEVEL: ids, "chunk": [chunk_name] * len(ids)})
         return chunk_name, chunk_df
 
     def store_df(self, df: pd.DataFrame, monitor: DefaultMonitor = None) -> None:
@@ -346,7 +346,7 @@ class ParquetFrame:
 
             # create chunk reference df
             chunk_name, chunk_df = self.create_chunk(
-                dfi.columns.get_level_values("id").tolist()
+                dfi.columns.get_level_values(ID_LEVEL).tolist()
             )
             frames.append(chunk_df)
 
@@ -369,7 +369,7 @@ class ParquetFrame:
         """ Update column MultiIndex in stored parquet files. """
         for chunk_name, _ in self.get_chunk_id_pairs(ids).items():
             df = self.get_df_from_parquet(chunk_name)
-            df.loc[rows, df.columns.get_level_values("id").isin(ids)] = array
+            df.loc[rows, df.columns.get_level_values(ID_LEVEL).isin(ids)] = array
             self.update_parquet(chunk_name, df)
 
     def add_mi_column_item(self, variable: tuple, pos: int = None) -> None:
@@ -399,8 +399,8 @@ class ParquetFrame:
 
         try:
             counted = self._chunks_table.groupby("chunk").count()
-            count = counted["id"].min()
-            chunk_name = counted["id"].idxmin()
+            count = counted[ID_LEVEL].min()
+            chunk_name = counted[ID_LEVEL].idxmin()
         except ValueError:
             # index error is raised when adding columns into empty frame
             # setting count to chunk size will invoke a new parquet
@@ -418,12 +418,12 @@ class ParquetFrame:
 
             # find position of the last chunk item
             last_item_id = df.columns.tolist()[-1][0]
-            all_ids = self._columns.get_level_values("id").tolist()
+            all_ids = self._columns.get_level_values(ID_LEVEL).tolist()
             pos = all_ids.index(last_item_id) + 1
 
             # create new item and chunk df to store ref
             df[item] = array
-            chunk_df = pd.DataFrame({"id": item[0], "chunk": [chunk_name]})
+            chunk_df = pd.DataFrame({ID_LEVEL: item[0], "chunk": [chunk_name]})
 
         self.add_mi_column_item(item, pos=pos)
         self.update_parquet(chunk_name, df)
@@ -441,17 +441,17 @@ class ParquetFrame:
     def get_chunk_id_pairs(self, ids: List[int]) -> Dict[str, List[int]]:
         """ Get a hash of chunk name: ids pairs for given ids. """
         pairs = {}
-        out = self._chunks_table.loc[self._chunks_table["id"].isin(ids)]
+        out = self._chunks_table.loc[self._chunks_table[ID_LEVEL].isin(ids)]
         groups = out.groupby(["chunk"])
         for chunk_name, chunk_df in groups:
-            pairs[chunk_name] = chunk_df.loc[:, "id"].tolist()
+            pairs[chunk_name] = chunk_df.loc[:, ID_LEVEL].tolist()
         return pairs
 
-    def drop(self, columns: List[int], inplace=True, level="id") -> None:
+    def drop(self, columns: List[int], inplace=True, level=ID_LEVEL) -> None:
         """ Drop columns with given ids from frame. """
         ids = columns
         # update columns index
-        if level != "id":
+        if level != ID_LEVEL:
             raise IndexError("Parquet drop level needs to be 'id'.")
         mi = []
         for item in self._columns:
@@ -463,7 +463,7 @@ class ParquetFrame:
         # update parquet files
         for chunk_name, chunk_ids in self.get_chunk_id_pairs(ids).items():
             df = self.get_df_from_parquet(chunk_name)
-            df.drop(columns=chunk_ids, inplace=True, level="id")
+            df.drop(columns=chunk_ids, inplace=True, level=ID_LEVEL)
 
             if df.empty:
                 os.remove(Path(self.workdir, chunk_name))
@@ -472,7 +472,7 @@ class ParquetFrame:
 
         # update chunks reference
         self._chunks_table.drop(
-            self._chunks_table.loc[self._chunks_table["id"].isin(ids)].index,
+            self._chunks_table.loc[self._chunks_table[ID_LEVEL].isin(ids)].index,
             axis=0,
             inplace=True,
         )

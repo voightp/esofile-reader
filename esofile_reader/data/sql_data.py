@@ -167,7 +167,7 @@ class SQLData(BaseData):
                     ]
                 )
             )
-            df = pd.DataFrame(res, columns=["id", "interval", "key", "type", "units"])
+            df = pd.DataFrame(res, columns=COLUMN_LEVELS)
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -288,7 +288,7 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
             df = pd.DataFrame(
-                res, columns=["id", "interval", "key", "variable", "units", "values"]
+                res, columns=[*COLUMN_LEVELS, "values"]
             )
             if df.empty:
                 raise KeyError(
@@ -297,7 +297,7 @@ class SQLData(BaseData):
                     f"is not included."
                 )
 
-            df.set_index(["id", "interval", "key", "variable", "units"], inplace=True)
+            df.set_index(COLUMN_LEVELS, inplace=True)
             df = destringify_values(df)
 
         if interval == RANGE:

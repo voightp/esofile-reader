@@ -27,7 +27,7 @@ class TestRangeIntervalFile(unittest.TestCase):
             (4, "range", "ZoneC", "Heating Load", "W"),
         ]
         columns = pd.MultiIndex.from_tuples(
-            variables, names=["id", "interval", "key", "variable", "units"]
+            variables, names=["id", "interval", "key", "type", "units"]
         )
         index = pd.RangeIndex(start=0, stop=3, step=1, name="range")
         results = pd.DataFrame(
@@ -70,7 +70,7 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_header_df(self):
         self.assertEqual(
             self.bf.data.get_all_variables_df().columns.to_list(),
-            ["id", "interval", "key", "variable", "units"],
+            ["id", "interval", "key", "type", "units"],
         )
         self.assertEqual(len(self.bf.data.get_all_variables_df().index), 4)
 
@@ -120,13 +120,13 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.rename_variable(v, new_key="ZoneC", new_type="Temperature")
 
     def test_add_output(self):
-        id_, var = self.bf.add_output("range", "new", "variable", "C", [1, 2, 3])
-        self.assertTupleEqual(var, Variable("range", "new", "variable", "C"))
+        id_, var = self.bf.add_output("range", "new", "type", "C", [1, 2, 3])
+        self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
         self.bf.remove_outputs(var)
 
     def test_add_output_test_tree(self):
-        id_, var = self.bf.add_output("range", "new", "variable", "C", [1, 2, 3])
-        self.assertTupleEqual(var, Variable("range", "new", "variable", "C"))
+        id_, var = self.bf.add_output("range", "new", "type", "C", [1, 2, 3])
+        self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
 
         ids = self.bf.search_tree.get_ids(*var)
         self.assertIsNot(ids, [])
@@ -137,7 +137,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.bf.add_output("range", "new", "variable", "C", [1])
+        out = self.bf.add_output("range", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_aggregate_variables(self):
@@ -163,7 +163,7 @@ class TestRangeIntervalFile(unittest.TestCase):
     def test_as_df(self):
         df = self.bf.as_df("range")
         self.assertTupleEqual(df.shape, (3, 4))
-        self.assertListEqual(df.columns.names, ["id", "interval", "key", "variable", "units"])
+        self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "range")
 
     def test_sql_results(self):

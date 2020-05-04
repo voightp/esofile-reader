@@ -123,11 +123,11 @@ class SQLStorage(BaseStorage):
                 for index, values in sr.iteritems():
                     ins.append(
                         {
-                            "id": index[0],
-                            "interval": index[1],
-                            "key": index[2],
-                            "type": index[3],
-                            "units": index[4],
+                            ID_LEVEL: index[0],
+                            INTERVAL_LEVEL: index[1],
+                            KEY_LEVEL: index[2],
+                            TYPE_LEVEL: index[3],
+                            UNITS_LEVEL: index[4],
                             "str_values": values,
                         }
                     )
