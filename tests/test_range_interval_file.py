@@ -7,10 +7,10 @@ from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.data.df_data import DFData
+from esofile_reader.mini_classes import Variable
+from esofile_reader.search_tree import Tree
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.sql_storage import SQLStorage
-from esofile_reader.utils.mini_classes import Variable
-from esofile_reader.utils.search_tree import Tree
 
 
 class TestRangeIntervalFile(unittest.TestCase):

@@ -7,7 +7,7 @@ import pandas as pd
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.eso_file import EsoFile
-from esofile_reader.utils.mini_classes import Variable
+from esofile_reader.mini_classes import Variable
 
 
 def get_results(

@@ -1,7 +1,6 @@
 import unittest
 
 from esofile_reader import DiffFile, TotalsFile
-from esofile_reader.utils.exceptions import NoSharedVariables
 from tests import EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 

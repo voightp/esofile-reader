@@ -1,13 +1,14 @@
-import pandas as pd
 from datetime import datetime
 from unittest import TestCase
+
+import pandas as pd
 
 from esofile_reader import DiffFile
 from esofile_reader import TotalsFile
 from esofile_reader import Variable
 from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
-from esofile_reader.utils.search_tree import Tree
+from esofile_reader.search_tree import Tree
 
 
 class TestTotalsFile(TestCase):

@@ -1,6 +1,6 @@
+from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.storage.storage_files import DFFile
-from esofile_reader.utils.mini_classes import ResultsFile
 
 
 class DFStorage(BaseStorage):

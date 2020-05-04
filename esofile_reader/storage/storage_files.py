@@ -4,7 +4,6 @@ import json
 import logging
 import shutil
 import tempfile
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Union
@@ -14,10 +13,10 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
 from esofile_reader.data.pqt_data import ParquetData
 from esofile_reader.data.sql_data import SQLData
+from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.search_tree import Tree
 from esofile_reader.totals_file import TotalsFile
-from esofile_reader.utils.mini_classes import ResultsFile
-from esofile_reader.utils.search_tree import Tree
 
 
 class SQLFile(BaseFile):
