@@ -75,7 +75,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertEqual(len(self.bf.data.get_all_variables_df().index), 4)
 
     def test_find_ids(self):
-        v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")
+        v = Variable(interval="range", key="ZoneC", type="Temperature", units="C")
         ids = self.bf.find_ids(v, part_match=False)
         self.assertEqual(ids, [3])
 
@@ -83,20 +83,20 @@ class TestRangeIntervalFile(unittest.TestCase):
         v = Variable(
             interval="range",
             key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
         ids = self.bf.find_ids(v, part_match=False)
         self.assertEqual(ids, [])
 
     def test__find_pairs(self):
-        v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")
+        v = Variable(interval="range", key="ZoneC", type="Temperature", units="C")
         out = self.bf._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
         v = Variable(
-            interval="range", key="BLOCK1", variable="Zone People Occupant Count", units=""
+            interval="range", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = self.bf._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
@@ -106,18 +106,18 @@ class TestRangeIntervalFile(unittest.TestCase):
             interval="range", key="ZoneC", var="Temperature", units="C"
         )
         self.assertTupleEqual(
-            v1, Variable(interval="range", key="ZoneC (1)", variable="Temperature", units="C")
+            v1, Variable(interval="range", key="ZoneC (1)", type="Temperature", units="C")
         )
 
     def test_rename_variable(self):
-        v = Variable(interval="range", key="ZoneC", variable="Temperature", units="C")
-        self.bf.rename_variable(v, key_name="NEW5", var_name="VARIABLE")
+        v = Variable(interval="range", key="ZoneC", type="Temperature", units="C")
+        self.bf.rename_variable(v, new_key="NEW5", new_type="VARIABLE")
 
-        v = Variable(interval="range", key="NEW5", variable="VARIABLE", units="")
+        v = Variable(interval="range", key="NEW5", type="VARIABLE", units="")
         ids = self.bf.find_ids(v)
         self.assertListEqual(ids, [3])
 
-        self.bf.rename_variable(v, key_name="ZoneC", var_name="Temperature")
+        self.bf.rename_variable(v, new_key="ZoneC", new_type="Temperature")
 
     def test_add_output(self):
         id_, var = self.bf.add_output("range", "new", "variable", "C", [1, 2, 3])
@@ -141,12 +141,12 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertIsNone(out)
 
     def test_aggregate_variables(self):
-        v = Variable(interval="range", key=None, variable="Temperature", units="C")
+        v = Variable(interval="range", key=None, type="Temperature", units="C")
         id_, var = self.bf.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
             Variable(
-                interval="range", key="Custom Key - sum", variable="Temperature", units="C"
+                interval="range", key="Custom Key - sum", type="Temperature", units="C"
             ),
         )
         self.bf.remove_outputs(var)

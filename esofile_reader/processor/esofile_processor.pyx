@@ -398,7 +398,7 @@ def create_header_df(
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []
     for id_, var in header_dct.items():
-        rows.append([interval, var.key, var.variable, var.units])
+        rows.append([interval, var.key, var.type, var.units])
         index.append(id_)
 
     return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
@@ -481,7 +481,7 @@ def remove_duplicates(dup_ids, header_dct, outputs_dct):
     for id_, v in dup_ids.items():
         logging.info(
             f"Duplicate variable found, removing variable id: '{id_}' - "
-            f"{v.interval} | {v.key} | {v.variable} | {v.units}."
+            f"{v.interval} | {v.key} | {v.type} | {v.units}."
         )
         for dct in [header_dct, outputs_dct]:
             try:
