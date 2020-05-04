@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Type, List, Union
+from typing import List, Union
 
 try:
     from typing import ForwardRef
@@ -14,8 +14,8 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.diff_file import DiffFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.totals_file import TotalsFile
-from esofile_reader.utils.exceptions import *
-from esofile_reader.utils.mini_classes import Variable, ResultsFile
+from esofile_reader.exceptions import *
+from esofile_reader.mini_classes import Variable, ResultsFile
 
 try:
     from esofile_reader.processor.esofile_processor import read_file

@@ -5,7 +5,7 @@ from pandas.testing import assert_series_equal
 
 from esofile_reader import EsoFile, DiffFile
 from esofile_reader.constants import *
-from esofile_reader.utils.exceptions import NoSharedVariables
+from esofile_reader.exceptions import NoSharedVariables
 from tests import EF1, EF2, EF_ALL_INTERVALS, ROOT
 
 

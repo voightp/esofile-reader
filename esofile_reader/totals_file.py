@@ -8,9 +8,9 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.utils.mini_classes import Variable, ResultsFile
-from esofile_reader.utils.search_tree import Tree
-from esofile_reader.utils.utils import incremental_id_gen
+from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.mini_classes import Variable, ResultsFile
+from esofile_reader.search_tree import Tree
 
 
 class TotalsFile(BaseFile):

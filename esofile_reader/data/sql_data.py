@@ -12,8 +12,8 @@ from esofile_reader.data.df_functions import (
     sr_dt_slicer,
     merge_peak_outputs,
 )
+from esofile_reader.mini_classes import Variable
 from esofile_reader.storage.sql_functions import destringify_values
-from esofile_reader.utils.mini_classes import Variable
 
 
 class SQLData(BaseData):

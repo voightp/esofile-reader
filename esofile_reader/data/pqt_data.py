@@ -15,7 +15,13 @@ import pyarrow.parquet as pq
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.processor.monitor import DefaultMonitor
-from esofile_reader.utils.utils import to_int
+
+
+def to_int(val):
+    try:
+        return int(val)
+    except ValueError:
+        return val
 
 
 class _ParquetIndexer:
@@ -336,7 +342,7 @@ class ParquetFrame:
         start = 0
         frames = []
         for i in range(n):
-            dfi = df.iloc[:, start : start + self.CHUNK_SIZE]
+            dfi = df.iloc[:, start: start + self.CHUNK_SIZE]
 
             # create chunk reference df
             chunk_name, chunk_df = self.create_chunk(
@@ -355,10 +361,10 @@ class ParquetFrame:
         self._index = df.index
 
     def update_columns(
-        self,
-        ids: List[int],
-        array: Sequence,
-        rows: Union[slice, Sequence] = slice(None, None, None),
+            self,
+            ids: List[int],
+            array: Sequence,
+            rows: Union[slice, Sequence] = slice(None, None, None),
     ) -> None:
         """ Update column MultiIndex in stored parquet files. """
         for chunk_name, _ in self.get_chunk_id_pairs(ids).items():

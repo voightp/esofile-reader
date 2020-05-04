@@ -6,11 +6,10 @@ from typing import Union, List
 from zipfile import ZipFile
 
 from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.storage_files import ParquetFile
-from esofile_reader.totals_file import TotalsFile
-from esofile_reader.utils.mini_classes import ResultsFile
 
 
 class ParquetStorage(DFStorage):

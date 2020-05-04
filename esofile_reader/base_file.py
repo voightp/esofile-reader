@@ -1,8 +1,8 @@
 import logging
 import traceback
+from collections import defaultdict
 from datetime import datetime
 from typing import List, Dict, Union, Tuple, Sequence, Callable
-from collections import defaultdict
 
 import pandas as pd
 
@@ -12,9 +12,9 @@ from esofile_reader.convertor import (
     convert_rate_to_energy,
     convert_units,
 )
+from esofile_reader.exceptions import *
+from esofile_reader.mini_classes import Variable
 from esofile_reader.processor.interval_processor import update_dt_format
-from esofile_reader.utils.exceptions import *
-from esofile_reader.utils.mini_classes import Variable
 
 
 class BaseFile:

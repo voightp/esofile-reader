@@ -17,6 +17,8 @@ from sqlalchemy import (
 
 from esofile_reader.constants import *
 from esofile_reader.data.sql_data import SQLData
+from esofile_reader.mini_classes import ResultsFile
+from esofile_reader.search_tree import Tree
 from esofile_reader.storage.base_storage import BaseStorage
 from esofile_reader.storage.sql_functions import (
     create_results_table,
@@ -28,8 +30,6 @@ from esofile_reader.storage.sql_functions import (
 )
 from esofile_reader.storage.storage_files import SQLFile
 from esofile_reader.totals_file import TotalsFile
-from esofile_reader.utils.mini_classes import ResultsFile
-from esofile_reader.utils.search_tree import Tree
 
 
 class SQLStorage(BaseStorage):

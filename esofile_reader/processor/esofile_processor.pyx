@@ -13,11 +13,11 @@ import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.data.df_functions import create_peak_outputs
+from esofile_reader.exceptions import *
+from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processor.interval_processor import interval_processor
 from esofile_reader.processor.monitor import DefaultMonitor
-from esofile_reader.utils.exceptions import *
-from esofile_reader.utils.mini_classes import Variable, IntervalTuple
-from esofile_reader.utils.search_tree import Tree
+from esofile_reader.search_tree import Tree
 
 
 def _eso_file_version(raw_version):

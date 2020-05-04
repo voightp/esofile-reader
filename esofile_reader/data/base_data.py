@@ -4,8 +4,8 @@ from typing import Sequence, List, Dict
 
 import pandas as pd
 
-from esofile_reader.utils.mini_classes import Variable
 from esofile_reader.constants import DAY_COLUMN, N_DAYS_COLUMN
+from esofile_reader.mini_classes import Variable
 
 
 class BaseData(ABC):
