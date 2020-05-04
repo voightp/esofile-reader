@@ -57,7 +57,9 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(
+            self, interval: str, id_: int, new_key: str, new_type: str
+    ) -> None:
         """ Rename given variable. """
         pass
 
@@ -78,14 +80,14 @@ class BaseData(ABC):
 
     @abstractmethod
     def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         """ Get special 'n days' column. """
         pass
 
     @abstractmethod
     def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         """ Get special 'day' column. """
         pass
@@ -97,34 +99,34 @@ class BaseData(ABC):
 
     @abstractmethod
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
         pass
 
     @abstractmethod
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame max results for given variables. """
         pass
 
     @abstractmethod
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame min results for given variables. """
         pass

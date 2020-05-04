@@ -112,9 +112,11 @@ class DFData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(
+            self, interval: str, id_: int, new_key: str, new_type: str
+    ) -> None:
         mi_df = self.tables[interval].columns.to_frame(index=False)
-        mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [key_name, var_name]
+        mi_df.loc[mi_df.id == id_, ["key", "variable"]] = [new_key, new_type]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
     def insert_variable(self, variable: Variable, array: Sequence) -> None:
@@ -159,7 +161,8 @@ class DFData(BaseData):
         self.tables[interval].drop(columns=ids, inplace=True, level="id")
 
     def _get_special_column(
-        self, interval: str, name: str, start_date: datetime = None, end_date: datetime = None,
+            self, interval: str, name: str, start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values("id"):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
@@ -172,12 +175,12 @@ class DFData(BaseData):
         return col
 
     def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: datetime = None, end_date: datetime = None
     ) -> pd.Series:
         return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
@@ -187,12 +190,12 @@ class DFData(BaseData):
         return self.tables[interval].loc[:, ~cond].copy()
 
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
@@ -212,12 +215,12 @@ class DFData(BaseData):
         return df
 
     def _global_peak(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime,
-        end_date: datetime,
-        max_: bool = True,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
@@ -231,19 +234,19 @@ class DFData(BaseData):
         return df
 
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime = None,
+            end_date: datetime = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

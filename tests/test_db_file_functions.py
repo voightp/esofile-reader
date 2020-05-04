@@ -37,7 +37,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(
-            ["id", "interval", "key", "variable", "units"],
+            ["id", "interval", "key", "type", "units"],
             self.ef.data.get_all_variables_df().columns.to_list(),
         )
         self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
@@ -109,7 +109,7 @@ class TestFileFunctions(unittest.TestCase):
         v = Variable(
             interval="timestep",
             key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
@@ -117,7 +117,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_find_ids_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
+            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         ids = self.ef.find_ids(v, part_match=True)
         self.assertListEqual([13], ids)
@@ -126,7 +126,7 @@ class TestFileFunctions(unittest.TestCase):
         v = Variable(
             interval="time",
             key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
@@ -136,7 +136,7 @@ class TestFileFunctions(unittest.TestCase):
         v = Variable(
             interval="timestep",
             key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
         out = self.ef._find_pairs(v, part_match=False)
@@ -144,14 +144,14 @@ class TestFileFunctions(unittest.TestCase):
 
     def test__find_pairs_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
+            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=True)
         self.assertDictEqual({"timestep": [13]}, out)
 
     def test__find_pairs_invalid(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", variable="Zone People Occupant Count", units=""
+            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual({}, out)
@@ -159,40 +159,40 @@ class TestFileFunctions(unittest.TestCase):
     def test_create_new_header_variable(self):
         v1 = self.ef.create_header_variable("timestep", "dummy", "variable", "foo")
         self.assertTupleEqual(
-            v1, Variable(interval="timestep", key="dummy", variable="variable", units="foo")
+            v1, Variable(interval="timestep", key="dummy", type="variable", units="foo")
         )
 
     def test_rename_variable(self):
         v1 = Variable(
             interval="timestep",
             key="BLOCK1:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
-        self.ef.rename_variable(v1, key_name="NEW1", var_name="VARIABLE")
+        self.ef.rename_variable(v1, new_key="NEW1", new_type="VARIABLE")
 
-        v2 = Variable(interval="timestep", key="NEW1", variable="VARIABLE", units="")
+        v2 = Variable(interval="timestep", key="NEW1", type="VARIABLE", units="")
         ids = self.ef.find_ids(v2)
         self.assertListEqual(ids, [13])
 
         # revert change
-        self.ef.rename_variable(v2, key_name=v1.key, var_name=v1.variable)
+        self.ef.rename_variable(v2, new_key=v1.key, new_type=v1.type)
         ids = self.ef.find_ids(v1)
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
-        v = Variable(interval="timestep", key="foo", variable="", units="")
-        out = self.ef.rename_variable(v, key_name="NEW2", var_name="VARIABLE")
+        v = Variable(interval="timestep", key="foo", type="", units="")
+        out = self.ef.rename_variable(v, new_key="NEW2", new_type="VARIABLE")
         self.assertIsNone(out)
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
             interval="timestep",
             key="BLOCK2:ZONE1",
-            variable="Zone People Occupant Count",
+            type="Zone People Occupant Count",
             units="",
         )
-        out = self.ef.rename_variable(v, key_name="", var_name="")
+        out = self.ef.rename_variable(v, new_key="", new_type="")
         self.assertIsNone(out)
 
         ids = self.ef.find_ids(v)
@@ -234,7 +234,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_variables(self):
         v = Variable(
-            interval="hourly", key=None, variable="Zone People Occupant Count", units=""
+            interval="hourly", key=None, type="Zone People Occupant Count", units=""
         )
         id_, var = self.ef.aggregate_variables(v, "sum")
         self.assertEqual(
@@ -242,13 +242,13 @@ class TestFileFunctions(unittest.TestCase):
             Variable(
                 interval="hourly",
                 key="Custom Key - sum",
-                variable="Zone People Occupant Count",
+                type="Zone People Occupant Count",
                 units="",
             ),
         )
         self.ef.remove_outputs(var)
-        id_, var = self.ef.aggregate_variables(v, "sum", key_name="foo", var_name="bar")
-        self.assertEqual(var, Variable(interval="hourly", key="foo", variable="bar", units=""))
+        id_, var = self.ef.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
+        self.assertEqual(var, Variable(interval="hourly", key="foo", type="bar", units=""))
         self.ef.remove_outputs(var)
 
     def test_aggregate_energy_rate(self):
@@ -297,12 +297,12 @@ class TestFileFunctions(unittest.TestCase):
             _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
-        v = Variable(interval="hourly", key="BLOCK1:ZONE1", variable=None, units=None)
+        v = Variable(interval="hourly", key="BLOCK1:ZONE1", type=None, units=None)
         with self.assertRaises(CannotAggregateVariables):
             _ = self.ef.aggregate_variables(v, "sum")
 
     def test_aggregate_variables_invalid_too_many_intervals(self):
-        v = Variable(interval=None, key=None, variable="Zone People Occupant Count", units="")
+        v = Variable(interval=None, key=None, type="Zone People Occupant Count", units="")
         with self.assertRaises(CannotAggregateVariables):
             _ = self.ef.aggregate_variables(v, "sum")
 

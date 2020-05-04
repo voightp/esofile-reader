@@ -123,7 +123,7 @@ class SQLData(BaseData):
                         table.c.id,
                         table.c.interval,
                         table.c.key,
-                        table.c.variable,
+                        table.c.type,
                         table.c.units,
                     ]
                 )
@@ -162,12 +162,12 @@ class SQLData(BaseData):
                         table.c.id,
                         table.c.interval,
                         table.c.key,
-                        table.c.variable,
+                        table.c.type,
                         table.c.units,
                     ]
                 )
             )
-            df = pd.DataFrame(res, columns=["id", "interval", "key", "variable", "units"])
+            df = pd.DataFrame(res, columns=["id", "interval", "key", "type", "units"])
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -176,11 +176,11 @@ class SQLData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def update_variable_name(self, interval: str, id_, key_name, var_name) -> None:
+    def update_variable_name(self, interval: str, id_: int, new_key: str, new_type:str) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
             conn.execute(
-                table.update().where(table.c.id == id_).values(key=key_name, variable=var_name)
+                table.update().where(table.c.id == id_).values(key=new_key, type=new_type)
             )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:

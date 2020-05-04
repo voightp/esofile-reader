@@ -100,10 +100,10 @@ class BaseFile:
         return pd.concat([df], axis=axis, keys=[self.file_name], names=["file"])
 
     def _merge_frame(
-        self,
-        frames: List[pd.DataFrame],
-        timestamp_format: str = "default",
-        add_file_name: str = "row",
+            self,
+            frames: List[pd.DataFrame],
+            timestamp_format: str = "default",
+            add_file_name: str = "row",
     ) -> pd.DataFrame:
         """ Merge result DataFrames into a single one. """
         if frames:
@@ -124,7 +124,7 @@ class BaseFile:
             )
 
     def _find_pairs(
-        self, variables: Union[Variable, List[Variable]], part_match: bool = False
+            self, variables: Union[Variable, List[Variable]], part_match: bool = False
     ) -> Dict[str, List[int]]:
         """
         Find variable ids for a list of 'Variables'.
@@ -156,9 +156,9 @@ class BaseFile:
         else:
             for variable in variables:
                 if (
-                    len(variable) == 2
-                    and isinstance(variable[0], str)
-                    and isinstance(variable[1], int)
+                        len(variable) == 2
+                        and isinstance(variable[0], str)
+                        and isinstance(variable[1], int)
                 ):
                     out[variable[0]].append(variable[1])
                 else:
@@ -168,7 +168,7 @@ class BaseFile:
                     pairs = self.search_tree.get_pairs(
                         interval=interval,
                         key=key,
-                        variable=var,
+                        type=var,
                         units=units,
                         part_match=part_match,
                     )
@@ -180,7 +180,7 @@ class BaseFile:
         return out
 
     def find_ids(
-        self, variables: Union[Variable, List[Variable]], part_match: bool = False
+            self, variables: Union[Variable, List[Variable]], part_match: bool = False
     ) -> List[int]:
         """ Find ids for a list of 'Variables'. """
         variables = variables if isinstance(variables, list) else [variables]
@@ -189,7 +189,7 @@ class BaseFile:
         for request in variables:
             interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
             ids = self.search_tree.get_ids(
-                interval=interval, key=key, variable=var, units=units, part_match=part_match,
+                interval=interval, key=key, type=var, units=units, part_match=part_match,
             )
             if not ids:
                 continue
@@ -199,21 +199,21 @@ class BaseFile:
         return out
 
     def get_results(
-        self,
-        variables: Union[Variable, List[Variable]],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        output_type: str = "standard",
-        add_file_name: str = "row",
-        include_interval: bool = False,
-        include_day: bool = False,
-        include_id: bool = False,
-        part_match: bool = False,
-        units_system: str = "SI",
-        rate_units: str = "W",
-        energy_units: str = "J",
-        timestamp_format: str = "default",
-        rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+            self,
+            variables: Union[Variable, List[Variable]],
+            start_date: datetime = None,
+            end_date: datetime = None,
+            output_type: str = "standard",
+            add_file_name: str = "row",
+            include_interval: bool = False,
+            include_day: bool = False,
+            include_id: bool = False,
+            part_match: bool = False,
+            units_system: str = "SI",
+            rate_units: str = "W",
+            energy_units: str = "J",
+            timestamp_format: str = "default",
+            rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
@@ -338,16 +338,16 @@ class BaseFile:
         return variable
 
     def rename_variable(
-        self, variable: Variable, var_name: str = "", key_name: str = ""
+            self, variable: Variable, new_type: str = "", new_key: str = ""
     ) -> Tuple[int, Variable]:
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
         interval, key, var, units = variable
 
-        var_name = var if not var_name else var_name
-        key_name = key if not key_name else key_name
+        new_type = var if not new_type else new_type
+        new_key = key if not new_key else new_key
 
-        if (not var_name and not key_name) or (key == key_name and var == var_name):
+        if (not new_type and not new_key) or (key == new_key and var == new_type):
             logging.warning(
                 "Cannot rename variable! Variable and key names are "
                 "not specified or are the same as original variable."
@@ -357,20 +357,20 @@ class BaseFile:
             self.search_tree.remove_variables(variable)
 
             # create new variable and add it into tree
-            new_var = self.create_header_variable(interval, key_name, var_name, units)
+            new_var = self.create_header_variable(interval, new_key, new_type, units)
             self.search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data.update_variable_name(interval, ids[0], new_var.key, new_var.variable)
+            self.data.update_variable_name(interval, ids[0], new_var.key, new_var.type)
             return ids[0], new_var
         else:
             logging.warning("Cannot rename variable! Original variable not found!")
 
     def add_output(
-        self, interval: str, key_name: str, var_name: str, units: str, array: Sequence
+            self, interval: str, key: str, type: str, units: str, array: Sequence
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
-        new_var = self.create_header_variable(interval, key_name, var_name, units)
+        new_var = self.create_header_variable(interval, key, type, units)
         id_ = self.data.insert_variable(new_var, array)
 
         if id_:
@@ -378,12 +378,12 @@ class BaseFile:
             return id_, new_var
 
     def aggregate_variables(
-        self,
-        variables: Union[Variable, List[Variable]],
-        func: Union[str, Callable],
-        key_name: str = "Custom Key",
-        var_name: str = "Custom Variable",
-        part_match: bool = False,
+            self,
+            variables: Union[Variable, List[Variable]],
+            func: Union[str, Callable],
+            new_key: str = "Custom Key",
+            new_type: str = "Custom Variable",
+            part_match: bool = False,
     ) -> Tuple[int, Variable]:
         """
         Aggregate given variables using given function.
@@ -398,10 +398,10 @@ class BaseFile:
         func: func, func name
             Function to use for aggregating the data.
             It can be specified as np.mean, 'mean', 'sum', etc.
-        key_name: str, default 'Custom Key'
+        new_key: str, default 'Custom Key'
             Specific key for a new variable. If this would not be
             unique, unique number is added automatically.
-        var_name: str, default 'Custom Variable'
+        new_type: str, default 'Custom Variable'
             Specific variable name for a new variable. If all the
             input 'Variables' share the same variable name, this
             will be used if nto specified otherwise.
@@ -457,21 +457,21 @@ class BaseFile:
 
         sr = df.aggregate(func, axis=1)
 
-        if var_name == "Custom Variable":
+        if new_type == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
-                var_name = variables[0]
+                new_type = variables[0]
 
-        if key_name == "Custom Key":
+        if new_key == "Custom Key":
             func_name = func.__name__ if callable(func) else func
-            key_name = f"{key_name} - {func_name}"
+            new_key = f"{new_key} - {func_name}"
 
         # results can be either tuple (id, Variable) or None
-        out = self.add_output(interval, key_name, var_name, units, sr)
+        out = self.add_output(interval, new_key, new_type, units, sr)
 
         return out
 
     def remove_outputs(
-        self, variables: Union[Variable, List[Variable]]
+            self, variables: Union[Variable, List[Variable]]
     ) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
         variables = variables if isinstance(variables, list) else [variables]

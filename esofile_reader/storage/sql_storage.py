@@ -126,7 +126,7 @@ class SQLStorage(BaseStorage):
                             "id": index[0],
                             "interval": index[1],
                             "key": index[2],
-                            "variable": index[3],
+                            "type": index[3],
                             "units": index[4],
                             "str_values": values,
                         }

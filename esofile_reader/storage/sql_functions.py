@@ -13,7 +13,7 @@ def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Tab
         Column("id", Integer, primary_key=True, index=True, autoincrement=True),
         Column("interval", String(50)),
         Column("key", String(50)),
-        Column("variable", String(50)),
+        Column("type", String(50)),
         Column("units", String(50)),
         Column("str_values", String(50)),
     )

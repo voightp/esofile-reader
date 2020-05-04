@@ -124,7 +124,7 @@ class Tree:
         duplicates = {}
         for interval, data in header_dct.items():
             for id_, var in data.items():
-                dup_id = self.add_branch(interval, var.key, var.variable, var.units, id_)
+                dup_id = self.add_branch(interval, var.key, var.type, var.units, id_)
                 if dup_id:
                     duplicates[dup_id] = var
         return duplicates
@@ -163,19 +163,19 @@ class Tree:
             self,
             interval: str = None,
             key: str = None,
-            variable: str = None,
+            type: str = None,
             units: str = None,
             part_match: bool = False
     ) -> List[int]:
         """ Find variable ids for given arguments. """
-        cond = [interval, variable, key, units]
+        cond = [interval, type, key, units]
         ids = []
         for nd in self.root.children:
             level = -1
             self._loop(nd, level, ids, cond, part_match=part_match)
         if not ids:
             logging.warning(
-                f"Variable: '{interval} : {key} " f": {variable} : {units}' not found!"
+                f"Variable: '{interval} : {key} " f": {type} : {units}' not found!"
             )
         return ids
 
@@ -184,12 +184,12 @@ class Tree:
             self,
             interval: str = None,
             key: str = None,
-            variable: str = None,
+            type: str = None,
             units: str = None,
             part_match: bool = False
     ) -> Dict[str, List[int]]:
         """ Find interval : variable ids pairs for given arguments. """
-        cond = [variable, key, units]
+        cond = [type, key, units]
         pairs = {}
 
         for node in self.root.children:
@@ -211,7 +211,7 @@ class Tree:
 
         if not pairs:
             logging.warning(
-                f"Variable: '{interval} : {key} " f": {variable} : {units}' not found!"
+                f"Variable: '{interval} : {key} " f": {type} : {units}' not found!"
             )
 
         return pairs
@@ -244,8 +244,8 @@ class Tree:
                 self._rem_loop(nd, level, cond)
 
     @lower_args
-    def remove_variable(self, interval: str, key: str, variable: str, units: str) -> None:
-        cond = [interval, variable, key, units]
+    def remove_variable(self, interval: str, key: str, type: str, units: str) -> None:
+        cond = [interval, type, key, units]
         for nd in self.root.children:
             level = -1
             self._rem_loop(nd, level, cond)
