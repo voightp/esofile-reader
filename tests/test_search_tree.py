@@ -120,7 +120,10 @@ class TestSearchTree(unittest.TestCase):
     def test_remove_variable(self):
         v = Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C")
         self.tree.remove_variable(*v)
-        self.assertListEqual([], self.tree.get_ids(v))
+        self.assertListEqual([], self.tree.get_ids(*v))
+        self.assertListEqual(
+            [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14], self.tree.get_ids()
+        )
 
     def test_remove_branch(self):
         v = Variable("monthly", None, None, None)
