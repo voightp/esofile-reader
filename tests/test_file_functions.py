@@ -222,12 +222,12 @@ class TestFileFunctions(unittest.TestCase):
         id_, var = EF_ALL_INTERVALS.add_output("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
-        ids = EF_ALL_INTERVALS.search_tree.get_ids(*var)
+        ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
         EF_ALL_INTERVALS.remove_outputs(var)
-        ids = EF_ALL_INTERVALS.search_tree.get_ids(*var)
+        ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
@@ -336,11 +336,11 @@ class TestFileFunctions(unittest.TestCase):
         pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298, ])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
-    def test__find_pairs_by_interval_id(self):
-        pairs = EF_ALL_INTERVALS._find_pairs(
-            [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
-        )
-        self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
+    def test__find_pairs_unexpected_type(self):
+        with self.assertRaises(TypeError):
+            _ = EF_ALL_INTERVALS._find_pairs(
+                [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
+            )
 
 
 if __name__ == "__main__":

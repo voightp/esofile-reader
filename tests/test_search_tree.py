@@ -39,9 +39,9 @@ class TestSearchTree(unittest.TestCase):
         tree.populate_tree(
             {"daily":
                 {
-                    1: Variable("a", "b", "c", "d"),
-                    2: Variable("a", "b", "e", "f"),
-                    3: Variable("a", "b", "g", "h")
+                    1: Variable("daily", "b", "c", "d"),
+                    2: Variable("daily", "b", "e", "f"),
+                    3: Variable("daily", "b", "g", "h")
                 }
             }
         )
@@ -67,15 +67,15 @@ class TestSearchTree(unittest.TestCase):
 
     def test_add_branch(self):
         v = Variable("monthly", "new key", "new type_", "C")
-        id_ = self.tree.add_branch(17, *v)
+        id_ = self.tree._add_branch(17, v)
         self.assertIsNone(id_)
-        self.assertEqual([17], self.tree.get_ids(*v))
+        self.assertEqual([17], self.tree.find_ids(v))
 
     def test_add_duplicate_branch(self):
         v = Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J")
-        id_ = self.tree.add_branch(18, *v)
+        id_ = self.tree._add_branch(18, v)
         self.assertEqual(18, id_)
-        self.assertEqual([11], self.tree.get_ids(*v))
+        self.assertEqual([11], self.tree.find_ids(v))
 
     def test_populate_tree(self):
         tree = Tree()
@@ -89,63 +89,62 @@ class TestSearchTree(unittest.TestCase):
 
     def test_variable_exists(self):
         self.assertTrue(
-            self.tree.variable_exists(*Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"))
+            self.tree.variable_exists(Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"))
         )
 
     def test_variable_not_exists(self):
         self.assertFalse(
-            self.tree.variable_exists(*Variable("monthly", "Meter", "INVALID", "J"))
+            self.tree.variable_exists(Variable("monthly", "Meter", "INVALID", "J"))
         )
 
     def test_get_ids(self):
-        ids = self.tree.get_ids("monthly", "meter", "BLOCK1:ZONE1#LIGHTS", None)
+        ids = self.tree.find_ids(Variable("monthly", "meter", "BLOCK1:ZONE1#LIGHTS", None))
         self.assertListEqual([11], ids)
 
     def test_get_ids_no_part_match(self):
-        ids = self.tree.get_ids("monthly", "meter", "BLOCK1:ZONE", None, part_match=False)
+        ids = self.tree.find_ids(Variable("monthly", "meter", "BLOCK1:ZONE", None),
+                                 part_match=False)
         self.assertListEqual([], ids)
 
     def test_get_ids_part_match(self):
-        ids = self.tree.get_ids("monthly", "meter", "BLOCK1:ZONE", None, part_match=True)
+        ids = self.tree.find_ids(Variable("monthly", "meter", "BLOCK1:ZONE", None),
+                                 part_match=True)
         self.assertListEqual([11, 12], ids)
-
-    def test_get_pairs(self):
-        pairs = self.tree.get_pairs(*Variable(None, "Meter", None, None))
-        self.assertDictEqual({"monthly": [11, 12]}, pairs)
-
-    def test_get_pairs_invalid(self):
-        pairs = self.tree.get_pairs(*Variable("monthly", "BLOCK1:ZONE1", "INVALID", "UNITS"))
-        self.assertDictEqual({}, pairs)
 
     def test_remove_variable(self):
         v = Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C")
-        self.tree.remove_variable(*v)
-        self.assertListEqual([], self.tree.get_ids(*v))
+        self.tree.remove_variable(v)
+        self.assertListEqual([], self.tree.find_ids(v))
         self.assertListEqual(
-            [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14], self.tree.get_ids()
+            [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14],
+            self.tree.find_ids(Variable(None, None, None, None))
         )
 
     def test_remove_branch(self):
         v = Variable("monthly", None, None, None)
-        self.tree.remove_variable(*v)
-        self.assertListEqual([], self.tree.get_ids(*v))
+        self.tree.remove_variable(v)
+        self.assertListEqual([], self.tree.find_ids(v))
 
     def test_remove_variables(self):
         v1 = Variable("monthly", None, None, None)
         v2 = Variable("daily", None, "Zone Temperature", None)
         self.tree.remove_variables([v1, v2])
         self.assertListEqual(
-            [4, 5, 6, 9, 10], self.tree.get_ids(*Variable(None, None, None, None))
+            [4, 5, 6, 9, 10], self.tree.find_ids(Variable(None, None, None, None))
         )
+
+    def test_numeric_variable_name(self):
+        v = Variable("hourly", 10, 11, 12)
+        self.tree.add_variable(17, v)
 
     def test_add_variable(self):
         v = Variable("this", "is", "new", "variable")
         res = self.tree.add_variable(17, v)
         self.assertTrue(res)
-        self.assertListEqual([17], self.tree.get_ids(*v))
+        self.assertListEqual([17], self.tree.find_ids(v))
 
     def test_add_variable_invalid(self):
         v = Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C")
         res = self.tree.add_variable(17, v)
         self.assertFalse(res)
-        self.assertListEqual([1], self.tree.get_ids(*v))
+        self.assertListEqual([1], self.tree.find_ids(v))

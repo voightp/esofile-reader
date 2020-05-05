@@ -13,7 +13,7 @@ from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT, EF_ALL_INTERVALS
 
 
-class TestFileFunctions(unittest.TestCase):
+class TestDBFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = SQLStorage()
@@ -216,12 +216,12 @@ class TestFileFunctions(unittest.TestCase):
         id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
-        ids = self.ef.search_tree.get_ids(*var)
+        ids = self.ef.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
         self.ef.remove_outputs(var)
-        ids = self.ef.search_tree.get_ids(*var)
+        ids = self.ef.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
