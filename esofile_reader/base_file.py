@@ -124,14 +124,16 @@ class BaseFile:
             )
 
     def _find_pairs(
-            self, variables: Union[Variable, List[Variable]], part_match: bool = False
+            self,
+            variables: Union[Variable, List[Variable], List[int]],
+            part_match: bool = False
     ) -> Dict[str, List[int]]:
         """
         Find variable ids for a list of 'Variables'.
 
         Parameters
         ----------
-        variables : list of Variable
+        variables : list of {Variable, int}
             A list of 'Variable' named tuples.
         part_match : bool
             Only substring of the part of variable is enough
@@ -147,36 +149,24 @@ class BaseFile:
         variables = variables if isinstance(variables, list) else [variables]
         out = defaultdict(list)
 
-        if all(map(lambda x: isinstance(x, int), variables)):
+        if all(map(lambda x: isinstance(x, (Variable, int)), variables)):
+            if all(map(lambda x: isinstance(x, Variable), variables)):
+                ids = []
+                for variable in variables:
+                    ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
+            else:
+                # all inputs are integers
+                ids = variables
             header = self.data.get_all_variables_df()
-            df = header.loc[header[ID_LEVEL].isin(variables), [INTERVAL_LEVEL, ID_LEVEL]]
+            df = header.loc[header[ID_LEVEL].isin(ids), [INTERVAL_LEVEL, ID_LEVEL]]
             grouped = df.groupby(INTERVAL_LEVEL, sort=False, group_keys=False)
             for interval, df in grouped:
                 out[interval] = df[ID_LEVEL].tolist()
         else:
-            for variable in variables:
-                if (
-                        len(variable) == 2
-                        and isinstance(variable[0], str)
-                        and isinstance(variable[1], int)
-                ):
-                    out[variable[0]].append(variable[1])
-                else:
-                    # stringify potential integers
-                    v = [str(r) if isinstance(r, int) else r for r in variable]
-                    interval, key, var, units = v
-                    pairs = self.search_tree.get_pairs(
-                        interval=interval,
-                        key=key,
-                        type=var,
-                        units=units,
-                        part_match=part_match,
-                    )
-                    if not pairs:
-                        continue
-
-                    for k, v in pairs.items():
-                        out[k].extend(pairs[k])
+            raise TypeError(
+                "Unexpected variable type! This can only be "
+                "either integers or 'Variable' named tuples."
+            )
         return out
 
     def find_ids(
@@ -184,23 +174,14 @@ class BaseFile:
     ) -> List[int]:
         """ Find ids for a list of 'Variables'. """
         variables = variables if isinstance(variables, list) else [variables]
-        out = []
-
-        for request in variables:
-            interval, key, var, units = [str(r) if isinstance(r, int) else r for r in request]
-            ids = self.search_tree.get_ids(
-                interval=interval, key=key, type=var, units=units, part_match=part_match,
-            )
-            if not ids:
-                continue
-
-            out.extend(ids)
-
-        return out
+        ids = []
+        for variable in variables:
+            ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
+        return ids
 
     def get_results(
             self,
-            variables: Union[Variable, List[Variable]],
+            variables: Union[Variable, List[Variable], int, List[int]],
             start_date: datetime = None,
             end_date: datetime = None,
             output_type: str = "standard",
@@ -224,13 +205,13 @@ class BaseFile:
         Parameters
         ----------
         variables : Variable or list of (Variable)
-            Requested variables..
+            Requested variables.
         start_date : datetime like object, default None
             A start date for requested results.
         end_date : datetime like object, default None
             An end date for requested results.
         output_type : {'standard', global_max','global_min'}
-            Requested type of results.
+            Requested type_ of results.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
         include_interval : bool
@@ -245,7 +226,7 @@ class BaseFile:
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
         units_system : {'SI', 'IP'}
-            Selected units type for requested outputs.
+            Selected units type_ for requested outputs.
         rate_to_energy_dct : dct
             Defines if 'rate' will be converted to energy.
         rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
@@ -279,7 +260,7 @@ class BaseFile:
 
         if output_type not in res:
             raise InvalidOutputType(
-                f"Invalid output type '{output_type}' "
+                f"Invalid output type_ '{output_type}' "
                 f"requested.\n'output_type' kwarg must be"
                 f" one of '{', '.join(res.keys())}'."
             )
@@ -292,9 +273,8 @@ class BaseFile:
             )
 
         frames = []
-        groups = self._find_pairs(variables, part_match=part_match)
-
-        for interval, ids in groups.items():
+        pairs = self._find_pairs(variables, part_match=part_match)
+        for interval, ids in pairs.items():
             storage = self.data
             df = res[output_type]()
 
@@ -331,7 +311,7 @@ class BaseFile:
         variable = Variable(interval, key, var, units)
 
         i = 0
-        while self.search_tree.variable_exists(*variable):
+        while self.search_tree.variable_exists(variable):
             i += 1
             variable = add_num()
 
@@ -354,7 +334,7 @@ class BaseFile:
             )
         elif ids:
             # remove current item to avoid item duplicity
-            self.search_tree.remove_variables(variable)
+            self.search_tree.remove_variable(variable)
 
             # create new variable and add it into tree
             new_var = self.create_header_variable(interval, new_key, new_type, units)
@@ -372,7 +352,6 @@ class BaseFile:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(interval, key, type, units)
         id_ = self.data.insert_variable(new_var, array)
-
         if id_:
             self.search_tree.add_variable(id_, new_var)
             return id_, new_var
@@ -435,7 +414,6 @@ class BaseFile:
         if len(set(units)) == 1:
             # no processing required
             units = units[0]
-
         elif rate_and_energy_units(units) and interval != RANGE:
             # it's needed to assign multi index to convert energy
             try:
@@ -446,10 +424,8 @@ class BaseFile:
                     raise CannotAggregateVariables(
                         f"Cannot aggregate variables. " f"'{N_DAYS_COLUMN}' is not available!"
                     )
-
             df = convert_rate_to_energy(df, interval, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
-
         else:
             raise CannotAggregateVariables(
                 "Cannot aggregate variables. " "Variables use different units!"

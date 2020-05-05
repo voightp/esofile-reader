@@ -51,7 +51,7 @@ def get_results(
                 'standard', 'local_max',' global_max', 'timestep_max',
                 'local_min', 'global_min', 'timestep_min'
                 }
-            Requested type of results.
+            Requested type_ of results.
          add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
          include_interval : bool
@@ -66,7 +66,7 @@ def get_results(
             Only substring of the part of variable is enough
             to match when searching for variables if this is True.
          units_system : {'SI', 'IP'}
-            Selected units type for requested outputs.
+            Selected units type_ for requested outputs.
          rate_to_energy_dct : dct
             Defines if 'rate' will be converted to energy.
          rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}

@@ -111,9 +111,9 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_rename_variable(self):
         v = Variable(interval="range", key="ZoneC", type="Temperature", units="C")
-        self.bf.rename_variable(v, new_key="NEW5", new_type="VARIABLE")
+        self.bf.rename_variable(v, new_key="NEW", new_type="VARIABLE")
 
-        v = Variable(interval="range", key="NEW5", type="VARIABLE", units="")
+        v = Variable(interval="range", key="NEW", type="VARIABLE", units="C")
         ids = self.bf.find_ids(v)
         self.assertListEqual(ids, [3])
 
@@ -128,12 +128,12 @@ class TestRangeIntervalFile(unittest.TestCase):
         id_, var = self.bf.add_output("range", "new", "type", "C", [1, 2, 3])
         self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
 
-        ids = self.bf.search_tree.get_ids(*var)
+        ids = self.bf.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
         self.bf.remove_outputs(var)
-        ids = self.bf.search_tree.get_ids(*var)
+        ids = self.bf.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):

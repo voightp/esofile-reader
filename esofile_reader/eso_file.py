@@ -180,7 +180,7 @@ class EsoFile(BaseFile):
         variables : Variable or list of (Variable)
             Requested variables..
         output_type : {'standard', global_max','global_min', 'local_max', 'local_min'}
-                Requested type of results.
+                Requested type_ of results.
 
         **kwargs
             start_date : datetime like object, default None
@@ -201,7 +201,7 @@ class EsoFile(BaseFile):
                 Only substring of the part of variable is enough
                 to match when searching for variables if this is True.
             units_system : {'SI', 'IP'}
-                Selected units type for requested outputs.
+                Selected units type_ for requested outputs.
             rate_to_energy_dct : dct
                 Defines if 'rate' will be converted to energy.
             rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
