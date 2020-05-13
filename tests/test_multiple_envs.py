@@ -31,7 +31,7 @@ class TestMultipleEnvs(unittest.TestCase):
             self.assertTrue(ef.complete)
 
     def test_tree(self):
-        trees = [ef.search_tree.str_tree() for ef in self.efs]
+        trees = [ef.search_tree.__repr__() for ef in self.efs]
         self.assertEqual(len(set(trees)), 1)
 
     def test_multienv_file_required(self):

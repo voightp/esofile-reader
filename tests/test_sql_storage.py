@@ -90,7 +90,7 @@ class TestSqlDB(unittest.TestCase):
             self.assertEqual(f.file_name, lf.file_name)
             self.assertEqual(f.file_path, lf.file_path)
             self.assertEqual(f.id_, lf.id_)
-            self.assertEqual(len(f.search_tree.str_tree()), len(lf.search_tree.str_tree()))
+            self.assertEqual(len(f.search_tree.__repr__()), len(lf.search_tree.__repr__()))
 
             for interval in f.available_intervals:
                 self.assertEqual(
