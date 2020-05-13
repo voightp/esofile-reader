@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Sequence
+from typing import Sequence, Optional
 
 import numpy as np
 import pandas as pd
@@ -31,17 +31,16 @@ def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> p
 
     # drop order index
     df.columns = df.columns.droplevel("order")
-
     return df
 
 
 def _local_peaks(
-    df: pd.DataFrame,
-    val_ix: int = None,
-    month_ix: int = None,
-    day_ix: int = None,
-    hour_ix: int = None,
-    end_min_ix: int = None,
+        df: pd.DataFrame,
+        val_ix: int = None,
+        month_ix: int = None,
+        day_ix: int = None,
+        hour_ix: int = None,
+        end_min_ix: int = None,
 ) -> pd.DataFrame:
     """ Return value and datetime of occurrence. """
 
@@ -59,20 +58,16 @@ def _local_peaks(
 
         date = sr.name
         sr = sr.apply(parse_vals)
-
         return sr
 
     vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
     ixs = df.apply(get_timestamps, axis=1)
-
     df = merge_peak_outputs(ixs, vals)
-
     return df
 
 
 def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> pd.DataFrame:
     """ Create DataFrame for peak minimums. """
-
     max_indexes = {
         D: {"val_ix": 3, "hour_ix": 4, "end_min_ix": 5},
         M: {"val_ix": 4, "day_ix": 5, "hour_ix": 6, "end_min_ix": 7},
@@ -86,19 +81,17 @@ def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> p
         RP: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
     }
     indexes = max_indexes if max_ else min_indexes
-
     return _local_peaks(df, **indexes[interval])
 
 
 def slicer(
-    df: pd.DataFrame,
-    ids: Sequence[int],
-    start_date: datetime = None,
-    end_date: datetime = None,
+        df: pd.DataFrame,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
 ) -> pd.DataFrame:
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
-
     all_ids = df.columns.get_level_values(ID_LEVEL)
     if not all(map(lambda x: x in all_ids, ids)):
         raise KeyError(
@@ -106,9 +99,7 @@ def slicer(
             f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
             f" are not included."
         )
-
     cond = df.columns.get_level_values(ID_LEVEL).isin(ids)
-
     if start_date and end_date:
         df = df.loc[start_date:end_date, cond]
     elif start_date:
@@ -117,25 +108,22 @@ def slicer(
         df = df.loc[:end_date, cond]
     else:
         df = df.loc[:, cond]
-
     return df
 
 
-def df_dt_slicer(df: pd.DataFrame, start_date: datetime, end_date: datetime) -> pd.DataFrame:
+def df_dt_slicer(df: pd.DataFrame, start_date: Optional[datetime],
+                 end_date: Optional[datetime]) -> pd.DataFrame:
     """ Slice df 'vertically'. """
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]
     elif start_date:
-        df = df.loc[
-            start_date:,
-        ]
+        df = df.loc[start_date:, ]
     elif end_date:
         df = df.loc[:end_date, :]
-
     return df
 
 
-def sr_dt_slicer(sr: pd.Series, start_date: datetime, end_date: datetime):
+def sr_dt_slicer(sr: pd.Series, start_date: Optional[datetime], end_date: Optional[datetime]):
     """ Slice series. """
     if start_date and end_date:
         sr = sr.loc[start_date:end_date]
@@ -143,5 +131,4 @@ def sr_dt_slicer(sr: pd.Series, start_date: datetime, end_date: datetime):
         sr = sr.loc[start_date:]
     elif end_date:
         sr = sr.loc[:end_date]
-
     return sr
