@@ -9,8 +9,7 @@ from esofile_reader import EsoFile
 from esofile_reader import TotalsFile
 from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.processor.monitor import DefaultMonitor
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storage.pqt_storage import ParquetStorage, ParquetFile
 from tests import ROOT, EF1, EF_ALL_INTERVALS
 
 logging.basicConfig(level=logging.INFO)

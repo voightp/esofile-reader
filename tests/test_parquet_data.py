@@ -6,7 +6,7 @@ from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader import Variable
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storage.pqt_storage import ParquetFile
 from tests import EF_ALL_INTERVALS
 
 

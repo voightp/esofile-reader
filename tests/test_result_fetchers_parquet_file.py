@@ -8,7 +8,7 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import Variable
 from esofile_reader import get_results
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storage.pqt_storage import ParquetFile
 from tests import ROOT, EF1
 
 

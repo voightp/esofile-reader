@@ -1,6 +1,39 @@
+from esofile_reader import TotalsFile
+from esofile_reader.base_file import BaseFile
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
-from esofile_reader.storage.storage_files import DFFile
+
+
+class DFFile(BaseFile):
+    """
+    A class to represent database results set.
+
+    Attributes need to be populated from one of file
+    wrappers ('EsoFile', 'DiffFile', 'TotalsFile').
+
+
+    Attributes
+    ----------
+    id_ : int
+        Unique id identifier.
+    file : ResultsFile
+        One of ('EsoFile', 'DiffFile', 'TotalsFile') results files..
+
+    Notes
+    -----
+    Reference file must be complete!
+
+    """
+
+    def __init__(self, id_: int, file: ResultsFile):
+        super().__init__()
+        self.id_ = id_
+        self.file_path = file.file_path
+        self.file_name = file.file_name
+        self.data = file.data
+        self.file_created = file.file_created
+        self.search_tree = file.search_tree
+        self.totals = isinstance(file, TotalsFile)
 
 
 class DFStorage(BaseStorage):

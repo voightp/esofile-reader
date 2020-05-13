@@ -1,4 +1,5 @@
 import contextlib
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -15,6 +16,7 @@ from sqlalchemy import (
     exc,
 )
 
+from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.data.sql_data import SQLData
 from esofile_reader.mini_classes import ResultsFile
@@ -28,8 +30,62 @@ from esofile_reader.storage.sql_functions import (
     create_n_days_table,
     create_day_table,
 )
-from esofile_reader.storage.storage_files import SQLFile
 from esofile_reader.totals_file import TotalsFile
+
+
+class SQLFile(BaseFile):
+    """
+    A class to represent database results set.
+
+    Attributes need to be populated from one of file
+    wrappers ('EsoFile', 'DiffFile', 'TotalsFile').
+
+
+    Attributes
+    ----------
+    id_ : int
+        Unique id identifier.
+    file_path: str
+        A file path of the reference file.
+    file_name: str
+        File name of the reference file.
+    sql_data: SQLData
+        Processed SQL data instance.
+    file_created: datetime
+        A creation datetime of the reference file.
+    search_tree: Tree
+        Search tree instance.
+    totals: bool
+        A flag to check if the reference file was 'totals'.
+
+    Notes
+    -----
+    Reference file must be complete!
+
+    """
+
+    def __init__(
+            self,
+            id_: int,
+            file_path: str,
+            file_name: str,
+            sql_data: SQLData,
+            file_created: datetime,
+            search_tree: Tree,
+            totals: bool,
+    ):
+        super().__init__()
+        self.id_ = id_
+        self.file_path = file_path
+        self.file_name = file_name
+        self.data = sql_data
+        self.file_created = file_created
+        self.search_tree = search_tree
+        self.totals = totals
+
+    def rename(self, name: str) -> None:
+        self.file_name = name
+        self.data.update_file_name(name)
 
 
 class SQLStorage(BaseStorage):
