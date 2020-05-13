@@ -57,21 +57,6 @@ class Tree:
         self.root = Node(None, "groot")
 
     def __repr__(self):
-        return self.str_tree()
-
-    def tree_variable(self, variable: Variable):
-        """ Pass reordered variable. """
-
-        def low_string(s):
-            # piece can be 'None' which will be kept
-            return str(s).lower() if s else s
-
-        v = Variable(*map(low_string, variable))
-        return [v.__getattribute__(level) for level in self.ORDER]
-
-    def str_tree(self) -> str:
-        """ A string representation of a tree. """
-
         def _loopstr(node: Node, level: int, lst: list) -> None:
             """ Create a string representation of a tree. """
             level += 1
@@ -87,6 +72,16 @@ class Tree:
         lst = []
         _loopstr(self.root, level, lst)
         return str.join("", lst)
+
+    def tree_variable(self, variable: Variable):
+        """ Pass reordered variable. """
+
+        def low_string(s):
+            # piece can be 'None' which will be kept
+            return str(s).lower() if s else s
+
+        v = Variable(*map(low_string, variable))
+        return [v.__getattribute__(level) for level in self.ORDER]
 
     @staticmethod
     def _add_node(node_key: str, parent: Node) -> Node:

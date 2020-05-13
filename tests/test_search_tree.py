@@ -63,7 +63,7 @@ class TestSearchTree(unittest.TestCase):
 					3
 
 """
-        self.assertEqual(strtree, tree.str_tree())
+        self.assertEqual(strtree, tree.__repr__())
 
     def test_add_branch(self):
         v = Variable("monthly", "new key", "new type_", "C")
