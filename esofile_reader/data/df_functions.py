@@ -117,7 +117,7 @@ def df_dt_slicer(df: pd.DataFrame, start_date: Optional[datetime],
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]
     elif start_date:
-        df = df.loc[start_date:, ]
+        df = df.loc[start_date:, :]
     elif end_date:
         df = df.loc[:end_date, :]
     return df
