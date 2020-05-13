@@ -133,16 +133,12 @@ class TestSQLData(unittest.TestCase):
 
     def test_get_variables_df(self):
         df = self.sql_file.data.get_variables_df("daily")
-        self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
-        )
+        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (19, 5))
 
     def test_all_variables_df(self):
         df = self.sql_file.data.get_all_variables_df()
-        self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
-        )
+        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (114, 5))
 
     def test_rename_variable(self):
@@ -259,7 +255,7 @@ class TestSQLData(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -294,7 +290,7 @@ class TestSQLData(unittest.TestCase):
         )
 
         test_df = pd.DataFrame(
-            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08], ],
+            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08],],
             columns=test_columns,
             index=test_index,
         )
@@ -328,7 +324,7 @@ class TestSQLData(unittest.TestCase):
             names=["timestamp", "day"],
         )
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
             columns=test_columns,
             index=test_index,
         )
@@ -363,7 +359,7 @@ class TestSQLData(unittest.TestCase):
             names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
+            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
             columns=test_columns,
         )
 
@@ -385,7 +381,7 @@ class TestSQLData(unittest.TestCase):
             names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
+            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],
             columns=test_columns,
         )
 

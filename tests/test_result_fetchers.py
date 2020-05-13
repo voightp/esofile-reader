@@ -13,7 +13,6 @@ from tests import ROOT, EF1, EF2_PEAKS
 
 
 class TestResultFetching(unittest.TestCase):
-
     def test_get_results(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         df = get_results(EF1, v)

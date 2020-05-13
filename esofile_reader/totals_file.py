@@ -124,7 +124,7 @@ class TotalsFile(BaseFile):
         return df.T
 
     def _get_grouped_vars(
-            self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+        self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
     ) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}

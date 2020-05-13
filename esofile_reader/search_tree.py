@@ -46,12 +46,8 @@ class Tree:
         as its children and children of children.
 
     """
-    ORDER = [
-        INTERVAL_LEVEL,
-        TYPE_LEVEL,
-        KEY_LEVEL,
-        UNITS_LEVEL
-    ]
+
+    ORDER = [INTERVAL_LEVEL, TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
 
     def __init__(self):
         self.root = Node(None, "groot")
@@ -134,12 +130,12 @@ class Tree:
             return condition in node.key
 
     def _loop(
-            self,
-            node: Node,
-            level: int,
-            ids: List[int],
-            cond: List[Optional[str]],
-            part_match: bool = False
+        self,
+        node: Node,
+        level: int,
+        ids: List[int],
+        cond: List[Optional[str]],
+        part_match: bool = False,
     ) -> None:
         """ Search through the tree to find ids. """
         level += 1

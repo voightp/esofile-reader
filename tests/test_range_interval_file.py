@@ -81,10 +81,7 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="range",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            interval="range", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.bf.find_ids(v, part_match=False)
         self.assertEqual(ids, [])
@@ -145,9 +142,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         id_, var = self.bf.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
-            Variable(
-                interval="range", key="Custom Key - sum", type="Temperature", units="C"
-            ),
+            Variable(interval="range", key="Custom Key - sum", type="Temperature", units="C"),
         )
         self.bf.remove_outputs(var)
 

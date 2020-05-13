@@ -51,14 +51,14 @@ class SQLFile(BaseFile):
     """
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            sql_data: SQLData,
-            file_created: datetime,
-            search_tree: Tree,
-            totals: bool,
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        sql_data: SQLData,
+        file_created: datetime,
+        search_tree: Tree,
+        totals: bool,
     ):
         super().__init__()
         self.id_ = id_
@@ -148,17 +148,17 @@ class ParquetFile(BaseFile):
     EXT = ".cff"
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            data: Union[DFData, str, Path],
-            file_created: datetime,
-            type_: str,
-            pardir:str ="",
-            search_tree: Tree = None,
-            name: str = None,
-            monitor: DefaultMonitor = None,
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        data: Union[DFData, str, Path],
+        file_created: datetime,
+        type_: str,
+        pardir: str = "",
+        search_tree: Tree = None,
+        name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         super().__init__()
         self.id_ = id_
@@ -193,12 +193,12 @@ class ParquetFile(BaseFile):
 
     @classmethod
     def from_results_file(
-            cls,
-            id_: int,
-            results_file: ResultsFile,
-            pardir: str = "",
-            name: str = None,
-            monitor: DefaultMonitor = None
+        cls,
+        id_: int,
+        results_file: ResultsFile,
+        pardir: str = "",
+        name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         pqs = ParquetFile(
             id_=id_,
@@ -210,14 +210,14 @@ class ParquetFile(BaseFile):
             type_=results_file.__class__.__name__,
             pardir=pardir,
             name=name,
-            monitor=monitor
+            monitor=monitor,
         )
 
         return pqs
 
     @classmethod
     def load_file(
-            cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
+        cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
     ) -> "ParquetFile":
         """ Load parquet storage into given location. """
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
@@ -288,7 +288,7 @@ class ParquetFile(BaseFile):
         return info
 
     def save_as(
-            self, dir_: Union[str, Path] = None, name: str = None
+        self, dir_: Union[str, Path] = None, name: str = None
     ) -> Union[Path, io.BytesIO]:
         """ Save parquet storage into given location. """
         info = self.save_meta()

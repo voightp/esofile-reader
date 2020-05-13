@@ -74,7 +74,7 @@ class DiffFile(BaseFile):
         return diff
 
     def process_diff(
-            self, first_file: ResultsFile, other_file: ResultsFile
+        self, first_file: ResultsFile, other_file: ResultsFile
     ) -> Tuple[Data, Tree]:
         """ Create diff outputs. """
         header = {}

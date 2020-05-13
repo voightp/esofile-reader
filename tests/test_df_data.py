@@ -122,16 +122,12 @@ class TestDFData(unittest.TestCase):
 
     def test_get_variables_df(self):
         df = EF_ALL_INTERVALS.data.get_variables_df("daily")
-        self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
-        )
+        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (19, 5))
 
     def test_all_variables_df(self):
         df = EF_ALL_INTERVALS.data.get_all_variables_df()
-        self.assertListEqual(
-            df.columns.tolist(), ["id", "interval", "key", "type", "units"]
-        )
+        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (114, 5))
 
     def test_rename_variable(self):

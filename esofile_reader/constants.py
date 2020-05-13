@@ -31,7 +31,7 @@ AVERAGED_UNITS = [
     "ach",
     "hr",
     "%",
-    "kgWater/kgDryAir"
+    "kgWater/kgDryAir",
 ]
 
 SUMMED_UNITS = ["J", "J/m2"]

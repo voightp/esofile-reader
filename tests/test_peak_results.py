@@ -8,7 +8,6 @@ from tests import ROOT, EF_ALL_INTERVALS_PEAKS
 
 
 class TestPeakResults(unittest.TestCase):
-
     def test_global_max_results(self):
         results = [
             [
@@ -378,4 +377,5 @@ class TestPeakResults(unittest.TestCase):
             Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
         ]
         self.assertIsNone(
-            EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min"))
+            EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+        )

@@ -16,5 +16,3 @@ def incremental_id_gen():
     while True:
         i += 1
         yield i
-
-

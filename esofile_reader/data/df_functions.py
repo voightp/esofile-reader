@@ -35,12 +35,12 @@ def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> p
 
 
 def _local_peaks(
-        df: pd.DataFrame,
-        val_ix: int = None,
-        month_ix: int = None,
-        day_ix: int = None,
-        hour_ix: int = None,
-        end_min_ix: int = None,
+    df: pd.DataFrame,
+    val_ix: int = None,
+    month_ix: int = None,
+    day_ix: int = None,
+    hour_ix: int = None,
+    end_min_ix: int = None,
 ) -> pd.DataFrame:
     """ Return value and datetime of occurrence. """
 
@@ -85,10 +85,10 @@ def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> p
 
 
 def slicer(
-        df: pd.DataFrame,
-        ids: Sequence[int],
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+    df: pd.DataFrame,
+    ids: Sequence[int],
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
 ) -> pd.DataFrame:
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
@@ -111,8 +111,9 @@ def slicer(
     return df
 
 
-def df_dt_slicer(df: pd.DataFrame, start_date: Optional[datetime],
-                 end_date: Optional[datetime]) -> pd.DataFrame:
+def df_dt_slicer(
+    df: pd.DataFrame, start_date: Optional[datetime], end_date: Optional[datetime]
+) -> pd.DataFrame:
     """ Slice df 'vertically'. """
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]

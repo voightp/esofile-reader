@@ -120,13 +120,7 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             res = conn.execute(
                 select(
-                    [
-                        table.c.id,
-                        table.c.interval,
-                        table.c.key,
-                        table.c.type,
-                        table.c.units,
-                    ]
+                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units,]
                 )
             )
 
@@ -159,13 +153,7 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             res = conn.execute(
                 select(
-                    [
-                        table.c.id,
-                        table.c.interval,
-                        table.c.key,
-                        table.c.type,
-                        table.c.units,
-                    ]
+                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units,]
                 )
             )
             df = pd.DataFrame(res, columns=COLUMN_LEVELS)
@@ -177,7 +165,9 @@ class SQLData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def update_variable_name(self, interval: str, id_: int, new_key: str, new_type:str) -> None:
+    def update_variable_name(
+        self, interval: str, id_: int, new_key: str, new_type: str
+    ) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
             conn.execute(
@@ -261,9 +251,7 @@ class SQLData(BaseData):
         try:
             table = self._get_day_table(interval)
         except KeyError:
-            raise KeyError(
-                f"'{DAY_COLUMN}' column is not available " f"on the given data set."
-            )
+            raise KeyError(f"'{DAY_COLUMN}' column is not available " f"on the given data set.")
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
@@ -288,9 +276,7 @@ class SQLData(BaseData):
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
-            df = pd.DataFrame(
-                res, columns=[*COLUMN_LEVELS, "values"]
-            )
+            df = pd.DataFrame(res, columns=[*COLUMN_LEVELS, "values"])
             if df.empty:
                 raise KeyError(
                     f"Cannot find results, any of given ids: "

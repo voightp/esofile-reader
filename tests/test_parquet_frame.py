@@ -4,7 +4,7 @@ from unittest import TestCase
 
 import pandas as pd
 import pyarrow.parquet as pq
-from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader import Variable
 from esofile_reader.data.pqt_data import ParquetFrame
@@ -140,14 +140,14 @@ class TestParquetFrame(TestCase):
 
     def test_loc_slice_rows(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
         )
 
     def test_loc(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
         )
 
     def test_invalid_loc(self):
@@ -197,8 +197,8 @@ class TestParquetFrame(TestCase):
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-        self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
-        self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
+        self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
+        self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_loc_invalid_setter(self):
@@ -230,13 +230,12 @@ class TestParquetFrame(TestCase):
         self.pqf.insert_column(((100, "this", "is", "dummy", "type")), ["a", "b", "c"])
         columns = pd.MultiIndex.from_tuples(
             [(100, "this", "is", "dummy", "type")],
-            names=["id", "interval", "key", "type", "units"]
+            names=["id", "interval", "key", "type", "units"],
         )
         index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
 
         assert_frame_equal(
-            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns),
-            self.pqf[100],
+            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns), self.pqf[100],
         )
 
     def test_insert_column_middle(self):
@@ -261,13 +260,12 @@ class TestParquetFrame(TestCase):
         ]
         columns = pd.MultiIndex.from_tuples(
             [(100, "this", "is", "dummy", "type")],
-            names=["id", "interval", "key", "type", "units"]
+            names=["id", "interval", "key", "type", "units"],
         )
         index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
 
         assert_frame_equal(
-            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns),
-            self.pqf[100],
+            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns), self.pqf[100],
         )
 
     def test_drop(self):

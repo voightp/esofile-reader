@@ -15,7 +15,8 @@ class TestSearchTree(unittest.TestCase):
                 5: Variable("daily", "BLOCK1:ZONE1_WALL_3_0_0_0_0_0_WIN", "Window Gain", "W"),
                 6: Variable("daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
                 9: Variable("daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
-                10: Variable("daily", "BLOCK1:ZONE2_WALL_4_8_9", "Wall Gain", "W")},
+                10: Variable("daily", "BLOCK1:ZONE2_WALL_4_8_9", "Wall Gain", "W"),
+            },
             "monthly": {
                 11: Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
                 12: Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
@@ -23,7 +24,7 @@ class TestSearchTree(unittest.TestCase):
                 14: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
                 15: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
                 16: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-            }
+            },
         }
         self.tree = Tree()
         self.tree.populate_tree(self.header)
@@ -37,11 +38,11 @@ class TestSearchTree(unittest.TestCase):
     def test_str_tree(self):
         tree = Tree()
         tree.populate_tree(
-            {"daily":
-                {
+            {
+                "daily": {
                     1: Variable("daily", "b", "c", "d"),
                     2: Variable("daily", "b", "e", "f"),
-                    3: Variable("daily", "b", "g", "h")
+                    3: Variable("daily", "b", "g", "h"),
                 }
             }
         )
@@ -83,9 +84,10 @@ class TestSearchTree(unittest.TestCase):
         self.assertDictEqual(
             {
                 15: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-                16: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s")
+                16: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
             },
-            duplicates)
+            duplicates,
+        )
 
     def test_variable_exists(self):
         self.assertTrue(
@@ -102,13 +104,15 @@ class TestSearchTree(unittest.TestCase):
         self.assertListEqual([11], ids)
 
     def test_get_ids_no_part_match(self):
-        ids = self.tree.find_ids(Variable("monthly", "meter", "BLOCK1:ZONE", None),
-                                 part_match=False)
+        ids = self.tree.find_ids(
+            Variable("monthly", "meter", "BLOCK1:ZONE", None), part_match=False
+        )
         self.assertListEqual([], ids)
 
     def test_get_ids_part_match(self):
-        ids = self.tree.find_ids(Variable("monthly", "meter", "BLOCK1:ZONE", None),
-                                 part_match=True)
+        ids = self.tree.find_ids(
+            Variable("monthly", "meter", "BLOCK1:ZONE", None), part_match=True
+        )
         self.assertListEqual([11, 12], ids)
 
     def test_remove_variable(self):
@@ -117,7 +121,7 @@ class TestSearchTree(unittest.TestCase):
         self.assertListEqual([], self.tree.find_ids(v))
         self.assertListEqual(
             [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14],
-            self.tree.find_ids(Variable(None, None, None, None))
+            self.tree.find_ids(Variable(None, None, None, None)),
         )
 
     def test_remove_branch(self):

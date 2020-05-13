@@ -124,10 +124,7 @@ class TestDBFileFunctions(unittest.TestCase):
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="time",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            interval="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
         self.assertListEqual([], ids)
@@ -233,9 +230,7 @@ class TestDBFileFunctions(unittest.TestCase):
             _ = self.ef.add_output("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
-        v = Variable(
-            interval="hourly", key=None, type="Zone People Occupant Count", units=""
-        )
+        v = Variable(interval="hourly", key=None, type="Zone People Occupant Count", units="")
         id_, var = self.ef.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
