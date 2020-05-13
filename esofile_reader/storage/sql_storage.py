@@ -12,7 +12,6 @@ from sqlalchemy import (
     create_engine,
     DateTime,
     select,
-    Boolean,
     exc,
 )
 
@@ -30,7 +29,6 @@ from esofile_reader.storage.sql_functions import (
     create_n_days_table,
     create_day_table,
 )
-from esofile_reader.totals_file import TotalsFile
 
 
 class SQLFile(BaseFile):
@@ -55,8 +53,8 @@ class SQLFile(BaseFile):
         A creation datetime of the reference file.
     search_tree: Tree
         Search tree instance.
-    totals: bool
-        A flag to check if the reference file was 'totals'.
+    type_: str
+        Original file class name..
 
     Notes
     -----
@@ -72,7 +70,7 @@ class SQLFile(BaseFile):
             sql_data: SQLData,
             file_created: datetime,
             search_tree: Tree,
-            totals: bool,
+            type_: str,
     ):
         super().__init__()
         self.id_ = id_
@@ -81,7 +79,7 @@ class SQLFile(BaseFile):
         self.data = sql_data
         self.file_created = file_created
         self.search_tree = search_tree
-        self.totals = totals
+        self.type_ = type_
 
     def rename(self, name: str) -> None:
         self.file_name = name
@@ -116,7 +114,7 @@ class SQLStorage(BaseStorage):
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_created", DateTime),
-                Column("totals", Boolean),
+                Column("type_", String(50)),
                 Column("range_outputs_table", String(50)),
                 Column("timestep_outputs_table", String(50)),
                 Column("hourly_outputs_table", String(50)),
@@ -156,7 +154,7 @@ class SQLStorage(BaseStorage):
             file_path=results_file.file_path,
             file_name=results_file.file_name,
             file_created=results_file.file_created,
-            totals=isinstance(results_file, TotalsFile),
+            type_=results_file.__class__.__name__,
         )
 
         # insert new file data
@@ -218,7 +216,7 @@ class SQLStorage(BaseStorage):
                     sql_data=SQLData(id_, self),
                     file_created=results_file.file_created,
                     search_tree=results_file.search_tree,
-                    totals=isinstance(results_file, TotalsFile),
+                    type_=results_file.__class__.__name__,
                 )
 
         # store file in a class attribute
@@ -266,7 +264,7 @@ class SQLStorage(BaseStorage):
                             files.c.file_path,
                             files.c.file_name,
                             files.c.file_created,
-                            files.c.totals,
+                            files.c.type_,
                         ]
                     ).where(files.c.id == id_)
                 ).first()
@@ -283,7 +281,7 @@ class SQLStorage(BaseStorage):
                 sql_data=data,
                 file_created=res[3],
                 search_tree=tree,
-                totals=res[4],
+                type_=res[4],
             )
 
             self.files[id_] = db_file

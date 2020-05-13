@@ -57,9 +57,9 @@ class TestSqlDB(unittest.TestCase):
         storage = SQLStorage()
         id_ = storage.store_file(TotalsFile(EF_ALL_INTERVALS))
         res = storage.engine.execute(
-            f"""SELECT totals FROM 'result-files' WHERE id={id_};"""
+            f"""SELECT type_ FROM 'result-files' WHERE id={id_};"""
         ).scalar()
-        self.assertTrue(res)
+        self.assertEqual("TotalsFile", res)
 
     def test_05_delete_file(self):
         storage = SQLStorage()
@@ -91,6 +91,7 @@ class TestSqlDB(unittest.TestCase):
             self.assertEqual(f.file_path, lf.file_path)
             self.assertEqual(f.id_, lf.id_)
             self.assertEqual(len(f.search_tree.__repr__()), len(lf.search_tree.__repr__()))
+            self.assertEqual("EsoFile", f.type_)
 
             for interval in f.available_intervals:
                 self.assertEqual(
