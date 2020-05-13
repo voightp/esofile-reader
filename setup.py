@@ -1,6 +1,7 @@
-import setuptools
 import sys
 from pathlib import Path
+
+import setuptools
 from Cython.Build import cythonize
 
 with open("README.md", "r") as fh:
@@ -18,6 +19,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/voightp/esofile-reader.git",
     packages=setuptools.find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
