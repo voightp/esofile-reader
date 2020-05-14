@@ -1,7 +1,8 @@
 from random import randint
+from typing import List
 
 
-def id_gen(checklist, negative=True):
+def random_id_gen(checklist: List[int], negative=True):
     """ ID generator. """
     while True:
         i = randint(1, 999999)
@@ -10,9 +11,12 @@ def id_gen(checklist, negative=True):
             return -randint(1, 999999)
 
 
-def incremental_id_gen():
+def incremental_id_gen(start: int = 0, checklist: List[int] = None):
     """ Incremental id generator. """
-    i = 0
+    checklist = checklist if checklist else []
+    i = start - 1
     while True:
         i += 1
+        if i in checklist:
+            continue
         yield i

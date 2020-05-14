@@ -190,7 +190,7 @@ class TotalsFile(BaseFile):
             return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
 
         outputs = DFData()
-        id_gen = incremental_id_gen()
+        id_gen = incremental_id_gen(start=1)
 
         for interval in file.available_intervals:
             out = file.data.get_all_results(interval)

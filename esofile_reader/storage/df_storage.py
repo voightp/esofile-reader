@@ -1,5 +1,6 @@
 from esofile_reader import TotalsFile
 from esofile_reader.base_file import BaseFile
+from esofile_reader.id_generators import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
 
@@ -41,14 +42,9 @@ class DFStorage(BaseStorage):
         super().__init__()
         self.files = {}
 
-    def _id_generator(self):
-        id_ = 0
-        while id_ in self.files.keys():
-            id_ += 1
-        return id_
-
     def store_file(self, results_file: ResultsFile) -> int:
-        id_ = self._id_generator()
+        id_gen = incremental_id_gen(checklist=list(self.files.keys()))
+        id_ = next(id_gen)
         self.files[id_] = DFFile(id_, results_file)
         return id_
 

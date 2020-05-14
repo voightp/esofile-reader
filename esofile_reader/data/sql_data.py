@@ -12,7 +12,7 @@ from esofile_reader.data.df_functions import (
     sr_dt_slicer,
     merge_peak_outputs,
 )
-from esofile_reader.id_generators import id_gen
+from esofile_reader.id_generators import random_id_gen
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storage.sql_functions import destringify_values
 
@@ -190,7 +190,7 @@ class SQLData(BaseData):
             table = self._get_results_table(variable.interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
             all_ids = self.get_all_variable_ids()
-            id_ = id_gen(all_ids)
+            id_ = random_id_gen(all_ids)
             with self.storage.engine.connect() as conn:
                 statement = table.insert().values(
                     {"id": id_, **variable._asdict(), "str_values": str_array}

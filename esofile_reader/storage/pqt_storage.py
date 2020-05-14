@@ -13,6 +13,7 @@ from zipfile import ZipFile
 from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
 from esofile_reader.data.pqt_data import ParquetFrame, ParquetData
+from esofile_reader.id_generators import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
@@ -264,7 +265,8 @@ class ParquetStorage(DFStorage):
             monitor.reset_progress(new_max=n_steps)
             monitor.storing_started()
 
-        id_ = self._id_generator()
+        id_gen = incremental_id_gen(checklist=list(self.files.keys()))
+        id_ = next(id_gen)
         file = ParquetFile.from_results_file(
             id_=id_, results_file=results_file, pardir=self.workdir, name="", monitor=monitor
         )
@@ -305,12 +307,12 @@ class ParquetStorage(DFStorage):
     def merge_with(self, storage_path: Union[str, List[str]]) -> None:
         """ Merge this storage with arbitrary number of other ones. """
         paths = storage_path if isinstance(storage_path, list) else [storage_path]
-
+        id_gen = incremental_id_gen(start=0, checklist=list(self.files.keys()))
         for path in paths:
             pqs = ParquetStorage.load_storage(path)
             for id_, file in pqs.files.items():
                 # create new identifiers in case that id already exists
-                new_id = self._id_generator() if id_ in self.files.keys() else id_
+                new_id = next(id_gen) if id_ in self.files.keys() else id_
                 new_name = f"file-{new_id}"
                 new_workdir = Path(self.workdir, new_name)
 
