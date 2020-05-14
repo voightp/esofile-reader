@@ -24,7 +24,6 @@ class SQLData(BaseData):
 
     def update_file_name(self, name: str) -> None:
         ft = self.storage.file_table
-
         with self.storage.engine.connect() as conn:
             conn.execute(ft.update().where(ft.c.id == self.id_).values(file_name=name))
 
@@ -36,7 +35,6 @@ class SQLData(BaseData):
 
     def _get_results_table(self, interval: str) -> Table:
         ft = self.storage.file_table
-
         switch = {
             TS: ft.c.timestep_outputs_table,
             H: ft.c.hourly_outputs_table,
@@ -46,12 +44,10 @@ class SQLData(BaseData):
             RP: ft.c.runperiod_outputs_table,
             RANGE: ft.c.range_outputs_table,
         }
-
         return self._get_table(switch[interval], ft)
 
     def _get_datetime_table(self, interval: str) -> Table:
         ft = self.storage.file_table
-
         switch = {
             TS: ft.c.timestep_dt_table,
             H: ft.c.hourly_dt_table,
@@ -60,29 +56,24 @@ class SQLData(BaseData):
             A: ft.c.annual_dt_table,
             RP: ft.c.runperiod_dt_table,
         }
-
         return self._get_table(switch[interval], ft)
 
     def _get_n_days_table(self, interval: str) -> Table:
         ft = self.storage.file_table
-
         switch = {
             M: ft.c.monthly_n_days_table,
             A: ft.c.annual_n_days_table,
             RP: ft.c.runperiod_n_days_table,
         }
-
         return self._get_table(switch[interval], ft)
 
     def _get_day_table(self, interval: str) -> Table:
         ft = self.storage.file_table
-
         switch = {
             TS: ft.c.timestep_day_table,
             H: ft.c.hourly_day_table,
             D: ft.c.daily_day_table,
         }
-
         return self._get_table(switch[interval], ft)
 
     def get_available_intervals(self) -> List[str]:
@@ -96,7 +87,6 @@ class SQLData(BaseData):
             ft.c.annual_outputs_table,
             ft.c.range_outputs_table,
         ]
-
         intervals = []
         with self.storage.engine.connect() as conn:
             res = conn.execute(select(columns).where(ft.c.id == self.id_)).first()
@@ -107,11 +97,9 @@ class SQLData(BaseData):
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
         table = self._get_datetime_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
             datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
-
         return datetime_index
 
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
@@ -126,7 +114,6 @@ class SQLData(BaseData):
 
             for row in res:
                 variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
-
         return variables_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
@@ -176,13 +163,10 @@ class SQLData(BaseData):
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(select([table.c.str_values])).scalar()
-
         # number of elements in array
         n = res.count(self.storage.SEPARATOR) + 1
-
         return len(array) == n
 
     def insert_variable(self, variable: Variable, array: Sequence[float]) -> None:
@@ -276,7 +260,6 @@ class SQLData(BaseData):
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
             df = pd.DataFrame(res, columns=[*COLUMN_LEVELS, "values"])
@@ -289,7 +272,6 @@ class SQLData(BaseData):
 
             df.set_index(COLUMN_LEVELS, inplace=True)
             df = destringify_values(df)
-
         if interval == RANGE:
             # create default 'range' index
             df.index.rename(RANGE, inplace=True)
