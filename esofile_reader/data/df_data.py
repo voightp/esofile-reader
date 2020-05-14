@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Sequence, List, Dict
+from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
 
@@ -163,8 +163,8 @@ class DFData(BaseData):
         self.tables[interval].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def _get_special_column(
-            self, interval: str, name: str, start_date: datetime = None,
-            end_date: datetime = None,
+            self, interval: str, name: str, start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values(ID_LEVEL):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
@@ -177,12 +177,14 @@ class DFData(BaseData):
         return col
 
     def get_number_of_days(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
     ) -> pd.Series:
         return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
 
     def get_days_of_week(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
     ) -> pd.Series:
         return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
@@ -195,8 +197,8 @@ class DFData(BaseData):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
             include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
@@ -239,8 +241,8 @@ class DFData(BaseData):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
@@ -248,7 +250,7 @@ class DFData(BaseData):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

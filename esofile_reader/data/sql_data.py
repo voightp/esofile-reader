@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Sequence, List, Dict
+from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
 from sqlalchemy import Table, select
@@ -227,7 +227,8 @@ class SQLData(BaseData):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
     ) -> pd.Series:
         try:
             table = self._get_n_days_table(interval)
@@ -247,7 +248,8 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+            self, interval: str, start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None
     ) -> pd.Series:
         try:
             table = self._get_day_table(interval)
@@ -265,12 +267,12 @@ class SQLData(BaseData):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         table = self._get_results_table(interval)
@@ -329,19 +331,19 @@ class SQLData(BaseData):
         return df
 
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)
