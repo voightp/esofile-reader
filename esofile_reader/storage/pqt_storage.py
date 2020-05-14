@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
 from esofile_reader.data.pqt_data import ParquetFrame, ParquetData
-from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processor.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree

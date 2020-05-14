@@ -198,6 +198,7 @@ class TestDBFileFunctions(unittest.TestCase):
     def test_add_output(self):
         id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
+        self.assertEqual(100, id_)
         self.ef.remove_outputs(var)
 
     def test_add_two_outputs(self):

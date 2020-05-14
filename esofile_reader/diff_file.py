@@ -7,7 +7,7 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
 from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
-from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile, Data
 from esofile_reader.search_tree import Tree
 

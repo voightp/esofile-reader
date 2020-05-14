@@ -157,6 +157,7 @@ class TestDFData(unittest.TestCase):
             :, (id_, "monthly", "FOO", "BAR", "C")
         ]
         self.assertListEqual(col.to_list(), list(range(12)))
+        self.assertEqual(id_, 100)
 
         EF_ALL_INTERVALS.data.delete_variables("monthly", [id_])
         with self.assertRaises(KeyError):

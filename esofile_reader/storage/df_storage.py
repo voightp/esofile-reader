@@ -1,6 +1,6 @@
 from esofile_reader import TotalsFile
 from esofile_reader.base_file import BaseFile
-from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
 
