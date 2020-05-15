@@ -16,6 +16,14 @@ class TestDFData(unittest.TestCase):
             intervals, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
+    def test_is_simple(self):
+        intervals = EF_ALL_INTERVALS.data.get_available_intervals()
+        for interval in intervals:
+            self.assertFalse(EF_ALL_INTERVALS.data.is_simple(interval))
+
+    def test_get_levels(self):
+        self.fail()
+
     def test_get_datetime_index(self):
         index = EF_ALL_INTERVALS.data.get_datetime_index("monthly")
         assert_index_equal(

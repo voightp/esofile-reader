@@ -50,14 +50,8 @@ class _ParquetIndexer:
 
         if isinstance(item, tuple):
             row, col = item
-
-            if isinstance(col, list):
-                # keep DataFrame
-                reduce_dim = False
-
             # transform for compatibility with further checks
             col = [col] if isinstance(col, (int, str, tuple)) else col
-
             all_ids = self.frame.columns.get_level_values(ID_LEVEL).to_series()
             if _is_id():
                 ids = all_ids.where(all_ids.isin(col)).dropna().tolist()
@@ -289,12 +283,11 @@ class ParquetFrame:
 
     def get_df_from_parquet(self, chunk_name: str, ids: List[int] = None) -> pd.DataFrame:
         """ Get DataFrame from given chunk. ."""
-
         if ids:
             mi = self.columns[self.columns.get_level_values(ID_LEVEL).isin(ids)]
             columns = []
             for ix in mi:
-                s = rf"('{ix[0]}', '{ix[1]}', '{ix[2]}', '{ix[3]}', '{ix[4]}')"
+                s = rf"""('{"', '".join([str(i) for i in ix])}')"""
                 columns.append(s)
         else:
             columns = None
@@ -342,7 +335,7 @@ class ParquetFrame:
         start = 0
         frames = []
         for i in range(n):
-            dfi = df.iloc[:, start : start + self.CHUNK_SIZE]
+            dfi = df.iloc[:, start: start + self.CHUNK_SIZE]
 
             # create chunk reference df
             chunk_name, chunk_df = self.create_chunk(
@@ -361,10 +354,10 @@ class ParquetFrame:
         self._index = df.index
 
     def update_columns(
-        self,
-        ids: List[int],
-        array: Sequence,
-        rows: Union[slice, Sequence] = slice(None, None, None),
+            self,
+            ids: List[int],
+            array: Sequence,
+            rows: Union[slice, Sequence] = slice(None, None, None),
     ) -> None:
         """ Update column MultiIndex in stored parquet files. """
         for chunk_name, _ in self.get_chunk_id_pairs(ids).items():

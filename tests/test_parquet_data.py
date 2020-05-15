@@ -19,7 +19,7 @@ class TestParquetData(unittest.TestCase):
             EF_ALL_INTERVALS.file_name,
             EF_ALL_INTERVALS.data,
             EF_ALL_INTERVALS.file_created,
-            False,
+            EF_ALL_INTERVALS.__class__.__name__,
             "",
         )
 
@@ -33,6 +33,12 @@ class TestParquetData(unittest.TestCase):
         self.assertListEqual(
             intervals, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
+
+    def test_is_simple(self):
+        self.assertFalse(self.ef.data.is_simple())
+
+    def test_get_levels(self):
+        self.assertListEqual(["id", "interval", "key", "type", "units"], self.ef.data.get_le)
 
     def test_get_datetime_index(self):
         index = self.ef.data.get_datetime_index("monthly")
@@ -156,15 +162,15 @@ class TestParquetData(unittest.TestCase):
             "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
         )
         col2 = self.ef.data.tables["timestep"].loc[
-            :,
-            (
-                7,
-                "timestep",
-                "Environment",
-                "Site Diffuse Solar Radiation Rate per Area",
-                "W/m2",
-            ),
-        ]
+               :,
+               (
+                   7,
+                   "timestep",
+                   "Environment",
+                   "Site Diffuse Solar Radiation Rate per Area",
+                   "W/m2",
+               ),
+               ]
         self.assertListEqual(col1.iloc[:, 0].tolist(), col2.iloc[:, 0].tolist())
 
     def test_add_remove_variable(self):
@@ -268,7 +274,7 @@ class TestParquetData(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
             columns=test_columns,
             index=test_index,
         )
@@ -303,7 +309,7 @@ class TestParquetData(unittest.TestCase):
         )
 
         test_df = pd.DataFrame(
-            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08],],
+            [[21.828242, 9.549276e07], [23.032272, 1.075975e08], [23.716322, 1.293816e08], ],
             columns=test_columns,
             index=test_index,
         )
@@ -337,7 +343,7 @@ class TestParquetData(unittest.TestCase):
             names=["timestamp", "day"],
         )
         test_df = pd.DataFrame(
-            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09],],
+            [[23.129456, 2.573239e09], [24.993765, 3.762886e09], [26.255885, 3.559705e09], ],
             columns=test_columns,
             index=test_index,
         )
@@ -372,7 +378,7 @@ class TestParquetData(unittest.TestCase):
             names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)],],
+            [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
             columns=test_columns,
         )
 
@@ -401,7 +407,7 @@ class TestParquetData(unittest.TestCase):
             names=["id", "interval", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
-            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)],],
+            [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
             columns=test_columns,
         )
 

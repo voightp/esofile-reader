@@ -17,6 +17,16 @@ class BaseData(ABC):
     SPECIAL_COLUMNS = [DAY_COLUMN, N_DAYS_COLUMN]
 
     @abstractmethod
+    def is_simple(self, interval: str) -> bool:
+        """ Check whether data uses full or simple variable. """
+        pass
+
+    @abstractmethod
+    def get_levels(self, interval: str) -> List[str]:
+        """ Get multiindex levels. """
+        pass
+
+    @abstractmethod
     def get_available_intervals(self) -> List[str]:
         """ Store table in database. """
         pass
@@ -58,7 +68,7 @@ class BaseData(ABC):
 
     @abstractmethod
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str
+            self, interval: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         """ Rename given variable. """
         pass

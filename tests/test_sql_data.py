@@ -22,6 +22,12 @@ class TestSQLData(unittest.TestCase):
         SQLData.ENGINE = None
         SQLData.METADATA = None
 
+    def test_is_simple(self):
+        self.assertFalse(self.sql_file.data.is_simple("daily"))
+
+    def test_get_levels(self):
+        self.fail()
+
     def test_get_available_intervals(self):
         intervals = self.sql_file.data.get_available_intervals()
         self.assertListEqual(

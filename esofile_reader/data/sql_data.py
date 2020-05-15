@@ -76,6 +76,15 @@ class SQLData(BaseData):
         }
         return self._get_table(switch[interval], ft)
 
+    def is_simple(self, interval: str) -> bool:
+        return len(self.get_levels(interval)) == 4
+
+    def get_levels(self, interval: str) -> List[str]:
+        table = self._get_results_table(interval)
+        levels = [c.name for c in table.columns if c.name != STR_VALUES]
+        print(levels)
+        return levels
+
     def get_available_intervals(self) -> List[str]:
         ft = self.storage.file_table
         columns = [
@@ -108,10 +117,9 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             res = conn.execute(
                 select(
-                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units,]
+                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units, ]
                 )
             )
-
             for row in res:
                 variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
         return variables_dct
@@ -140,7 +148,7 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             res = conn.execute(
                 select(
-                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units,]
+                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units, ]
                 )
             )
             df = pd.DataFrame(res, columns=COLUMN_LEVELS)
@@ -153,7 +161,7 @@ class SQLData(BaseData):
         return pd.concat(frames)
 
     def update_variable_name(
-        self, interval: str, id_: int, new_key: str, new_type: str
+            self, interval: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
@@ -178,7 +186,7 @@ class SQLData(BaseData):
             id_ = next(id_gen)
             with self.storage.engine.connect() as conn:
                 statement = table.insert().values(
-                    {"id": id_, **variable._asdict(), "str_values": str_array}
+                    {ID_LEVEL: id_, **variable._asdict(), STR_VALUES: str_array}
                 )
                 conn.execute(statement)
             return id_
@@ -294,12 +302,12 @@ class SQLData(BaseData):
         return df
 
     def _global_peak(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime,
-        end_date: datetime,
-        max_: bool = True,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)

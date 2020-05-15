@@ -101,7 +101,6 @@ class SQLStorage(BaseStorage):
 
     def set_up_db(self, path=None, echo=False):
         path = path if path else ":memory:"
-
         engine = create_engine(f"sqlite:///{path}", echo=echo)
         metadata = MetaData(bind=engine)
         metadata.reflect()
@@ -149,8 +148,8 @@ class SQLStorage(BaseStorage):
                 f" to create a database engine and metadata first."
             )
 
-        f = self.metadata.tables[self.FILE_TABLE]
-        ins = f.insert().values(
+        file_table = self.metadata.tables[self.FILE_TABLE]
+        ins = file_table.insert().values(
             file_path=results_file.file_path,
             file_name=results_file.file_name,
             file_created=results_file.file_created,
@@ -160,55 +159,58 @@ class SQLStorage(BaseStorage):
         # insert new file data
         with self.engine.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
-
             for interval in results_file.available_intervals:
-                f_upd = {}
-
                 outputs = results_file.data.tables[interval]
+                is_simple = results_file.is_header_simple(interval)
                 # create result table
-                results_table = create_results_table(self.metadata, id_, interval)
-                f_upd[f"{interval}_outputs_table"] = results_table.name
-
+                results_table = create_results_table(self.metadata, id_, interval, is_simple)
+                file_input = {f"{interval}_outputs_table": results_table.name}
                 # store numeric values
                 df = results_file.data.get_all_results(interval)
                 sr = merge_df_values(df, self.SEPARATOR)
-
                 ins = []
                 for index, values in sr.iteritems():
-                    ins.append(
-                        {
-                            ID_LEVEL: index[0],
-                            INTERVAL_LEVEL: index[1],
-                            KEY_LEVEL: index[2],
-                            TYPE_LEVEL: index[3],
-                            UNITS_LEVEL: index[4],
-                            "str_values": values,
-                        }
-                    )
+                    if is_simple:
+                        ins.append(
+                            {
+                                ID_LEVEL: index[0],
+                                INTERVAL_LEVEL: index[1],
+                                KEY_LEVEL: index[2],
+                                UNITS_LEVEL: index[3],
+                                STR_VALUES: values,
+                            }
+                        )
+                    else:
+                        ins.append(
+                            {
+                                ID_LEVEL: index[0],
+                                INTERVAL_LEVEL: index[1],
+                                KEY_LEVEL: index[2],
+                                TYPE_LEVEL: index[3],
+                                UNITS_LEVEL: index[4],
+                                STR_VALUES: values,
+                            }
+                        )
                 conn.execute(results_table.insert(), ins)
-
                 # create index table
                 if isinstance(outputs.index, pd.DatetimeIndex):
                     index_table = create_datetime_table(self.metadata, id_, interval)
                     conn.execute(index_table.insert(), create_value_insert(outputs.index))
-                    f_upd[f"{interval}_dt_table"] = index_table.name
-
+                    file_input[f"{interval}_dt_table"] = index_table.name
                 # store 'n days' data
                 if N_DAYS_COLUMN in outputs.columns:
                     n_days_table = create_n_days_table(self.metadata, id_, interval)
                     conn.execute(
                         n_days_table.insert(), create_value_insert(outputs[N_DAYS_COLUMN]),
                     )
-                    f_upd[f"{interval}_n_days_table"] = n_days_table.name
-
+                    file_input[f"{interval}_n_days_table"] = n_days_table.name
                 # store 'day of week' data
                 if DAY_COLUMN in outputs.columns:
                     day_table = create_day_table(self.metadata, id_, interval)
                     conn.execute(day_table.insert(), create_value_insert(outputs[DAY_COLUMN]))
-                    f_upd[f"{interval}_day_table"] = day_table.name
-
-                conn.execute(f.update().where(f.c.id == id_).values(f_upd))
-
+                    file_input[f"{interval}_day_table"] = day_table.name
+                conn.execute(
+                    file_table.update().where(file_table.c.id == id_).values(file_input))
                 db_file = SQLFile(
                     id_,
                     file_path=results_file.file_path,
@@ -218,17 +220,13 @@ class SQLStorage(BaseStorage):
                     search_tree=results_file.search_tree,
                     type_=results_file.__class__.__name__,
                 )
-
-        # store file in a class attribute
         self.files[id_] = db_file
-
         return id_
 
     def delete_file(self, id_: int) -> None:
-        files = self.metadata.tables[self.FILE_TABLE]
-
+        file_table = self.metadata.tables[self.FILE_TABLE]
         with self.engine.connect() as conn:
-            res = conn.execute(files.select().where(files.c.id == id_)).first()
+            res = conn.execute(file_table.select().where(file_table.c.id == id_)).first()
             if res:
                 # remove tables based on file reference
                 for table_name in res:
@@ -236,44 +234,36 @@ class SQLStorage(BaseStorage):
                         self.metadata.tables[table_name].drop()
                     except KeyError:
                         pass
-
                 # remove result file
-                conn.execute(files.delete().where(files.c.id == id_))
-
+                conn.execute(file_table.delete().where(file_table.c.id == id_))
             else:
                 raise KeyError(f"Cannot delete file id '{id_}'.")
 
         # reset metadata to reflect changes
         self.metadata = MetaData(bind=self.engine)
         self.metadata.reflect()
-
         del self.files[id_]
 
     def load_all_files(self) -> List[SQLFile]:
-        files = self.metadata.tables[self.FILE_TABLE]
-
+        file_table = self.metadata.tables[self.FILE_TABLE]
         with self.engine.connect() as conn:
-            res = conn.execute(select([files.c.id]))
+            res = conn.execute(select([file_table.c.id]))
             ids = [r[0] for r in res]
-
             for id_ in reversed(ids):
                 res = conn.execute(
                     select(
                         [
-                            files.c.id,
-                            files.c.file_path,
-                            files.c.file_name,
-                            files.c.file_created,
-                            files.c.type_,
+                            file_table.c.id,
+                            file_table.c.file_path,
+                            file_table.c.file_name,
+                            file_table.c.file_created,
+                            file_table.c.type_,
                         ]
-                    ).where(files.c.id == id_)
+                    ).where(file_table.c.id == id_)
                 ).first()
-
             data = SQLData(res[0], self)
-
             tree = Tree()
             tree.populate_tree(data.get_all_variables_dct())
-
             db_file = SQLFile(
                 id_=res[0],
                 file_path=res[1],
@@ -283,16 +273,12 @@ class SQLStorage(BaseStorage):
                 search_tree=tree,
                 type_=res[4],
             )
-
             self.files[id_] = db_file
-
         return ids
 
     def get_all_file_names(self):
         files = self.metadata.tables[self.FILE_TABLE]
-
         with self.engine.connect() as conn:
             res = conn.execute(select([files.c.file_name]))
             names = [r[0] for r in res]
-
         return names

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Sequence, List, Dict, Optional
+from typing import Sequence, List, Dict, Optional, Union
 
 import pandas as pd
 
@@ -8,7 +8,7 @@ from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
 from esofile_reader.data.df_functions import merge_peak_outputs, slicer
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import Variable
+from esofile_reader.mini_classes import SimpleVariable, Variable
 
 
 class DFData(BaseData):
@@ -35,12 +35,12 @@ class DFData(BaseData):
         range: pd.DataFrame
     }
 
-    pd.DataFrame:
+    DataFrame can have 6 levels for complete variable:
 
         id                         54898                  54902    \
         interval                   daily                  daily
         key              GROUND:CORRIDOR            GROUND:FLAT
-        variable    Air Changes per Hour   Air Changes per Hour
+        type        Air Changes per Hour   Air Changes per Hour
         units                        ach                    ach
         timestamp
         2002-01-01              0.359897               0.112835
@@ -48,6 +48,20 @@ class DFData(BaseData):
         2002-01-03              0.869096               0.217162
         2002-01-04              0.671173               0.276128
         2002-01-05              0.000000               0.000000
+        ...                          ...                    ...
+
+    or 5 levels for 'simple' variable
+
+        id                         54801                  54802    \
+        interval                   daily                  daily
+        type             Air Temperature   Air Changes per Hour
+        units                          C                    ach
+        timestamp
+        2002-01-01                 24.01               0.112835
+        2002-01-02                 24.20               0.148829
+        2002-01-03                 25.30               0.217162
+        2002-01-04                 26.70               0.276128
+        2002-01-05                 31.10               0.000000
         ...                          ...                    ...
 
 
@@ -63,6 +77,12 @@ class DFData(BaseData):
     def populate_table(self, interval: str, df: pd.DataFrame):
         self.tables[interval] = df
 
+    def is_simple(self, interval: str) -> bool:
+        return len(self.get_levels(interval)) == 4
+
+    def get_levels(self, interval: str) -> List[str]:
+        return self.tables[interval].columns.names
+
     def get_available_intervals(self) -> List[str]:
         return list(self.tables.keys())
 
@@ -71,20 +91,27 @@ class DFData(BaseData):
         if isinstance(index, pd.DatetimeIndex):
             return index
 
-    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
+    def get_variables_dct(self, interval: str) -> Dict[int, Union[Variable, SimpleVariable]]:
         def create_variable(sr):
             return (
                 sr[ID_LEVEL],
                 Variable(sr[INTERVAL_LEVEL], sr[KEY_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
             )
 
+        def create_simple_variable(sr):
+            return (
+                sr[ID_LEVEL],
+                SimpleVariable(sr[INTERVAL_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
+            )
+
         header_df = self.get_variables_df(interval)
-        var_df = header_df.apply(create_variable, axis=1, result_type="expand")
+        func = create_simple_variable if self.is_simple(interval) else create_variable
+        var_df = header_df.apply(func, axis=1, result_type="expand")
         var_df.set_index(0, inplace=True)
 
         return var_df.to_dict(orient="dict")[1]
 
-    def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
+    def get_all_variables_dct(self) -> Dict[str, Dict[int, Union[Variable, SimpleVariable]]]:
         all_variables = {}
         for interval in self.get_available_intervals():
             all_variables[interval] = self.get_variables_dct(interval)
@@ -113,10 +140,13 @@ class DFData(BaseData):
         return pd.concat(frames)
 
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str
+            self, interval: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         mi_df = self.tables[interval].columns.to_frame(index=False)
-        mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
+        if self.is_simple(interval):
+            mi_df.loc[mi_df.id == id_, [KEY_LEVEL]] = [new_key]
+        else:
+            mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
     def insert_variable(self, variable: Variable, array: Sequence) -> None:

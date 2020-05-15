@@ -69,6 +69,10 @@ class BaseFile:
         """ Get all available intervals. """
         return self.data.get_available_intervals()
 
+    def is_header_simple(self, interval: str) -> bool:
+        """ Check if header uses Variablesor SimpleVariable data. """
+        return self.data.is_simple(interval)
+
     def get_header_dictionary(self, interval: str) -> Dict[int, Variable]:
         """ Get all variables for given interval. """
         return self.data.get_variables_dct(interval)

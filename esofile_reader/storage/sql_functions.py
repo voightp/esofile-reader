@@ -6,22 +6,32 @@ from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
 from esofile_reader.constants import *
 
 
-def create_results_table(metadata: MetaData, file_id: int, interval: str) -> Table:
+def create_results_table(
+        metadata: MetaData, file_id: int, interval: str, is_simple: bool
+) -> Table:
     name = f"{file_id}-results-{interval}"
-
-    table = Table(
-        name,
-        metadata,
-        Column(ID_LEVEL, Integer, primary_key=True, index=True, autoincrement=True),
-        Column(INTERVAL_LEVEL, String(50)),
-        Column(KEY_LEVEL, String(50)),
-        Column(TYPE_LEVEL, String(50)),
-        Column(UNITS_LEVEL, String(50)),
-        Column("str_values", String(50)),
-    )
-
+    if is_simple:
+        table = Table(
+            name,
+            metadata,
+            Column(ID_LEVEL, Integer, primary_key=True, index=True, autoincrement=True),
+            Column(INTERVAL_LEVEL, String(50)),
+            Column(KEY_LEVEL, String(50)),
+            Column(UNITS_LEVEL, String(50)),
+            Column(STR_VALUES, String(50)),
+        )
+    else:
+        table = Table(
+            name,
+            metadata,
+            Column(ID_LEVEL, Integer, primary_key=True, index=True, autoincrement=True),
+            Column(INTERVAL_LEVEL, String(50)),
+            Column(KEY_LEVEL, String(50)),
+            Column(TYPE_LEVEL, String(50)),
+            Column(UNITS_LEVEL, String(50)),
+            Column(STR_VALUES, String(50)),
+        )
     table.create()
-
     return table
 
 

@@ -13,7 +13,7 @@ from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT, EF_ALL_INTERVALS
 
 
-class TestDBFileFunctions(unittest.TestCase):
+class TestSqlDBFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = SQLStorage()
