@@ -82,7 +82,6 @@ class SQLData(BaseData):
     def get_levels(self, interval: str) -> List[str]:
         table = self._get_results_table(interval)
         levels = [c.name for c in table.columns if c.name != STR_VALUES]
-        print(levels)
         return levels
 
     def get_available_intervals(self) -> List[str]:

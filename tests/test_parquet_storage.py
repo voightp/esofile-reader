@@ -197,17 +197,27 @@ class TestParquetStorage(unittest.TestCase):
 
     def test_15_parquet_file_context_manager(self):
         with ParquetFile(
-            id_=0,
-            file_path=EF_ALL_INTERVALS.file_path,
-            file_name=EF_ALL_INTERVALS.file_name,
-            data=EF_ALL_INTERVALS.data,
-            file_created=EF_ALL_INTERVALS.file_created,
-            search_tree=EF_ALL_INTERVALS.search_tree,
-            type_=EF_ALL_INTERVALS.__class__.__name__,
-            pardir="",
-            name="foo",
-            monitor=None,
+                id_=0,
+                file_path=EF_ALL_INTERVALS.file_path,
+                file_name=EF_ALL_INTERVALS.file_name,
+                data=EF_ALL_INTERVALS.data,
+                file_created=EF_ALL_INTERVALS.file_created,
+                search_tree=EF_ALL_INTERVALS.search_tree,
+                type_=EF_ALL_INTERVALS.__class__.__name__,
+                pardir="",
+                name="foo",
+                monitor=None,
         ) as pqf:
             workdir = pqf.workdir
             self.assertTrue(workdir.exists())
         self.assertFalse(workdir.exists())
+
+    def test_16_load_invalid_parquet_file(self):
+        with self.assertRaises(IOError):
+            ParquetFile.load_file("foo.bar")
+
+    def test_parquet_file_as_bytes(self):
+        import io
+        id_ = self.storage.store_file(EF_ALL_INTERVALS)
+        out = self.storage.files[id_].save_as()
+        self.assertIsInstance(out, io.BytesIO)

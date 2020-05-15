@@ -2,46 +2,76 @@ import unittest
 from datetime import datetime
 
 import pandas as pd
-from pandas.testing import assert_frame_equal, assert_index_equal
+from pandas.testing import assert_index_equal, assert_frame_equal
+from parameterized import parameterized
 
-from esofile_reader import Variable
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
-from esofile_reader.storage.pqt_storage import ParquetFile
+from esofile_reader.mini_classes import Variable
+from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS
 
 
-class TestParquetData(unittest.TestCase):
+class TestCommonData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ef = ParquetFile(
-            0,
-            EF_ALL_INTERVALS.file_path,
-            EF_ALL_INTERVALS.file_name,
-            EF_ALL_INTERVALS.data,
-            EF_ALL_INTERVALS.file_created,
-            EF_ALL_INTERVALS.__class__.__name__,
-            "",
-        )
+        cls.dfs = ParquetStorage()
+        id_ = cls.dfs.store_file(EF_ALL_INTERVALS)
+        dff = cls.dfs.files[id_]
+
+        cls.pqs = ParquetStorage()
+        id_ = cls.pqs.store_file(EF_ALL_INTERVALS)
+        pqf = cls.pqs.files[id_]
+
+        cls.sqls = SQLStorage()
+        id_ = cls.sqls.store_file(EF_ALL_INTERVALS)
+        sqlf = cls.sqls.files[id_]
+
+        cls.files = {
+            "dff": dff,
+            "pqf": pqf,
+            "sqlf": sqlf
+        }
+
+        cls.data = {
+            "dfd": dff.data,
+            "pqd": pqf.data,
+            "sqld": sqlf.data
+        }
 
     @classmethod
     def tearDownClass(cls):
-        cls.ef.clean_up()
-        cls.ef = None
+        cls.files["pqf"].clean_up()
+        cls.files["pqf"] = None
 
-    def test_get_available_intervals(self):
-        intervals = self.ef.data.get_available_intervals()
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_is_simple(self, key):
+        data = self.data[key]
+        intervals = data.get_available_intervals()
+        for interval in intervals:
+            self.assertFalse(data.is_simple(interval))
+
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_levels(self, key):
+        data = self.data[key]
+        intervals = data.get_available_intervals()
+        for interval in intervals:
+            self.assertListEqual(
+                ["id", "interval", "key", "type", "units"], data.get_levels(interval)
+            )
+
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_available_intervals(self, key):
+        data = self.data[key]
+        intervals = data.get_available_intervals()
         self.assertListEqual(
             intervals, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
-    def test_is_simple(self):
-        self.assertFalse(self.ef.data.is_simple())
-
-    def test_get_levels(self):
-        self.assertListEqual(["id", "interval", "key", "type", "units"], self.ef.data.get_le)
-
-    def test_get_datetime_index(self):
-        index = self.ef.data.get_datetime_index("monthly")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_datetime_index(self, key):
+        data = self.data[key]
+        index = data.get_datetime_index("monthly")
         assert_index_equal(
             index,
             pd.DatetimeIndex(
@@ -65,15 +95,10 @@ class TestParquetData(unittest.TestCase):
             ),
         )
 
-    def test_get_all_variables_dct(self):
-        variables = self.ef.data.get_all_variables_dct()
-        self.assertListEqual(
-            list(variables.keys()),
-            ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
-        )
-
-    def test_get_variables_dct(self):
-        variables = self.ef.data.get_variables_dct("daily")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_variables_dct(self, key):
+        data = self.data[key]
+        variables = data.get_variables_dct("daily")
         self.assertListEqual(
             list(variables.keys()),
             [
@@ -99,8 +124,10 @@ class TestParquetData(unittest.TestCase):
             ],
         )
 
-    def test_get_variable_ids(self):
-        ids = self.ef.data.get_variable_ids("daily")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_variable_ids(self, key):
+        data = self.data[key]
+        ids = data.get_variable_ids("daily")
         self.assertListEqual(
             ids,
             [
@@ -126,42 +153,76 @@ class TestParquetData(unittest.TestCase):
             ],
         )
 
-    def test_get_all_variable_ids(self):
-        ids = self.ef.data.get_all_variable_ids()
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_all_variable_ids(self, key):
+        data = self.data[key]
+        ids = data.get_all_variable_ids()
         # fmt: off
         self.assertListEqual(
             ids,
             [
-                7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431,
-                475, 519, 563, 950, 956, 8, 14, 20, 26, 32, 298, 304, 310, 316,
-                322, 328, 334, 340, 432, 476, 520, 564, 951, 981, 9, 15, 21, 27,
-                33, 299, 305, 311, 317, 323, 329, 335, 341, 433, 477, 521, 565,
-                952, 982, 10, 16, 22, 28, 34, 300, 306, 312, 318, 324, 330, 336,
-                342, 434, 478, 522, 566, 953, 983, 11, 17, 23, 29, 35, 301, 307,
-                313, 319, 325, 331, 337, 343, 435, 479, 523, 567, 954, 984, 12,
-                18, 24, 30, 36, 302, 308, 314, 320, 326, 332, 338, 344, 436, 480,
-                524, 568, 955, 985, ],
+                7, 13, 19, 25, 31, 297, 303, 309, 315, 321, 327, 333, 339, 431, 475, 519, 563,
+                950, 956, 8, 14, 20, 26, 32, 298, 304, 310, 316, 322, 328, 334, 340, 432, 476,
+                520, 564, 951, 981, 9, 15, 21, 27, 33, 299, 305, 311, 317, 323, 329, 335, 341,
+                433, 477, 521, 565, 952, 982, 10, 16, 22, 28, 34, 300, 306, 312, 318, 324, 330,
+                336, 342, 434, 478, 522, 566, 953, 983, 11, 17, 23, 29, 35, 301, 307, 313, 319,
+                325, 331, 337, 343, 435, 479, 523, 567, 954, 984, 12, 18, 24, 30, 36, 302, 308,
+                314, 320, 326, 332, 338, 344, 436, 480, 524, 568, 955, 985,
+            ],
         )
         # fmt: on
 
-    def test_get_variables_df(self):
-        df = self.ef.data.get_variables_df("daily")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_variables_df(self, key):
+        data = self.data[key]
+        df = data.get_variables_df("daily")
         self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (19, 5))
 
-    def test_all_variables_df(self):
-        df = self.ef.data.get_all_variables_df()
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_all_variables_df(self, key):
+        data = self.data[key]
+        df = data.get_all_variables_df()
         self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (114, 5))
 
-    def test_rename_variable(self):
-        self.ef.data.update_variable_name("timestep", 7, "FOO", "BAR")
-        col1 = self.ef.data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
+    def test_rename_variable_sql(self):
+        sqld = self.data["sqld"]
+        sqld.update_variable_name("timestep", 7, "FOO", "BAR")
+        with self.sqls.engine.connect() as conn:
+            table = sqld._get_results_table("timestep")
+            res = conn.execute(table.select().where(table.c.id == 7)).first()
+            var = (res[0], res[1], res[2], res[3], res[4])
+            self.assertTupleEqual(var, (7, "timestep", "FOO", "BAR", "W/m2"))
 
-        self.ef.data.update_variable_name(
+        sqld.update_variable_name(
             "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
         )
-        col2 = self.ef.data.tables["timestep"].loc[
+        with self.sqls.engine.connect() as conn:
+            table = sqld._get_results_table("timestep")
+            res = conn.execute(table.select().where(table.c.id == 7)).first()
+            var = (res[0], res[1], res[2], res[3], res[4])
+            self.assertTupleEqual(
+                var,
+                (
+                    7,
+                    "timestep",
+                    "Environment",
+                    "Site Diffuse Solar Radiation Rate per Area",
+                    "W/m2",
+                ),
+            )
+
+    @parameterized.expand(["dfd", "pqd"])
+    def test_rename_variable(self, key):
+        data = self.data[key]
+        data.update_variable_name("timestep", 7, "FOO", "BAR")
+        col1 = data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
+
+        data.update_variable_name(
+            "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
+        )
+        col2 = data.tables["timestep"].loc[
                :,
                (
                    7,
@@ -173,57 +234,71 @@ class TestParquetData(unittest.TestCase):
                ]
         self.assertListEqual(col1.iloc[:, 0].tolist(), col2.iloc[:, 0].tolist())
 
-    def test_add_remove_variable(self):
-        id_ = self.ef.data.insert_variable(
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_add_remove_variable(self, key):
+        data = self.data[key]
+        id_ = data.insert_variable(
             Variable("monthly", "FOO", "BAR", "C"), list(range(12))
         )
-        col = self.ef.data.tables["monthly"].loc[:, (id_, "monthly", "FOO", "BAR", "C")]
-        self.assertListEqual(col.iloc[:, 0].to_list(), list(range(12)))
+        data.delete_variables("monthly", [id_])
+        if key != "sqld":
+            with self.assertRaises(KeyError):
+                _ = data.tables["monthly"][id_]
 
-        self.ef.data.delete_variables("monthly", [id_])
+    @parameterized.expand(["dfd", "pqd"])
+    def test_remove_variable_invalid(self, key):
+        data = self.data[key]
         with self.assertRaises(KeyError):
-            _ = self.ef.data.tables["monthly"][id_]
+            data.delete_variables("monthly", [100000])
 
-    def test_remove_variable_invalid(self):
-        with self.assertRaises(KeyError):
-            self.ef.data.delete_variables("monthly", [100000])
-
-    def test_update_variable(self):
-        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable_results("monthly", 983, list(range(12)))
-        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_update_variable(self, key):
+        data = self.data[key]
+        original_vals = data.get_results("monthly", 983).iloc[:, 0]
+        data.update_variable_results("monthly", 983, list(range(12)))
+        vals = data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
+        data.update_variable_results("monthly", 983, original_vals)
 
-        self.ef.data.update_variable_results("monthly", 983, original_vals)
-
-    def test_update_variable_invalid(self):
-        original_vals = self.ef.data.get_results("monthly", 983).iloc[:, 0]
-        self.ef.data.update_variable_results("monthly", 983, list(range(11)))
-        vals = self.ef.data.get_results("monthly", 983).iloc[:, 0].to_list()
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_update_variable_invalid(self, key):
+        data = self.data[key]
+        original_vals = data.get_results("monthly", 983).iloc[:, 0]
+        data.update_variable_results("monthly", 983, list(range(11)))
+        vals = data.get_results("monthly", 983).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
+        data.update_variable_results("monthly", 983, original_vals)
 
-        self.ef.data.update_variable_results("monthly", 983, original_vals)
-
-    def test_get_special_column_invalid(self):
+    @parameterized.expand(["dfd", "pqd"])
+    def test_get_special_column_invalid(self, key):
+        data = self.data[key]
         with self.assertRaises(KeyError):
-            self.ef.data._get_special_column("FOO", "timestep")
+            data._get_special_column("FOO", "timestep")
 
-    def test_get_number_of_days(self):
-        col = self.ef.data.get_number_of_days("monthly")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_number_of_days(self, key):
+        data = self.data[key]
+        col = data.get_number_of_days("monthly")
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
-    def test_get_days_of_week(self):
-        col = self.ef.data.get_days_of_week("daily")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_days_of_week(self, key):
+        data = self.data[key]
+        col = data.get_days_of_week("daily")
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 
-    def test_get_all_results(self):
-        df = self.ef.data.get_all_results("daily")
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_all_results(self, key):
+        data = self.data[key]
+        df = data.get_all_results("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
-    def test_get_results(self):
-        df = self.ef.data.get_results("monthly", [324, 983])
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_results(self, key):
+        data = self.data[key]
+        df = data.get_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
@@ -258,8 +333,10 @@ class TestParquetData(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    def test_get_results_sliced(self):
-        df = self.ef.data.get_results(
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_results_sliced(self, key):
+        data = self.data[key]
+        df = data.get_results(
             "monthly",
             [324, 983],
             start_date=datetime(2002, 4, 1),
@@ -286,8 +363,10 @@ class TestParquetData(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    def test_get_results_include_day(self):
-        df = self.ef.data.get_results(
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_results_include_day(self, key):
+        data = self.data[key]
+        df = data.get_results(
             "daily",
             [323, 982],
             start_date=datetime(2002, 4, 1),
@@ -314,15 +393,12 @@ class TestParquetData(unittest.TestCase):
             index=test_index,
         )
 
-        # need to drop id as pandas does not treat Index([324, 983])
-        # and IndexInt64([324, 983]) as identical
-        df = df.droplevel("id", axis=1)
-        test_df = test_df.droplevel("id", axis=1)
+        assert_frame_equal(df, test_df, check_column_type=False)
 
-        assert_frame_equal(df, test_df)
-
-    def test_get_results_include_day_from_date(self):
-        df = self.ef.data.get_results(
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_results_include_day_from_date(self, key):
+        data = self.data[key]
+        df = data.get_results(
             "monthly",
             [324, 983],
             start_date=datetime(2002, 4, 1),
@@ -348,19 +424,18 @@ class TestParquetData(unittest.TestCase):
             index=test_index,
         )
 
-        # need to drop id as pandas does not treat Index([324, 983])
-        # and IndexInt64([324, 983]) as identical
-        df = df.droplevel("id", axis=1)
-        test_df = test_df.droplevel("id", axis=1)
+        assert_frame_equal(df, test_df, check_column_type=False)
 
-        assert_frame_equal(df, test_df)
-
-    def test_get_results_invalid_ids(self):
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_results_invalid_ids(self, key):
+        data = self.data[key]
         with self.assertRaises(KeyError):
-            _ = self.ef.data.get_results("daily", [7])
+            _ = data.get_results("daily", [7])
 
-    def test_get_global_max_results(self):
-        df = self.ef.data.get_global_max_results("monthly", [324, 983])
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_global_max_results(self, key):
+        data = self.data[key]
+        df = data.get_global_max_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
@@ -382,25 +457,16 @@ class TestParquetData(unittest.TestCase):
             columns=test_columns,
         )
 
-        # need to drop id as pandas does not treat Index([324, 983])
-        # and IndexInt64([324, 983]) as identical
-        df = df.droplevel("id", axis=1)
-        test_df = test_df.droplevel("id", axis=1)
-        assert_frame_equal(df, test_df)
+        assert_frame_equal(df, test_df, check_column_type=False)
 
-    def test_get_global_min_results(self):
-        df = self.ef.data.get_global_min_results("monthly", [324, 983])
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_get_global_min_results(self, key):
+        data = self.data[key]
+        df = data.get_global_min_results("monthly", [324, 983])
         test_columns = pd.MultiIndex.from_tuples(
             [
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "value"),
-                (
-                    324,
-                    "monthly",
-                    "BLOCK3:ZONE1",
-                    "Zone Mean Air Temperature",
-                    "C",
-                    "timestamp",
-                ),
+                (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C", "timestamp"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
@@ -411,11 +477,7 @@ class TestParquetData(unittest.TestCase):
             columns=test_columns,
         )
 
-        # need to drop id as pandas does not treat Index([324, 983])
-        # and IndexInt64([324, 983]) as identical
-        df = df.droplevel("id", axis=1)
-        test_df = test_df.droplevel("id", axis=1)
-        assert_frame_equal(df, test_df)
+        assert_frame_equal(df, test_df, check_column_type=False)
 
     def test_df_dt_slicer(self):
         index = pd.DatetimeIndex(pd.date_range("2002-01-01", freq="d", periods=5))
@@ -451,15 +513,3 @@ class TestParquetData(unittest.TestCase):
             sr.iloc[[1]],
         )
 
-    def test_load_invalid_parquet_file(self):
-        with self.assertRaises(IOError):
-            ParquetFile.load_file("foo.bar")
-
-    def test_parquet_file_as_bytes(self):
-        import io
-
-        out = self.ef.save_as()
-        self.assertIsInstance(out, io.BytesIO)
-
-    def test_parquet_frame_context_manager(self):
-        pass
