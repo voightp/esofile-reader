@@ -2,7 +2,7 @@ import logging
 from typing import Union, Optional, Dict, List
 
 from esofile_reader.constants import *
-from esofile_reader.mini_classes import Variable
+from esofile_reader.mini_classes import Variable, SimpleVariable
 
 
 class Node:
@@ -31,13 +31,14 @@ class Node:
         self.children = []
 
 
-class Tree:
+class SimpleTree:
     """
-    A class which creates a tree like structure of
-    the header dictionary.
+    A class which creates a tree like structure of the header dictionary.
 
-    Tree needs to be populated using 'populate_tree'
-    method.
+    Tree needs to be populated using 'populate_tree' method.
+
+    SimpleTree class is supposed to be used with SimpleVariable
+    namedtuple (this variable has 3 levels, interval, key and units).
 
     Attributes
     ----------
@@ -47,7 +48,7 @@ class Tree:
 
     """
 
-    ORDER = [INTERVAL_LEVEL, TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+    ORDER = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL]
 
     def __init__(self):
         self.root = Node(None, "groot")
@@ -76,7 +77,7 @@ class Tree:
             # piece can be 'None' which will be kept
             return str(s).lower() if s else s
 
-        v = Variable(*map(low_string, variable))
+        v = SimpleVariable(*map(low_string, variable))
         return [v.__getattribute__(level) for level in self.ORDER]
 
     @staticmethod
@@ -130,12 +131,12 @@ class Tree:
             return condition in node.key
 
     def _loop(
-        self,
-        node: Node,
-        level: int,
-        ids: List[int],
-        cond: List[Optional[str]],
-        part_match: bool = False,
+            self,
+            node: Node,
+            level: int,
+            ids: List[int],
+            cond: List[Optional[str]],
+            part_match: bool = False,
     ) -> None:
         """ Search through the tree to find ids. """
         level += 1
@@ -213,3 +214,36 @@ class Tree:
         variables = variables if isinstance(variables, list) else [variables]
         for variable in variables:
             self.remove_variable(variable)
+
+
+class Tree(SimpleTree):
+    """
+    A class which creates a tree like structure of the header dictionary.
+
+    Tree needs to be populated using 'populate_tree' method.
+
+    Tree class is supposed to be used with Variable
+    namedtuple (this variable has 4 levels, interval, key, type and units).
+
+    Attributes
+    ----------
+    root : Node
+        A base root node which holds all the data
+        as its children and children of children.
+
+    """
+
+    ORDER = [INTERVAL_LEVEL, TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+
+    def __init__(self):
+        super().__init__()
+
+    def tree_variable(self, variable: Variable):
+        """ Pass reordered variable. """
+
+        def low_string(s):
+            # piece can be 'None' which will be kept
+            return str(s).lower() if s else s
+
+        v = Variable(*map(low_string, variable))
+        return [v.__getattribute__(level) for level in self.ORDER]
