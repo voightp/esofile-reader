@@ -1,11 +1,12 @@
 import unittest
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 from parameterized import parameterized
 
-from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer
+from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer, sort_by_ids
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.sql_storage import SQLStorage
@@ -513,3 +514,24 @@ class TestCommonData(unittest.TestCase):
             sr.iloc[[1]],
         )
 
+    def test_sort_by_ids(self):
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
+            names=["id", "interval", "key", "units"]
+        )
+        index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
+        df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)
+        expected_df = df.loc[:, [(3, "g", "h", "i"), (1, "a", "b", "c"), (2, "d", "e", "f")]]
+        sorted_df = sort_by_ids(df, [3, 1, 2])
+        assert_frame_equal(expected_df, sorted_df)
+
+    def test_sort_by_ids_na_id(self):
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
+            names=["id", "interval", "key", "units"]
+        )
+        index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
+        df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)
+        expected_df = df.loc[:, [(3, "g", "h", "i"), (1, "a", "b", "c"), (2, "d", "e", "f")]]
+        sorted_df = sort_by_ids(df, [4, 3, 1, 2])
+        assert_frame_equal(expected_df, sorted_df)

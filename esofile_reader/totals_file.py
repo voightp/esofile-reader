@@ -199,7 +199,7 @@ class TotalsFile(BaseFile):
             ids = ignored_ids(out)
 
             # filter variables based on ignored units and variables
-            out = out.loc[:, ~out.columns.get_level_values("id").isin(ids)]
+            out = out.loc[:, ~out.columns.get_level_values(ID_LEVEL).isin(ids)]
 
             if out.empty:
                 # ignore empty intervals

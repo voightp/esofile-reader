@@ -1,5 +1,6 @@
+import logging
 from datetime import datetime
-from typing import Sequence, Optional
+from typing import Sequence, Optional, List
 
 import numpy as np
 import pandas as pd
@@ -35,12 +36,12 @@ def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> p
 
 
 def _local_peaks(
-    df: pd.DataFrame,
-    val_ix: int = None,
-    month_ix: int = None,
-    day_ix: int = None,
-    hour_ix: int = None,
-    end_min_ix: int = None,
+        df: pd.DataFrame,
+        val_ix: int = None,
+        month_ix: int = None,
+        day_ix: int = None,
+        hour_ix: int = None,
+        end_min_ix: int = None,
 ) -> pd.DataFrame:
     """ Return value and datetime of occurrence. """
 
@@ -84,11 +85,26 @@ def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> p
     return _local_peaks(df, **indexes[interval])
 
 
+def sort_by_ids(df: pd.DataFrame, ids: List[int]):
+    """ Return filtered DataFrame ordered as given ids. """
+    # get iloc position for given list of ids, slices are required for non filtered levels
+    all_ids = df.columns.get_level_values(ID_LEVEL).to_series()
+    all_ids.reset_index(drop=True, inplace=True)
+    indexes = []
+    for id_ in ids:
+        ix = all_ids[all_ids == id_].index
+        if not ix.empty:
+            indexes.extend(ix)
+        else:
+            logging.warning(f"Id {id_} is not included in given DataFrame.")
+    return df.iloc[:, indexes]
+
+
 def slicer(
-    df: pd.DataFrame,
-    ids: Sequence[int],
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+        df: pd.DataFrame,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
 ) -> pd.DataFrame:
     """ Slice df using indeterminate range. """
     ids = ids if isinstance(ids, list) else [ids]
@@ -108,11 +124,11 @@ def slicer(
         df = df.loc[:end_date, cond]
     else:
         df = df.loc[:, cond]
-    return df
+    return sort_by_ids(df, ids)
 
 
 def df_dt_slicer(
-    df: pd.DataFrame, start_date: Optional[datetime], end_date: Optional[datetime]
+        df: pd.DataFrame, start_date: Optional[datetime], end_date: Optional[datetime]
 ) -> pd.DataFrame:
     """ Slice df 'vertically'. """
     if start_date and end_date:

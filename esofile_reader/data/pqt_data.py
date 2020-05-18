@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
+from esofile_reader.data.df_functions import sort_by_ids
 from esofile_reader.processor.monitor import DefaultMonitor
 
 
@@ -54,7 +55,7 @@ class _ParquetIndexer:
             col = [col] if isinstance(col, (int, str, tuple)) else col
             all_ids = self.frame.columns.get_level_values(ID_LEVEL).to_series()
             if _is_id():
-                ids = all_ids.where(all_ids.isin(col)).dropna().tolist()
+                ids = [id_ for id_ in col if id_ in all_ids]
             elif _is_boolean() and self.frame.columns.size == len(col):
                 ids = all_ids.where(col).dropna().tolist()
             elif _is_tuple():
@@ -179,7 +180,7 @@ class ParquetFrame:
     @index.setter
     def index(self, val: pd.Index) -> None:
         self._index = val
-        for chunk_name in self._chunks_table["chunk"]:
+        for chunk_name in self.chunk_names:
             df = self.get_df_from_parquet(chunk_name)
             df.index = val
             self.update_parquet(chunk_name, df)
@@ -300,6 +301,9 @@ class ParquetFrame:
         header_df = df.columns.to_frame(index=False)
         header_df[ID_LEVEL] = header_df[ID_LEVEL].apply(to_int)
         df.columns = pd.MultiIndex.from_frame(header_df)
+
+        if ids:
+            df = sort_by_ids(df, ids)
 
         return df
 
