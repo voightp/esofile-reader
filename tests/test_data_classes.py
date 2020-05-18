@@ -14,7 +14,7 @@ from esofile_reader.storage.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS
 
 
-class TestCommonData(unittest.TestCase):
+class TestDataClasses(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.dfs = DFStorage()
