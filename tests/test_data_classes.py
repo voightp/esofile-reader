@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer, sort_by_ids
 from esofile_reader.mini_classes import Variable
+from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS
@@ -16,7 +17,7 @@ from tests import EF_ALL_INTERVALS
 class TestCommonData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dfs = ParquetStorage()
+        cls.dfs = DFStorage()
         id_ = cls.dfs.store_file(EF_ALL_INTERVALS)
         dff = cls.dfs.files[id_]
 
@@ -218,22 +219,22 @@ class TestCommonData(unittest.TestCase):
     def test_rename_variable(self, key):
         data = self.data[key]
         data.update_variable_name("timestep", 7, "FOO", "BAR")
-        col1 = data.tables["timestep"].loc[:, (7, "timestep", "FOO", "BAR", "W/m2")]
+        col1 = data.tables["timestep"].loc[:, [(7, "timestep", "FOO", "BAR", "W/m2")]]
 
         data.update_variable_name(
             "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
         )
         col2 = data.tables["timestep"].loc[
                :,
-               (
+               [(
                    7,
                    "timestep",
                    "Environment",
                    "Site Diffuse Solar Radiation Rate per Area",
                    "W/m2",
-               ),
+               )],
                ]
-        self.assertListEqual(col1.iloc[:, 0].tolist(), col2.iloc[:, 0].tolist())
+        self.assertEqual(col1.iloc[:, 0].array, col2.iloc[:, 0].array)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_add_remove_variable(self, key):
