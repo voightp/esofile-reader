@@ -72,7 +72,6 @@ class EsoFile(BaseFile):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-
         if autopopulate:
             self.populate_content(monitor=monitor, ignore_peaks=ignore_peaks, year=year)
 

@@ -25,7 +25,7 @@ class DFData(BaseData):
     -----
     A structure for data bins is as follows:
 
-    outputs = {
+    tables = {
         TS : pd.DataFrame,
         H : pd.DataFrame,
         D : pd.DataFrame,
