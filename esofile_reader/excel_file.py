@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, List, Tuple
 
+import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 
@@ -22,70 +23,128 @@ class ExcelFile(BaseFile):
         self.file_path = file_path
         self.populate_content(monitor)
 
+    @staticmethod
+    def is_data_row(sr):
+        print(sr)
+        return all(sr.apply(lambda x: isinstance(x, (int, float))))
+
     def parse_header(
-            self, df: pd.DataFrame, is_template: bool = True, n_header_rows: int = 2
-    ) -> Tuple[pd.DataFrame, int]:
+            self, df: pd.DataFrame, force_index: bool = False,
+    ) -> Tuple[pd.DataFrame, int, bool]:
         """ Extract header related information from excel worksheet. """
-        column_rows = {
-            ID_LEVEL: None,
-            INTERVAL_LEVEL: None,
-            KEY_LEVEL: None,
-            TYPE_LEVEL: None,
-            UNITS_LEVEL: None
-        }
         index_names = [TIMESTAMP_COLUMN, RANGE]
-        index_name = None
+        column_levels = [
+            ID_LEVEL,
+            INTERVAL_LEVEL,
+            KEY_LEVEL,
+            TYPE_LEVEL,
+            UNITS_LEVEL,
+        ]
+        first_column = df.iloc[:, 0].tolist()
+
+        # try to find out if DataFrame includes index column
+        if force_index:
+            index_column = True
+        else:
+            # check if DataFrame include index column
+            index_column = False
+            for cell in first_column:
+                conditions = [
+                    cell in index_names,
+                    isinstance(cell, (datetime, np.datetime64)),
+                ]
+                if any(conditions):
+                    index_column = True
+                    break
+
+        # check if DataFrame has a 'template' structure
+        if index_column and KEY_LEVEL in first_column and UNITS_LEVEL in first_column:
+            is_template = True
+        else:
+            is_template = False
+
+        levels = {}
         i = 0
-        if is_template:
-            for _, sr in df.iterrows():
+        for _, sr in df.iterrows():
+            if index_column:
                 ix = sr.iloc[0]
                 row = sr.iloc[1:]
-                if ix in index_names:
-                    if not any(row):
-                        # line is empty, skip to next one
+                if row.dropna(how="all").empty:
+                    # ignore rows without any value
+                    pass
+                elif is_template:
+                    if ix in index_names:
+                        # hit either RANGE or TIMESTAMP key
                         i += 1
+                        break
+                    elif isinstance(ix, (datetime, int)):
+                        # hit integer range or datetime timestamp
+                        break
+                    elif ix in column_levels:
+                        if ix == ID_LEVEL:
+                            # ID will be re-generated to avoid necessary validation
+                            pass
+                        else:
+                            levels[ix] = row
+                    else:
+                        print(f"Unexpected column identifier: {ix}"
+                              f"Only {', '.join(COLUMN_LEVELS)} are allowed.")
+                else:
+                    if self.is_data_row(row.fillna(0)):
+                        # hit actual data rows
+                        break
+                    else:
+                        levels[i] = row
+            else:
+                if self.is_data_row(sr.fillna(0)):
                     break
-                if isinstance(ix, (datetime, int)):
-                    break
-                try:
-                    column_rows[ix] = row
-                except KeyError:
-                    raise KeyError(
-                        f"Unexpected column name! "
-                        f"Only {', '.join(column_rows.keys())} are allowed.")
-                i += 1
-            # only rows with defined levels will be processed
-            column_rows = {k: v for k, v in column_rows.items() if v is not None}
+                levels[i] = sr.values
+            i += 1
+        else:
+            raise InsuficientHeaderInfo(
+                "Failed to automatically retrieve header information from DataFrame!"
+            )
 
-            # at least key and level names are needed to identify variables
-            if not KEY_LEVEL in column_rows.keys() and UNITS_LEVEL in column_rows.keys():
+        # validate gathered data
+        ordered_levels = {}
+        if is_template:
+            if KEY_LEVEL not in levels or UNITS_LEVEL not in levels:
                 raise InsuficientHeaderInfo(
                     f"Cannot process header!"
                     f" '{KEY_LEVEL}' and '{UNITS_LEVEL}' levels must be included."
                 )
+            # reorder levels using standard order
+            ordered_levels = {lev: levels[lev] for lev in column_levels if lev in levels}
         else:
-            if n_header_rows not in (2, 3):
+            n = len(levels)
+            msg = " expected levels are either:\n\t1 - key\n\tunits" \
+                  "\n..for two level header or:\n\t1 - key\n\ttype\nunits" \
+                  " for three level header."
+            if n < 2:
                 raise InsuficientHeaderInfo(
-                    "Only two or three header row are accepted."
-                    " Expected combinations are either:\n\t1 - key\n\tunits"
-                    "\n..for two header rows or:\n\t1 - key\n\ttype\nunits"
+                    f"Not enough information to create header. "
+                    f"There's only {n} but {msg}"
+                )
+            elif n > 3:
+                raise InsuficientHeaderInfo(
+                    f"Too many header levels - {n}\n{msg}"
                 )
             keys = [KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-            if n_header_rows == 2:
+            if n == 2:
                 keys.remove(TYPE_LEVEL)
-            for i, key in enumerate(keys):
-                column_rows[key] = df.iloc[i, :]
+            for key, row in zip(keys, list(levels.values())):
+                ordered_levels[key] = row
 
         # transpose DataFrame to get items in columns
-        header_df = pd.DataFrame(column_rows).T
+        header_df = pd.DataFrame(ordered_levels).T
 
-        return header_df, i
+        return header_df, i, index_column
 
     def process_excel(
             self,
             file_path: Union[str, Path],
             sheet_names: List[str] = None,
-            is_template: bool = True,
+            force_index: bool = False,
     ):
         """ Create results file data based on given excel workbook."""
         wb = load_workbook(filename=file_path, read_only=True)
@@ -96,14 +155,24 @@ class ExcelFile(BaseFile):
         for name in sheet_names:
             ws = wb[name]
             df = pd.DataFrame(ws.values)
-            header_df, skiprows = self.parse_header(
-                df.iloc[:self.HEADER_LIMIT, :], is_template=is_template
+
+            # remove empty rows and columns
+            df.dropna(axis=0, how="all", inplace=True)
+            df.dropna(axis=1, how="all", inplace=True)
+
+            header_df, skiprows, index_column = self.parse_header(
+                df.iloc[:self.HEADER_LIMIT, :], force_index=force_index
             )
+            print(header_df)
             df = df.iloc[skiprows:, :]
-            if is_template:
+            if index_column:
                 df.set_index(keys=0, inplace=True)
                 if isinstance(df.index, pd.DatetimeIndex):
                     df.index = df.index.round(freq="S")
+                    df.index.rename(TIMESTAMP_COLUMN, inplace=True)
+                else:
+                    df.index.rename(RANGE)
+            print(df)
 
             # names = list(column_rows.keys())
             # header = list(column_rows.values())
