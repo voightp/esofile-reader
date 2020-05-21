@@ -9,6 +9,7 @@ from tests import EF1
 class TestResultFetching(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # TODO write tests
         cls.dfs = DFStorage()
         id_ = cls.dfs.store_file(EF1)
         dff = cls.dfs.files[id_]

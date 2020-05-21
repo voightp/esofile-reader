@@ -1,20 +1,16 @@
 import unittest
-from pathlib import Path
-
-import pandas as pd
-from openpyxl import load_workbook
-
-from tests import ROOT
 
 
 class TestDataClassesSimple(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pth = Path(ROOT).joinpath("./eso_files/simple_variable_results.xlsx")
-        wb = load_workbook(filename=pth)
-        for name in wb.sheetnames:
-            pd.read_excel(pth, sheet_name=name)
-        print(wb.sheetnames)
+        # TODO write tests
+        pass
+        # pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
+        # wb = load_workbook(filename=pth)
+        # for name in wb.sheetnames:
+        #     pd.read_excel(pth, sheet_name=name)
+        # print(wb.sheetnames)
 
         # cls.dfs = DFStorage()
         # id_ = cls.dfs.store_file(EF_ALL_INTERVALS)
