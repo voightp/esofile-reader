@@ -14,6 +14,26 @@ from esofile_reader.exceptions import InsuficientHeaderInfo
 from esofile_reader.processor.monitor import DefaultMonitor
 
 
+def is_data_row(sr: pd.Series):
+    """ Check if the given series is header or data row. """
+
+    def check(val):
+        if pd.isna(val):
+            return val
+        return "num" if isinstance(val, (int, float, np.float, np.int)) else "not_num"
+
+    num_count = sr.apply(check).value_counts(dropna=False)
+
+    # it's difficult to generalize if the row is numeric for mixed types
+    # let's try just verifying if there's more numeric than non numeric
+    # columns, excluding nan
+    numeric_count = num_count["num"] if "num" in num_count else 0
+    non_numeric_count = num_count["not_num"] if "not_num" in num_count else 0
+    nat_count = num_count[pd.NaT] if pd.NaT in num_count else 0
+
+    return numeric_count >= non_numeric_count
+
+
 class ExcelFile(BaseFile):
     """ Create results file based on excel data. """
     HEADER_LIMIT = 10
@@ -22,11 +42,6 @@ class ExcelFile(BaseFile):
         super().__init__()
         self.file_path = file_path
         self.populate_content(monitor)
-
-    @staticmethod
-    def is_data_row(sr):
-        print(sr)
-        return all(sr.apply(lambda x: isinstance(x, (int, float))))
 
     def parse_header(
             self, df: pd.DataFrame, force_index: bool = False,
@@ -90,13 +105,13 @@ class ExcelFile(BaseFile):
                         print(f"Unexpected column identifier: {ix}"
                               f"Only {', '.join(COLUMN_LEVELS)} are allowed.")
                 else:
-                    if self.is_data_row(row.fillna(0)):
+                    if is_data_row(row):
                         # hit actual data rows
                         break
                     else:
                         levels[i] = row
             else:
-                if self.is_data_row(sr.fillna(0)):
+                if is_data_row(sr):
                     break
                 levels[i] = sr.values
             i += 1
