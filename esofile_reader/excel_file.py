@@ -211,7 +211,14 @@ class ExcelFile(BaseFile):
 
         return False, False
 
-    def populate_content(self, monitor: DefaultMonitor = None) -> None:
+    def populate_content(
+            self,
+            monitor: DefaultMonitor = None,
+            sheet_names: str = None,
+            force_index: bool = False
+    ) -> None:
         self.file_name = Path(self.file_path).stem
         self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
-        self.data, self.search_tree = self.process_excel(self.file_path)
+        self.data, self.search_tree = self.process_excel(
+            self.file_path, sheet_names=sheet_names, force_index=force_index
+        )
