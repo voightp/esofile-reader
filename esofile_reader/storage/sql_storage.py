@@ -160,14 +160,15 @@ class SQLStorage(BaseStorage):
         with self.engine.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
             for interval in results_file.available_intervals:
-                outputs = results_file.data.tables[interval]
+                df = results_file.data.tables[interval]
                 is_simple = results_file.is_header_simple(interval)
                 # create result table
                 results_table = create_results_table(self.metadata, id_, interval, is_simple)
                 file_input = {f"{interval}_outputs_table": results_table.name}
                 # store numeric values
-                df = results_file.data.get_all_results(interval)
-                sr = merge_df_values(df, self.SEPARATOR)
+                df_numeric = df.loc[:, df.columns.get_level_values(ID_LEVEL) != SPECIAL]
+                df_special = df.loc[:, df.columns.get_level_values(ID_LEVEL) == SPECIAL]
+                sr = merge_df_values(df_numeric, self.SEPARATOR)
                 ins = []
                 for index, values in sr.iteritems():
                     if is_simple:
@@ -193,22 +194,26 @@ class SQLStorage(BaseStorage):
                         )
                 conn.execute(results_table.insert(), ins)
                 # create index table
-                if isinstance(outputs.index, pd.DatetimeIndex):
+                if isinstance(df.index, pd.DatetimeIndex):
                     index_table = create_datetime_table(self.metadata, id_, interval)
-                    conn.execute(index_table.insert(), create_value_insert(outputs.index))
+                    conn.execute(index_table.insert(), create_value_insert(df.index))
                     file_input[f"{interval}_dt_table"] = index_table.name
-                # store 'n days' data
-                if N_DAYS_COLUMN in outputs.columns:
-                    n_days_table = create_n_days_table(self.metadata, id_, interval)
-                    conn.execute(
-                        n_days_table.insert(), create_value_insert(outputs[N_DAYS_COLUMN]),
-                    )
-                    file_input[f"{interval}_n_days_table"] = n_days_table.name
-                # store 'day of week' data
-                if DAY_COLUMN in outputs.columns:
-                    day_table = create_day_table(self.metadata, id_, interval)
-                    conn.execute(day_table.insert(), create_value_insert(outputs[DAY_COLUMN]))
-                    file_input[f"{interval}_day_table"] = day_table.name
+                if not df_special.empty:
+                    key_level = df_special.columns.get_level_values(KEY_LEVEL)
+                    # store 'n days' data
+                    if N_DAYS_COLUMN in key_level:
+                        n_days_table = create_n_days_table(self.metadata, id_, interval)
+                        n_days_df = df_special.loc[:, key_level == N_DAYS_COLUMN]
+                        conn.execute(
+                            n_days_table.insert(), create_value_insert(n_days_df.iloc[:, 0]),
+                        )
+                        file_input[f"{interval}_n_days_table"] = n_days_table.name
+                    # store 'day of week' data
+                    if DAY_COLUMN in key_level:
+                        day_table = create_day_table(self.metadata, id_, interval)
+                        day_df = df_special.loc[:, key_level == DAY_COLUMN]
+                        conn.execute(day_table.insert(), create_value_insert(day_df.iloc[:, 0]))
+                        file_input[f"{interval}_day_table"] = day_table.name
                 conn.execute(
                     file_table.update().where(file_table.c.id == id_).values(file_input))
                 db_file = SQLFile(

@@ -466,10 +466,10 @@ class BaseFile:
 
         return groups
 
-    def as_df(self, interval: str) -> pd.DataFrame:
-        """ Return the file as a single DataFrame. """
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
+        """ Return the file as a single DataFrame (without special columns). """
         try:
-            df = self.data.get_all_results(interval)
+            df = self.data.get_numeric_table(interval)
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.\n{traceback.format_exc()}")
         return df

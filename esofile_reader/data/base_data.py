@@ -4,7 +4,6 @@ from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
 
-from esofile_reader.constants import DAY_COLUMN, N_DAYS_COLUMN
 from esofile_reader.mini_classes import Variable
 
 
@@ -13,8 +12,6 @@ class BaseData(ABC):
     An abstract class to define metadata for result storage.
 
     """
-
-    SPECIAL_COLUMNS = [DAY_COLUMN, N_DAYS_COLUMN]
 
     @abstractmethod
     def is_simple(self, interval: str) -> bool:
@@ -109,7 +106,7 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_all_results(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
         """ Get numeric outputs without special columns. """
         pass
 

@@ -295,7 +295,7 @@ class SQLData(BaseData):
 
         return df_dt_slicer(df, start_date, end_date)
 
-    def get_all_results(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
         ids = self.get_variable_ids(interval)
         df = self.get_results(interval, ids)
         return df

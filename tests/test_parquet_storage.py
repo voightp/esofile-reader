@@ -86,7 +86,8 @@ class TestParquetStorage(unittest.TestCase):
 
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
-                EF_ALL_INTERVALS.as_df(interval), pqf.as_df(interval), check_column_type=False
+                EF_ALL_INTERVALS.get_numeric_table(interval), pqf.get_numeric_table(interval),
+                check_column_type=False
             )
         pqf.clean_up()
 
@@ -121,8 +122,8 @@ class TestParquetStorage(unittest.TestCase):
 
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
-                EF_ALL_INTERVALS.as_df(interval),
-                pqs.files[0].as_df(interval),
+                EF_ALL_INTERVALS.get_numeric_table(interval),
+                pqs.files[0].get_numeric_table(interval),
                 check_column_type=False,
             )
 
@@ -135,8 +136,8 @@ class TestParquetStorage(unittest.TestCase):
         loaded_pqs = ParquetStorage.load_storage(pqs.path)
         for interval in self.tf.available_intervals:
             assert_frame_equal(
-                self.tf.as_df(interval),
-                loaded_pqs.files[2].as_df(interval),
+                self.tf.get_numeric_table(interval),
+                loaded_pqs.files[2].get_numeric_table(interval),
                 check_column_type=False,
             )
         self.assertEqual(len(loaded_pqs.files.keys()), 1)
@@ -183,14 +184,16 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual(6, len(self.storage.files))
 
         for interval in EF_ALL_INTERVALS.available_intervals:
-            test_df = EF_ALL_INTERVALS.as_df(interval)
+            test_df = EF_ALL_INTERVALS.get_numeric_table(interval)
             for f in ef1_files:
-                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+                assert_frame_equal(test_df, f.get_numeric_table(interval),
+                                   check_column_type=False)
 
         for interval in EF1.available_intervals:
-            test_df = EF1.as_df(interval)
+            test_df = EF1.get_numeric_table(interval)
             for f in ef2_files:
-                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+                assert_frame_equal(test_df, f.get_numeric_table(interval),
+                                   check_column_type=False)
 
         p1.unlink()
         p2.unlink()

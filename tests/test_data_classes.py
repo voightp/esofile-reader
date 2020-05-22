@@ -294,7 +294,7 @@ class TestDataClasses(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_all_results(self, key):
         data = self.data[key]
-        df = data.get_all_results("daily")
+        df = data.get_numeric_table("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])

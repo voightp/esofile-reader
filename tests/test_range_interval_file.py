@@ -156,7 +156,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.remove_outputs([v1, v2])
 
     def test_as_df(self):
-        df = self.bf.as_df("range")
+        df = self.bf.get_numeric_table("range")
         self.assertTupleEqual(df.shape, (3, 4))
         self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "range")

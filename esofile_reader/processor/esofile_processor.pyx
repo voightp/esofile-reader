@@ -454,8 +454,10 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
         # add other special columns
         for k, v in other_data.items():
             try:
+                # all special columns have SPECIAL as id
+                column_index = (SPECIAL, interval, k, "", "")
                 column = v.pop(interval)
-                df.insert(0, k, column)
+                df.insert(0, column_index, column)
             except KeyError:
                 pass
 
@@ -575,6 +577,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
 
     except StopIteration:
-        msg = f"File '{file_path}' is not complete!"
+        msg = f"File is not complete!"
         monitor.processing_failed(msg)
         raise IncompleteFile(msg)

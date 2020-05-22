@@ -6,7 +6,7 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import merge_peak_outputs, slicer
+from esofile_reader.data.df_functions import merge_peak_outputs, slicer, sr_dt_slicer
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import SimpleVariable, Variable
 
@@ -119,7 +119,7 @@ class DFData(BaseData):
 
     def get_variable_ids(self, interval: str) -> List[int]:
         mi = self.tables[interval].columns.get_level_values(ID_LEVEL).tolist()
-        return list(filter(lambda x: x not in self.SPECIAL_COLUMNS, mi))
+        return list(filter(lambda x: x != SPECIAL, mi))
 
     def get_all_variable_ids(self) -> List[int]:
         all_ids = []
@@ -130,8 +130,8 @@ class DFData(BaseData):
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values(ID_LEVEL).isin(self.SPECIAL_COLUMNS)
-        return mi[~cond].to_frame(index=False)
+        cond = mi.get_level_values(ID_LEVEL) != SPECIAL
+        return mi[cond].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
@@ -196,14 +196,15 @@ class DFData(BaseData):
             self, interval: str, name: str, start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        if name not in self.tables[interval].columns.get_level_values(ID_LEVEL):
+        if name not in self.tables[interval].columns.get_level_values(KEY_LEVEL):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
-
-        col = slicer(self.tables[interval], name, start_date, end_date)
-
+        if self.is_simple(interval):
+            v = (SPECIAL, interval, name, "")
+        else:
+            v = (SPECIAL, interval, name, "", "")
+        col = sr_dt_slicer(self.tables[interval].loc[:, v], start_date, end_date)
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
-
         return col
 
     def get_number_of_days(
@@ -218,10 +219,10 @@ class DFData(BaseData):
     ) -> pd.Series:
         return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
-    def get_all_results(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values(ID_LEVEL).isin(self.SPECIAL_COLUMNS)
-        return self.tables[interval].loc[:, ~cond].copy()
+        cond = mi.get_level_values(ID_LEVEL) != SPECIAL
+        return self.tables[interval].loc[:, cond].copy()
 
     def get_results(
             self,
@@ -236,8 +237,8 @@ class DFData(BaseData):
 
         if include_day:
             try:
-                days = self.get_days_of_week(interval, start_date, end_date)
-                df[DAY_COLUMN] = days
+                days_sr = self.get_days_of_week(interval, start_date, end_date)
+                df[DAY_COLUMN] = days_sr
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
             except KeyError:
                 try:

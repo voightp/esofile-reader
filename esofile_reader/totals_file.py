@@ -124,7 +124,7 @@ class TotalsFile(BaseFile):
         return df.T
 
     def _get_grouped_vars(
-        self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+            self, id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
     ) -> pd.DataFrame:
         """ Group header variables. """
         groups = {}
@@ -193,7 +193,7 @@ class TotalsFile(BaseFile):
         id_gen = incremental_id_gen(start=1)
 
         for interval in file.available_intervals:
-            out = file.data.get_all_results(interval)
+            out = file.data.get_numeric_table(interval)
 
             # find invalid ids
             ids = ignored_ids(out)
@@ -228,14 +228,22 @@ class TotalsFile(BaseFile):
             df.index = out.index
 
             try:
+                if file.data.is_simple(interval):
+                    v = (SPECIAL, interval, N_DAYS_COLUMN, "")
+                else:
+                    v = (SPECIAL, interval, N_DAYS_COLUMN, "", "")
                 c1 = file.data.get_number_of_days(interval)
-                df.insert(0, N_DAYS_COLUMN, c1)
+                df.insert(0, v, c1)
             except KeyError:
                 pass
 
             try:
                 c1 = file.data.get_days_of_week(interval)
-                df.insert(0, DAY_COLUMN, c1)
+                if file.data.is_simple(interval):
+                    v = (SPECIAL, interval, DAY_COLUMN, "")
+                else:
+                    v = (SPECIAL, interval, DAY_COLUMN, "", "")
+                df.insert(0, v, c1)
             except KeyError:
                 pass
 

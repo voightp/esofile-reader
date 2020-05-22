@@ -7,7 +7,7 @@ from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, Variable
 from esofile_reader.base_file import CannotAggregateVariables, BaseFile
-from esofile_reader.constants import N_DAYS_COLUMN
+from esofile_reader.constants import SPECIAL
 from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
@@ -296,7 +296,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.data.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
@@ -315,14 +315,14 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
     def test_as_df(self):
-        df = EF_ALL_INTERVALS.as_df("hourly")
+        df = EF_ALL_INTERVALS.get_numeric_table("hourly")
         self.assertTupleEqual(df.shape, (8760, 19))
         self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
-            _ = EF_ALL_INTERVALS.as_df("foo")
+            _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
         pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])

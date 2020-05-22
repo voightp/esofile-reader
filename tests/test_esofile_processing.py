@@ -314,13 +314,19 @@ class TestEsoFileProcessing(unittest.TestCase):
         outputs = generate_outputs(raw_outputs[0], header, dates, other_data, monitor, 1)
 
         for interval, df in outputs.tables.items():
-            if N_DAYS_COLUMN in df.columns:
-                self.assertEqual(df[N_DAYS_COLUMN].dtype, np.dtype("int64"))
-            if DAY_COLUMN in df.columns:
-                self.assertEqual(df[DAY_COLUMN].dtype, np.dtype("object"))
+            key_level = df.columns.get_level_values("key")
+            if N_DAYS_COLUMN in key_level:
+                self.assertEqual(df.iloc[:, 0].dtype, np.dtype("int64"))
+            if DAY_COLUMN in key_level:
+                self.assertEqual(df.iloc[:, 0].dtype, np.dtype("object"))
 
-            cond = df.columns.get_level_values("id").isin([N_DAYS_COLUMN, DAY_COLUMN])
+            cond = key_level.isin([N_DAYS_COLUMN, DAY_COLUMN])
             self.assertEqual(set(df.loc[:, ~cond].dtypes), {np.dtype("float64")})
+
+            if interval in [TS, H, D]:
+                self.assertTrue(("special", interval, "day", "", "") == df.columns[0])
+            else:
+                self.assertTrue(("special", interval, "n days", "", "") == df.columns[0])
 
     def test_create_tree(self):
         with open(self.header_pth, "r") as f:
@@ -349,9 +355,9 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertDictEqual(dup_ids, {626: dup2, 627: dup2, 625: dup1})
 
     def test_remove_duplicates(self):
-        v1 = Variable("hourly", "a" ,"b", "c")
-        v2 = Variable("hourly", "d" ,"e", "f")
-        v3 = Variable("hourly", "g" ,"h", "i")
+        v1 = Variable("hourly", "a", "b", "c")
+        v2 = Variable("hourly", "d", "e", "f")
+        v3 = Variable("hourly", "g", "h", "i")
         ids = {1: v1, 2: v2}
         header_dct = {"hourly": {1: v1, 2: v2, 3: v3}}
         outputs_dct = {"hourly": {1: v1, 3: v3}}

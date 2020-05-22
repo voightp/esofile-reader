@@ -13,7 +13,7 @@ class TestDiffFile(TestCase):
     def test_process_diff_identical_files(self):
         diff = DiffFile(EF1, EF1)
         for interval in diff.available_intervals:
-            df = diff.as_df(interval)
+            df = diff.get_numeric_table(interval)
             bool_df = df == 0
 
             # check if all calculated values are 0
