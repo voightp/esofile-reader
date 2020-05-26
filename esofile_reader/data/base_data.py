@@ -71,13 +71,18 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def insert_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence) -> Optional[int]:
         """ Add a new output into specific result table. """
         pass
 
     @abstractmethod
-    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         """ Update given variable values. """
+        pass
+
+    @abstractmethod
+    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
+        """ Insert a special column (days of week etc).  """
         pass
 
     @abstractmethod

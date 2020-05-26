@@ -255,19 +255,19 @@ class TestDataClassesSimple(unittest.TestCase):
     # def test_update_variable(self, key):
     #     data = self.data[key]
     #     original_vals = data.get_results("monthly", 983).iloc[:, 0]
-    #     data.update_variable_results("monthly", 983, list(range(12)))
+    #     data.update_variable_values("monthly", 983, list(range(12)))
     #     vals = data.get_results("monthly", 983).iloc[:, 0].to_list()
     #     self.assertListEqual(vals, list(range(12)))
-    #     data.update_variable_results("monthly", 983, original_vals)
+    #     data.update_variable_values("monthly", 983, original_vals)
     #
     # @parameterized.expand(["dfd", "pqd", "sqld"])
     # def test_update_variable_invalid(self, key):
     #     data = self.data[key]
     #     original_vals = data.get_results("monthly", 983).iloc[:, 0]
-    #     data.update_variable_results("monthly", 983, list(range(11)))
+    #     data.update_variable_values("monthly", 983, list(range(11)))
     #     vals = data.get_results("monthly", 983).iloc[:, 0].to_list()
     #     self.assertListEqual(vals, original_vals.to_list())
-    #     data.update_variable_results("monthly", 983, original_vals)
+    #     data.update_variable_values("monthly", 983, original_vals)
     #
     # @parameterized.expand(["dfd", "pqd"])
     # def test_get_special_column_invalid(self, key):

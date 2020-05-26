@@ -149,7 +149,7 @@ class DFData(BaseData):
             mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
-    def insert_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence) -> Optional[int]:
         interval, key, variable, units = variable
         df_length = len(self.tables[interval].index)
         valid = len(array) == df_length
@@ -168,10 +168,9 @@ class DFData(BaseData):
 
             return id_
 
-    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         df_length = len(self.tables[interval].index)
         valid = len(array) == df_length
-
         if not valid:
             logging.warning(
                 f"Variable contains {len(array)} values, "
@@ -180,6 +179,12 @@ class DFData(BaseData):
         else:
             cond = self.tables[interval].columns.get_level_values(ID_LEVEL) == id_
             self.tables[interval].loc[:, cond] = array
+
+    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
+        v = [SPECIAL, interval, name, "", ""]
+        if self.is_simple(interval):
+            v.pop(3)
+        self.tables[interval][tuple(v)] = array
 
     def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         all_ids = self.tables[interval].columns.get_level_values(ID_LEVEL)

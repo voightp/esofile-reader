@@ -94,6 +94,7 @@ class _ParquetIndexer:
                 ids = []
                 for item in col:
                     if item in self.frame.columns.get_level_values(ID_LEVEL):
+                        # TODO getter needs to work with multiple levels
                         ids.append(item)
                     elif item in self.frame.columns:
                         ids.append(item[0])
@@ -393,6 +394,7 @@ class ParquetFrame:
         if isinstance(item, (str, int)):
             # special columns do not use numeric ids
             item = (item, "", "", "", "")
+        # TODO handle special columns
 
         try:
             counted = self._chunks_table.groupby("chunk").count()

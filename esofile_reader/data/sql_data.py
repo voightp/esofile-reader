@@ -176,7 +176,7 @@ class SQLData(BaseData):
         n = res.count(self.storage.SEPARATOR) + 1
         return len(array) == n
 
-    def insert_variable(self, variable: Variable, array: Sequence[float]) -> None:
+    def insert_variable(self, variable: Variable, array: Sequence[float]) -> Optional[int]:
         if self._validate(variable.interval, array):
             table = self._get_results_table(variable.interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
@@ -195,11 +195,10 @@ class SQLData(BaseData):
                 "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
 
-    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         if self._validate(interval, array):
             table = self._get_results_table(interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
-
             with self.storage.engine.connect() as conn:
                 conn.execute(
                     table.update().where(table.c.id == id_).values(str_values=str_array)
@@ -210,6 +209,10 @@ class SQLData(BaseData):
                 f"Cannot update variable '{id_}'. "
                 f"Number of elements '({len(array)})' does not match!"
             )
+
+    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
+        # TODO sql commands to insert columns
+        pass
 
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
