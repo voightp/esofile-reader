@@ -117,37 +117,51 @@ class TestParquetFrame(TestCase):
     def test_column_indexing_multiple(self):
         assert_frame_equal(self.test_df[[2, 5, 8]], self.pqf[[2, 5, 8]])
 
+    def test_column_indexing_mi_list(self):
+        cols = [
+            (11, "daily", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
+            (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
+            (10, "daily", "BLOCK1:ZONE2_WALL_4_8_9", "Wall Gain", "W"),
+            (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
+        ]
+        assert_frame_equal(self.test_df[cols], self.pqf[cols])
+
+    def test_column_indexing_missing(self):
+        cols = [
+            (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
+            (1000, "some", "invalid", "variable", "")
+        ]
+        with self.assertRaises(KeyError):
+            _ = self.pqf[cols]
+
     def test_column_indexing_mi(self):
-        print(self.test_df[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")])
         assert_frame_equal(
             self.test_df[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
             self.pqf[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
         )
 
-    def test_column_indexing_mi_list(self):
-        assert_frame_equal(
-            self.test_df[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
-            self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
-        )
-
-    def test_column_indexing_invalid(self):
+    def test_column_indexing_missing_string(self):
         with self.assertRaises(KeyError):
-            print(self.pqf["invalid"])
+            _ = self.pqf["invalid"]
 
     def test_column_indexing_invalid_tuple(self):
-        with self.assertRaises(KeyError):
-            print(self.pqf[("invalid")])
+        with self.assertRaises(IndexError):
+            print(self.pqf[("invalid",)])
+
+    def test_column_indexing_invalid_mixed_type(self):
+        with self.assertRaises(IndexError):
+            _ = self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"), 6]],
 
     def test_loc_slice_rows(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
-            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
+            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
+            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
         )
 
     def test_loc(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
-            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
+            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
         )
 
     def test_invalid_loc(self):
@@ -197,8 +211,8 @@ class TestParquetFrame(TestCase):
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-        self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
-        self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
+        self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
+        self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_loc_invalid_setter(self):
