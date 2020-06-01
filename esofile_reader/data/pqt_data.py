@@ -218,13 +218,15 @@ class ParquetFrame:
             self._chunks_table.index, tuple(items_dct.items())
         )
 
-    def stringify_mi_level(self, mi: pd.MultiIndex, level: str):
+    @staticmethod
+    def stringify_mi_level(mi: pd.MultiIndex, level: str):
         """ Convert miltiindex level to str type. """
         mi_df = mi.to_frame(index=False)
         mi_df[level] = mi_df[level].astype(str)
         return pd.MultiIndex.from_frame(mi_df, names=mi.names)
 
-    def int_mi_level(self, mi: pd.MultiIndex, level: str):
+    @staticmethod
+    def int_mi_level(mi: pd.MultiIndex, level: str):
         """ Convert miltiindex level to int type. """
 
         def to_int(val):
@@ -236,6 +238,43 @@ class ParquetFrame:
         mi_df = mi.to_frame(index=False)
         mi_df[level] = mi_df[level].apply(to_int)
         return pd.MultiIndex.from_frame(mi_df, names=mi.names)
+
+    @staticmethod
+    def create_chunk(items: List[tuple], names: List[str]) -> Tuple[str, pd.DataFrame]:
+        """ Create unique chunk name and a piece of reference table. """
+        chunk_name = f"{str(uuid1())}.parquet"
+        mi = pd.MultiIndex.from_tuples(items, names=names)
+        chunk_df = pd.DataFrame({"chunk": [chunk_name] * len(items)}, index=mi)
+        return chunk_name, chunk_df
+
+    @staticmethod
+    def insert_mi_column_item(
+            mi: pd.MultiIndex, new_item: tuple, pos: int = None) -> pd.MultiIndex:
+        """ Insert or append new item into column MultiIndex. """
+        if pos is None or pos == len(mi):
+            mi = mi.append(pd.MultiIndex.from_tuples([new_item]))
+        elif pos < 0 or pos > len(mi):
+            raise IndexError(
+                f"Invalid column position '{pos}'! "
+                f"Position must be between 0 and {len(mi)}."
+            )
+        else:
+            df = mi.to_frame(index=False)
+            frames = [df.iloc[0:pos], pd.DataFrame([new_item], columns=mi.names), df.iloc[pos:]]
+            mi = pd.MultiIndex.from_frame(
+                pd.concat(frames, sort=False, ignore_index=True), names=mi.names
+            )
+        return mi
+
+    @staticmethod
+    def replace_mi_items(
+            mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]) -> pd.MultiIndex:
+        """ Insert or append new item into column MultiIndex. """
+        items = mi.tolist()
+        for old, new in old_new_tuple:
+            pos = items.index(old)
+            items[pos] = new
+        return pd.MultiIndex.from_tuples(items, names=mi.names)
 
     def save_info_parquets(self):
         """ Save columns, index and chunk data as parquets. """
@@ -336,14 +375,6 @@ class ParquetFrame:
 
         return df.loc[:, items]
 
-    @staticmethod
-    def create_chunk(items: List[tuple], names: List[str]) -> Tuple[str, pd.DataFrame]:
-        """ Create unique chunk name and a piece of reference table. """
-        chunk_name = f"{str(uuid1())}.parquet"
-        mi = pd.MultiIndex.from_tuples(items, names=names)
-        chunk_df = pd.DataFrame({"chunk": [chunk_name] * len(items)}, index=mi)
-        return chunk_name, chunk_df
-
     def store_df(self, df: pd.DataFrame, monitor: DefaultMonitor = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
@@ -379,33 +410,6 @@ class ParquetFrame:
             df = self.get_df_from_parquet(chunk_name)
             df.loc[rows, orig_items] = array
             self.save_df_to_parquet(chunk_name, df)
-
-    def insert_mi_column_item(
-            self, mi: pd.MultiIndex, new_item: tuple, pos: int = None) -> pd.MultiIndex:
-        """ Insert or append new item into column MultiIndex. """
-        if pos is None or pos == len(mi):
-            mi = mi.append(pd.MultiIndex.from_tuples([new_item]))
-        elif pos < 0 or pos > len(mi):
-            raise IndexError(
-                f"Invalid column position '{pos}'! "
-                f"Position must be between 0 and {len(mi)}."
-            )
-        else:
-            df = mi.to_frame(index=False)
-            frames = [df.iloc[0:pos], pd.DataFrame([new_item], columns=mi.names), df.iloc[pos:]]
-            mi = pd.MultiIndex.from_frame(
-                pd.concat(frames, sort=False, ignore_index=True), names=mi.names
-            )
-        return mi
-
-    def replace_mi_items(
-            self, mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]) -> pd.MultiIndex:
-        """ Insert or append new item into column MultiIndex. """
-        items = mi.tolist()
-        for old, new in old_new_tuple:
-            pos = items.index(old)
-            items[pos] = new
-        return pd.MultiIndex.from_tuples(items, names=mi.names)
 
     def _insert_column(
             self, item: Union[tuple, str, int], array: Sequence, pos: int = None

@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import unittest
@@ -22,10 +23,10 @@ class TestParquetStorage(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            Path("pqs" + ParquetStorage.EXT).unlink()
-        except FileNotFoundError:
-            pass
+        files = [Path("pqs" + ParquetStorage.EXT), Path("file-0")]
+        for f in files:
+            with contextlib.suppress(FileNotFoundError):
+                f.unlink()
 
     def setUp(self):
         self.storage = ParquetStorage()
@@ -87,6 +88,11 @@ class TestParquetStorage(unittest.TestCase):
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
                 EF_ALL_INTERVALS.get_numeric_table(interval), pqf.get_numeric_table(interval),
+                check_column_type=False
+            )
+            pqf.data.tables[interval].get_df()
+            assert_frame_equal(
+                EF_ALL_INTERVALS.data.tables[interval], pqf.data.tables[interval].get_df(),
                 check_column_type=False
             )
         pqf.clean_up()
