@@ -215,8 +215,8 @@ class TestDataClasses(unittest.TestCase):
                 ),
             )
 
-    @parameterized.expand(["dfd", "pqd"])
-    def test_rename_variable(self, key):
+    # @parameterized.expand(["dfd", "pqd"])
+    def test_rename_variable(self, key="pqd"):
         data = self.data[key]
         data.update_variable_name("timestep", 7, "FOO", "BAR")
         col1 = data.tables["timestep"].loc[:, [(7, "timestep", "FOO", "BAR", "W/m2")]]

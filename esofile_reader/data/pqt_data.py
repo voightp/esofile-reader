@@ -50,12 +50,15 @@ class _ParquetIndexer:
 
         # transform for compatibility with further checks
         col = [col] if isinstance(col, (int, str, tuple)) else col
+        missing = None
         if is_primitive() or is_tuple():
             if is_primitive():
                 vals = set(self.frame.columns.get_level_values(0))
             else:
                 vals = set(self.frame.columns)
             items = [item for item in col if item in vals]
+            if len(items) != len(col):
+                missing = [c for c in col if c not in items]
         elif is_boolean() and self.frame.columns.size == len(col):
             items = self.frame.columns[col].tolist()
         else:
@@ -64,7 +67,6 @@ class _ParquetIndexer:
                 "accepts list of {int, str}, boolean arrays or"
                 "multiindex tuples of primitive types."
             )
-        missing = None if len(items) == len(col) else [c for c in col if c not in items]
         # return requested items as a list of tuples
         return items, missing
 
@@ -193,27 +195,28 @@ class ParquetFrame:
                 f"Invalid columns index! Input length '{len(val)}'" f"!= '{len(self._columns)}'"
             )
         mi = []
-        items = {}
+        items_dct = {}
         for old, new in zip(self._columns, val):
             if old != new:
-                items[old] = new
+                items_dct[old] = new
             mi.append(new)
 
         # update reference column indexer
-        self._columns = pd.MultiIndex.from_tuples(mi, names=self._columns.names)
+        self._columns = val
 
         # update parquet data
-        pairs = self.get_chunk_item_pairs(list(items.keys()))
-        for chunk_name, _ in pairs.items():
-            mi = []
+        pairs = self.get_chunk_item_pairs(list(items_dct.keys()))
+        for chunk_name, items in pairs.items():
+            items_dcti = tuple({k: items_dct[k] for k in items}.items())
+            # full dataframe needs to be updated
             df = self.get_df_from_parquet(chunk_name)
-            for item in df.columns:
-                if item in items.keys():
-                    mi.append(items[item])
-                else:
-                    mi.append(item)
-            df.columns = pd.MultiIndex.from_tuples(mi, names=self._columns.names)
+            df.columns = self.replace_mi_items(df.columns, items_dcti)
             self.save_df_to_parquet(chunk_name, df)
+
+        # update chunk reference
+        self._chunks_table.index = self.replace_mi_items(
+            self._chunks_table.index, tuple(items_dct.items())
+        )
 
     def stringify_mi_level(self, mi: pd.MultiIndex, level: str):
         """ Convert miltiindex level to str type. """
@@ -394,6 +397,15 @@ class ParquetFrame:
                 pd.concat(frames, sort=False, ignore_index=True), names=mi.names
             )
         return mi
+
+    def replace_mi_items(
+            self, mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]) -> pd.MultiIndex:
+        """ Insert or append new item into column MultiIndex. """
+        items = mi.tolist()
+        for old, new in old_new_tuple:
+            pos = items.index(old)
+            items[pos] = new
+        return pd.MultiIndex.from_tuples(items, names=mi.names)
 
     def _insert_column(
             self, item: Union[tuple, str, int], array: Sequence, pos: int = None

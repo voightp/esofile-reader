@@ -85,7 +85,7 @@ class TestParquetFrame(TestCase):
             (3, "daily", "THIS IS", "NEW", "VARIABLE"),
             (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
             (5, "daily", "BLOCK1:ZONE1_WALL_3_0_0_0_0_0_WIN", "Window Gain", "W"),
-            (6, "daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
+            (6, "this", "is", "new", "index"),
             (0, "daily", "BLOCK1:ZONE1_WALL_5_0_0_0_0_0_WIN", "Window Gain", "W"),
             (8, "daily", "BLOCK1:ZONE1_WALL_6_0_0_0_0_0_WIN", "Window Lost", "W"),
             (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
@@ -98,9 +98,16 @@ class TestParquetFrame(TestCase):
         names = ["id", "interval", "key", "type", "units"]
         new_columns = pd.MultiIndex.from_tuples(new_variables, names=names)
         self.pqf.columns = new_columns
+        self.test_df.columns = new_columns
 
         assert_index_equal(new_columns, self.pqf.columns)
         assert_index_equal(new_columns, self.pqf.get_df().columns)
+
+        assert_frame_equal(
+            self.pqf[(6, "this", "is", "new", "index")],
+            self.test_df[[(6, "this", "is", "new", "index")]]
+        )
+        assert_frame_equal(self.pqf[6], self.test_df[[6]])
 
     def test_columns_setter_invalid_class(self):
         with self.assertRaises(IndexError):
