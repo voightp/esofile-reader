@@ -6,7 +6,6 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from esofile_reader import Variable
 from esofile_reader.data.pqt_data import ParquetFrame
 
 # global incrementor to create unique parquet file for each test
@@ -221,7 +220,7 @@ class TestParquetFrame(TestCase):
 
     def test_update_parquet(self):
         df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
-        self.pqf.update_parquet("test_parquet.parquet", df)
+        self.pqf.save_df_to_parquet("test_parquet.parquet", df)
         self.assertTrue(Path(self.pqf.workdir, "test_parquet.parquet").exists())
 
     def get_full_df(self):
@@ -236,51 +235,32 @@ class TestParquetFrame(TestCase):
         self.assertEqual(14, len(list(self.pqf.workdir.iterdir())))
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
-    def test_add_mi_column_item_invalid_pos(self):
-        with self.assertRaises(IndexError):
-            self.pqf.add_mi_column_item(Variable("hourly", "this", "is", "dummy"), pos=100)
-
-    def test_insert_column(self):
-        self.pqf.insert_column(((100, "this", "is", "dummy", "type")), ["a", "b", "c"])
-        columns = pd.MultiIndex.from_tuples(
-            [(100, "this", "is", "dummy", "type")],
-            names=["id", "interval", "key", "type", "units"],
-        )
-        index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
-
-        assert_frame_equal(
-            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns), self.pqf[100],
-        )
+    def test_insert_column_start(self):
+        self.pqf.insert(0, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        self.test_df.insert(0, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        assert_frame_equal(self.pqf.get_df(), self.test_df)
 
     def test_insert_column_middle(self):
-        self.pqf.drop([5])
-        self.pqf.insert_column(((100, "this", "is", "dummy", "type")), ["a", "b", "c"])
+        self.pqf.insert(5, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        self.test_df.insert(5, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        assert_frame_equal(self.pqf.get_df(), self.test_df)
 
-        test_variables = [
-            (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
-            (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
-            (3, "daily", "BLOCK1:ZONE3", "Zone Temperature", "C"),
-            (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
-            (6, "daily", "BLOCK1:ZONE1_WALL_4_0_0_0_0_0_WIN", "Window Gain", "W"),
-            (100, "this", "is", "dummy", "type"),
-            (0, "daily", "BLOCK1:ZONE1_WALL_5_0_0_0_0_0_WIN", "Window Gain", "W"),
-            (8, "daily", "BLOCK1:ZONE1_WALL_6_0_0_0_0_0_WIN", "Window Lost", "W"),
-            (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
-            (10, "daily", "BLOCK1:ZONE2_WALL_4_8_9", "Wall Gain", "W"),
-            (11, "daily", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
-            (12, "daily", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
-            (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
-            (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
-        ]
-        columns = pd.MultiIndex.from_tuples(
-            [(100, "this", "is", "dummy", "type")],
-            names=["id", "interval", "key", "type", "units"],
-        )
-        index = pd.Index(pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp")
+    def test_insert_column_end(self):
+        self.pqf.insert(14, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        self.test_df.insert(14, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+        assert_frame_equal(self.pqf.get_df(), self.test_df)
 
-        assert_frame_equal(
-            pd.DataFrame([["a"], ["b"], ["c"]], index=index, columns=columns), self.pqf[100],
-        )
+    def test_insert_column_invalid(self):
+        with self.assertRaises(IndexError):
+            self.pqf.insert(25, (100, "this", "is", "dummy", "type"), ["a", "b", "c"])
+
+    def test_insert_into_empty_frame(self):
+        cols = self.test_df.columns.tolist()
+        self.test_df.drop(columns=cols, inplace=True, axis=1)
+        self.pqf.drop(columns=cols, inplace=True, axis=1)
+        self.test_df["foo"] = [1, 2, 3]
+        self.pqf["foo"] = [1, 2, 3]
+        assert_frame_equal(self.test_df, self.pqf.get_df(), check_column_type=False)
 
     def test_drop(self):
         self.test_df.drop(columns=[6, 10], inplace=True, level="id")
@@ -289,19 +269,12 @@ class TestParquetFrame(TestCase):
 
     def test_drop_invalid_level(self):
         with self.assertRaises(IndexError):
-            self.pqf.drop(columns=[1, 2, 3], level="key")
+            self.pqf.drop(columns=[1, 2, 3], level="foo")
 
     def test_drop_all(self):
-        self.test_df.drop(
-            columns=self.test_df.columns.get_level_values("id").tolist(),
-            inplace=True,
-            level="id",
-        )
-
-        self.pqf.drop(
-            columns=self.pqf.columns.get_level_values("id").tolist(), inplace=True, level="id"
-        )
-
+        cols = self.test_df.columns.tolist()
+        self.test_df.drop(columns=cols, inplace=True, axis=1)
+        self.pqf.drop(columns=cols, inplace=True)
         self.assertTrue(self.pqf.get_df().empty)
         assert_frame_equal(self.test_df, self.pqf.get_df(), check_column_type=False)
 
