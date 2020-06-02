@@ -6,6 +6,7 @@ import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.data.df_data import DFData
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
@@ -181,11 +182,11 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_sql_no_n_days_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_number_of_days("range")
+            self.db_bf.data.get_special_column("range", N_DAYS_COLUMN)
 
     def test_sql_no_day_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_days_of_week("range")
+            self.db_bf.data.get_special_column("range", DAY_COLUMN)
 
     def test_parquet_file(self):
         path = Path("range_pqs" + ParquetStorage.EXT)

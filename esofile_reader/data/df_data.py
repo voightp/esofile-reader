@@ -149,24 +149,35 @@ class DFData(BaseData):
             mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
         self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
 
-    def insert_variable(self, variable: Variable, array: Sequence) -> Optional[int]:
-        interval, key, variable, units = variable
+    def _validate(
+            self, interval: str, variable: Union[Variable, SimpleVariable], array: Sequence
+    ) -> bool:
         df_length = len(self.tables[interval].index)
         valid = len(array) == df_length
-
         if not valid:
             logging.warning(
                 f"New variable contains {len(array)} values, "
-                f"df length is {df_length}!\nVariable cannot be added."
+                f"df length is {df_length}!\nVariable '{variable}' cannot be added."
             )
-        else:
+        return valid
+
+    def insert_column(self, variable: Variable, array: Sequence) -> Optional[int]:
+        interval, key, variable, units = variable
+        if self._validate(interval, variable, array):
             all_ids = self.get_all_variable_ids()
             # skip some ids as usually there's always few variables
             id_gen = incremental_id_gen(checklist=all_ids, start=100)
             id_ = next(id_gen)
             self.tables[interval][id_, interval, key, variable, units] = array
-
             return id_
+
+    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+        if self.is_simple(interval):
+            v = (SPECIAL, interval, key, "")
+        else:
+            v = (SPECIAL, interval, key, "", "")
+        if self._validate(interval, v, array):
+            self.tables[interval].insert(0, v, array)
 
     def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         df_length = len(self.tables[interval].index)
@@ -180,12 +191,6 @@ class DFData(BaseData):
             cond = self.tables[interval].columns.get_level_values(ID_LEVEL) == id_
             self.tables[interval].loc[:, cond] = array
 
-    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
-        v = [SPECIAL, interval, name, "", ""]
-        if self.is_simple(interval):
-            v.pop(3)
-        self.tables[interval][tuple(v)] = array
-
     def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         all_ids = self.tables[interval].columns.get_level_values(ID_LEVEL)
         if not all(map(lambda x: x in all_ids, ids)):
@@ -197,7 +202,7 @@ class DFData(BaseData):
 
         self.tables[interval].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
-    def _get_special_column(
+    def get_special_column(
             self, interval: str, name: str, start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.Series:
@@ -211,18 +216,6 @@ class DFData(BaseData):
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col
-
-    def get_number_of_days(
-            self, interval: str, start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
-    ) -> pd.Series:
-        return self._get_special_column(interval, N_DAYS_COLUMN, start_date, end_date)
-
-    def get_days_of_week(
-            self, interval: str, start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
-    ) -> pd.Series:
-        return self._get_special_column(interval, DAY_COLUMN, start_date, end_date)
 
     def get_numeric_table(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
@@ -242,7 +235,7 @@ class DFData(BaseData):
 
         if include_day:
             try:
-                days_sr = self.get_days_of_week(interval, start_date, end_date)
+                days_sr = self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
                 df[DAY_COLUMN] = days_sr
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
             except KeyError:

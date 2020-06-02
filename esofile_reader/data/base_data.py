@@ -71,8 +71,13 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def insert_variable(self, variable: Variable, array: Sequence) -> Optional[int]:
+    def insert_column(self, variable: Variable, array: Sequence) -> Optional[int]:
         """ Add a new output into specific result table. """
+        pass
+
+    @abstractmethod
+    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+        """ Add a 'special' variable into specific results table. """
         pass
 
     @abstractmethod
@@ -81,33 +86,19 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
-        """ Insert a special column (days of week etc).  """
-        pass
-
-    @abstractmethod
     def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
         """ Remove given variables. """
         pass
 
     @abstractmethod
-    def get_number_of_days(
+    def get_special_column(
             self,
             interval: str,
+            key: str,
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None
     ) -> pd.Series:
-        """ Get special 'n days' column. """
-        pass
-
-    @abstractmethod
-    def get_days_of_week(
-            self,
-            interval: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
-    ) -> pd.Series:
-        """ Get special 'day' column. """
+        """ Get a special column. """
         pass
 
     @abstractmethod

@@ -176,7 +176,7 @@ class SQLData(BaseData):
         n = res.count(self.storage.SEPARATOR) + 1
         return len(array) == n
 
-    def insert_variable(self, variable: Variable, array: Sequence[float]) -> Optional[int]:
+    def insert_column(self, variable: Variable, array: Sequence[float]) -> Optional[int]:
         if self._validate(variable.interval, array):
             table = self._get_results_table(variable.interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
@@ -210,49 +210,31 @@ class SQLData(BaseData):
                 f"Number of elements '({len(array)})' does not match!"
             )
 
-    def append_special_column(self, interval: str, name: str, array: Sequence) -> None:
+    def insert_special_column(self, interval: str, name: str, array: Sequence) -> None:
         # TODO sql commands to insert columns
         pass
 
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
-    def get_number_of_days(
-            self, interval: str, start_date: Optional[datetime] = None,
+    def get_special_column(
+            self, interval: str,
+            key: str,
+            start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None
     ) -> pd.Series:
-        try:
-            table = self._get_n_days_table(interval)
-        except KeyError:
-            raise KeyError(
-                f"'{N_DAYS_COLUMN}' column is not available " f"on the given data set."
-            )
+        special_tables = {
+            N_DAYS_COLUMN: self._get_n_days_table,
+            DAY_COLUMN: self._get_day_table,
+        }
+        # raises KeyError when invalid key is given or there are not any data
+        table = special_tables[key](interval)
 
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
             sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
-
-        index = self.get_datetime_index(interval)
-        if index is not None:
-            sr.index = index
-
-        return sr_dt_slicer(sr, start_date, end_date)
-
-    def get_days_of_week(
-            self, interval: str, start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
-    ) -> pd.Series:
-        try:
-            table = self._get_day_table(interval)
-        except KeyError:
-            raise KeyError(f"'{DAY_COLUMN}' column is not available " f"on the given data set.")
-
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(table.select()).fetchall()
-            sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
 
         index = self.get_datetime_index(interval)
         if index is not None:
@@ -289,7 +271,7 @@ class SQLData(BaseData):
             df.index = self.get_datetime_index(interval)
             if include_day:
                 try:
-                    day_sr = self.get_days_of_week(interval, start_date, end_date)
+                    day_sr = self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
                     df.insert(0, DAY_COLUMN, day_sr)
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
                 except KeyError:

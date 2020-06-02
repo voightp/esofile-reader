@@ -3,9 +3,10 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_index_equal, assert_frame_equal
+from pandas.testing import assert_index_equal, assert_frame_equal, assert_series_equal
 from parameterized import parameterized
 
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.data.df_functions import sr_dt_slicer, df_dt_slicer, sort_by_ids
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storage.df_storage import DFStorage
@@ -239,7 +240,7 @@ class TestDataClasses(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_add_remove_variable(self, key):
         data = self.data[key]
-        id_ = data.insert_variable(
+        id_ = data.insert_column(
             Variable("monthly", "FOO", "BAR", "C"), list(range(12))
         )
         data.delete_variables("monthly", [id_])
@@ -271,41 +272,33 @@ class TestDataClasses(unittest.TestCase):
         self.assertListEqual(vals, original_vals.to_list())
         data.update_variable_values("monthly", 983, original_vals)
 
-    # @parameterized.expand(["dfd", "pqd"])
-    def test_append_special_column(self):
-        data = self.data["pqd"]
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_insert_special_column(self, key):
+        data = self.data[key]
         values = list("abcdefghijkl")
-        index = pd.date_range("2002-01-01", freq="MS", periods=12, name="timestamp")
-        v = ("special", "monthly", "TEST", "", "")
-        data.append_special_column("monthly", "TEST", values)
-        df = data.tables["monthly"].loc[:, [v]]
-        test_df = pd.DataFrame({"dummy": values}, index=index)
-        test_df.columns = pd.MultiIndex.from_tuples(
-            [v], names=("id", "interval", "key", "type", "units")
-        )
-        print(df)
-        assert_frame_equal(df, test_df, check_column_type=False)
+        data.insert_special_column("monthly", "TEST", values)
+        sr = data.get_special_column("monthly", "TEST")
+        index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
+        test_sr = pd.Series(values, name=("special", "monthly", "TEST", "", ""), index=index)
+        assert_series_equal(sr, test_sr)
 
-    def test_append_special_column_sql(self):
-        self.fail()
-
-    @parameterized.expand(["dfd", "pqd"])
+    @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_special_column_invalid(self, key):
         data = self.data[key]
         with self.assertRaises(KeyError):
-            data._get_special_column("FOO", "timestep")
+            data.get_special_column("FOO", "timestep")
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_number_of_days(self, key):
         data = self.data[key]
-        col = data.get_number_of_days("monthly")
+        col = data.get_special_column("monthly", N_DAYS_COLUMN)
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_days_of_week(self, key):
         data = self.data[key]
-        col = data.get_days_of_week("daily")
+        col = data.get_special_column("daily", DAY_COLUMN)
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 

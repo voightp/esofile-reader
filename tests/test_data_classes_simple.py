@@ -237,7 +237,7 @@ class TestDataClassesSimple(unittest.TestCase):
     # @parameterized.expand(["dfd", "pqd", "sqld"])
     # def test_add_remove_variable(self, key):
     #     data = self.data[key]
-    #     id_ = data.insert_variable(
+    #     id_ = data.insert_column(
     #         Variable("monthly", "FOO", "BAR", "C"), list(range(12))
     #     )
     #     data.delete_variables("monthly", [id_])
@@ -273,7 +273,7 @@ class TestDataClassesSimple(unittest.TestCase):
     # def test_get_special_column_invalid(self, key):
     #     data = self.data[key]
     #     with self.assertRaises(KeyError):
-    #         data._get_special_column("FOO", "timestep")
+    #         data.get_special_column("FOO", "timestep")
     #
     # @parameterized.expand(["dfd", "pqd", "sqld"])
     # def test_get_number_of_days(self, key):

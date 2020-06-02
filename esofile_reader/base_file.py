@@ -287,7 +287,9 @@ class BaseFile:
                 # convert 'rate' or 'energy' when standard results are requested
                 if output_type == "standard" and rate_to_energy_dct[interval]:
                     try:
-                        n_days = self.data.get_number_of_days(interval, start_date, end_date)
+                        n_days = self.data.get_special_column(
+                            interval, N_DAYS_COLUMN, start_date, end_date
+                        )
                     except KeyError:
                         n_days = None
 
@@ -356,7 +358,7 @@ class BaseFile:
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(interval, key, type, units)
-        id_ = self.data.insert_variable(new_var, array)
+        id_ = self.data.insert_column(new_var, array)
         if id_:
             self.search_tree.add_variable(id_, new_var)
             return id_, new_var
@@ -422,7 +424,7 @@ class BaseFile:
         elif rate_and_energy_units(units) and interval != RANGE:
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.data.get_number_of_days(interval)
+                n_days = self.data.get_special_column(interval, N_DAYS_COLUMN)
             except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:

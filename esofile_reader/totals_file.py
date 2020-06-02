@@ -189,7 +189,7 @@ class TotalsFile(BaseFile):
 
             return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
 
-        outputs = DFData()
+        data = DFData()
         id_gen = incremental_id_gen(start=1)
 
         for interval in file.available_intervals:
@@ -226,33 +226,21 @@ class TotalsFile(BaseFile):
 
             # restore index
             df.index = out.index
+            data.populate_table(interval, df)
 
-            try:
-                if file.data.is_simple(interval):
-                    v = (SPECIAL, interval, N_DAYS_COLUMN, "")
-                else:
-                    v = (SPECIAL, interval, N_DAYS_COLUMN, "", "")
-                c1 = file.data.get_number_of_days(interval)
-                df.insert(0, v, c1)
-            except KeyError:
-                pass
-
-            try:
-                c1 = file.data.get_days_of_week(interval)
-                if file.data.is_simple(interval):
-                    v = (SPECIAL, interval, DAY_COLUMN, "")
-                else:
-                    v = (SPECIAL, interval, DAY_COLUMN, "", "")
-                df.insert(0, v, c1)
-            except KeyError:
-                pass
-
-            outputs.populate_table(interval, df)
+            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
+                try:
+                    c1 = file.data.get_special_column(interval, c)
+                    c2 = file.data.get_special_column(interval, c)
+                    if c1.equals(c2):
+                        data.insert_special_column(interval, c, c1)
+                except KeyError:
+                    pass
 
         tree = Tree()
-        tree.populate_tree(outputs.get_all_variables_dct())
+        tree.populate_tree(data.get_all_variables_dct())
 
-        return outputs, tree
+        return data, tree
 
     def populate_content(self, file: ResultsFile):
         """ Generate 'Totals' related data based on input 'ResultFile'. """
