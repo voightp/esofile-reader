@@ -1,5 +1,5 @@
-from esofile_reader import TotalsFile
 from esofile_reader.base_file import BaseFile
+from esofile_reader.data.df_data import DFData
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
@@ -31,10 +31,14 @@ class DFFile(BaseFile):
         self.id_ = id_
         self.file_path = file.file_path
         self.file_name = file.file_name
-        self.data = file.data
         self.file_created = file.file_created
         self.search_tree = file.search_tree
-        self.totals = isinstance(file, TotalsFile)
+        self.type_ = file.__class__.__name__
+        # create a new data so the original won't mutate
+        data = DFData()
+        for interval, df in file.data.tables.items():
+            data.populate_table(interval, df.copy())
+        self.data = data
 
 
 class DFStorage(BaseStorage):
