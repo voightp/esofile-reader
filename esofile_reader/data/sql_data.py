@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
-from sqlalchemy import Table, select
+from sqlalchemy import Table, select, String, Integer
 
 from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
@@ -14,7 +14,8 @@ from esofile_reader.data.df_functions import (
 )
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable
-from esofile_reader.storage.sql_functions import destringify_values
+from esofile_reader.storage.sql_functions import destringify_values, get_table_name, \
+    parse_table_name, create_special_table, create_value_insert
 
 
 class SQLData(BaseData):
@@ -27,54 +28,38 @@ class SQLData(BaseData):
         with self.storage.engine.connect() as conn:
             conn.execute(ft.update().where(ft.c.id == self.id_).values(file_name=name))
 
-    def _get_table(self, column: str, ft: Table) -> Table:
+    def _get_table_names(self, table_type: str) -> List[str]:
+        ft = self.storage.file_table
+        switch = {
+            "numeric": ft.c.numeric_tables,
+            "special": ft.c.special_tables,
+            "datetime": ft.c.datetime_tables,
+        }
+        col = switch[table_type]
+        # check if there's table reference
         with self.storage.engine.connect() as conn:
-            table_name = conn.execute(select([column]).where(ft.c.id == self.id_)).scalar()
-            table = self.storage.metadata.tables[table_name]
-        return table
+            res = conn.execute(select([col]).where(ft.c.id == self.id_)).scalar()
+            return res.split(self.storage.SEPARATOR) if res else []
+
+    def _get_table(self, table_name: str, table_type: str) -> Table:
+        names = self._get_table_names(table_type)
+        if table_name not in names:
+            logging.warning(
+                f"Cannot find file reference {table_name} in {table_type}!"
+            )
+        return self.storage.metadata.tables[table_name]
 
     def _get_results_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-        switch = {
-            TS: ft.c.timestep_outputs_table,
-            H: ft.c.hourly_outputs_table,
-            D: ft.c.daily_outputs_table,
-            M: ft.c.monthly_outputs_table,
-            A: ft.c.annual_outputs_table,
-            RP: ft.c.runperiod_outputs_table,
-            RANGE: ft.c.range_outputs_table,
-        }
-        return self._get_table(switch[interval], ft)
+        name = get_table_name(self.id_, "results", interval)
+        return self._get_table(name, "numeric")
 
     def _get_datetime_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-        switch = {
-            TS: ft.c.timestep_dt_table,
-            H: ft.c.hourly_dt_table,
-            D: ft.c.daily_dt_table,
-            M: ft.c.monthly_dt_table,
-            A: ft.c.annual_dt_table,
-            RP: ft.c.runperiod_dt_table,
-        }
-        return self._get_table(switch[interval], ft)
+        name = get_table_name(self.id_, "index", interval)
+        return self._get_table(name, "datetime")
 
-    def _get_n_days_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-        switch = {
-            M: ft.c.monthly_n_days_table,
-            A: ft.c.annual_n_days_table,
-            RP: ft.c.runperiod_n_days_table,
-        }
-        return self._get_table(switch[interval], ft)
-
-    def _get_day_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-        switch = {
-            TS: ft.c.timestep_day_table,
-            H: ft.c.hourly_day_table,
-            D: ft.c.daily_day_table,
-        }
-        return self._get_table(switch[interval], ft)
+    def _get_special_table(self, interval: str, key: str) -> Table:
+        name = get_table_name(self.id_, key, interval)
+        return self._get_table(name, "special")
 
     def is_simple(self, interval: str) -> bool:
         return len(self.get_levels(interval)) == 4
@@ -85,29 +70,14 @@ class SQLData(BaseData):
         return levels
 
     def get_available_intervals(self) -> List[str]:
-        ft = self.storage.file_table
-        columns = [
-            ft.c.timestep_outputs_table,
-            ft.c.hourly_outputs_table,
-            ft.c.daily_outputs_table,
-            ft.c.monthly_outputs_table,
-            ft.c.runperiod_outputs_table,
-            ft.c.annual_outputs_table,
-            ft.c.range_outputs_table,
-        ]
-        intervals = []
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(select(columns).where(ft.c.id == self.id_)).first()
-            for interval, table in zip([TS, H, D, M, RP, A, RANGE], res):
-                if table:
-                    intervals.append(interval)
-        return intervals
+        names = self._get_table_names("numeric")
+        return [parse_table_name(r)[2] for r in names]
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
         table = self._get_datetime_table(interval)
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
+            datetime_index = pd.DatetimeIndex([r[0] for r in res], name=TIMESTAMP_COLUMN)
         return datetime_index
 
     def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
@@ -210,9 +180,27 @@ class SQLData(BaseData):
                 f"Number of elements '({len(array)})' does not match!"
             )
 
-    def insert_special_column(self, interval: str, name: str, array: Sequence) -> None:
-        # TODO sql commands to insert columns
-        pass
+    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+        ft = self.storage.file_table
+        if self._validate(interval, array):
+            column_type = Integer if all(map(lambda x: isinstance(x, int), array)) else String
+            special_table = create_special_table(
+                self.storage.metadata, self.id_, interval, key, column_type
+            )
+            with self.storage.engine.connect() as conn:
+                conn.execute(special_table.insert(), create_value_insert(array))
+                res = conn.execute(
+                    select([ft.c.special_tables]).where(ft.c.id == self.id_)
+                ).scalar()
+                new_res = res + self.storage.SEPARATOR + special_table.name
+                conn.execute(
+                    ft.update().where(ft.c.id == self.id_).values(special_tables=new_res)
+                )
+        else:
+            logging.warning(
+                f"Cannot add special variable '{key} into table {interval}'. "
+                f"Number of elements '({len(array)})' does not match!"
+            )
 
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
@@ -225,21 +213,17 @@ class SQLData(BaseData):
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None
     ) -> pd.Series:
-        special_tables = {
-            N_DAYS_COLUMN: self._get_n_days_table,
-            DAY_COLUMN: self._get_day_table,
-        }
-        # raises KeyError when invalid key is given or there are not any data
-        table = special_tables[key](interval)
-
+        table = self._get_special_table(interval, key)
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
-
+            if self.is_simple(interval):
+                name = (SPECIAL, interval, key, "")
+            else:
+                name = (SPECIAL, interval, key, "", "")
+            sr = pd.Series([r[0] for r in res], name=name)
         index = self.get_datetime_index(interval)
         if index is not None:
             sr.index = index
-
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(

@@ -39,18 +39,17 @@ class TestSqlDB(unittest.TestCase):
             "1-day-daily",
             "1-results-monthly",
             "1-index-monthly",
-            "1-n_days-monthly",
+            "1-n days-monthly",
             "1-results-runperiod",
             "1-index-runperiod",
-            "1-n_days-runperiod",
+            "1-n days-runperiod",
             "1-results-annual",
             "1-index-annual",
-            "1-n_days-annual",
+            "1-n days-annual",
         ]
-
         self.assertListEqual(list(storage.metadata.tables.keys()), tables)
-
-        res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        res = storage.engine.execute(
+            """SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertListEqual([i[0] for i in res.fetchall()], tables)
 
     def test_04_store_file_totals(self):
@@ -65,10 +64,8 @@ class TestSqlDB(unittest.TestCase):
         storage = SQLStorage()
         _ = storage.store_file(EF_ALL_INTERVALS)
         storage.delete_file(1)
-
-        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
-
         res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
         self.assertEqual(res.fetchone()[0], "result-files")
 
     def test_06_load_all_files(self):

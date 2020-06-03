@@ -1,4 +1,5 @@
-from typing import Iterable, Any, Dict, List
+import re
+from typing import Iterable, Any, Dict, List, Type, Union, Optional, Tuple
 
 import pandas as pd
 from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
@@ -6,10 +7,32 @@ from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime
 from esofile_reader.constants import *
 
 
+def parse_table_name(name: str) -> Optional[Tuple[int, str, str]]:
+    p = re.compile("^(\d+)-([\w\s]+)-([\w\s]+)$")
+    f = p.findall(name)
+    if f:
+        id_ = int(f[0][0])
+        key = f[0][1]
+        interval = f[0][2]
+        return id_, key, interval
+
+
+def get_table_name(file_id: int, key: str, interval: str) -> str:
+    name = f"{file_id}-{key}-{interval}"
+    p = re.compile("^(\d+)-([\w\s]+)-([\w\s]+)$")
+    if bool(p.match(name)):
+        return name
+    else:
+        raise NameError(
+            f"Invalid sql table name: '{name}'. "
+            f"Table key and interval should only use alphanumeric characters"
+        )
+
+
 def create_results_table(
         metadata: MetaData, file_id: int, interval: str, is_simple: bool
 ) -> Table:
-    name = f"{file_id}-results-{interval}"
+    name = get_table_name(file_id, "results", interval)
     if is_simple:
         table = Table(
             name,
@@ -36,22 +59,20 @@ def create_results_table(
 
 
 def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Table:
-    name = f"{file_id}-index-{interval}"
+    name = get_table_name(file_id, "index", interval)
     table = Table(name, metadata, Column(VALUE_LEVEL, DateTime))
     table.create()
     return table
 
 
-def create_n_days_table(metadata: MetaData, file_id: int, interval: str) -> Table:
-    name = f"{file_id}-n_days-{interval}"
-    table = Table(name, metadata, Column(VALUE_LEVEL, Integer))
-    table.create()
-    return table
-
-
-def create_day_table(metadata: MetaData, file_id: int, interval: str) -> Table:
-    name = f"{file_id}-day-{interval}"
-    table = Table(name, metadata, Column(VALUE_LEVEL, String(10)))
+def create_special_table(
+        metadata: MetaData,
+        file_id: int, interval: str,
+        key: str,
+        column_type: Union[Type[Integer], Type[String]]
+) -> Table:
+    name = get_table_name(file_id, key, interval)
+    table = Table(name, metadata, Column(VALUE_LEVEL, column_type))
     table.create()
     return table
 

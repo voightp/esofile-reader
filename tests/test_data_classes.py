@@ -216,8 +216,8 @@ class TestDataClasses(unittest.TestCase):
                 ),
             )
 
-    # @parameterized.expand(["dfd", "pqd"])
-    def test_rename_variable(self, key="pqd"):
+    @parameterized.expand(["dfd", "pqd"])
+    def test_rename_variable(self, key):
         data = self.data[key]
         data.update_variable_name("timestep", 7, "FOO", "BAR")
         col1 = data.tables["timestep"].loc[:, [(7, "timestep", "FOO", "BAR", "W/m2")]]
@@ -273,7 +273,7 @@ class TestDataClasses(unittest.TestCase):
         data.update_variable_values("monthly", 983, original_vals)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
-    def test_insert_special_column(self, key):
+    def test_insert_special_column(self, key="sqld"):
         data = self.data[key]
         values = list("abcdefghijkl")
         data.insert_special_column("monthly", "TEST", values)
