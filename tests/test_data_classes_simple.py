@@ -38,11 +38,10 @@ class TestDataClassesSimple(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.files["pqf"].clean_up()
-        cls.files["pqf"] = None
+        pass
+        # cls.files["pqf"].clean_up()
+        # cls.files["pqf"] = None
 
-    def test_fail(self):
-        self.fail()
     #
     # @parameterized.expand(["dfd", "pqd", "sqld"])
     # def test_is_simple(self, key):
