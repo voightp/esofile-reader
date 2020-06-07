@@ -170,7 +170,6 @@ class SimpleTree:
     def _rem_loop(self, node: Node, cond: List[str], level: int = 0) -> None:
         def remove_recursively(n):
             parent = n.parent
-            print(n.key)
             if parent:
                 parent.children.remove(n)
                 if not parent.children:
