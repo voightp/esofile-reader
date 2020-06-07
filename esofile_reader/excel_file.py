@@ -43,11 +43,12 @@ class ExcelFile(BaseFile):
         self.file_path = file_path
         self.populate_content(monitor)
 
+    @staticmethod
     def parse_header(
-            self, df: pd.DataFrame, force_index: bool = False,
-    ) -> Tuple[pd.DataFrame, int, bool]:
+            df: pd.DataFrame, force_index: bool = False) -> Tuple[
+        pd.DataFrame, int, bool]:
         """ Extract header related information from excel worksheet. """
-        index_names = [TIMESTAMP_COLUMN, RANGE]
+        index_names = [TIMESTAMP_COLUMN, RANGE, INDEX]
         column_levels = [
             ID_LEVEL,
             INTERVAL_LEVEL,
@@ -89,7 +90,7 @@ class ExcelFile(BaseFile):
                     pass
                 elif is_template:
                     if ix in index_names:
-                        # hit either RANGE or TIMESTAMP key
+                        # hit either RANGE or TIMESTAMP or INDEX keyword
                         i += 1
                         break
                     elif isinstance(ix, (datetime, int)):
@@ -153,7 +154,50 @@ class ExcelFile(BaseFile):
         # transpose DataFrame to get items in columns
         header_df = pd.DataFrame(ordered_levels).T
 
+        # replace 'Nan' values with empty strings
+        header_df.fillna(value="", inplace=True)
+
         return header_df, i, index_column
+
+    @staticmethod
+    def build_df_table(
+            raw_df: pd.DataFrame, column_names: List[str], name: str, start_id: int = 1,
+    ) -> Tuple[pd.DataFrame, int]:
+        """ Finalize DataFrame data to match required DFData structure. """
+        special_rows = raw_df[KEY_LEVEL].isin([DAY_COLUMN, N_DAYS_COLUMN])
+        # all special columns have id 'special'
+        special_df = raw_df.loc[special_rows, :]
+        special_df.insert(0, ID_LEVEL, SPECIAL)
+
+        # create unique ids for each variable
+        numeric_df = raw_df.loc[~special_rows, :]
+        end_id = start_id + len(numeric_df.index)
+        ids = range(start_id, end_id)
+        numeric_df.insert(0, ID_LEVEL, ids)
+        df = pd.concat([special_df, numeric_df])
+
+        # include table name row if it's not already present
+        if INTERVAL_LEVEL not in df.columns:
+            df.insert(0, INTERVAL_LEVEL, name)
+            column_names.insert(0, INTERVAL_LEVEL)
+
+        # set columns and update index name
+        column_names.insert(0, ID_LEVEL)
+        df.set_index(column_names, inplace=True)
+        df = df.T
+
+        if isinstance(df.index, pd.DatetimeIndex):
+            df.index = df.index.round(freq="S")
+            df.index.rename(TIMESTAMP_COLUMN, inplace=True)
+        elif isinstance(df.index, pd.RangeIndex):
+            df.index.rename(RANGE)
+        else:
+            df.index.rename(INDEX)
+
+        # all columns use 'object' dtype
+        df = df.convert_dtypes()
+
+        return df, end_id
 
     def process_excel(
             self,
@@ -166,48 +210,40 @@ class ExcelFile(BaseFile):
         if not sheet_names:
             sheet_names = wb.sheetnames
 
+        start_id = 1
         df_data = DFData()
         for name in sheet_names:
             ws = wb[name]
             df = pd.DataFrame(ws.values)
 
-            # remove empty rows and columns
+            # ignore empty rows and columns
             df.dropna(axis=0, how="all", inplace=True)
             df.dropna(axis=1, how="all", inplace=True)
 
             header_df, skiprows, index_column = self.parse_header(
                 df.iloc[:self.HEADER_LIMIT, :], force_index=force_index
             )
-            print(header_df)
+            columns_names = header_df.index.tolist()
+
             df = df.iloc[skiprows:, :]
             if index_column:
-                df.set_index(keys=0, inplace=True)
-                if isinstance(df.index, pd.DatetimeIndex):
-                    df.index = df.index.round(freq="S")
-                    df.index.rename(TIMESTAMP_COLUMN, inplace=True)
-                else:
-                    df.index.rename(RANGE)
-            print(df)
-
-            # names = list(column_rows.keys())
-            # header = list(column_rows.values())
-            # index_col = 0 if index_column else False
-            #
-            # df = pd.read_excel(
-            #     file_path,
-            #     sheet_name=name,
-            #     header=header,
-            #     # index_col=index_col,
-            #     engine="openpyxl",
-            #     parse_dates=True,
-            #     # skiprows=skiprows
-            # )
-            # print(df)
+                df.set_index(keys=df.columns[0], inplace=True)
+            df = pd.concat([header_df.T, df.T], axis=1)
 
             # create table for each interval name
-            if INTERVAL_LEVEL in df.columns.names:
-                grouped = df.groupby(axis=1, level=INTERVAL_LEVEL, sort=False)
-                # print(grouped)
+            if INTERVAL_LEVEL in df:
+                for key in df[INTERVAL_LEVEL].unique():
+                    dfi, end_id = self.build_df_table(
+                        df.loc[df[INTERVAL_LEVEL] == key, :],
+                        name=key,
+                        column_names=columns_names,
+                        start_id=start_id,
+                    )
+                    start_id = end_id
+                    df_data.populate_table(INTERVAL_LEVEL, dfi)
+            else:
+                df, _ = self.build_df_table(df, name=name, column_names=columns_names)
+                df_data.populate_table(name, df)
 
         return False, False
 

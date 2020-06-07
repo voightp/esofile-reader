@@ -32,7 +32,7 @@ class TestExcelFile(unittest.TestCase):
         sr = pd.Series(np.random.randint(0, high=100, size=5))
         self.assertTrue(is_data_row(sr))
 
-    def test_is_data_row_more_stringst(self):
+    def test_is_data_row_more_strings(self):
         sr = pd.Series(["a", "b", pd.NaT, pd.NaT, 0.1])
         self.assertFalse(is_data_row(sr))
 

@@ -5,6 +5,7 @@ M = "monthly"
 A = "annual"
 RP = "runperiod"
 RANGE = "range"
+INDEX = "index"
 
 N_DAYS_COLUMN = "n days"
 DAY_COLUMN = "day"
