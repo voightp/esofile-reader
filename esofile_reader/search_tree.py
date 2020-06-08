@@ -37,13 +37,13 @@ class Node:
         self.children = set()
 
 
-class SimpleTree:
+class Tree:
     """
     A class which creates a tree like structure of the header dictionary.
 
     Tree needs to be populated using 'populate_tree' method.
 
-    SimpleTree class is supposed to be used with SimpleVariable
+    Tree class is supposed to be used with SimpleVariable
     namedtuple (this variable has 3 levels, interval, key and units).
 
     Attributes
@@ -53,8 +53,6 @@ class SimpleTree:
         as its children and children of children.
 
     """
-
-    ORDER = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL]
 
     def __init__(self):
         self.root = Node(None, "groot")
@@ -73,15 +71,22 @@ class SimpleTree:
         _loopstr(self.root, lst)
         return str.join("", lst)
 
-    def tree_variable(self, variable: Variable):
+    @staticmethod
+    def tree_variable(variable: Union[Variable, SimpleVariable]):
         """ Pass reordered variable. """
 
         def low_string(s):
             # piece can be 'None' which will be kept
             return str(s).lower() if s else s
 
-        v = SimpleVariable(*map(low_string, variable))
-        return [v.__getattribute__(level) for level in self.ORDER]
+        lower = map(low_string, variable)
+        if isinstance(variable, SimpleVariable):
+            order = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+            v = SimpleVariable(*lower)
+        else:
+            order = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL, TYPE_LEVEL]
+            v = Variable(*lower)
+        return [v.__getattribute__(level) for level in order]
 
     @staticmethod
     def _add_node(node_key: str, parent: Node) -> Node:
@@ -160,7 +165,7 @@ class SimpleTree:
         ids = []
         self._loop(self.root, ids, tree_variable, part_match=part_match)
         if not ids:
-            logging.warning(f"Variable: '{variable}' not found in tree!")
+            logging.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
 
     def variable_exists(self, variable: Variable) -> bool:
@@ -186,8 +191,8 @@ class SimpleTree:
                     nd = next(n for n in node.children if n.key == condition)
                     self._rem_loop(nd, cond, level=level)
             else:
-                # 'passing 'None' should clear all children
-                node.children.clear()
+                for nd in list(node.children):
+                    self._rem_loop(nd, cond, level=level)
 
     def remove_variable(self, variable: Variable) -> None:
         tree_variable = self.tree_variable(variable)
@@ -198,36 +203,3 @@ class SimpleTree:
         variables = variables if isinstance(variables, list) else [variables]
         for variable in variables:
             self.remove_variable(variable)
-
-
-class Tree(SimpleTree):
-    """
-    A class which creates a tree like structure of the header dictionary.
-
-    Tree needs to be populated using 'populate_tree' method.
-
-    Tree class is supposed to be used with Variable
-    namedtuple (this variable has 4 levels, interval, key, type and units).
-
-    Attributes
-    ----------
-    root : Node
-        A base root node which holds all the data
-        as its children and children of children.
-
-    """
-
-    ORDER = [INTERVAL_LEVEL, TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
-
-    def __init__(self):
-        super().__init__()
-
-    def tree_variable(self, variable: Variable):
-        """ Pass reordered variable. """
-
-        def low_string(s):
-            # piece can be 'None' which will be kept
-            return str(s).lower() if s else s
-
-        v = Variable(*map(low_string, variable))
-        return [v.__getattribute__(level) for level in self.ORDER]

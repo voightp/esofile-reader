@@ -1,7 +1,7 @@
 import unittest
 
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.search_tree import SimpleTree, Tree, Node
+from esofile_reader.search_tree import Tree, Node
 
 
 class TestSimpleSearchTree(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestSimpleSearchTree(unittest.TestCase):
                 16: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
             },
         }
-        self.tree = SimpleTree()
+        self.tree = Tree()
         self.tree.populate_tree(self.header)
 
     def test_node_init(self):
@@ -36,7 +36,7 @@ class TestSimpleSearchTree(unittest.TestCase):
         self.assertSetEqual(set(), node.children)
 
     def test_tree_structure(self):
-        tree = SimpleTree()
+        tree = Tree()
         tree.populate_tree(
             {
                 "daily": {
@@ -73,7 +73,7 @@ class TestSimpleSearchTree(unittest.TestCase):
         self.assertEqual([11], self.tree.find_ids(v))
 
     def test_populate_tree(self):
-        tree = SimpleTree()
+        tree = Tree()
         duplicates = tree.populate_tree(self.header)
         self.assertDictEqual(
             {
@@ -193,8 +193,8 @@ class TestSearchTree(unittest.TestCase):
             }
         )
         test_tree = {
-            "daily": {"c": {"b": {"d": 1, "f": 2}}, "g": {"b": {"h": 3}}},
-            "monthly": {"g": {"b": {"h": 4}}}
+            "daily": {"b": {"d": {"c": 1}, "f": {"c": 2}, "h": {"g": 3}}},
+            "monthly": {"b": {"h": {"g": 4}}}
         }
 
         for child0 in tree.root.children:
@@ -274,6 +274,7 @@ class TestSearchTree(unittest.TestCase):
         v1 = Variable("monthly", None, None, None)
         v2 = Variable("daily", None, "Zone Temperature", None)
         self.tree.remove_variables([v1, v2])
+        print(self.tree)
         self.assertListEqual(
             [4, 5, 6, 9, 10], self.tree.find_ids(Variable(None, None, None, None))
         )
