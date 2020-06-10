@@ -249,7 +249,8 @@ class ParquetFrame:
 
     @staticmethod
     def insert_mi_column_item(
-            mi: pd.MultiIndex, new_item: tuple, pos: int = None) -> pd.MultiIndex:
+            mi: pd.MultiIndex, new_item: tuple, pos: int = None
+    ) -> pd.MultiIndex:
         """ Insert or append new item into column MultiIndex. """
         if pos is None or pos == len(mi):
             mi = mi.append(pd.MultiIndex.from_tuples([new_item]))
@@ -268,7 +269,8 @@ class ParquetFrame:
 
     @staticmethod
     def replace_mi_items(
-            mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]) -> pd.MultiIndex:
+            mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]
+    ) -> pd.MultiIndex:
         """ Insert or append new item into column MultiIndex. """
         items = mi.tolist()
         for old, new in old_new_tuple:
@@ -467,12 +469,7 @@ class ParquetFrame:
         """ Insert column at given position. """
         self._insert_column(item, array, pos=pos)
 
-    def drop(
-            self,
-            columns: List[Union[int, tuple]],
-            level: str = None,
-            **kwargs
-    ) -> None:
+    def drop(self, columns: List[Union[int, tuple]], level: str = None, **kwargs) -> None:
         """ Drop columns with given ids from frame. """
         if level:
             if level not in self.columns.names:

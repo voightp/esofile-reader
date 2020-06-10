@@ -11,7 +11,6 @@ from esofile_reader.excel_file import ExcelFile, is_data_row
 
 
 class TestExcelFile(unittest.TestCase):
-
     def test_is_data_row_mixed(self):
         sr = pd.Series(["Saturday", pd.NaT, 0, 0, 1.23456])
         self.assertTrue(is_data_row(sr))

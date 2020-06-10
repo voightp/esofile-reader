@@ -203,7 +203,10 @@ class DFData(BaseData):
         self.tables[interval].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def get_special_column(
-            self, interval: str, name: str, start_date: Optional[datetime] = None,
+            self,
+            interval: str,
+            name: str,
+            start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.Series:
         if name not in self.tables[interval].columns.get_level_values(KEY_LEVEL):

@@ -50,7 +50,7 @@ class TestSimpleSearchTree(unittest.TestCase):
         test_tree = {
             "SimpleVariable": {
                 "daily": {"c": {"b": 1, "a": 2}, "g": {"b": 3}},
-                "monthly": {"g": {"b": 4}}
+                "monthly": {"g": {"b": 4}},
             }
         }
 
@@ -89,7 +89,8 @@ class TestSimpleSearchTree(unittest.TestCase):
     def test_variable_exists(self):
         self.assertTrue(
             self.tree.variable_exists(
-                SimpleVariable("monthly", "Meter BLOCK1:ZONE1#LIGHTS", "J"))
+                SimpleVariable("monthly", "Meter BLOCK1:ZONE1#LIGHTS", "J")
+            )
         )
 
     def test_variable_not_exists(self):
@@ -198,7 +199,7 @@ class TestSearchTree(unittest.TestCase):
         test_tree = {
             "Variable": {
                 "daily": {"b": {"d": {"c": 1}, "f": {"c": 2}, "h": {"g": 3}}},
-                "monthly": {"b": {"h": {"g": 4}}}
+                "monthly": {"b": {"h": {"g": 4}}},
             }
         }
         for ch0 in tree.root.children:
@@ -209,7 +210,7 @@ class TestSearchTree(unittest.TestCase):
                             for leaf in ch4.children:
                                 self.assertEqual(
                                     test_tree[ch0.key][ch1.key][ch2.key][ch3.key][ch4.key],
-                                    leaf.key
+                                    leaf.key,
                                 )
 
     def test_add_branch(self):
@@ -332,7 +333,7 @@ class TestMixedSearchTree(unittest.TestCase):
                 "monthly": {
                     4: SimpleVariable("monthly", "g", "b"),
                     5: Variable("monthly", "g", "b", "f"),
-                }
+                },
             }
         )
         self.assertEqual(
@@ -360,7 +361,8 @@ class TestMixedSearchTree(unittest.TestCase):
 				f
 					b
 						5
-""", tree.__repr__()
+""",
+            tree.__repr__(),
         )
 
     def test_add_branch(self):
@@ -395,7 +397,7 @@ class TestMixedSearchTree(unittest.TestCase):
             SimpleVariable("monthly", "Meter BLOCK1:ZONE1#LIGHTS", "J"),
             SimpleVariable("monthly", "Meter BLOCK1:ZONE2#LIGHTS", "J"),
             Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
-            Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J")
+            Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
         ]
         for v in vars:
             self.assertTrue(self.tree.variable_exists(v))
@@ -418,7 +420,7 @@ class TestMixedSearchTree(unittest.TestCase):
             SimpleVariable("monthly", "Meter BLOCK1:ZONE1#LIGHTS", "J"),
             SimpleVariable("monthly", "Meter BLOCK1:ZONE2#LIGHTS", "J"),
             Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
-            Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J")
+            Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
         ]
         for v, id_ in zip(vars, list(range(1, 10))):
             self.assertEqual([id_], self.tree.find_ids(v))
@@ -439,12 +441,10 @@ class TestMixedSearchTree(unittest.TestCase):
         self.tree.remove_variable(v)
         self.assertListEqual([], self.tree.find_ids(v))
         self.assertListEqual(
-            [4, 5, 6, 7],
-            self.tree.find_ids(SimpleVariable(None, None, None)),
+            [4, 5, 6, 7], self.tree.find_ids(SimpleVariable(None, None, None)),
         )
         self.assertListEqual(
-            [2, 3, 8, 9],
-            self.tree.find_ids(Variable(None, None, None, None)),
+            [2, 3, 8, 9], self.tree.find_ids(Variable(None, None, None, None)),
         )
 
     def test_remove_branch(self):
@@ -457,12 +457,8 @@ class TestMixedSearchTree(unittest.TestCase):
         v2 = SimpleVariable("daily", "BLOCK1:ZONE1 Zone Temperature", None)
         v3 = Variable("daily", None, None, None)
         self.tree.remove_variables([v1, v2, v3])
-        self.assertListEqual(
-            [4, 5], self.tree.find_ids(SimpleVariable(None, None, None))
-        )
-        self.assertListEqual(
-            [8, 9], self.tree.find_ids(Variable(None, None, None, None))
-        )
+        self.assertListEqual([4, 5], self.tree.find_ids(SimpleVariable(None, None, None)))
+        self.assertListEqual([8, 9], self.tree.find_ids(Variable(None, None, None, None)))
 
     def test_numeric_variable_name(self):
         v = SimpleVariable("hourly", 11, 12)

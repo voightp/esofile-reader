@@ -96,7 +96,7 @@ class BaseData(ABC):
             interval: str,
             key: str,
             start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
+            end_date: Optional[datetime] = None,
     ) -> pd.Series:
         """ Get a special column. """
         pass

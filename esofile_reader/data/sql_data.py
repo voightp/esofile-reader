@@ -14,8 +14,13 @@ from esofile_reader.data.df_functions import (
 )
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable
-from esofile_reader.storage.sql_functions import destringify_values, get_table_name, \
-    parse_table_name, create_special_table, create_value_insert
+from esofile_reader.storage.sql_functions import (
+    destringify_values,
+    get_table_name,
+    parse_table_name,
+    create_special_table,
+    create_value_insert,
+)
 
 
 class SQLData(BaseData):
@@ -44,9 +49,7 @@ class SQLData(BaseData):
     def _get_table(self, table_name: str, table_type: str) -> Table:
         names = self._get_table_names(table_type)
         if table_name not in names:
-            logging.warning(
-                f"Cannot find file reference {table_name} in {table_type}!"
-            )
+            logging.warning(f"Cannot find file reference {table_name} in {table_type}!")
         return self.storage.metadata.tables[table_name]
 
     def _get_results_table(self, interval: str) -> Table:
@@ -208,10 +211,11 @@ class SQLData(BaseData):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_special_column(
-            self, interval: str,
+            self,
+            interval: str,
             key: str,
             start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None
+            end_date: Optional[datetime] = None,
     ) -> pd.Series:
         table = self._get_special_table(interval, key)
         with self.storage.engine.connect() as conn:

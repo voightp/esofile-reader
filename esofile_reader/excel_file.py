@@ -36,6 +36,7 @@ def is_data_row(sr: pd.Series):
 
 class ExcelFile(BaseFile):
     """ Create results file based on excel data. """
+
     HEADER_LIMIT = 10
 
     def __init__(self, file_path: Union[str, Path], monitor: DefaultMonitor = None):
@@ -45,8 +46,8 @@ class ExcelFile(BaseFile):
 
     @staticmethod
     def parse_header(
-            df: pd.DataFrame, force_index: bool = False) -> Tuple[
-        pd.DataFrame, int, bool]:
+            df: pd.DataFrame, force_index: bool = False
+    ) -> Tuple[pd.DataFrame, int, bool]:
         """ Extract header related information from excel worksheet. """
         index_names = [TIMESTAMP_COLUMN, RANGE, INDEX]
         column_levels = [
@@ -103,8 +104,10 @@ class ExcelFile(BaseFile):
                         else:
                             levels[ix] = row
                     else:
-                        print(f"Unexpected column identifier: {ix}"
-                              f"Only {', '.join(COLUMN_LEVELS)} are allowed.")
+                        print(
+                            f"Unexpected column identifier: {ix}"
+                            f"Only {', '.join(COLUMN_LEVELS)} are allowed."
+                        )
                 else:
                     if is_data_row(row):
                         # hit actual data rows
@@ -133,18 +136,17 @@ class ExcelFile(BaseFile):
             ordered_levels = {lev: levels[lev] for lev in column_levels if lev in levels}
         else:
             n = len(levels)
-            msg = " expected levels are either:\n\t1 - key\n\tunits" \
-                  "\n..for two level header or:\n\t1 - key\n\ttype\nunits" \
-                  " for three level header."
+            msg = (
+                " expected levels are either:\n\t1 - key\n\tunits"
+                "\n..for two level header or:\n\t1 - key\n\ttype\nunits"
+                " for three level header."
+            )
             if n < 2:
                 raise InsuficientHeaderInfo(
-                    f"Not enough information to create header. "
-                    f"There's only {n} but {msg}"
+                    f"Not enough information to create header. " f"There's only {n} but {msg}"
                 )
             elif n > 3:
-                raise InsuficientHeaderInfo(
-                    f"Too many header levels - {n}\n{msg}"
-                )
+                raise InsuficientHeaderInfo(f"Too many header levels - {n}\n{msg}")
             keys = [KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
             if n == 2:
                 keys.remove(TYPE_LEVEL)
@@ -221,7 +223,7 @@ class ExcelFile(BaseFile):
             df.dropna(axis=1, how="all", inplace=True)
 
             header_df, skiprows, index_column = self.parse_header(
-                df.iloc[:self.HEADER_LIMIT, :], force_index=force_index
+                df.iloc[: self.HEADER_LIMIT, :], force_index=force_index
             )
             columns_names = header_df.index.tolist()
 
@@ -248,9 +250,7 @@ class ExcelFile(BaseFile):
         return False, False
 
     def populate_content(
-            self,
-            monitor: DefaultMonitor = None,
-            sheet_names: str = None,
+            self, monitor: DefaultMonitor = None, sheet_names: str = None,
             force_index: bool = False
     ) -> None:
         self.file_name = Path(self.file_path).stem

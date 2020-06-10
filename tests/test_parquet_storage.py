@@ -87,13 +87,15 @@ class TestParquetStorage(unittest.TestCase):
 
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
-                EF_ALL_INTERVALS.get_numeric_table(interval), pqf.get_numeric_table(interval),
-                check_column_type=False
+                EF_ALL_INTERVALS.get_numeric_table(interval),
+                pqf.get_numeric_table(interval),
+                check_column_type=False,
             )
             pqf.data.tables[interval].get_df()
             assert_frame_equal(
-                EF_ALL_INTERVALS.data.tables[interval], pqf.data.tables[interval].get_df(),
-                check_column_type=False
+                EF_ALL_INTERVALS.data.tables[interval],
+                pqf.data.tables[interval].get_df(),
+                check_column_type=False,
             )
         pqf.clean_up()
 
@@ -192,14 +194,16 @@ class TestParquetStorage(unittest.TestCase):
         for interval in EF_ALL_INTERVALS.available_intervals:
             test_df = EF_ALL_INTERVALS.get_numeric_table(interval)
             for f in ef1_files:
-                assert_frame_equal(test_df, f.get_numeric_table(interval),
-                                   check_column_type=False)
+                assert_frame_equal(
+                    test_df, f.get_numeric_table(interval), check_column_type=False
+                )
 
         for interval in EF1.available_intervals:
             test_df = EF1.get_numeric_table(interval)
             for f in ef2_files:
-                assert_frame_equal(test_df, f.get_numeric_table(interval),
-                                   check_column_type=False)
+                assert_frame_equal(
+                    test_df, f.get_numeric_table(interval), check_column_type=False
+                )
 
         p1.unlink()
         p2.unlink()
@@ -227,6 +231,7 @@ class TestParquetStorage(unittest.TestCase):
 
     def test_parquet_file_as_bytes(self):
         import io
+
         id_ = self.storage.store_file(EF_ALL_INTERVALS)
         out = self.storage.files[id_].save_as()
         self.assertIsInstance(out, io.BytesIO)

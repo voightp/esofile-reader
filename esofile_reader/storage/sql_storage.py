@@ -26,7 +26,7 @@ from esofile_reader.storage.sql_functions import (
     create_datetime_table,
     merge_df_values,
     create_value_insert,
-    create_special_table
+    create_special_table,
 )
 
 
@@ -193,9 +193,7 @@ class SQLStorage(BaseStorage):
                         file_input["special_tables"].append(special_table.name)
             # all table names are stored as a tab separated string
             file_input = {k: f"{self.SEPARATOR}".join(v) for k, v in file_input.items()}
-            conn.execute(
-                file_table.update().where(file_table.c.id == id_).values(file_input)
-            )
+            conn.execute(file_table.update().where(file_table.c.id == id_).values(file_input))
             db_file = SQLFile(
                 id_,
                 file_path=results_file.file_path,
@@ -214,7 +212,7 @@ class SQLStorage(BaseStorage):
             columns = [
                 file_table.c.numeric_tables,
                 file_table.c.special_tables,
-                file_table.c.datetime_tables
+                file_table.c.datetime_tables,
             ]
             res = conn.execute(select(columns).where(file_table.c.id == id_)).first()
             if res:

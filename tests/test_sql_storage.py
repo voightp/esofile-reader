@@ -48,8 +48,7 @@ class TestSqlDB(unittest.TestCase):
             "1-n days-annual",
         ]
         self.assertListEqual(list(storage.metadata.tables.keys()), tables)
-        res = storage.engine.execute(
-            """SELECT name FROM sqlite_master WHERE type='table'""")
+        res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertListEqual([i[0] for i in res.fetchall()], tables)
 
     def test_04_store_file_totals(self):

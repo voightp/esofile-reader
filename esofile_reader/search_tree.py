@@ -139,7 +139,7 @@ class Tree:
             ids: List[int],
             tree_variable: List[Optional[str]],
             part_match: bool = False,
-            level: int = 0
+            level: int = 0,
     ) -> None:
         """ Search through the tree to find ids. """
         if level == len(tree_variable):
@@ -154,8 +154,9 @@ class Tree:
                     # multiple children can match the condition
                     for nd in node.children:
                         if condition in nd.key:
-                            self._loop(nd, ids, tree_variable, part_match=part_match,
-                                       level=level)
+                            self._loop(
+                                nd, ids, tree_variable, part_match=part_match, level=level
+                            )
                 else:
                     with contextlib.suppress(StopIteration):
                         nd = next(n for n in node.children if n.key == condition)
@@ -165,8 +166,9 @@ class Tree:
                 for nd in node.children:
                     self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
 
-    def find_ids(self, variable: Union[SimpleVariable, Variable], part_match: bool = False) -> \
-            List[int]:
+    def find_ids(
+            self, variable: Union[SimpleVariable, Variable], part_match: bool = False
+    ) -> List[int]:
         """ Find variable ids for given arguments. """
         tree_variable = self.tree_variable(variable)
         ids = []

@@ -30,17 +30,9 @@ class TestDataClasses(unittest.TestCase):
         id_ = cls.sqls.store_file(EF_ALL_INTERVALS)
         sqlf = cls.sqls.files[id_]
 
-        cls.files = {
-            "dff": dff,
-            "pqf": pqf,
-            "sqlf": sqlf
-        }
+        cls.files = {"dff": dff, "pqf": pqf, "sqlf": sqlf}
 
-        cls.data = {
-            "dfd": dff.data,
-            "pqd": pqf.data,
-            "sqld": sqlf.data
-        }
+        cls.data = {"dfd": dff.data, "pqd": pqf.data, "sqld": sqlf.data}
 
     @classmethod
     def tearDownClass(cls):
@@ -227,22 +219,22 @@ class TestDataClasses(unittest.TestCase):
         )
         col2 = data.tables["timestep"].loc[
                :,
-               [(
-                   7,
-                   "timestep",
-                   "Environment",
-                   "Site Diffuse Solar Radiation Rate per Area",
-                   "W/m2",
-               )],
+               [
+                   (
+                       7,
+                       "timestep",
+                       "Environment",
+                       "Site Diffuse Solar Radiation Rate per Area",
+                       "W/m2",
+                   )
+               ],
                ]
         self.assertEqual(col1.iloc[:, 0].array, col2.iloc[:, 0].array)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_add_remove_variable(self, key):
         data = self.data[key]
-        id_ = data.insert_column(
-            Variable("monthly", "FOO", "BAR", "C"), list(range(12))
-        )
+        id_ = data.insert_column(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
         data.delete_variables("monthly", [id_])
         if key != "sqld":
             with self.assertRaises(KeyError):
@@ -529,7 +521,7 @@ class TestDataClasses(unittest.TestCase):
     def test_sort_by_ids(self):
         columns = pd.MultiIndex.from_tuples(
             [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
-            names=["id", "interval", "key", "units"]
+            names=["id", "interval", "key", "units"],
         )
         index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
         df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)
@@ -540,7 +532,7 @@ class TestDataClasses(unittest.TestCase):
     def test_sort_by_ids_na_id(self):
         columns = pd.MultiIndex.from_tuples(
             [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
-            names=["id", "interval", "key", "units"]
+            names=["id", "interval", "key", "units"],
         )
         index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
         df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)

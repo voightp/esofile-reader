@@ -67,9 +67,10 @@ def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Ta
 
 def create_special_table(
         metadata: MetaData,
-        file_id: int, interval: str,
+        file_id: int,
+        interval: str,
         key: str,
-        column_type: Union[Type[Integer], Type[String]]
+        column_type: Union[Type[Integer], Type[String]],
 ) -> Table:
     name = get_table_name(file_id, key, interval)
     table = Table(name, metadata, Column(VALUE_LEVEL, column_type))

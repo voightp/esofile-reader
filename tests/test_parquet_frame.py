@@ -105,7 +105,7 @@ class TestParquetFrame(TestCase):
 
         assert_frame_equal(
             self.pqf[(6, "this", "is", "new", "index")],
-            self.test_df[[(6, "this", "is", "new", "index")]]
+            self.test_df[[(6, "this", "is", "new", "index")]],
         )
         assert_frame_equal(self.pqf[6], self.test_df[[6]])
 
@@ -135,7 +135,7 @@ class TestParquetFrame(TestCase):
     def test_column_indexing_missing(self):
         cols = [
             (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
-            (1000, "some", "invalid", "variable", "")
+            (1000, "some", "invalid", "variable", ""),
         ]
         with self.assertRaises(KeyError):
             _ = self.pqf[cols]
@@ -156,7 +156,7 @@ class TestParquetFrame(TestCase):
 
     def test_column_indexing_invalid_mixed_type(self):
         with self.assertRaises(IndexError):
-            _ = self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"), 6]],
+            _ = (self.pqf[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"), 6]],)
 
     def test_loc_slice_rows(self):
         assert_frame_equal(

@@ -31,12 +31,7 @@ class TestResultFetching(unittest.TestCase):
         id_ = cls.sqls.store_file(EF1)
         sqlf = cls.sqls.files[id_]
 
-        cls.files = {
-            "ef": EF1,
-            "dff": dff,
-            "pqf": pqf,
-            "sqlf": sqlf
-        }
+        cls.files = {"ef": EF1, "dff": dff, "pqf": pqf, "sqlf": sqlf}
 
     @classmethod
     def tearDownClass(cls):
