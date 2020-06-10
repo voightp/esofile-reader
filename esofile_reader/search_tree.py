@@ -118,7 +118,7 @@ class Tree:
             # there's already a leaf, variable is a duplicate
             return id_
 
-    def add_variable(self, id_: int, variable: Variable) -> bool:
+    def add_variable(self, id_: int, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Add new variable into the tree. """
         duplicate_id = self._add_branch(id_, variable)
         return not bool(duplicate_id)
@@ -165,7 +165,8 @@ class Tree:
                 for nd in node.children:
                     self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
 
-    def find_ids(self, variable: Variable, part_match: bool = False) -> List[int]:
+    def find_ids(self, variable: Union[SimpleVariable, Variable], part_match: bool = False) -> \
+            List[int]:
         """ Find variable ids for given arguments. """
         tree_variable = self.tree_variable(variable)
         ids = []
@@ -174,7 +175,7 @@ class Tree:
             logging.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
 
-    def variable_exists(self, variable: Variable) -> bool:
+    def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Check if variable exists. """
         return bool(self.find_ids(variable, part_match=False))
 
@@ -200,7 +201,7 @@ class Tree:
                 for nd in list(node.children):
                     self._rem_loop(nd, tree_variable, level=level)
 
-    def remove_variable(self, variable: Variable) -> None:
+    def remove_variable(self, variable: Union[SimpleVariable, Variable]) -> None:
         tree_variable = self.tree_variable(variable)
         self._rem_loop(self.root, tree_variable)
 
