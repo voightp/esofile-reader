@@ -65,9 +65,8 @@ class DFData(BaseData):
         ...                          ...                    ...
 
 
-    There can be some special columns with predefined getters:
-        get_number_of_days(interval)
-        get_days_of_week(interval)
+    There can be some special columns with special getter:
+        get_special_column(table, name)
 
     """
 
@@ -101,7 +100,7 @@ class DFData(BaseData):
         def create_simple_variable(sr):
             return (
                 sr[ID_LEVEL],
-                SimpleVariable(sr[INTERVAL_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
+                SimpleVariable(sr[INTERVAL_LEVEL], sr[KEY_LEVEL], sr[UNITS_LEVEL]),
             )
 
         header_df = self.get_variables_df(interval)
@@ -130,8 +129,7 @@ class DFData(BaseData):
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         mi = self.tables[interval].columns
-        cond = mi.get_level_values(ID_LEVEL) != SPECIAL
-        return mi[cond].to_frame(index=False)
+        return mi[mi.get_level_values(ID_LEVEL) != SPECIAL].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []

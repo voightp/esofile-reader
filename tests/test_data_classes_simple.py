@@ -1,55 +1,59 @@
 import unittest
+from pathlib import Path
+
+from parameterized import parameterized
+
+from esofile_reader.excel_file import ExcelFile
+from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.sql_storage import SQLStorage
+from tests import ROOT
 
 
 class TestDataClassesSimple(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # TODO write tests
-        pass
-        # pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
-        # wb = load_workbook(filename=pth)
-        # for name in wb.sheetnames:
-        #     pd.read_excel(pth, sheet_name=name)
-        # print(wb.sheetnames)
+        pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
+        sheets = ["simple-template-monthly", "simple-template-range"]
+        ef = ExcelFile(pth, sheets)
 
-        # cls.dfs = DFStorage()
-        # id_ = cls.dfs.store_file(EF_ALL_INTERVALS)
-        # dff = cls.dfs.files[id_]
-        #
-        # cls.pqs = ParquetStorage()
-        # id_ = cls.pqs.store_file(EF_ALL_INTERVALS)
-        # pqf = cls.pqs.files[id_]
-        #
-        # cls.sqls = SQLStorage()
-        # id_ = cls.sqls.store_file(EF_ALL_INTERVALS)
-        # sqlf = cls.sqls.files[id_]
-        #
-        # cls.files = {
-        #     "dff": dff,
-        #     "pqf": pqf,
-        #     "sqlf": sqlf
-        # }
-        #
-        # cls.data = {
-        #     "dfd": dff.data,
-        #     "pqd": pqf.data,
-        #     "sqld": sqlf.data
-        # }
+        cls.dfs = DFStorage()
+        id_ = cls.dfs.store_file(ef)
+        dff = cls.dfs.files[id_]
+
+        cls.pqs = ParquetStorage()
+        id_ = cls.pqs.store_file(ef)
+        pqf = cls.pqs.files[id_]
+
+        cls.sqls = SQLStorage()
+        id_ = cls.sqls.store_file(ef)
+        sqlf = cls.sqls.files[id_]
+
+        cls.files = {
+            "dff": dff,
+            "pqf": pqf,
+            "sqlf": sqlf
+        }
+
+        cls.data = {
+            "dfd": dff.data,
+            "pqd": pqf.data,
+            "sqld": sqlf.data
+        }
 
     @classmethod
     def tearDownClass(cls):
-        pass
-        # cls.files["pqf"].clean_up()
-        # cls.files["pqf"] = None
+        cls.files["pqf"].clean_up()
+        cls.files["pqf"] = None
 
-    #
-    # @parameterized.expand(["dfd", "pqd", "sqld"])
-    # def test_is_simple(self, key):
-    #     data = self.data[key]
-    #     intervals = data.get_available_intervals()
-    #     for interval in intervals:
-    #         self.assertFalse(data.is_simple(interval))
-    #
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_is_simple(self, key):
+        data = self.data[key]
+        intervals = data.get_available_intervals()
+        for interval in intervals:
+            self.assertTrue(data.is_simple(interval))
+
     # @parameterized.expand(["dfd", "pqd", "sqld"])
     # def test_get_levels(self, key):
     #     data = self.data[key]

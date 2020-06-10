@@ -12,6 +12,7 @@ from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import InsuficientHeaderInfo
 from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.search_tree import Tree
 
 
 def is_data_row(sr: pd.Series):
@@ -39,10 +40,16 @@ class ExcelFile(BaseFile):
 
     HEADER_LIMIT = 10
 
-    def __init__(self, file_path: Union[str, Path], monitor: DefaultMonitor = None):
+    def __init__(
+            self,
+            file_path: Union[str, Path],
+            sheet_names: List[str] = None,
+            force_index: bool = False,
+            monitor: DefaultMonitor = None
+    ):
         super().__init__()
         self.file_path = file_path
-        self.populate_content(monitor)
+        self.populate_content(monitor, sheet_names=sheet_names, force_index=force_index)
 
     @staticmethod
     def parse_header(
@@ -176,28 +183,32 @@ class ExcelFile(BaseFile):
         end_id = start_id + len(numeric_df.index)
         ids = range(start_id, end_id)
         numeric_df.insert(0, ID_LEVEL, ids)
+        column_names.insert(0, ID_LEVEL)
         df = pd.concat([special_df, numeric_df])
 
         # include table name row if it's not already present
         if INTERVAL_LEVEL not in df.columns:
-            df.insert(0, INTERVAL_LEVEL, name)
-            column_names.insert(0, INTERVAL_LEVEL)
+            df.insert(1, INTERVAL_LEVEL, name)
+            column_names.insert(1, INTERVAL_LEVEL)
 
-        # set columns and update index name
-        column_names.insert(0, ID_LEVEL)
+        # variable info should be in index
         df.set_index(column_names, inplace=True)
+
+        # variables have been in rows until now
         df = df.T
 
+        # all columns use 'object' dtype, convert_dtypes resets column names!
+        df = df.convert_dtypes()
+
+        # update column and index names
+        df.columns.rename(column_names, inplace=True)
         if isinstance(df.index, pd.DatetimeIndex):
             df.index = df.index.round(freq="S")
             df.index.rename(TIMESTAMP_COLUMN, inplace=True)
         elif isinstance(df.index, pd.RangeIndex):
-            df.index.rename(RANGE)
+            df.index.rename(RANGE, inplace=True)
         else:
-            df.index.rename(INDEX)
-
-        # all columns use 'object' dtype
-        df = df.convert_dtypes()
+            df.index.rename(INDEX, inplace=True)
 
         return df, end_id
 
@@ -247,7 +258,10 @@ class ExcelFile(BaseFile):
                 df, _ = self.build_df_table(df, name=name, column_names=columns_names)
                 df_data.populate_table(name, df)
 
-        return False, False
+        tree = Tree()
+        tree.populate_tree(df_data.get_all_variables_dct())
+
+        return df_data, tree
 
     def populate_content(
             self, monitor: DefaultMonitor = None, sheet_names: str = None,

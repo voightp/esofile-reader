@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.excel_file import ExcelFile, is_data_row
+from tests import ROOT
 
 
-# from tests import ROOT
+# TODO add tests
 
 
 class TestExcelFile(unittest.TestCase):
@@ -36,8 +37,7 @@ class TestExcelFile(unittest.TestCase):
         self.assertFalse(is_data_row(sr))
 
     def test_populate_content_no_template_no_index(self):
-        # path = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
-        path = Path(
-            r"C:\Users\vojtechp1\Desktop\Python\esofile-reader\tests\eso_files\test_excel_results.xlsx"
-        )
-        ef = ExcelFile(path)
+        path = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
+        ef = ExcelFile(path, sheet_names=["no-template-no-index"])
+        df = ef.data.tables["no-template-no-index"]
+        self.assertEqual((12, 7), df.shape)
