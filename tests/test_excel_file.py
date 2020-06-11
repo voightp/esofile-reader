@@ -41,3 +41,7 @@ class TestExcelFile(unittest.TestCase):
         ef = ExcelFile(path, sheet_names=["no-template-no-index"])
         df = ef.data.tables["no-template-no-index"]
         self.assertEqual((12, 7), df.shape)
+        self.assertEqual("range", df.index.name)
+        self.assertListEqual(["id", "interval", "key", "units"], df.columns.names)
+        self.assertTrue(isinstance(df.index, pd.RangeIndex))
+        self.assertTrue(ef.data.is_simple("no-template-no-index"))

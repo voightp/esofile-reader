@@ -54,7 +54,7 @@ class ExcelFile(BaseFile):
     @staticmethod
     def parse_header(
             df: pd.DataFrame, force_index: bool = False
-    ) -> Tuple[pd.DataFrame, int, bool]:
+    ) -> Tuple[pd.MultiIndex, int, bool]:
         """ Extract header related information from excel worksheet. """
         index_names = [TIMESTAMP_COLUMN, RANGE, INDEX]
         column_levels = [
@@ -166,42 +166,43 @@ class ExcelFile(BaseFile):
         # replace 'Nan' values with empty strings
         header_df.fillna(value="", inplace=True)
 
-        return header_df, i, index_column
+        header_mi = pd.MultiIndex.from_frame(header_df.T, names=list(header_df.index))
+
+        return header_mi, i, index_column
 
     @staticmethod
     def build_df_table(
-            raw_df: pd.DataFrame, column_names: List[str], name: str, start_id: int = 1,
+            raw_df: pd.DataFrame, name: str, start_id: int = 1,
     ) -> Tuple[pd.DataFrame, int]:
         """ Finalize DataFrame data to match required DFData structure. """
-        special_rows = raw_df[KEY_LEVEL].isin([DAY_COLUMN, N_DAYS_COLUMN])
+        # include table name row if it's not already present
+        if INTERVAL_LEVEL not in raw_df.columns.names:
+            raw_df = pd.concat([raw_df], keys=[name], names=[INTERVAL_LEVEL], axis=1)
+
+        key_level = raw_df.columns.get_level_values(KEY_LEVEL)
+        special_rows = key_level.isin([DAY_COLUMN, N_DAYS_COLUMN])
         # all special columns have id 'special'
-        special_df = raw_df.loc[special_rows, :]
-        special_df.insert(0, ID_LEVEL, SPECIAL)
+        special_df = raw_df.loc[:, special_rows]
+        special_df = pd.concat([special_df], keys=[SPECIAL], names=[ID_LEVEL], axis=1)
 
         # create unique ids for each variable
-        numeric_df = raw_df.loc[~special_rows, :]
-        end_id = start_id + len(numeric_df.index)
-        ids = range(start_id, end_id)
-        numeric_df.insert(0, ID_LEVEL, ids)
-        column_names.insert(0, ID_LEVEL)
-        df = pd.concat([special_df, numeric_df])
+        numeric_df = raw_df.loc[:, ~special_rows]
+        end_id = start_id + len(numeric_df.columns)
+        header = numeric_df.columns.to_frame()
+        header.insert(0, ID_LEVEL, list(range(start_id, end_id)))
+        numeric_df.columns = pd.MultiIndex.from_frame(header)
 
-        # include table name row if it's not already present
-        if INTERVAL_LEVEL not in df.columns:
-            df.insert(1, INTERVAL_LEVEL, name)
-            column_names.insert(1, INTERVAL_LEVEL)
+        # merge DataFrames back together
+        df = pd.concat([special_df, numeric_df], axis=1)
 
-        # variable info should be in index
-        df.set_index(column_names, inplace=True)
+        # store names as convert_dtypes resets column names!
+        names = df.columns.names
 
-        # variables have been in rows until now
-        df = df.T
-
-        # all columns use 'object' dtype, convert_dtypes resets column names!
+        # all columns use 'object' dtype,
         df = df.convert_dtypes()
 
         # update column and index names
-        df.columns.rename(column_names, inplace=True)
+        df.columns.rename(names, inplace=True)
         if isinstance(df.index, pd.DatetimeIndex):
             df.index = df.index.round(freq="S")
             df.index.rename(TIMESTAMP_COLUMN, inplace=True)
@@ -233,29 +234,31 @@ class ExcelFile(BaseFile):
             df.dropna(axis=0, how="all", inplace=True)
             df.dropna(axis=1, how="all", inplace=True)
 
-            header_df, skiprows, index_column = self.parse_header(
+            header_mi, skiprows, index_column = self.parse_header(
                 df.iloc[: self.HEADER_LIMIT, :], force_index=force_index
             )
-            columns_names = header_df.index.tolist()
 
             df = df.iloc[skiprows:, :]
             if index_column:
                 df.set_index(keys=df.columns[0], inplace=True)
-            df = pd.concat([header_df.T, df.T], axis=1)
+            else:
+                df.reset_index(inplace=True, drop=True)
+
+            df.columns = header_mi
 
             # create table for each interval name
             if INTERVAL_LEVEL in df:
-                for key in df[INTERVAL_LEVEL].unique():
+                interval_level = df.columns.get_level_values(INTERVAL_LEVEL)
+                for key in interval_level.unique():
                     dfi, end_id = self.build_df_table(
-                        df.loc[df[INTERVAL_LEVEL] == key, :],
+                        df.loc[:, interval_level == key],
                         name=key,
-                        column_names=columns_names,
                         start_id=start_id,
                     )
                     start_id = end_id
                     df_data.populate_table(INTERVAL_LEVEL, dfi)
             else:
-                df, _ = self.build_df_table(df, name=name, column_names=columns_names)
+                df, _ = self.build_df_table(df, name=name)
                 df_data.populate_table(name, df)
 
         tree = Tree()
