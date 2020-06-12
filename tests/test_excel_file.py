@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from parameterized import parameterized
 
 from esofile_reader.excel_file import ExcelFile, is_data_row
 from tests import ROOT
@@ -36,12 +37,44 @@ class TestExcelFile(unittest.TestCase):
         sr = pd.Series(["a", "b", pd.NaT, pd.NaT, 0.1])
         self.assertFalse(is_data_row(sr))
 
-    def test_populate_content_no_template_no_index(self):
+    @parameterized.expand([
+        (
+                "simple-no-template-no-index",
+                (12, 7),
+                "range",
+                pd.RangeIndex,
+                ["id", "interval", "key", "units"]
+        ),
+        (
+                "simple-no-template-dt-index",
+                (12, 7),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "units"]
+        ),
+        (
+                "simple-template-monthly",
+                (12, 8),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "units"]
+        ),
+        (
+                "simple-template-range",
+                (12, 7),
+                "range",
+                pd.RangeIndex,
+                ["id", "interval", "key", "units"]
+        )
+    ])
+    def test_populate_simple_tables(
+            self, sheet, shape, index_name, index_type, column_names
+    ):
         path = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
-        ef = ExcelFile(path, sheet_names=["no-template-no-index"])
-        df = ef.data.tables["no-template-no-index"]
-        self.assertEqual((12, 7), df.shape)
-        self.assertEqual("range", df.index.name)
-        self.assertListEqual(["id", "interval", "key", "units"], df.columns.names)
-        self.assertTrue(isinstance(df.index, pd.RangeIndex))
-        self.assertTrue(ef.data.is_simple("no-template-no-index"))
+        ef = ExcelFile(path, sheet_names=[sheet])
+        df = ef.data.tables[sheet]
+        self.assertEqual(shape, df.shape)
+        self.assertEqual(index_name, df.index.name)
+        self.assertTrue(isinstance(df.index, index_type))
+        self.assertListEqual(column_names, df.columns.names)
+        self.assertTrue(ef.data.is_simple(sheet))

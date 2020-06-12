@@ -175,6 +175,11 @@ class ExcelFile(BaseFile):
             raw_df: pd.DataFrame, name: str, start_id: int = 1,
     ) -> Tuple[pd.DataFrame, int]:
         """ Finalize DataFrame data to match required DFData structure. """
+
+        def is_range(array):
+            if all(map(lambda x: isinstance(x, int), array)) and len(array) > 1:
+                return len(set(np.diff(array))) == 1
+
         # include table name row if it's not already present
         if INTERVAL_LEVEL not in raw_df.columns.names:
             raw_df = pd.concat([raw_df], keys=[name], names=[INTERVAL_LEVEL], axis=1)
@@ -208,6 +213,14 @@ class ExcelFile(BaseFile):
             df.index.rename(TIMESTAMP_COLUMN, inplace=True)
         elif isinstance(df.index, pd.RangeIndex):
             df.index.rename(RANGE, inplace=True)
+        elif is_range(df.index):
+            # is_range requires range like array with length > 1
+            df.index = pd.RangeIndex(
+                start=df.index[0],
+                stop=df.index[-1] + 1,
+                step=df.index[1] - df.index[0],
+                name=RANGE
+            )
         else:
             df.index.rename(INDEX, inplace=True)
 
