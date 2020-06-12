@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -111,7 +112,7 @@ class ExcelFile(BaseFile):
                         else:
                             levels[ix] = row
                     else:
-                        print(
+                        logging.info(
                             f"Unexpected column identifier: {ix}"
                             f"Only {', '.join(COLUMN_LEVELS)} are allowed."
                         )
@@ -134,26 +135,22 @@ class ExcelFile(BaseFile):
         # validate gathered data
         ordered_levels = {}
         if is_template:
-            if KEY_LEVEL not in levels or UNITS_LEVEL not in levels:
-                raise InsuficientHeaderInfo(
-                    f"Cannot process header!"
-                    f" '{KEY_LEVEL}' and '{UNITS_LEVEL}' levels must be included."
-                )
             # reorder levels using standard order
             ordered_levels = {lev: levels[lev] for lev in column_levels if lev in levels}
         else:
             n = len(levels)
             msg = (
-                " expected levels are either:\n\t1 - key\n\tunits"
-                "\n..for two level header or:\n\t1 - key\n\ttype\nunits"
-                " for three level header."
+                "Expected levels are either:\n\tkey\n\tunits"
+                "\nfor two level header or:\n\tkey\n\ttype\n\tunits"
+                "\nfor three level header."
             )
             if n < 2:
                 raise InsuficientHeaderInfo(
-                    f"Not enough information to create header. " f"There's only {n} but {msg}"
+                    f"Not enough information to create header. "
+                    f"There's only {n} level.\n{msg}"
                 )
             elif n > 3:
-                raise InsuficientHeaderInfo(f"Too many header levels - {n}\n{msg}")
+                raise InsuficientHeaderInfo(f"There's too many header levels: {n}.\n{msg}")
             keys = [KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
             if n == 2:
                 keys.remove(TYPE_LEVEL)
@@ -179,6 +176,12 @@ class ExcelFile(BaseFile):
         def is_range(array):
             if all(map(lambda x: isinstance(x, int), array)) and len(array) > 1:
                 return len(set(np.diff(array))) == 1
+
+        # drop duplicate column items
+        duplicated = raw_df.columns.duplicated()
+        if any(duplicated):
+            # TODO UPDATE DUPLICATE NAMES INSTEAD
+            raw_df = raw_df.loc[:, ~duplicated]
 
         # include table name row if it's not already present
         if INTERVAL_LEVEL not in raw_df.columns.names:
@@ -260,7 +263,7 @@ class ExcelFile(BaseFile):
             df.columns = header_mi
 
             # create table for each interval name
-            if INTERVAL_LEVEL in df:
+            if INTERVAL_LEVEL in df.columns.names:
                 interval_level = df.columns.get_level_values(INTERVAL_LEVEL)
                 for key in interval_level.unique():
                     dfi, end_id = self.build_df_table(
@@ -269,7 +272,7 @@ class ExcelFile(BaseFile):
                         start_id=start_id,
                     )
                     start_id = end_id
-                    df_data.populate_table(INTERVAL_LEVEL, dfi)
+                    df_data.populate_table(key, dfi)
             else:
                 df, _ = self.build_df_table(df, name=name)
                 df_data.populate_table(name, df)
