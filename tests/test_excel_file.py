@@ -78,3 +78,52 @@ class TestExcelFile(unittest.TestCase):
         self.assertTrue(isinstance(df.index, index_type))
         self.assertListEqual(column_names, df.columns.names)
         self.assertTrue(ef.data.is_simple(sheet))
+
+    @parameterized.expand([
+        (
+                "no-template-full-dt-index",
+                (12, 8),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "type", "units"]
+        ),
+        (
+                "full-template-hourly",
+                (8760, 8),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "type", "units"]
+        ),
+        (
+                "full-template-daily",
+                (365, 8),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "type", "units"]
+        ),
+        (
+                "full-template-monthly",
+                (12, 8),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "type", "units"]
+        ),
+        (
+                "full-template-runperiod",
+                (1, 20),
+                "timestamp",
+                pd.DatetimeIndex,
+                ["id", "interval", "key", "type", "units"]
+        )
+    ])
+    def test_populate_full_tables(
+            self, sheet, shape, index_name, index_type, column_names
+    ):
+        path = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
+        ef = ExcelFile(path, sheet_names=[sheet])
+        df = ef.data.tables[sheet]
+        self.assertEqual(shape, df.shape)
+        self.assertEqual(index_name, df.index.name)
+        self.assertTrue(isinstance(df.index, index_type))
+        self.assertListEqual(column_names, df.columns.names)
+        self.assertFalse(ef.data.is_simple(sheet))
