@@ -133,7 +133,7 @@ class SQLStorage(BaseStorage):
 
         file_table = self.metadata.tables[self.FILE_TABLE]
         ins = file_table.insert().values(
-            file_path=results_file.file_path,
+            file_path=str(results_file.file_path),
             file_name=results_file.file_name,
             file_created=results_file.file_created,
             type_=results_file.__class__.__name__,
