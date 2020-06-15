@@ -10,7 +10,6 @@ from esofile_reader.excel_file import ExcelFile, is_data_row
 from esofile_reader.exceptions import InsuficientHeaderInfo
 from tests import ROOT
 
-# TODO add tests
 RESULTS_PATH = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
 EDGE_CASE_PATH = Path(ROOT).joinpath("./eso_files/test_excel_edge_cases.xlsx")
 

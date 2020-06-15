@@ -180,7 +180,6 @@ class ExcelFile(BaseFile):
         # drop duplicate column items
         duplicated = raw_df.columns.duplicated()
         if any(duplicated):
-            # TODO UPDATE DUPLICATE NAMES INSTEAD
             raw_df = raw_df.loc[:, ~duplicated]
 
         # include table name row if it's not already present
