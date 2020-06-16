@@ -98,10 +98,10 @@ class TestOutputsConversion(unittest.TestCase):
         out = convert_units(df, "IP", "W", "J")
 
         test_mi = pd.MultiIndex.from_tuples(
-            [(1, "ft"), (2, "W/m2"), (3, "deltaF")], names=["id", "units"]
+            [(1, "ft"), (2, "W/sqf"), (3, "deltaF")], names=["id", "units"]
         )
         test_df = pd.DataFrame(
-            [[1 / 0.3048, 1, 1.8], [2 / 0.30479999953, 2, 3.6]], columns=test_mi
+            [[1 / 0.3048, 1 / 10.76, 1.8], [2 / 0.3048, 2 / 10.76, 3.6]], columns=test_mi
         )
         assert_frame_equal(out, test_df)
 

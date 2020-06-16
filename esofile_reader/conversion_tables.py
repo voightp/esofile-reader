@@ -168,6 +168,7 @@ def si_to_ip(orig_units):
         "Pa": ("in. of water (60°F)", 248.84),
         "Pa/m": ("ft of water per 100 ft pipe", 98.1),
         "Pa-s": ("lbf-s/ft2 (dynamic viscosity m)", 47.88026),
+        'W/m2': ("W/sqf", 10.76),
         "W/m-K": ("Btu-ft/h-ft2-°F", 1.730735),
         "W/m2-K": ("Btu/h-ft2-°F (overall heat transfer coefficient U)", 5.678263),
         "C": ("F", c_to_fahrenheit),
@@ -176,10 +177,8 @@ def si_to_ip(orig_units):
 
     try:
         return (orig_units, *table[orig_units])
-
     except KeyError:
         logging.info(f"Cannot convert to IP, original units '{orig_units}' left!")
-
 
 # duplicates = {
 # 'g': ('g', 'ounce (mass, avoirdupois)', 28.35),
@@ -243,7 +242,6 @@ def si_to_ip(orig_units):
 # 'w': ('W', 'ft·lbf/min (power)', 0.0226),
 # 'w/(m·k)': ('W/(m·K)', 'Btu·in/h·ft2·°F (thermal conductivity k) .', 0.1442279),
 # 'w/m2': ('W/m2', 'met', 58.15),
-# 'w/m2': ('W/m2', 'watt per square foot', 10.76),
 # 'w/m2': ('W/m2', 'Btu/h-ft2', 3.154591),
 # 'J': ('Btu (International Table)', 1055.056),
 # 'J/m2': ('Btu/ft2 (International Table)', 11356.53),
