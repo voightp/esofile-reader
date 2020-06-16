@@ -29,8 +29,8 @@ class TestDFDB(unittest.TestCase):
                 self.storage.files[0].data.tables[interval],
             )
 
-        self.assertFalse(self.storage.files[0].totals)
-        self.assertTrue(self.storage.files[1].totals)
+        self.assertEqual(self.storage.files[0].type_, "EsoFile")
+        self.assertEqual(self.storage.files[1].type_, "TotalsFile")
 
     def test_02_delete_file(self):
         self.storage.delete_file(1)

@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime
-from typing import Sequence, List, Dict
+from typing import Sequence, List, Dict, Optional, Union
 
 import pandas as pd
-from sqlalchemy import Table, select
+from sqlalchemy import Table, select, String, Integer
 
 from esofile_reader.constants import *
 from esofile_reader.data.base_data import BaseData
@@ -11,10 +11,17 @@ from esofile_reader.data.df_functions import (
     df_dt_slicer,
     sr_dt_slicer,
     merge_peak_outputs,
+    sort_by_ids
 )
-from esofile_reader.id_generators import id_gen
-from esofile_reader.mini_classes import Variable
-from esofile_reader.storage.sql_functions import destringify_values
+from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.mini_classes import Variable, SimpleVariable
+from esofile_reader.storage.sql_functions import (
+    destringify_values,
+    get_table_name,
+    parse_table_name,
+    create_special_table,
+    create_value_insert,
+)
 
 
 class SQLData(BaseData):
@@ -24,115 +31,65 @@ class SQLData(BaseData):
 
     def update_file_name(self, name: str) -> None:
         ft = self.storage.file_table
-
         with self.storage.engine.connect() as conn:
             conn.execute(ft.update().where(ft.c.id == self.id_).values(file_name=name))
 
-    def _get_table(self, column: str, ft: Table) -> Table:
+    def _get_table_names(self, table_type: str) -> List[str]:
+        ft = self.storage.file_table
+        switch = {
+            "numeric": ft.c.numeric_tables,
+            "special": ft.c.special_tables,
+            "datetime": ft.c.datetime_tables,
+        }
+        col = switch[table_type]
+        # check if there's table reference
         with self.storage.engine.connect() as conn:
-            table_name = conn.execute(select([column]).where(ft.c.id == self.id_)).scalar()
-            table = self.storage.metadata.tables[table_name]
-        return table
+            res = conn.execute(select([col]).where(ft.c.id == self.id_)).scalar()
+            return res.split(self.storage.SEPARATOR) if res else []
+
+    def _get_table(self, table_name: str, table_type: str) -> Table:
+        names = self._get_table_names(table_type)
+        if table_name not in names:
+            logging.warning(f"Cannot find file reference {table_name} in {table_type}!")
+        return self.storage.metadata.tables[table_name]
 
     def _get_results_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-
-        switch = {
-            TS: ft.c.timestep_outputs_table,
-            H: ft.c.hourly_outputs_table,
-            D: ft.c.daily_outputs_table,
-            M: ft.c.monthly_outputs_table,
-            A: ft.c.annual_outputs_table,
-            RP: ft.c.runperiod_outputs_table,
-            RANGE: ft.c.range_outputs_table,
-        }
-
-        return self._get_table(switch[interval], ft)
+        name = get_table_name(self.id_, "results", interval)
+        return self._get_table(name, "numeric")
 
     def _get_datetime_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
+        name = get_table_name(self.id_, "index", interval)
+        return self._get_table(name, "datetime")
 
-        switch = {
-            TS: ft.c.timestep_dt_table,
-            H: ft.c.hourly_dt_table,
-            D: ft.c.daily_dt_table,
-            M: ft.c.monthly_dt_table,
-            A: ft.c.annual_dt_table,
-            RP: ft.c.runperiod_dt_table,
-        }
+    def _get_special_table(self, interval: str, key: str) -> Table:
+        name = get_table_name(self.id_, key, interval)
+        return self._get_table(name, "special")
 
-        return self._get_table(switch[interval], ft)
+    def is_simple(self, interval: str) -> bool:
+        return len(self.get_levels(interval)) == 4
 
-    def _get_n_days_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-
-        switch = {
-            M: ft.c.monthly_n_days_table,
-            A: ft.c.annual_n_days_table,
-            RP: ft.c.runperiod_n_days_table,
-        }
-
-        return self._get_table(switch[interval], ft)
-
-    def _get_day_table(self, interval: str) -> Table:
-        ft = self.storage.file_table
-
-        switch = {
-            TS: ft.c.timestep_day_table,
-            H: ft.c.hourly_day_table,
-            D: ft.c.daily_day_table,
-        }
-
-        return self._get_table(switch[interval], ft)
+    def get_levels(self, interval: str) -> List[str]:
+        table = self._get_results_table(interval)
+        levels = [c.name for c in table.columns if c.name != STR_VALUES]
+        return levels
 
     def get_available_intervals(self) -> List[str]:
-        ft = self.storage.file_table
-        columns = [
-            ft.c.timestep_outputs_table,
-            ft.c.hourly_outputs_table,
-            ft.c.daily_outputs_table,
-            ft.c.monthly_outputs_table,
-            ft.c.runperiod_outputs_table,
-            ft.c.annual_outputs_table,
-            ft.c.range_outputs_table,
-        ]
-
-        intervals = []
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(select(columns).where(ft.c.id == self.id_)).first()
-            for interval, table in zip([TS, H, D, M, RP, A, RANGE], res):
-                if table:
-                    intervals.append(interval)
-        return intervals
+        names = self._get_table_names("numeric")
+        return [parse_table_name(r)[2] for r in names]
 
     def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
         table = self._get_datetime_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            datetime_index = pd.DatetimeIndex([r[0] for r in res], name="timestamp")
-
+            datetime_index = pd.DatetimeIndex([r[0] for r in res], name=TIMESTAMP_COLUMN)
         return datetime_index
 
-    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
+    def get_variables_dct(self, interval: str) -> Dict[int, Union[SimpleVariable, Variable]]:
         variables_dct = {}
-        table = self._get_results_table(interval)
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(
-                select(
-                    [
-                        table.c.id,
-                        table.c.interval,
-                        table.c.key,
-                        table.c.type,
-                        table.c.units,
-                    ]
-                )
-            )
-
-            for row in res:
-                variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
-
+        variables_df = self.get_variables_df(interval)
+        v = SimpleVariable if self.is_simple(interval) else Variable
+        for row in variables_df.to_numpy():
+            variables_dct[row[0]] = v(*row[1:])
         return variables_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
@@ -156,19 +113,15 @@ class SQLData(BaseData):
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         table = self._get_results_table(interval)
+        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(interval):
+            s = [table.c.id, table.c.interval, table.c.key, table.c.units]
+            columns.remove(TYPE_LEVEL)
+        else:
+            s = [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units]
         with self.storage.engine.connect() as conn:
-            res = conn.execute(
-                select(
-                    [
-                        table.c.id,
-                        table.c.interval,
-                        table.c.key,
-                        table.c.type,
-                        table.c.units,
-                    ]
-                )
-            )
-            df = pd.DataFrame(res, columns=COLUMN_LEVELS)
+            res = conn.execute(select(s))
+            df = pd.DataFrame(res, columns=columns)
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -177,33 +130,35 @@ class SQLData(BaseData):
             frames.append(self.get_variables_df(interval))
         return pd.concat(frames)
 
-    def update_variable_name(self, interval: str, id_: int, new_key: str, new_type:str) -> None:
+    def update_variable_name(
+            self, interval: str, id_: int, new_key: str, new_type: str = ""
+    ) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
+            kwargs = {"key": new_key} if self.is_simple(interval) \
+                else {"key": new_key, "type": new_type}
             conn.execute(
-                table.update().where(table.c.id == id_).values(key=new_key, type=new_type)
+                table.update().where(table.c.id == id_).values(**kwargs)
             )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(select([table.c.str_values])).scalar()
-
         # number of elements in array
         n = res.count(self.storage.SEPARATOR) + 1
-
         return len(array) == n
 
-    def insert_variable(self, variable: Variable, array: Sequence[float]) -> None:
+    def insert_column(self, variable: Variable, array: Sequence[float]) -> Optional[int]:
         if self._validate(variable.interval, array):
             table = self._get_results_table(variable.interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
             all_ids = self.get_all_variable_ids()
-            id_ = id_gen(all_ids)
+            id_gen = incremental_id_gen(checklist=all_ids, start=100)
+            id_ = next(id_gen)
             with self.storage.engine.connect() as conn:
                 statement = table.insert().values(
-                    {"id": id_, **variable._asdict(), "str_values": str_array}
+                    {ID_LEVEL: id_, **variable._asdict(), STR_VALUES: str_array}
                 )
                 conn.execute(statement)
             return id_
@@ -213,11 +168,10 @@ class SQLData(BaseData):
                 "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
 
-    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         if self._validate(interval, array):
             table = self._get_results_table(interval)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
-
             with self.storage.engine.connect() as conn:
                 conn.execute(
                     table.update().where(table.c.id == id_).values(str_values=str_array)
@@ -229,68 +183,69 @@ class SQLData(BaseData):
                 f"Number of elements '({len(array)})' does not match!"
             )
 
+    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+        ft = self.storage.file_table
+        if self._validate(interval, array):
+            column_type = Integer if all(map(lambda x: isinstance(x, int), array)) else String
+            special_table = create_special_table(
+                self.storage.metadata, self.id_, interval, key, column_type
+            )
+            with self.storage.engine.connect() as conn:
+                conn.execute(special_table.insert(), create_value_insert(array))
+                res = conn.execute(
+                    select([ft.c.special_tables]).where(ft.c.id == self.id_)
+                ).scalar()
+                new_res = res + self.storage.SEPARATOR + special_table.name
+                conn.execute(
+                    ft.update().where(ft.c.id == self.id_).values(special_tables=new_res)
+                )
+        else:
+            logging.warning(
+                f"Cannot add special variable '{key} into table {interval}'. "
+                f"Number of elements '({len(array)})' does not match!"
+            )
+
     def delete_variables(self, interval: str, ids: List[int]) -> None:
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
-    def get_number_of_days(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
+    def get_special_column(
+            self,
+            interval: str,
+            key: str,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        try:
-            table = self._get_n_days_table(interval)
-        except KeyError:
-            raise KeyError(
-                f"'{N_DAYS_COLUMN}' column is not available " f"on the given data set."
-            )
-
+        table = self._get_special_table(interval, key)
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select()).fetchall()
-            sr = pd.Series([r[0] for r in res], name=N_DAYS_COLUMN)
-
+            if self.is_simple(interval):
+                name = (SPECIAL, interval, key, "")
+            else:
+                name = (SPECIAL, interval, key, "", "")
+            sr = pd.Series([r[0] for r in res], name=name)
         index = self.get_datetime_index(interval)
         if index is not None:
             sr.index = index
-
-        return sr_dt_slicer(sr, start_date, end_date)
-
-    def get_days_of_week(
-        self, interval: str, start_date: datetime = None, end_date: datetime = None
-    ) -> pd.Series:
-        try:
-            table = self._get_day_table(interval)
-        except KeyError:
-            raise KeyError(
-                f"'{DAY_COLUMN}' column is not available " f"on the given data set."
-            )
-
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(table.select()).fetchall()
-            sr = pd.Series([r[0] for r in res], name=DAY_COLUMN)
-
-        index = self.get_datetime_index(interval)
-        if index is not None:
-            sr.index = index
-
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
-        include_day: bool = False,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
+            include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
+        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(interval):
+            columns.remove(TYPE_LEVEL)
         table = self._get_results_table(interval)
-
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
-            df = pd.DataFrame(
-                res, columns=[*COLUMN_LEVELS, "values"]
-            )
+            df = pd.DataFrame(res, columns=[*columns, "values"])
             if df.empty:
                 raise KeyError(
                     f"Cannot find results, any of given ids: "
@@ -298,9 +253,8 @@ class SQLData(BaseData):
                     f"is not included."
                 )
 
-            df.set_index(COLUMN_LEVELS, inplace=True)
+            df.set_index(columns, inplace=True)
             df = destringify_values(df)
-
         if interval == RANGE:
             # create default 'range' index
             df.index.rename(RANGE, inplace=True)
@@ -308,27 +262,27 @@ class SQLData(BaseData):
             df.index = self.get_datetime_index(interval)
             if include_day:
                 try:
-                    day_sr = self.get_days_of_week(interval, start_date, end_date)
+                    day_sr = self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
                     df.insert(0, DAY_COLUMN, day_sr)
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
                 except KeyError:
                     df[DAY_COLUMN] = df.index.strftime("%A")
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
+        df = df_dt_slicer(df, start_date, end_date)
+        return sort_by_ids(df, ids)
 
-        return df_dt_slicer(df, start_date, end_date)
-
-    def get_all_results(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
         ids = self.get_variable_ids(interval)
         df = self.get_results(interval, ids)
         return df
 
     def _global_peak(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime,
-        end_date: datetime,
-        max_: bool = True,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: datetime,
+            end_date: datetime,
+            max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(interval, ids, start_date, end_date)
@@ -342,19 +296,19 @@ class SQLData(BaseData):
         return df
 
     def get_global_max_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date)
 
     def get_global_min_results(
-        self,
-        interval: str,
-        ids: Sequence[int],
-        start_date: datetime = None,
-        end_date: datetime = None,
+            self,
+            interval: str,
+            ids: Sequence[int],
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(interval, ids, start_date, end_date, max_=False)

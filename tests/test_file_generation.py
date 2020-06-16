@@ -5,7 +5,6 @@ from tests import EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
 class TestFileGeneration(unittest.TestCase):
-
     def test_eso_file(self):
         self.assertTrue(EF_ALL_INTERVALS.complete)
 

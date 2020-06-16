@@ -39,17 +39,15 @@ class TestSqlDB(unittest.TestCase):
             "1-day-daily",
             "1-results-monthly",
             "1-index-monthly",
-            "1-n_days-monthly",
+            "1-n days-monthly",
             "1-results-runperiod",
             "1-index-runperiod",
-            "1-n_days-runperiod",
+            "1-n days-runperiod",
             "1-results-annual",
             "1-index-annual",
-            "1-n_days-annual",
+            "1-n days-annual",
         ]
-
         self.assertListEqual(list(storage.metadata.tables.keys()), tables)
-
         res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
         self.assertListEqual([i[0] for i in res.fetchall()], tables)
 
@@ -57,18 +55,16 @@ class TestSqlDB(unittest.TestCase):
         storage = SQLStorage()
         id_ = storage.store_file(TotalsFile(EF_ALL_INTERVALS))
         res = storage.engine.execute(
-            f"""SELECT totals FROM 'result-files' WHERE id={id_};"""
+            f"""SELECT type_ FROM 'result-files' WHERE id={id_};"""
         ).scalar()
-        self.assertTrue(res)
+        self.assertEqual("TotalsFile", res)
 
     def test_05_delete_file(self):
         storage = SQLStorage()
         _ = storage.store_file(EF_ALL_INTERVALS)
         storage.delete_file(1)
-
-        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
-
         res = storage.engine.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        self.assertListEqual(list(storage.metadata.tables.keys()), ["result-files"])
         self.assertEqual(res.fetchone()[0], "result-files")
 
     def test_06_load_all_files(self):
@@ -91,6 +87,7 @@ class TestSqlDB(unittest.TestCase):
             self.assertEqual(f.file_path, lf.file_path)
             self.assertEqual(f.id_, lf.id_)
             self.assertEqual(len(f.search_tree.__repr__()), len(lf.search_tree.__repr__()))
+            self.assertEqual("EsoFile", f.type_)
 
             for interval in f.available_intervals:
                 self.assertEqual(

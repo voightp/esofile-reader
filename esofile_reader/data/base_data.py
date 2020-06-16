@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Sequence, List, Dict
+from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
 
-from esofile_reader.constants import DAY_COLUMN, N_DAYS_COLUMN
 from esofile_reader.mini_classes import Variable
 
 
@@ -14,7 +13,15 @@ class BaseData(ABC):
 
     """
 
-    SPECIAL_COLUMNS = [DAY_COLUMN, N_DAYS_COLUMN]
+    @abstractmethod
+    def is_simple(self, interval: str) -> bool:
+        """ Check whether data uses full or simple variable. """
+        pass
+
+    @abstractmethod
+    def get_levels(self, interval: str) -> List[str]:
+        """ Get multiindex levels. """
+        pass
 
     @abstractmethod
     def get_available_intervals(self) -> List[str]:
@@ -58,18 +65,23 @@ class BaseData(ABC):
 
     @abstractmethod
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str
+            self, interval: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         """ Rename given variable. """
         pass
 
     @abstractmethod
-    def insert_variable(self, variable: Variable, array: Sequence) -> None:
+    def insert_column(self, variable: Variable, array: Sequence) -> Optional[int]:
         """ Add a new output into specific result table. """
         pass
 
     @abstractmethod
-    def update_variable_results(self, interval: str, id_: int, array: Sequence[float]):
+    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+        """ Add a 'special' variable into specific results table. """
+        pass
+
+    @abstractmethod
+    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
         """ Update given variable values. """
         pass
 
@@ -79,21 +91,18 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_number_of_days(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
+    def get_special_column(
+            self,
+            interval: str,
+            key: str,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        """ Get special 'n days' column. """
+        """ Get a special column. """
         pass
 
     @abstractmethod
-    def get_days_of_week(
-            self, interval: str, start_date: datetime = None, end_date: datetime = None
-    ) -> pd.Series:
-        """ Get special 'day' column. """
-        pass
-
-    @abstractmethod
-    def get_all_results(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
         """ Get numeric outputs without special columns. """
         pass
 
@@ -102,8 +111,8 @@ class BaseData(ABC):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
             include_day: bool = False,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
@@ -114,8 +123,8 @@ class BaseData(ABC):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame max results for given variables. """
         pass
@@ -125,8 +134,8 @@ class BaseData(ABC):
             self,
             interval: str,
             ids: Sequence[int],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame min results for given variables. """
         pass

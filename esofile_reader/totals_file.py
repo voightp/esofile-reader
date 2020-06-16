@@ -8,7 +8,7 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
 from esofile_reader.diff_file import DiffFile
-from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, ResultsFile
 from esofile_reader.search_tree import Tree
 
@@ -189,17 +189,17 @@ class TotalsFile(BaseFile):
 
             return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
 
-        outputs = DFData()
-        id_gen = incremental_id_gen()
+        data = DFData()
+        id_gen = incremental_id_gen(start=1)
 
         for interval in file.available_intervals:
-            out = file.data.get_all_results(interval)
+            out = file.data.get_numeric_table(interval)
 
             # find invalid ids
             ids = ignored_ids(out)
 
             # filter variables based on ignored units and variables
-            out = out.loc[:, ~out.columns.get_level_values("id").isin(ids)]
+            out = out.loc[:, ~out.columns.get_level_values(ID_LEVEL).isin(ids)]
 
             if out.empty:
                 # ignore empty intervals
@@ -226,25 +226,21 @@ class TotalsFile(BaseFile):
 
             # restore index
             df.index = out.index
+            data.populate_table(interval, df)
 
-            try:
-                c1 = file.data.get_number_of_days(interval)
-                df.insert(0, N_DAYS_COLUMN, c1)
-            except KeyError:
-                pass
-
-            try:
-                c1 = file.data.get_days_of_week(interval)
-                df.insert(0, DAY_COLUMN, c1)
-            except KeyError:
-                pass
-
-            outputs.populate_table(interval, df)
+            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
+                try:
+                    c1 = file.data.get_special_column(interval, c)
+                    c2 = file.data.get_special_column(interval, c)
+                    if c1.equals(c2):
+                        data.insert_special_column(interval, c, c1)
+                except KeyError:
+                    pass
 
         tree = Tree()
-        tree.populate_tree(outputs.get_all_variables_dct())
+        tree.populate_tree(data.get_all_variables_dct())
 
-        return outputs, tree
+        return data, tree
 
     def populate_content(self, file: ResultsFile):
         """ Generate 'Totals' related data based on input 'ResultFile'. """

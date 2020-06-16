@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import unittest
@@ -9,8 +10,7 @@ from esofile_reader import EsoFile
 from esofile_reader import TotalsFile
 from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.processor.monitor import DefaultMonitor
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storage.pqt_storage import ParquetStorage, ParquetFile
 from tests import ROOT, EF1, EF_ALL_INTERVALS
 
 logging.basicConfig(level=logging.INFO)
@@ -23,10 +23,10 @@ class TestParquetStorage(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            Path("pqs" + ParquetStorage.EXT).unlink()
-        except FileNotFoundError:
-            pass
+        files = [Path("pqs" + ParquetStorage.EXT), Path("file-0")]
+        for f in files:
+            with contextlib.suppress(FileNotFoundError):
+                f.unlink()
 
     def setUp(self):
         self.storage = ParquetStorage()
@@ -87,7 +87,15 @@ class TestParquetStorage(unittest.TestCase):
 
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
-                EF_ALL_INTERVALS.as_df(interval), pqf.as_df(interval), check_column_type=False
+                EF_ALL_INTERVALS.get_numeric_table(interval),
+                pqf.get_numeric_table(interval),
+                check_column_type=False,
+            )
+            pqf.data.tables[interval].get_df()
+            assert_frame_equal(
+                EF_ALL_INTERVALS.data.tables[interval],
+                pqf.data.tables[interval].get_df(),
+                check_column_type=False,
             )
         pqf.clean_up()
 
@@ -122,8 +130,8 @@ class TestParquetStorage(unittest.TestCase):
 
         for interval in EF_ALL_INTERVALS.available_intervals:
             assert_frame_equal(
-                EF_ALL_INTERVALS.as_df(interval),
-                pqs.files[0].as_df(interval),
+                EF_ALL_INTERVALS.get_numeric_table(interval),
+                pqs.files[0].get_numeric_table(interval),
                 check_column_type=False,
             )
 
@@ -136,8 +144,8 @@ class TestParquetStorage(unittest.TestCase):
         loaded_pqs = ParquetStorage.load_storage(pqs.path)
         for interval in self.tf.available_intervals:
             assert_frame_equal(
-                self.tf.as_df(interval),
-                loaded_pqs.files[2].as_df(interval),
+                self.tf.get_numeric_table(interval),
+                loaded_pqs.files[2].get_numeric_table(interval),
                 check_column_type=False,
             )
         self.assertEqual(len(loaded_pqs.files.keys()), 1)
@@ -184,31 +192,46 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual(6, len(self.storage.files))
 
         for interval in EF_ALL_INTERVALS.available_intervals:
-            test_df = EF_ALL_INTERVALS.as_df(interval)
+            test_df = EF_ALL_INTERVALS.get_numeric_table(interval)
             for f in ef1_files:
-                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+                assert_frame_equal(
+                    test_df, f.get_numeric_table(interval), check_column_type=False
+                )
 
         for interval in EF1.available_intervals:
-            test_df = EF1.as_df(interval)
+            test_df = EF1.get_numeric_table(interval)
             for f in ef2_files:
-                assert_frame_equal(test_df, f.as_df(interval), check_column_type=False)
+                assert_frame_equal(
+                    test_df, f.get_numeric_table(interval), check_column_type=False
+                )
 
         p1.unlink()
         p2.unlink()
 
     def test_15_parquet_file_context_manager(self):
         with ParquetFile(
-            id_=0,
-            file_path=EF_ALL_INTERVALS.file_path,
-            file_name=EF_ALL_INTERVALS.file_name,
-            data=EF_ALL_INTERVALS.data,
-            file_created=EF_ALL_INTERVALS.file_created,
-            search_tree=EF_ALL_INTERVALS.search_tree,
-            type_=EF_ALL_INTERVALS.__class__.__name__,
-            pardir="",
-            name="foo",
-            monitor=None,
+                id_=0,
+                file_path=EF_ALL_INTERVALS.file_path,
+                file_name=EF_ALL_INTERVALS.file_name,
+                data=EF_ALL_INTERVALS.data,
+                file_created=EF_ALL_INTERVALS.file_created,
+                search_tree=EF_ALL_INTERVALS.search_tree,
+                type_=EF_ALL_INTERVALS.__class__.__name__,
+                pardir="",
+                name="foo",
+                monitor=None,
         ) as pqf:
             workdir = pqf.workdir
             self.assertTrue(workdir.exists())
         self.assertFalse(workdir.exists())
+
+    def test_16_load_invalid_parquet_file(self):
+        with self.assertRaises(IOError):
+            ParquetFile.load_file("foo.bar")
+
+    def test_parquet_file_as_bytes(self):
+        import io
+
+        id_ = self.storage.store_file(EF_ALL_INTERVALS)
+        out = self.storage.files[id_].save_as()
+        self.assertIsInstance(out, io.BytesIO)

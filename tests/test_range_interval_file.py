@@ -6,6 +6,7 @@ import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
+from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.data.df_data import DFData
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
@@ -81,10 +82,7 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="range",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            interval="range", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.bf.find_ids(v, part_match=False)
         self.assertEqual(ids, [])
@@ -145,9 +143,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         id_, var = self.bf.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
-            Variable(
-                interval="range", key="Custom Key - sum", type="Temperature", units="C"
-            ),
+            Variable(interval="range", key="Custom Key - sum", type="Temperature", units="C"),
         )
         self.bf.remove_outputs(var)
 
@@ -161,7 +157,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.remove_outputs([v1, v2])
 
     def test_as_df(self):
-        df = self.bf.as_df("range")
+        df = self.bf.get_numeric_table("range")
         self.assertTupleEqual(df.shape, (3, 4))
         self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "range")
@@ -186,11 +182,11 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_sql_no_n_days_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_number_of_days("range")
+            self.db_bf.data.get_special_column("range", N_DAYS_COLUMN)
 
     def test_sql_no_day_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_days_of_week("range")
+            self.db_bf.data.get_special_column("range", DAY_COLUMN)
 
     def test_parquet_file(self):
         path = Path("range_pqs" + ParquetStorage.EXT)

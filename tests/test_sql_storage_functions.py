@@ -8,12 +8,12 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
-from esofile_reader.constants import N_DAYS_COLUMN
+from esofile_reader.constants import SPECIAL
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import ROOT, EF_ALL_INTERVALS
 
 
-class TestDBFileFunctions(unittest.TestCase):
+class TestSqlDBFileFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.storage = SQLStorage()
@@ -124,10 +124,7 @@ class TestDBFileFunctions(unittest.TestCase):
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="time",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            interval="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
         self.assertListEqual([], ids)
@@ -201,6 +198,7 @@ class TestDBFileFunctions(unittest.TestCase):
     def test_add_output(self):
         id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
+        self.assertEqual(100, id_)
         self.ef.remove_outputs(var)
 
     def test_add_two_outputs(self):
@@ -233,9 +231,7 @@ class TestDBFileFunctions(unittest.TestCase):
             _ = self.ef.add_output("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
-        v = Variable(
-            interval="hourly", key=None, type="Zone People Occupant Count", units=""
-        )
+        v = Variable(interval="hourly", key=None, type="Zone People Occupant Count", units="")
         id_, var = self.ef.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
@@ -288,7 +284,7 @@ class TestDBFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.data.tables["monthly"].drop(N_DAYS_COLUMN, axis=1, inplace=True, level=0)
+        ef.data.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
@@ -307,14 +303,14 @@ class TestDBFileFunctions(unittest.TestCase):
             _ = self.ef.aggregate_variables(v, "sum")
 
     def test_as_df(self):
-        df = self.ef.as_df("hourly")
+        df = self.ef.get_numeric_table("hourly")
         self.assertTupleEqual(df.shape, (8760, 19))
         self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_interval(self):
         with self.assertRaises(KeyError):
-            _ = self.ef.as_df("foo")
+            _ = self.ef.get_numeric_table("foo")
 
 
 if __name__ == "__main__":

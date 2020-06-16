@@ -62,3 +62,9 @@ class BlankLineError(Exception):
     """ Exception raised when eso file contains blank line.  """
 
     pass
+
+
+class InsuficientHeaderInfo(Exception):
+    """ Exception raised when excel header does not contain enough identifiers. """
+
+    pass

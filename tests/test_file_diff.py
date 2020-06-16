@@ -13,7 +13,7 @@ class TestDiffFile(TestCase):
     def test_process_diff_identical_files(self):
         diff = DiffFile(EF1, EF1)
         for interval in diff.available_intervals:
-            df = diff.as_df(interval)
+            df = diff.get_numeric_table(interval)
             bool_df = df == 0
 
             # check if all calculated values are 0
@@ -21,13 +21,13 @@ class TestDiffFile(TestCase):
 
             # check if n days and day of week columns are copied
             if interval in [TS, H, D]:
-                c1 = diff.data.get_days_of_week(interval)
-                c2 = EF1.data.get_days_of_week(interval)
+                c1 = diff.data.get_special_column(interval, DAY_COLUMN)
+                c2 = EF1.data.get_special_column(interval, DAY_COLUMN)
                 assert_series_equal(c1, c2)
 
             if interval in [M, A, RP]:
-                c1 = diff.data.get_number_of_days(interval)
-                c2 = EF1.data.get_number_of_days(interval)
+                c1 = diff.data.get_special_column(interval, N_DAYS_COLUMN)
+                c2 = EF1.data.get_special_column(interval, N_DAYS_COLUMN)
                 assert_series_equal(c1, c2)
 
     def test_process_diff_similar_files(self):

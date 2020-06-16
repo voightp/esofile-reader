@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Dict, Union, Tuple, Sequence, Callable
+from typing import List, Dict, Union, Tuple, Sequence, Callable, Optional
 
 import pandas as pd
 
@@ -13,7 +13,7 @@ from esofile_reader.convertor import (
     convert_units,
 )
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable
+from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processor.interval_processor import update_dt_format
 
 
@@ -68,6 +68,10 @@ class BaseFile:
     def available_intervals(self) -> List[str]:
         """ Get all available intervals. """
         return self.data.get_available_intervals()
+
+    def is_header_simple(self, interval: str) -> bool:
+        """ Check if header uses Variablesor SimpleVariable data. """
+        return self.data.is_simple(interval)
 
     def get_header_dictionary(self, interval: str) -> Dict[int, Variable]:
         """ Get all variables for given interval. """
@@ -124,8 +128,7 @@ class BaseFile:
             )
 
     def _find_pairs(
-            self,
-            variables: Union[Variable, List[Variable], List[int]],
+            self, variables: Union[Variable, List[Variable], List[int]],
             part_match: bool = False
     ) -> Dict[str, List[int]]:
         """
@@ -149,8 +152,8 @@ class BaseFile:
         variables = variables if isinstance(variables, list) else [variables]
         out = defaultdict(list)
 
-        if all(map(lambda x: isinstance(x, (Variable, int)), variables)):
-            if all(map(lambda x: isinstance(x, Variable), variables)):
+        if all(map(lambda x: isinstance(x, (Variable, SimpleVariable, int)), variables)):
+            if all(map(lambda x: isinstance(x, (Variable, SimpleVariable)), variables)):
                 ids = []
                 for variable in variables:
                     ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
@@ -158,14 +161,17 @@ class BaseFile:
                 # all inputs are integers
                 ids = variables
             header = self.data.get_all_variables_df()
-            df = header.loc[header[ID_LEVEL].isin(ids), [INTERVAL_LEVEL, ID_LEVEL]]
+            # filter values by id, isin cannot be used as it breaks ids order
+            df = header.set_index(ID_LEVEL)
+            df = df.loc[ids, [INTERVAL_LEVEL]]
+            df.reset_index(inplace=True)
             grouped = df.groupby(INTERVAL_LEVEL, sort=False, group_keys=False)
             for interval, df in grouped:
                 out[interval] = df[ID_LEVEL].tolist()
         else:
             raise TypeError(
                 "Unexpected variable type! This can only be "
-                "either integers or 'Variable' named tuples."
+                "either integers or 'Variable' / 'SimpleVariable' named tuples."
             )
         return out
 
@@ -182,8 +188,8 @@ class BaseFile:
     def get_results(
             self,
             variables: Union[Variable, List[Variable], int, List[int]],
-            start_date: datetime = None,
-            end_date: datetime = None,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
             output_type: str = "standard",
             add_file_name: str = "row",
             include_interval: bool = False,
@@ -244,13 +250,13 @@ class BaseFile:
         """
 
         def standard():
-            return storage.get_results(interval, ids, start_date, end_date, include_day)
+            return self.data.get_results(interval, ids, start_date, end_date, include_day)
 
         def global_max():
-            return storage.get_global_max_results(interval, ids, start_date, end_date)
+            return self.data.get_global_max_results(interval, ids, start_date, end_date)
 
         def global_min():
-            return storage.get_global_min_results(interval, ids, start_date, end_date)
+            return self.data.get_global_min_results(interval, ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -275,14 +281,15 @@ class BaseFile:
         frames = []
         pairs = self._find_pairs(variables, part_match=part_match)
         for interval, ids in pairs.items():
-            storage = self.data
             df = res[output_type]()
 
             if interval != RANGE:
                 # convert 'rate' or 'energy' when standard results are requested
                 if output_type == "standard" and rate_to_energy_dct[interval]:
                     try:
-                        n_days = storage.get_number_of_days(interval, start_date, end_date)
+                        n_days = self.data.get_special_column(
+                            interval, N_DAYS_COLUMN, start_date, end_date
+                        )
                     except KeyError:
                         n_days = None
 
@@ -351,7 +358,7 @@ class BaseFile:
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(interval, key, type, units)
-        id_ = self.data.insert_variable(new_var, array)
+        id_ = self.data.insert_column(new_var, array)
         if id_:
             self.search_tree.add_variable(id_, new_var)
             return id_, new_var
@@ -417,7 +424,7 @@ class BaseFile:
         elif rate_and_energy_units(units) and interval != RANGE:
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.data.get_number_of_days(interval)
+                n_days = self.data.get_special_column(interval, N_DAYS_COLUMN)
             except KeyError:
                 n_days = None
                 if interval in [M, A, RP]:
@@ -461,10 +468,10 @@ class BaseFile:
 
         return groups
 
-    def as_df(self, interval: str) -> pd.DataFrame:
-        """ Return the file as a single DataFrame. """
+    def get_numeric_table(self, interval: str) -> pd.DataFrame:
+        """ Return the file as a single DataFrame (without special columns). """
         try:
-            df = self.data.get_all_results(interval)
+            df = self.data.get_numeric_table(interval)
         except KeyError:
             raise KeyError(f"Cannot find interval: '{interval}'.\n{traceback.format_exc()}")
         return df

@@ -437,7 +437,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
 
 def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     """ Transform processed output data into DataFrame like classes. """
-    outputs = DFData()
+    data = DFData()
 
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, ID_LEVEL)
@@ -451,19 +451,17 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
-        # add other special columns
-        for k, v in other_data.items():
-            try:
-                column = v.pop(interval)
-                df.insert(0, k, column)
-            except KeyError:
-                pass
-
         # store the data in  DFData class
-        outputs.populate_table(interval, df)
+        data.populate_table(interval, df)
+
         monitor.update_progress(i=step)
 
-    return outputs
+    # add other special columns, structure is {KEY: {INTERVAL: ARRAY}}
+    for key, dict in other_data.items():
+        for interval, arr in dict.items():
+            data.insert_special_column(interval, key, arr)
+
+    return data
 
 
 def remove_duplicates(dup_ids, header_dct, outputs_dct):
@@ -575,6 +573,6 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
 
     except StopIteration:
-        msg = f"File '{file_path}' is not complete!"
+        msg = f"File is not complete!"
         monitor.processing_failed(msg)
         raise IncompleteFile(msg)

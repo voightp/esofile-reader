@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import List, Union
+from typing import List, Union, Optional
 
 try:
     from typing import ForwardRef
@@ -72,7 +72,6 @@ class EsoFile(BaseFile):
         super().__init__()
         self.file_path = file_path
         self.peak_outputs = None
-
         if autopopulate:
             self.populate_content(monitor=monitor, ignore_peaks=ignore_peaks, year=year)
 
@@ -129,16 +128,16 @@ class EsoFile(BaseFile):
             )
 
     def _get_peak_results(
-        self,
-        variables: List[Variable],
-        output_type: str,
-        start_date: datetime = None,
-        end_date: datetime = None,
-        add_file_name: str = "row",
-        include_interval: bool = False,
-        include_id: bool = False,
-        part_match: bool = False,
-        timestamp_format: str = "default",
+            self,
+            variables: List[Variable],
+            output_type: str,
+            start_date: Optional[datetime] = None,
+            end_date: Optional[datetime] = None,
+            add_file_name: str = "row",
+            include_interval: bool = False,
+            include_id: bool = False,
+            part_match: bool = False,
+            timestamp_format: str = "default",
     ) -> pd.DataFrame:
         """ Return local peak results. """
         frames = []

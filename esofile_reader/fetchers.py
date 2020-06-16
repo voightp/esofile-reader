@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 
 import pandas as pd
 
@@ -11,22 +11,22 @@ from esofile_reader.mini_classes import Variable
 
 
 def get_results(
-    files,
-    variables: Union[Variable, List[Variable]],
-    start_date: datetime = None,
-    end_date: datetime = None,
-    output_type: str = "standard",
-    add_file_name: str = "row",
-    include_interval: bool = False,
-    include_day: bool = False,
-    include_id: bool = False,
-    part_match: bool = False,
-    units_system: str = "SI",
-    rate_units: str = "W",
-    energy_units: str = "J",
-    timestamp_format: str = "default",
-    rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
-    ignore_peaks: bool = True,
+        files,
+        variables: Union[Variable, List[Variable]],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        output_type: str = "standard",
+        add_file_name: str = "row",
+        include_interval: bool = False,
+        include_day: bool = False,
+        include_id: bool = False,
+        part_match: bool = False,
+        units_system: str = "SI",
+        rate_units: str = "W",
+        energy_units: str = "J",
+        timestamp_format: str = "default",
+        rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+        ignore_peaks: bool = True,
 ):
     """
      Return a pandas.DataFrame object with outputs for specified request.
@@ -99,22 +99,18 @@ def get_results(
         "part_match": part_match,
         "ignore_peaks": ignore_peaks,
     }
-
     if isinstance(files, list):
         return _get_results_multiple_files(files, variables, **kwargs)
-
     return _get_results(files, variables, **kwargs)
 
 
 def _get_results(file, variables, **kwargs):
     """ Load eso file and return requested results. """
     ignore_peaks = kwargs.pop("ignore_peaks")
-
     if issubclass(file.__class__, BaseFile):
         eso_file = file
     else:
         eso_file = EsoFile(file, ignore_peaks=ignore_peaks)
-
     return eso_file.get_results(variables, **kwargs)
 
 
@@ -127,7 +123,6 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
             frames.append(df)
     try:
         res = pd.concat(frames, axis=1, sort=False)
-
     except ValueError:
         if isinstance(variables, list):
             rstr = ", ".join(["'{} {} {} {}'".format(*tup) for tup in variables])
@@ -138,5 +133,4 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
             f"Any of requested variables was not found!\n" f"Requested variables: [{rstr}]"
         )
         return
-
     return res

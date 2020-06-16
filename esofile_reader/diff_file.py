@@ -7,7 +7,7 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
 from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
-from esofile_reader.id_generators import incremental_id_gen
+from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile, Data
 from esofile_reader.search_tree import Tree
 
@@ -26,15 +26,15 @@ class DiffFile(BaseFile):
     @staticmethod
     def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFData:
         """ Calculate difference between two results files. """
-        diff = DFData()
+        data = DFData()
         id_gen = incremental_id_gen()
 
         for interval in file.available_intervals:
             if interval not in other_file.available_intervals:
                 continue
 
-            df1 = file.as_df(interval)
-            df2 = other_file.as_df(interval)
+            df1 = file.get_numeric_table(interval)
+            df2 = other_file.get_numeric_table(interval)
 
             df1.columns = df1.columns.droplevel(ID_LEVEL)
             df2.columns = df2.columns.droplevel(ID_LEVEL)
@@ -52,26 +52,18 @@ class DiffFile(BaseFile):
                 header_df.insert(0, ID_LEVEL, ids)
 
                 df.columns = pd.MultiIndex.from_frame(header_df)
+                data.populate_table(interval, df)
 
-                try:
-                    c1 = file.data.get_number_of_days(interval).loc[index_cond]
-                    c2 = other_file.data.get_number_of_days(interval).loc[index_cond]
-                    if c1.equals(c2):
-                        df.insert(0, N_DAYS_COLUMN, c1)
-                except KeyError:
-                    pass
+                for c in [N_DAYS_COLUMN, DAY_COLUMN]:
+                    try:
+                        c1 = file.data.get_special_column(interval, c).loc[index_cond]
+                        c2 = file.data.get_special_column(interval, c).loc[index_cond]
+                        if c1.equals(c2):
+                            data.insert_special_column(interval, c, c1)
+                    except KeyError:
+                        pass
 
-                try:
-                    c1 = file.data.get_days_of_week(interval).loc[index_cond]
-                    c2 = other_file.data.get_days_of_week(interval).loc[index_cond]
-                    if c1.equals(c2):
-                        df.insert(0, DAY_COLUMN, c1)
-                except KeyError:
-                    pass
-
-                diff.populate_table(interval, df)
-
-        return diff
+        return data
 
     def process_diff(
             self, first_file: ResultsFile, other_file: ResultsFile

@@ -5,6 +5,7 @@ M = "monthly"
 A = "annual"
 RP = "runperiod"
 RANGE = "range"
+INDEX = "index"
 
 N_DAYS_COLUMN = "n days"
 DAY_COLUMN = "day"
@@ -17,8 +18,10 @@ INTERVAL_LEVEL = "interval"
 KEY_LEVEL = "key"
 TYPE_LEVEL = "type"
 UNITS_LEVEL = "units"
+STR_VALUES = "str_values"
 COLUMN_LEVELS = ["id", "interval", "key", "type", "units"]
 RATE_TO_ENERGY_DCT = {TS: False, H: False, D: True, M: True, A: True, RP: True}
+SPECIAL = "special"
 
 AVERAGED_UNITS = [
     "W",
@@ -31,7 +34,7 @@ AVERAGED_UNITS = [
     "ach",
     "hr",
     "%",
-    "kgWater/kgDryAir"
+    "kgWater/kgDryAir",
 ]
 
 SUMMED_UNITS = ["J", "J/m2"]
