@@ -469,11 +469,11 @@ def remove_duplicates(dup_ids, header_dct, outputs_dct):
     for id_, v in dup_ids.items():
         logging.info(
             f"Duplicate variable found, removing variable id: '{id_}' - "
-            f"{v.interval} | {v.key} | {v.type} | {v.units}."
+            f"{v.table} | {v.key} | {v.type} | {v.units}."
         )
         for dct in [header_dct, outputs_dct]:
             try:
-                del dct[v.interval][id_]
+                del dct[v.table][id_]
             except KeyError:
                 pass
 
@@ -514,7 +514,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
         # Generate datetime data
-        monitor.intervals_started()
+        monitor.tables_started()
         dates, n_days = interval_processor(dates, cumulative_days, year)
 
         # Create a 'search tree' to allow searching for variables

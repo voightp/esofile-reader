@@ -20,10 +20,10 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         id_ = cls.storage.store_file(EF_ALL_INTERVALS)
         cls.ef = cls.storage.files[id_]
 
-    def test_available_intervals(self):
+    def test_table_names(self):
         self.assertListEqual(
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
-            self.ef.available_intervals,
+            self.ef.table_names,
         )
 
     def test_all_ids(self):
@@ -37,7 +37,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(
-            ["id", "interval", "key", "type", "units"],
+            ["id", "table", "key", "type", "units"],
             self.ef.data.get_all_variables_df().columns.to_list(),
         )
         self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
@@ -107,7 +107,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -117,21 +117,21 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_find_ids_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         ids = self.ef.find_ids(v, part_match=True)
         self.assertListEqual([13], ids)
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
+            table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
         self.assertListEqual([], ids)
 
     def test__find_pairs(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -141,14 +141,14 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test__find_pairs_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=True)
         self.assertDictEqual({"timestep": [13]}, out)
 
     def test__find_pairs_invalid(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual({}, out)
@@ -156,19 +156,19 @@ class TestSqlDBFileFunctions(unittest.TestCase):
     def test_create_new_header_variable(self):
         v1 = self.ef.create_header_variable("timestep", "dummy", "type", "foo")
         self.assertTupleEqual(
-            v1, Variable(interval="timestep", key="dummy", type="type", units="foo")
+            v1, Variable(table="timestep", key="dummy", type="type", units="foo")
         )
 
     def test_rename_variable(self):
         v1 = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
         )
         self.ef.rename_variable(v1, new_key="NEW1", new_type="VARIABLE")
 
-        v2 = Variable(interval="timestep", key="NEW1", type="VARIABLE", units="")
+        v2 = Variable(table="timestep", key="NEW1", type="VARIABLE", units="")
         ids = self.ef.find_ids(v2)
         self.assertListEqual(ids, [13])
 
@@ -178,13 +178,13 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
-        v = Variable(interval="timestep", key="foo", type="", units="")
+        v = Variable(table="timestep", key="foo", type="", units="")
         out = self.ef.rename_variable(v, new_key="NEW2", new_type="VARIABLE")
         self.assertIsNone(out)
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK2:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -231,12 +231,12 @@ class TestSqlDBFileFunctions(unittest.TestCase):
             _ = self.ef.add_output("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
-        v = Variable(interval="hourly", key=None, type="Zone People Occupant Count", units="")
+        v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
         id_, var = self.ef.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
             Variable(
-                interval="hourly",
+                table="hourly",
                 key="Custom Key - sum",
                 type="Zone People Occupant Count",
                 units="",
@@ -244,7 +244,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         )
         self.ef.remove_outputs(var)
         id_, var = self.ef.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
-        self.assertEqual(var, Variable(interval="hourly", key="foo", type="bar", units=""))
+        self.assertEqual(var, Variable(table="hourly", key="foo", type="bar", units=""))
         self.ef.remove_outputs(var)
 
     def test_aggregate_energy_rate(self):
@@ -293,19 +293,19 @@ class TestSqlDBFileFunctions(unittest.TestCase):
             _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
-        v = Variable(interval="hourly", key="BLOCK1:ZONE1", type=None, units=None)
+        v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
         with self.assertRaises(CannotAggregateVariables):
             _ = self.ef.aggregate_variables(v, "sum")
 
     def test_aggregate_variables_invalid_too_many_intervals(self):
-        v = Variable(interval=None, key=None, type="Zone People Occupant Count", units="")
+        v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
         with self.assertRaises(CannotAggregateVariables):
             _ = self.ef.aggregate_variables(v, "sum")
 
     def test_as_df(self):
         df = self.ef.get_numeric_table("hourly")
         self.assertTupleEqual(df.shape, (8760, 19))
-        self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
+        self.assertListEqual(df.columns.names, ["id", "table", "key", "type", "units"])
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_interval(self):

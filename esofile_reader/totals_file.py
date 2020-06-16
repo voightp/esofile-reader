@@ -130,7 +130,7 @@ class TotalsFile(BaseFile):
         groups = {}
         rows, index = [], []
         for id_, var in variables.items():
-            interval, key, type, units = var
+            table, key, type, units = var
 
             # variable can be grouped only if it's included as avg or sum
             group = units in SUMMED_UNITS or units in AVERAGED_UNITS
@@ -168,7 +168,7 @@ class TotalsFile(BaseFile):
                 group_id = next(id_gen)
 
             index.append(id_)
-            rows.append((group_id, interval, key, type, units))
+            rows.append((group_id, table, key, type, units))
 
         cols = [GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]]
 
@@ -192,8 +192,8 @@ class TotalsFile(BaseFile):
         data = DFData()
         id_gen = incremental_id_gen(start=1)
 
-        for interval in file.available_intervals:
-            out = file.data.get_numeric_table(interval)
+        for table in file.table_names:
+            out = file.data.get_numeric_table(table)
 
             # find invalid ids
             ids = ignored_ids(out)
@@ -202,14 +202,14 @@ class TotalsFile(BaseFile):
             out = out.loc[:, ~out.columns.get_level_values(ID_LEVEL).isin(ids)]
 
             if out.empty:
-                # ignore empty intervals
+                # ignore empty tables
                 continue
 
             # leave only 'id' column as header data will be added
             out.columns = out.columns.droplevel(COLUMN_LEVELS[1:])
 
             # get header variables and filter them
-            variable_dct = file.data.get_variables_dct(interval)
+            variable_dct = file.data.get_variables_dct(table)
             variable_dct = {k: v for k, v in variable_dct.items() if k not in ids}
 
             header_df = self._get_grouped_vars(id_gen, variable_dct)
@@ -226,14 +226,14 @@ class TotalsFile(BaseFile):
 
             # restore index
             df.index = out.index
-            data.populate_table(interval, df)
+            data.populate_table(table, df)
 
             for c in [N_DAYS_COLUMN, DAY_COLUMN]:
                 try:
-                    c1 = file.data.get_special_column(interval, c)
-                    c2 = file.data.get_special_column(interval, c)
+                    c1 = file.data.get_special_column(table, c)
+                    c2 = file.data.get_special_column(table, c)
                     if c1.equals(c2):
-                        data.insert_special_column(interval, c, c1)
+                        data.insert_special_column(table, c, c1)
                 except KeyError:
                     pass
 

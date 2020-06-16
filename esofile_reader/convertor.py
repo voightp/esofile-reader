@@ -120,12 +120,12 @@ def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     return 3600 / timedelta.seconds
 
 
-def convert_rate_to_energy(df: pd.DataFrame, interval: str, n_days: int = None) -> pd.DataFrame:
+def convert_rate_to_energy(df: pd.DataFrame, table: str, n_days: int = None) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
-    if interval == H or interval == TS:
+    if table == H or table == TS:
         n_steps = get_n_steps(df.index)
         ratio = n_steps / 3600
-    elif interval == D:
+    elif table == D:
         ratio = 1 / (24 * 3600)
     else:
         ratio = 1 / (n_days * 24 * 3600)

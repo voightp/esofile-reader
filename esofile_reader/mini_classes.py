@@ -7,10 +7,10 @@ except ImportError:
     from typing import _ForwardRef as ForwardRef
 
 # Request is an object which must be used when getting results
-Variable = namedtuple("Variable", "interval key type units")
-SimpleVariable = namedtuple("SimpleVariable", "interval key units")
+Variable = namedtuple("Variable", "table key type units")
+SimpleVariable = namedtuple("SimpleVariable", "table key units")
 
-# A mini class to store interval data
+# A mini class to store table data
 IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
 
 # type_ hint to wrap all result types

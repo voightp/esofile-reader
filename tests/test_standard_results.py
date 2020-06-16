@@ -15,7 +15,7 @@ class TestStandardResults(unittest.TestCase):
 
         shapes = [(17520, 9), (8760, 9), (365, 9), (12, 9), (1, 9), (1, 9)]
 
-        for interval, shape in zip(EF_ALL_INTERVALS.available_intervals, shapes):
+        for interval, shape in zip(EF_ALL_INTERVALS.table_names, shapes):
             variables = [
                 Variable(
                     interval,
@@ -42,7 +42,7 @@ class TestStandardResults(unittest.TestCase):
         start_date = datetime(2002, 5, 1, 12, 30)
         end_date = datetime(2002, 6, 1, 8, 0)
 
-        for interval, shape in zip(EF_ALL_INTERVALS.available_intervals, shapes):
+        for interval, shape in zip(EF_ALL_INTERVALS.table_names, shapes):
             variables = [
                 Variable(
                     interval,
@@ -61,7 +61,7 @@ class TestStandardResults(unittest.TestCase):
                 start_date=start_date,
                 end_date=end_date,
                 include_day=True,
-                include_interval=True,
+                include_table_name=True,
             )
 
             self.assertEqual(r1.shape, shape)
@@ -73,7 +73,7 @@ class TestStandardResults(unittest.TestCase):
                 self.assertEqual(r2.index.names, ["file", "timestamp", "day"])
 
     def test_standard_results_file_name(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(
                     interval,
@@ -96,7 +96,7 @@ class TestStandardResults(unittest.TestCase):
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
     def test_standard_results_include_id(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(
                     interval,
@@ -116,7 +116,7 @@ class TestStandardResults(unittest.TestCase):
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
     def test_standard_results_include_day(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(
                     interval,
@@ -135,8 +135,8 @@ class TestStandardResults(unittest.TestCase):
             self.assertEqual(r.index.names, ["file", "timestamp"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
-    def test_standard_results_include_interval(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+    def test_standard_results_include_table_name(self):
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(
                     interval,
@@ -147,20 +147,20 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            r = EF_ALL_INTERVALS.get_results(
-                variables, add_file_name="row", include_interval=True
+            df = EF_ALL_INTERVALS.get_results(
+                variables, add_file_name="row", include_table_name=True
             )
-            self.assertEqual(r.index.names, ["file", "timestamp"])
-            self.assertEqual(r.columns.names, ["interval", "key", "type", "units"])
+            self.assertEqual(df.index.names, ["file", "timestamp"])
+            self.assertEqual(df.columns.names, ["table", "key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(
-                variables, add_file_name="row", include_interval=False
+            df = EF_ALL_INTERVALS.get_results(
+                variables, add_file_name="row", include_table_name=False
             )
-            self.assertEqual(r.index.names, ["file", "timestamp"])
-            self.assertEqual(r.columns.names, ["key", "type", "units"])
+            self.assertEqual(df.index.names, ["file", "timestamp"])
+            self.assertEqual(df.columns.names, ["key", "type", "units"])
 
     def test_standard_results_full_index(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(
                     interval,
@@ -170,40 +170,40 @@ class TestStandardResults(unittest.TestCase):
                 ),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
-            r = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results(
                 variables,
                 add_file_name="row",
                 include_day=True,
-                include_interval=True,
+                include_table_name=True,
                 include_id=True,
             )
-            self.assertEqual(r.index.names, ["file", "timestamp", "day"])
-            self.assertEqual(r.columns.names, ["id", "interval", "key", "type", "units"])
+            self.assertEqual(df.index.names, ["file", "timestamp", "day"])
+            self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results(
                 variables,
                 add_file_name="column",
                 include_day=True,
-                include_interval=True,
+                include_table_name=True,
                 include_id=True,
             )
-            self.assertEqual(r.index.names, ["timestamp", "day"])
+            self.assertEqual(df.index.names, ["timestamp", "day"])
             self.assertEqual(
-                r.columns.names, ["file", "id", "interval", "key", "type", "units"]
+                df.columns.names, ["file", "id", "table", "key", "type", "units"]
             )
 
-            r = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results(
                 variables,
                 add_file_name=False,
                 include_day=True,
-                include_interval=True,
+                include_table_name=True,
                 include_id=True,
             )
-            self.assertEqual(r.index.names, ["timestamp", "day"])
-            self.assertEqual(r.columns.names, ["id", "interval", "key", "type", "units"])
+            self.assertEqual(df.index.names, ["timestamp", "day"])
+            self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units"])
 
     def test_variable_partial_match(self):
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for interval in EF_ALL_INTERVALS.table_names:
             variables = [
                 Variable(interval, "envir", "Site", None),
                 Variable(interval, "BLOCK", "Zone People Occupant Count", ""),
@@ -223,7 +223,7 @@ class TestStandardResults(unittest.TestCase):
             "2002-01-01-00-00",
             "2002-01-01-00-00",
         ]
-        for interval, f in zip(EF_ALL_INTERVALS.available_intervals, first):
+        for interval, f in zip(EF_ALL_INTERVALS.table_names, first):
             variables = [
                 Variable(
                     interval,
@@ -235,14 +235,14 @@ class TestStandardResults(unittest.TestCase):
             ]
 
             r = EF_ALL_INTERVALS.get_results(
-                variables, timestamp_format="%Y-%m-%d-%H-%M", include_interval=True
+                variables, timestamp_format="%Y-%m-%d-%H-%M", include_table_name=True
             )
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)
 
             r = EF_ALL_INTERVALS.get_results(
                 variables,
                 timestamp_format="%Y-%m-%d-%H-%M",
-                include_interval=True,
+                include_table_name=True,
                 include_day=True,
             )
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)
@@ -250,7 +250,7 @@ class TestStandardResults(unittest.TestCase):
             r = EF_ALL_INTERVALS.get_results(
                 variables,
                 timestamp_format="%Y-%m-%d-%H-%M",
-                include_interval=True,
+                include_table_name=True,
                 add_file_name=None,
             )
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)

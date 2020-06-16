@@ -143,10 +143,10 @@ class SQLStorage(BaseStorage):
         with self.engine.connect() as conn:
             id_ = conn.execute(ins).inserted_primary_key[0]
             file_input = {"numeric_tables": [], "datetime_tables": [], "special_tables": []}
-            for interval in results_file.available_intervals:
-                df = results_file.data.tables[interval]
-                is_simple = results_file.is_header_simple(interval)
-                results_table = create_results_table(self.metadata, id_, interval, is_simple)
+            for table in results_file.table_names:
+                df = results_file.data.tables[table]
+                is_simple = results_file.is_header_simple(table)
+                results_table = create_results_table(self.metadata, id_, table, is_simple)
                 file_input["numeric_tables"].append(results_table.name)
                 # store numeric values
                 df_numeric = df.loc[:, df.columns.get_level_values(ID_LEVEL) != SPECIAL]
@@ -158,7 +158,7 @@ class SQLStorage(BaseStorage):
                         ins.append(
                             {
                                 ID_LEVEL: index[0],
-                                INTERVAL_LEVEL: index[1],
+                                TABLE_LEVEL: index[1],
                                 KEY_LEVEL: index[2],
                                 UNITS_LEVEL: index[3],
                                 STR_VALUES: values,
@@ -168,7 +168,7 @@ class SQLStorage(BaseStorage):
                         ins.append(
                             {
                                 ID_LEVEL: index[0],
-                                INTERVAL_LEVEL: index[1],
+                                TABLE_LEVEL: index[1],
                                 KEY_LEVEL: index[2],
                                 TYPE_LEVEL: index[3],
                                 UNITS_LEVEL: index[4],
@@ -178,7 +178,7 @@ class SQLStorage(BaseStorage):
                 conn.execute(results_table.insert(), ins)
                 # create index table
                 if isinstance(df.index, pd.DatetimeIndex):
-                    index_table = create_datetime_table(self.metadata, id_, interval)
+                    index_table = create_datetime_table(self.metadata, id_, table)
                     conn.execute(index_table.insert(), create_value_insert(df.index))
                     file_input["datetime_tables"].append(index_table.name)
                 if not df_special.empty:
@@ -187,7 +187,7 @@ class SQLStorage(BaseStorage):
                         sr = df_special[column]
                         column_type = Integer if pd.api.types.is_integer_dtype(sr) else String
                         special_table = create_special_table(
-                            self.metadata, id_, interval, column[key_index], column_type
+                            self.metadata, id_, table, column[key_index], column_type
                         )
                         conn.execute(special_table.insert(), create_value_insert(sr.tolist()))
                         file_input["special_tables"].append(special_table.name)

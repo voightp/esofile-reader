@@ -13,7 +13,7 @@ from esofile_reader.mini_classes import SimpleVariable, Variable
 
 class DFData(BaseData):
     """
-    The results are stored in a dictionary using string interval identifiers
+    The results are stored in a dictionary using string table identifiers
     as keys and pandas.DataFrame classes as values.
 
     Attributes
@@ -38,7 +38,7 @@ class DFData(BaseData):
     DataFrame can have 6 levels for complete variable:
 
         id                         54898                  54902    \
-        interval                   daily                  daily
+        table                   daily                  daily
         key              GROUND:CORRIDOR            GROUND:FLAT
         type        Air Changes per Hour   Air Changes per Hour
         units                        ach                    ach
@@ -53,7 +53,7 @@ class DFData(BaseData):
     or 5 levels for 'simple' variable
 
         id                         54801                  54802    \
-        interval                   daily                  daily
+        table                   daily                  daily
         type             Air Temperature   Air Changes per Hour
         units                          C                    ach
         timestamp
@@ -73,38 +73,38 @@ class DFData(BaseData):
     def __init__(self):
         self.tables = {}
 
-    def populate_table(self, interval: str, df: pd.DataFrame):
-        self.tables[interval] = df
+    def populate_table(self, table: str, df: pd.DataFrame):
+        self.tables[table] = df
 
-    def is_simple(self, interval: str) -> bool:
-        return len(self.get_levels(interval)) == 4
+    def is_simple(self, table: str) -> bool:
+        return len(self.get_levels(table)) == 4
 
-    def get_levels(self, interval: str) -> List[str]:
-        return self.tables[interval].columns.names
+    def get_levels(self, table: str) -> List[str]:
+        return self.tables[table].columns.names
 
-    def get_available_intervals(self) -> List[str]:
+    def get_table_names(self) -> List[str]:
         return list(self.tables.keys())
 
-    def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
-        index = self.tables[interval].index
+    def get_datetime_index(self, table: str) -> pd.DatetimeIndex:
+        index = self.tables[table].index
         if isinstance(index, pd.DatetimeIndex):
             return index
 
-    def get_variables_dct(self, interval: str) -> Dict[int, Union[Variable, SimpleVariable]]:
+    def get_variables_dct(self, table: str) -> Dict[int, Union[Variable, SimpleVariable]]:
         def create_variable(sr):
             return (
                 sr[ID_LEVEL],
-                Variable(sr[INTERVAL_LEVEL], sr[KEY_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
+                Variable(sr[TABLE_LEVEL], sr[KEY_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
             )
 
         def create_simple_variable(sr):
             return (
                 sr[ID_LEVEL],
-                SimpleVariable(sr[INTERVAL_LEVEL], sr[KEY_LEVEL], sr[UNITS_LEVEL]),
+                SimpleVariable(sr[TABLE_LEVEL], sr[KEY_LEVEL], sr[UNITS_LEVEL]),
             )
 
-        header_df = self.get_variables_df(interval)
-        func = create_simple_variable if self.is_simple(interval) else create_variable
+        header_df = self.get_variables_df(table)
+        func = create_simple_variable if self.is_simple(table) else create_variable
         var_df = header_df.apply(func, axis=1, result_type="expand")
         var_df.set_index(0, inplace=True)
 
@@ -112,45 +112,45 @@ class DFData(BaseData):
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Union[Variable, SimpleVariable]]]:
         all_variables = {}
-        for interval in self.get_available_intervals():
-            all_variables[interval] = self.get_variables_dct(interval)
+        for table in self.get_table_names():
+            all_variables[table] = self.get_variables_dct(table)
         return all_variables
 
-    def get_variable_ids(self, interval: str) -> List[int]:
-        mi = self.tables[interval].columns.get_level_values(ID_LEVEL).tolist()
+    def get_variable_ids(self, table: str) -> List[int]:
+        mi = self.tables[table].columns.get_level_values(ID_LEVEL).tolist()
         return list(filter(lambda x: x != SPECIAL, mi))
 
     def get_all_variable_ids(self) -> List[int]:
         all_ids = []
-        for interval in self.get_available_intervals():
-            ids = self.get_variable_ids(interval)
+        for table in self.get_table_names():
+            ids = self.get_variable_ids(table)
             all_ids.extend(ids)
         return all_ids
 
-    def get_variables_df(self, interval: str) -> pd.DataFrame:
-        mi = self.tables[interval].columns
+    def get_variables_df(self, table: str) -> pd.DataFrame:
+        mi = self.tables[table].columns
         return mi[mi.get_level_values(ID_LEVEL) != SPECIAL].to_frame(index=False)
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
-        for interval in self.get_available_intervals():
-            frames.append(self.get_variables_df(interval))
+        for table in self.get_table_names():
+            frames.append(self.get_variables_df(table))
         return pd.concat(frames)
 
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str = ""
+            self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
-        mi_df = self.tables[interval].columns.to_frame(index=False)
-        if self.is_simple(interval):
+        mi_df = self.tables[table].columns.to_frame(index=False)
+        if self.is_simple(table):
             mi_df.loc[mi_df.id == id_, [KEY_LEVEL]] = [new_key]
         else:
             mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
-        self.tables[interval].columns = pd.MultiIndex.from_frame(mi_df)
+        self.tables[table].columns = pd.MultiIndex.from_frame(mi_df)
 
     def _validate(
-            self, interval: str, variable: Union[Variable, SimpleVariable], array: Sequence
+            self, table: str, variable: Union[Variable, SimpleVariable], array: Sequence
     ) -> bool:
-        df_length = len(self.tables[interval].index)
+        df_length = len(self.tables[table].index)
         valid = len(array) == df_length
         if not valid:
             logging.warning(
@@ -162,29 +162,29 @@ class DFData(BaseData):
     def insert_column(
             self, variable: Union[SimpleVariable, Variable], array: Sequence
     ) -> Optional[int]:
-        if self._validate(variable.interval, variable, array):
+        if self._validate(variable.table, variable, array):
             all_ids = self.get_all_variable_ids()
             # skip some ids as usually there's always few variables
             id_gen = incremental_id_gen(checklist=all_ids, start=100)
             id_ = next(id_gen)
             if isinstance(variable, Variable):
-                interval, key, type_, units = variable
-                self.tables[interval][id_, interval, key, type_, units] = array
+                table, key, type_, units = variable
+                self.tables[table][id_, table, key, type_, units] = array
             else:
-                interval, key, units = variable
-                self.tables[interval][id_, interval, key, units] = array
+                table, key, units = variable
+                self.tables[table][id_, table, key, units] = array
             return id_
 
-    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
-        if self.is_simple(interval):
-            v = (SPECIAL, interval, key, "")
+    def insert_special_column(self, table: str, key: str, array: Sequence) -> None:
+        if self.is_simple(table):
+            v = (SPECIAL, table, key, "")
         else:
-            v = (SPECIAL, interval, key, "", "")
-        if self._validate(interval, v, array):
-            self.tables[interval].insert(0, v, array)
+            v = (SPECIAL, table, key, "", "")
+        if self._validate(table, v, array):
+            self.tables[table].insert(0, v, array)
 
-    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
-        df_length = len(self.tables[interval].index)
+    def update_variable_values(self, table: str, id_: int, array: Sequence[float]):
+        df_length = len(self.tables[table].index)
         valid = len(array) == df_length
         if not valid:
             logging.warning(
@@ -192,11 +192,11 @@ class DFData(BaseData):
                 f"df length is {df_length}!\nVariable cannot be updated."
             )
         else:
-            cond = self.tables[interval].columns.get_level_values(ID_LEVEL) == id_
-            self.tables[interval].loc[:, cond] = array
+            cond = self.tables[table].columns.get_level_values(ID_LEVEL) == id_
+            self.tables[table].loc[:, cond] = array
 
-    def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
-        all_ids = self.tables[interval].columns.get_level_values(ID_LEVEL)
+    def delete_variables(self, table: str, ids: Sequence[int]) -> None:
+        all_ids = self.tables[table].columns.get_level_values(ID_LEVEL)
         if not all(map(lambda x: x in all_ids, ids)):
             raise KeyError(
                 f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
@@ -204,45 +204,45 @@ class DFData(BaseData):
                 f"are not included."
             )
 
-        self.tables[interval].drop(columns=ids, inplace=True, level=ID_LEVEL)
+        self.tables[table].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def get_special_column(
             self,
-            interval: str,
+            table: str,
             name: str,
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        if name not in self.tables[interval].columns.get_level_values(KEY_LEVEL):
+        if name not in self.tables[table].columns.get_level_values(KEY_LEVEL):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
-        if self.is_simple(interval):
-            v = (SPECIAL, interval, name, "")
+        if self.is_simple(table):
+            v = (SPECIAL, table, name, "")
         else:
-            v = (SPECIAL, interval, name, "", "")
-        col = sr_dt_slicer(self.tables[interval].loc[:, v], start_date, end_date)
+            v = (SPECIAL, table, name, "", "")
+        col = sr_dt_slicer(self.tables[table].loc[:, v], start_date, end_date)
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col
 
-    def get_numeric_table(self, interval: str) -> pd.DataFrame:
-        mi = self.tables[interval].columns
+    def get_numeric_table(self, table: str) -> pd.DataFrame:
+        mi = self.tables[table].columns
         cond = mi.get_level_values(ID_LEVEL) != SPECIAL
-        return self.tables[interval].loc[:, cond].copy()
+        return self.tables[table].loc[:, cond].copy()
 
     def get_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
             include_day: bool = False,
     ) -> pd.DataFrame:
-        df = slicer(self.tables[interval], ids, start_date=start_date, end_date=end_date)
+        df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
 
         if include_day:
             try:
-                days_sr = self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
+                days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
                 df[DAY_COLUMN] = days_sr
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
             except KeyError:
@@ -256,14 +256,14 @@ class DFData(BaseData):
 
     def _global_peak(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: datetime,
             end_date: datetime,
             max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
-        df = self.get_results(interval, ids, start_date, end_date)
+        df = self.get_results(table, ids, start_date, end_date)
 
         vals = pd.DataFrame(df.max() if max_ else df.min()).T
         ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
@@ -275,18 +275,18 @@ class DFData(BaseData):
 
     def get_global_max_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
-        return self._global_peak(interval, ids, start_date, end_date)
+        return self._global_peak(table, ids, start_date, end_date)
 
     def get_global_min_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
-        return self._global_peak(interval, ids, start_date, end_date, max_=False)
+        return self._global_peak(table, ids, start_date, end_date, max_=False)

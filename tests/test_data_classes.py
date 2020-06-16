@@ -42,25 +42,25 @@ class TestDataClasses(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_is_simple(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
-        for interval in intervals:
-            self.assertFalse(data.is_simple(interval))
+        tables = data.get_table_names()
+        for table in tables:
+            self.assertFalse(data.is_simple(table))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_levels(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
-        for interval in intervals:
+        tables = data.get_table_names()
+        for table in tables:
             self.assertListEqual(
-                ["id", "interval", "key", "type", "units"], data.get_levels(interval)
+                ["id", "table", "key", "type", "units"], data.get_levels(table)
             )
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
-    def test_get_available_intervals(self, key):
+    def test_get_table_names(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
+        tables = data.get_table_names()
         self.assertListEqual(
-            intervals, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
+            tables, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
@@ -171,14 +171,14 @@ class TestDataClasses(unittest.TestCase):
     def test_get_variables_df(self, key):
         data = self.data[key]
         df = data.get_variables_df("daily")
-        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
+        self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (19, 5))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_all_variables_df(self, key):
         data = self.data[key]
         df = data.get_all_variables_df()
-        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "type", "units"])
+        self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (114, 5))
 
     def test_rename_variable_sql(self):
@@ -309,7 +309,7 @@ class TestDataClasses(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame(
@@ -352,7 +352,7 @@ class TestDataClasses(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
@@ -383,7 +383,7 @@ class TestDataClasses(unittest.TestCase):
                 (323, "daily", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (982, "daily", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -415,7 +415,7 @@ class TestDataClasses(unittest.TestCase):
                 (324, "monthly", "BLOCK3:ZONE1", "Zone Mean Air Temperature", "C"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
 
         # days of week are picked up from actual date when not available on df
@@ -455,7 +455,7 @@ class TestDataClasses(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "type", "units", "data"],
+            names=["id", "table", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[27.007450, datetime(2002, 7, 1), 5.093662e09, datetime(2002, 7, 1)], ],
@@ -475,7 +475,7 @@ class TestDataClasses(unittest.TestCase):
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "value"),
                 (983, "monthly", "CHILLER", "Chiller Electric Energy", "J", "timestamp"),
             ],
-            names=["id", "interval", "key", "type", "units", "data"],
+            names=["id", "table", "key", "type", "units", "data"],
         )
         test_df = pd.DataFrame(
             [[18.520034, datetime(2002, 12, 1), 1.945721e08, datetime(2002, 12, 1)], ],
@@ -521,7 +521,7 @@ class TestDataClasses(unittest.TestCase):
     def test_sort_by_ids(self):
         columns = pd.MultiIndex.from_tuples(
             [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
-            names=["id", "interval", "key", "units"],
+            names=["id", "table", "key", "units"],
         )
         index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
         df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)
@@ -532,7 +532,7 @@ class TestDataClasses(unittest.TestCase):
     def test_sort_by_ids_na_id(self):
         columns = pd.MultiIndex.from_tuples(
             [(1, "a", "b", "c"), (2, "d", "e", "f"), (3, "g", "h", "i")],
-            names=["id", "interval", "key", "units"],
+            names=["id", "table", "key", "units"],
         )
         index = pd.date_range(start="01/01/2020", periods=8760, freq="h", name="datetime")
         df = pd.DataFrame(np.random.rand(8760, 3), index=index, columns=columns)

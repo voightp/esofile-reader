@@ -89,7 +89,7 @@ class TestSqlDB(unittest.TestCase):
             self.assertEqual(len(f.search_tree.__repr__()), len(lf.search_tree.__repr__()))
             self.assertEqual("EsoFile", f.type_)
 
-            for interval in f.available_intervals:
+            for interval in f.table_names:
                 self.assertEqual(
                     len(f.get_header_dictionary(interval)),
                     len(lf.get_header_dictionary(interval)),

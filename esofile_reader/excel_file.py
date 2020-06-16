@@ -60,7 +60,7 @@ class ExcelFile(BaseFile):
         index_names = [TIMESTAMP_COLUMN, RANGE, INDEX]
         column_levels = [
             ID_LEVEL,
-            INTERVAL_LEVEL,
+            TABLE_LEVEL,
             KEY_LEVEL,
             TYPE_LEVEL,
             UNITS_LEVEL,
@@ -183,8 +183,8 @@ class ExcelFile(BaseFile):
             raw_df = raw_df.loc[:, ~duplicated]
 
         # include table name row if it's not already present
-        if INTERVAL_LEVEL not in raw_df.columns.names:
-            raw_df = pd.concat([raw_df], keys=[name], names=[INTERVAL_LEVEL], axis=1)
+        if TABLE_LEVEL not in raw_df.columns.names:
+            raw_df = pd.concat([raw_df], keys=[name], names=[TABLE_LEVEL], axis=1)
 
         key_level = raw_df.columns.get_level_values(KEY_LEVEL)
         special_rows = key_level.isin([DAY_COLUMN, N_DAYS_COLUMN])
@@ -261,12 +261,12 @@ class ExcelFile(BaseFile):
 
             df.columns = header_mi
 
-            # create table for each interval name
-            if INTERVAL_LEVEL in df.columns.names:
-                interval_level = df.columns.get_level_values(INTERVAL_LEVEL)
-                for key in interval_level.unique():
+            # create table for each table name
+            if TABLE_LEVEL in df.columns.names:
+                table_level = df.columns.get_level_values(TABLE_LEVEL)
+                for key in table_level.unique():
                     dfi, end_id = self.build_df_table(
-                        df.loc[:, interval_level == key],
+                        df.loc[:, table_level == key],
                         name=key,
                         start_id=start_id,
                     )

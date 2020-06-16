@@ -36,8 +36,8 @@ class DFFile(BaseFile):
         self.type_ = file.__class__.__name__
         # create a new data so the original won't mutate
         data = DFData()
-        for interval, df in file.data.tables.items():
-            data.populate_table(interval, df.copy())
+        for table, df in file.data.tables.items():
+            data.populate_table(table, df.copy())
         self.data = data
 
 

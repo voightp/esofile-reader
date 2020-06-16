@@ -14,12 +14,12 @@ DATA_LEVEL = "data"
 VALUE_LEVEL = "value"
 ID_LEVEL = "id"
 GROUP_ID_LEVEL = "group id"
-INTERVAL_LEVEL = "interval"
+TABLE_LEVEL = "table"
 KEY_LEVEL = "key"
 TYPE_LEVEL = "type"
 UNITS_LEVEL = "units"
 STR_VALUES = "str_values"
-COLUMN_LEVELS = ["id", "interval", "key", "type", "units"]
+COLUMN_LEVELS = ["id", "table", "key", "type", "units"]
 RATE_TO_ENERGY_DCT = {TS: False, H: False, D: True, M: True, A: True, RP: True}
 SPECIAL = "special"
 

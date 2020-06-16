@@ -56,7 +56,7 @@ class BaseFile:
             f"\n\tClass: {self.__class__.__name__}"
             f"\n\tPath: {self.file_path}"
             f"\n\tCreated: {self.file_created}"
-            f"\n\tAvailable intervals: [{', '.join(self.available_intervals)}]"
+            f"\n\tAvailable tables: [{', '.join(self.table_names)}]"
         )
 
     @property
@@ -65,21 +65,21 @@ class BaseFile:
         return self.data and self.search_tree
 
     @property
-    def available_intervals(self) -> List[str]:
-        """ Get all available intervals. """
-        return self.data.get_available_intervals()
+    def table_names(self) -> List[str]:
+        """ Get all available tables. """
+        return self.data.get_table_names()
 
-    def is_header_simple(self, interval: str) -> bool:
+    def is_header_simple(self, table: str) -> bool:
         """ Check if header uses Variablesor SimpleVariable data. """
-        return self.data.is_simple(interval)
+        return self.data.is_simple(table)
 
-    def get_header_dictionary(self, interval: str) -> Dict[int, Variable]:
-        """ Get all variables for given interval. """
-        return self.data.get_variables_dct(interval)
+    def get_header_dictionary(self, table: str) -> Dict[int, Variable]:
+        """ Get all variables for given table. """
+        return self.data.get_variables_dct(table)
 
-    def get_header_df(self, interval: str) -> pd.DataFrame:
-        """ Get all variables for given interval. """
-        return self.data.get_variables_df(interval)
+    def get_header_df(self, table: str) -> pd.DataFrame:
+        """ Get all variables for given table. """
+        return self.data.get_variables_df(table)
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -145,7 +145,7 @@ class BaseFile:
         Returns
         -------
         dct
-            A dictionary with 'intervals' as keys and lists of
+            A dictionary with 'tables' as keys and lists of
             ids as values.
 
         """
@@ -163,11 +163,11 @@ class BaseFile:
             header = self.data.get_all_variables_df()
             # filter values by id, isin cannot be used as it breaks ids order
             df = header.set_index(ID_LEVEL)
-            df = df.loc[ids, [INTERVAL_LEVEL]]
+            df = df.loc[ids, [TABLE_LEVEL]]
             df.reset_index(inplace=True)
-            grouped = df.groupby(INTERVAL_LEVEL, sort=False, group_keys=False)
-            for interval, df in grouped:
-                out[interval] = df[ID_LEVEL].tolist()
+            grouped = df.groupby(TABLE_LEVEL, sort=False, group_keys=False)
+            for table, df in grouped:
+                out[table] = df[ID_LEVEL].tolist()
         else:
             raise TypeError(
                 "Unexpected variable type! This can only be "
@@ -192,7 +192,7 @@ class BaseFile:
             end_date: Optional[datetime] = None,
             output_type: str = "standard",
             add_file_name: str = "row",
-            include_interval: bool = False,
+            include_table_name: bool = False,
             include_day: bool = False,
             include_id: bool = False,
             part_match: bool = False,
@@ -220,8 +220,8 @@ class BaseFile:
             Requested type_ of results.
         add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
-        include_interval : bool
-            Decide if 'interval' information should be included on
+        include_table_name : bool
+            Decide if 'table' information should be included on
             the results df.
         include_day : bool
             Add day of week into index, this is applicable only for 'timestep',
@@ -250,13 +250,13 @@ class BaseFile:
         """
 
         def standard():
-            return self.data.get_results(interval, ids, start_date, end_date, include_day)
+            return self.data.get_results(table, ids, start_date, end_date, include_day)
 
         def global_max():
-            return self.data.get_global_max_results(interval, ids, start_date, end_date)
+            return self.data.get_global_max_results(table, ids, start_date, end_date)
 
         def global_min():
-            return self.data.get_global_min_results(interval, ids, start_date, end_date)
+            return self.data.get_global_min_results(table, ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -280,20 +280,20 @@ class BaseFile:
 
         frames = []
         pairs = self._find_pairs(variables, part_match=part_match)
-        for interval, ids in pairs.items():
+        for table, ids in pairs.items():
             df = res[output_type]()
 
-            if interval != RANGE:
+            if table != RANGE:
                 # convert 'rate' or 'energy' when standard results are requested
-                if output_type == "standard" and rate_to_energy_dct[interval]:
+                if output_type == "standard" and rate_to_energy_dct[table]:
                     try:
                         n_days = self.data.get_special_column(
-                            interval, N_DAYS_COLUMN, start_date, end_date
+                            table, N_DAYS_COLUMN, start_date, end_date
                         )
                     except KeyError:
                         n_days = None
 
-                    df = convert_rate_to_energy(df, interval, n_days)
+                    df = convert_rate_to_energy(df, table, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -301,21 +301,21 @@ class BaseFile:
             if not include_id:
                 df.columns = df.columns.droplevel(ID_LEVEL)
 
-            if not include_interval:
-                df.columns = df.columns.droplevel(INTERVAL_LEVEL)
+            if not include_table_name:
+                df.columns = df.columns.droplevel(TABLE_LEVEL)
 
             frames.append(df)
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def create_header_variable(self, interval: str, key: str, var: str, units: str) -> Variable:
+    def create_header_variable(self, table: str, key: str, var: str, units: str) -> Variable:
         """ Create unique header variable. """
 
         def add_num():
             new_key = f"{key} ({i})"
-            return Variable(interval, new_key, var, units)
+            return Variable(table, new_key, var, units)
 
-        variable = Variable(interval, key, var, units)
+        variable = Variable(table, key, var, units)
 
         i = 0
         while self.search_tree.variable_exists(variable):
@@ -329,7 +329,7 @@ class BaseFile:
     ) -> Tuple[int, Variable]:
         """ Rename the given 'Variable' using given names. """
         ids = self.find_ids(variable)
-        interval, key, type_, units = variable
+        table, key, type_, units = variable
 
         new_type = type_ if not new_type else new_type
         new_key = key if not new_key else new_key
@@ -344,20 +344,20 @@ class BaseFile:
             self.search_tree.remove_variable(variable)
 
             # create new variable and add it into tree
-            new_var = self.create_header_variable(interval, new_key, new_type, units)
+            new_var = self.create_header_variable(table, new_key, new_type, units)
             self.search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data.update_variable_name(interval, ids[0], new_var.key, new_var.type)
+            self.data.update_variable_name(table, ids[0], new_var.key, new_var.type)
             return ids[0], new_var
         else:
             logging.warning("Cannot rename variable! Original variable not found!")
 
     def add_output(
-            self, interval: str, key: str, type: str, units: str, array: Sequence
+            self, table: str, key: str, type: str, units: str, array: Sequence
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
-        new_var = self.create_header_variable(interval, key, type, units)
+        new_var = self.create_header_variable(table, key, type, units)
         id_ = self.data.insert_column(new_var, array)
         if id_:
             self.search_tree.add_variable(id_, new_var)
@@ -409,29 +409,29 @@ class BaseFile:
 
         if len(groups.keys()) > 1:
             raise CannotAggregateVariables(
-                "Cannot aggregate variables from different intervals!"
+                "Cannot aggregate variables from different tables!"
             )
 
-        interval, ids = list(groups.items())[0]
+        table, ids = list(groups.items())[0]
 
-        df = self.data.get_results(interval, ids)
+        df = self.data.get_results(table, ids)
         variables = df.columns.get_level_values(TYPE_LEVEL).tolist()
         units = df.columns.get_level_values(UNITS_LEVEL).tolist()
 
         if len(set(units)) == 1:
             # no processing required
             units = units[0]
-        elif rate_and_energy_units(units) and interval != RANGE:
+        elif rate_and_energy_units(units) and table != RANGE:
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.data.get_special_column(interval, N_DAYS_COLUMN)
+                n_days = self.data.get_special_column(table, N_DAYS_COLUMN)
             except KeyError:
                 n_days = None
-                if interval in [M, A, RP]:
+                if table in [M, A, RP]:
                     raise CannotAggregateVariables(
                         f"Cannot aggregate variables. " f"'{N_DAYS_COLUMN}' is not available!"
                     )
-            df = convert_rate_to_energy(df, interval, n_days)
+            df = convert_rate_to_energy(df, table, n_days)
             units = next(u for u in units if u in ("J", "J/m2"))
         else:
             raise CannotAggregateVariables(
@@ -449,7 +449,7 @@ class BaseFile:
             new_key = f"{new_key} - {func_name}"
 
         # results can be either tuple (id, Variable) or None
-        out = self.add_output(interval, new_key, new_type, units, sr)
+        out = self.add_output(table, new_key, new_type, units, sr)
 
         return out
 
@@ -460,18 +460,18 @@ class BaseFile:
         variables = variables if isinstance(variables, list) else [variables]
 
         groups = self._find_pairs(variables)
-        for interval, ids in groups.items():
-            self.data.delete_variables(interval, ids)
+        for table, ids in groups.items():
+            self.data.delete_variables(table, ids)
 
         # clean up the tree
         self.search_tree.remove_variables(variables)
 
         return groups
 
-    def get_numeric_table(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
         try:
-            df = self.data.get_numeric_table(interval)
+            df = self.data.get_numeric_table(table)
         except KeyError:
-            raise KeyError(f"Cannot find interval: '{interval}'.\n{traceback.format_exc()}")
+            raise KeyError(f"Cannot find table: '{table}'.\n{traceback.format_exc()}")
         return df

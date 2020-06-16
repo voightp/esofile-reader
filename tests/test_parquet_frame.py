@@ -152,7 +152,7 @@ class TestParquetFrame(TestCase):
 
     def test_column_indexing_invalid_tuple(self):
         with self.assertRaises(IndexError):
-            print(self.pqf[("invalid",)])
+            _ = self.pqf[("invalid",)]
 
     def test_column_indexing_invalid_mixed_type(self):
         with self.assertRaises(IndexError):
