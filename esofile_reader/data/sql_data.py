@@ -11,6 +11,7 @@ from esofile_reader.data.df_functions import (
     df_dt_slicer,
     sr_dt_slicer,
     merge_peak_outputs,
+    sort_by_ids
 )
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, SimpleVariable
@@ -267,8 +268,8 @@ class SQLData(BaseData):
                 except KeyError:
                     df[DAY_COLUMN] = df.index.strftime("%A")
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
-
-        return df_dt_slicer(df, start_date, end_date)
+        df = df_dt_slicer(df, start_date, end_date)
+        return sort_by_ids(df, ids)
 
     def get_numeric_table(self, interval: str) -> pd.DataFrame:
         ids = self.get_variable_ids(interval)

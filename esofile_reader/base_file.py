@@ -13,7 +13,7 @@ from esofile_reader.convertor import (
     convert_units,
 )
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable
+from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processor.interval_processor import update_dt_format
 
 
@@ -152,8 +152,8 @@ class BaseFile:
         variables = variables if isinstance(variables, list) else [variables]
         out = defaultdict(list)
 
-        if all(map(lambda x: isinstance(x, (Variable, int)), variables)):
-            if all(map(lambda x: isinstance(x, Variable), variables)):
+        if all(map(lambda x: isinstance(x, (Variable, SimpleVariable, int)), variables)):
+            if all(map(lambda x: isinstance(x, (Variable, SimpleVariable)), variables)):
                 ids = []
                 for variable in variables:
                     ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
@@ -171,7 +171,7 @@ class BaseFile:
         else:
             raise TypeError(
                 "Unexpected variable type! This can only be "
-                "either integers or 'Variable' named tuples."
+                "either integers or 'Variable' / 'SimpleVariable' named tuples."
             )
         return out
 
