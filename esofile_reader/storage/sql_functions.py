@@ -81,6 +81,8 @@ def create_special_table(
 def create_value_insert(values: Iterable[Any]) -> List[Dict[str, Any]]:
     ins = []
     for value in values:
+        # pandas Int64 types are stored as bytes
+        value = int(value) if pd.api.types.is_integer(value) else value
         ins.append({VALUE_LEVEL: value})
     return ins
 

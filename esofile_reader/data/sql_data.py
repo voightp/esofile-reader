@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Sequence, List, Dict, Optional
+from typing import Sequence, List, Dict, Optional, Union
 
 import pandas as pd
 from sqlalchemy import Table, select, String, Integer
@@ -13,7 +13,7 @@ from esofile_reader.data.df_functions import (
     merge_peak_outputs,
 )
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import Variable
+from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.storage.sql_functions import (
     destringify_values,
     get_table_name,
@@ -83,17 +83,12 @@ class SQLData(BaseData):
             datetime_index = pd.DatetimeIndex([r[0] for r in res], name=TIMESTAMP_COLUMN)
         return datetime_index
 
-    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
+    def get_variables_dct(self, interval: str) -> Dict[int, Union[SimpleVariable, Variable]]:
         variables_dct = {}
-        table = self._get_results_table(interval)
-        with self.storage.engine.connect() as conn:
-            res = conn.execute(
-                select(
-                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units, ]
-                )
-            )
-            for row in res:
-                variables_dct[row[0]] = Variable(row[1], row[2], row[3], row[4])
+        variables_df = self.get_variables_df(interval)
+        v = SimpleVariable if self.is_simple(interval) else Variable
+        for row in variables_df.to_numpy():
+            variables_dct[row[0]] = v(*row[1:])
         return variables_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
@@ -117,13 +112,15 @@ class SQLData(BaseData):
 
     def get_variables_df(self, interval: str) -> pd.DataFrame:
         table = self._get_results_table(interval)
+        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(interval):
+            s = [table.c.id, table.c.interval, table.c.key, table.c.units]
+            columns.remove(TYPE_LEVEL)
+        else:
+            s = [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units]
         with self.storage.engine.connect() as conn:
-            res = conn.execute(
-                select(
-                    [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units, ]
-                )
-            )
-            df = pd.DataFrame(res, columns=COLUMN_LEVELS)
+            res = conn.execute(select(s))
+            df = pd.DataFrame(res, columns=columns)
         return df
 
     def get_all_variables_df(self) -> pd.DataFrame:
@@ -137,8 +134,10 @@ class SQLData(BaseData):
     ) -> None:
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
+            kwargs = {"key": new_key} if self.is_simple(interval) \
+                else {"key": new_key, "type": new_type}
             conn.execute(
-                table.update().where(table.c.id == id_).values(key=new_key, type=new_type)
+                table.update().where(table.c.id == id_).values(**kwargs)
             )
 
     def _validate(self, interval: str, array: Sequence[float]) -> bool:
@@ -239,10 +238,13 @@ class SQLData(BaseData):
             include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
+        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(interval):
+            columns.remove(TYPE_LEVEL)
         table = self._get_results_table(interval)
         with self.storage.engine.connect() as conn:
             res = conn.execute(table.select().where(table.c.id.in_(ids)))
-            df = pd.DataFrame(res, columns=[*COLUMN_LEVELS, "values"])
+            df = pd.DataFrame(res, columns=[*columns, "values"])
             if df.empty:
                 raise KeyError(
                     f"Cannot find results, any of given ids: "
@@ -250,7 +252,7 @@ class SQLData(BaseData):
                     f"is not included."
                 )
 
-            df.set_index(COLUMN_LEVELS, inplace=True)
+            df.set_index(columns, inplace=True)
             df = destringify_values(df)
         if interval == RANGE:
             # create default 'range' index

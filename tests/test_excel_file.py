@@ -172,13 +172,13 @@ class TestExcelFile(unittest.TestCase):
     def test_too_many_header_rows_template(self):
         ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
         df = ef.data.tables["monthly"]
-        self.assertEqual((12, 8), df.shape)
+        self.assertEqual((12, 7), df.shape)
         self.assertListEqual(["id", "interval", "key", "type", "units"], df.columns.names)
 
     def test_too_switched_template_levels(self):
         ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
         df = ef.data.tables["monthly"]
-        self.assertEqual((12, 8), df.shape)
+        self.assertEqual((12, 7), df.shape)
         self.assertListEqual(["id", "interval", "key", "type", "units"], df.columns.names)
 
     def test_template_missing_key_level(self):

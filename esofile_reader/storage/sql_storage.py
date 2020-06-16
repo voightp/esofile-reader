@@ -185,7 +185,7 @@ class SQLStorage(BaseStorage):
                     key_index = df_special.columns.names.index(KEY_LEVEL)
                     for column in df_special:
                         sr = df_special[column]
-                        column_type = Integer if sr.dtype in ("int32", "int64") else String
+                        column_type = Integer if pd.api.types.is_integer_dtype(sr) else String
                         special_table = create_special_table(
                             self.metadata, id_, interval, column[key_index], column_type
                         )

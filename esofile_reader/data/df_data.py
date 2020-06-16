@@ -159,14 +159,20 @@ class DFData(BaseData):
             )
         return valid
 
-    def insert_column(self, variable: Variable, array: Sequence) -> Optional[int]:
-        interval, key, variable, units = variable
-        if self._validate(interval, variable, array):
+    def insert_column(
+            self, variable: Union[SimpleVariable, Variable], array: Sequence
+    ) -> Optional[int]:
+        if self._validate(variable.interval, variable, array):
             all_ids = self.get_all_variable_ids()
             # skip some ids as usually there's always few variables
             id_gen = incremental_id_gen(checklist=all_ids, start=100)
             id_ = next(id_gen)
-            self.tables[interval][id_, interval, key, variable, units] = array
+            if isinstance(variable, Variable):
+                interval, key, type_, units = variable
+                self.tables[interval][id_, interval, key, type_, units] = array
+            else:
+                interval, key, units = variable
+                self.tables[interval][id_, interval, key, units] = array
             return id_
 
     def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
