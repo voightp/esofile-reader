@@ -13,32 +13,32 @@ def parse_table_name(name: str) -> Optional[Tuple[int, str, str]]:
     if f:
         id_ = int(f[0][0])
         key = f[0][1]
-        interval = f[0][2]
-        return id_, key, interval
+        table = f[0][2]
+        return id_, key, table
 
 
-def get_table_name(file_id: int, key: str, interval: str) -> str:
-    name = f"{file_id}-{key}-{interval}"
+def get_table_name(file_id: int, key: str, table: str) -> str:
+    name = f"{file_id}-{key}-{table}"
     p = re.compile("^(\d+)-([\w\s]+)-([\w\s]+)$")
     if bool(p.match(name)):
         return name
     else:
         raise NameError(
             f"Invalid sql table name: '{name}'. "
-            f"Table key and interval should only use alphanumeric characters"
+            f"Table key and table should only use alphanumeric characters"
         )
 
 
 def create_results_table(
-        metadata: MetaData, file_id: int, interval: str, is_simple: bool
+        metadata: MetaData, file_id: int, table: str, is_simple: bool
 ) -> Table:
-    name = get_table_name(file_id, "results", interval)
+    name = get_table_name(file_id, "results", table)
     if is_simple:
         table = Table(
             name,
             metadata,
             Column(ID_LEVEL, Integer, primary_key=True, index=True, autoincrement=True),
-            Column(INTERVAL_LEVEL, String(50)),
+            Column(TABLE_LEVEL, String(50)),
             Column(KEY_LEVEL, String(50)),
             Column(UNITS_LEVEL, String(50)),
             Column(STR_VALUES, String(50)),
@@ -48,7 +48,7 @@ def create_results_table(
             name,
             metadata,
             Column(ID_LEVEL, Integer, primary_key=True, index=True, autoincrement=True),
-            Column(INTERVAL_LEVEL, String(50)),
+            Column(TABLE_LEVEL, String(50)),
             Column(KEY_LEVEL, String(50)),
             Column(TYPE_LEVEL, String(50)),
             Column(UNITS_LEVEL, String(50)),
@@ -58,8 +58,8 @@ def create_results_table(
     return table
 
 
-def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Table:
-    name = get_table_name(file_id, "index", interval)
+def create_datetime_table(metadata: MetaData, file_id: int, table: str) -> Table:
+    name = get_table_name(file_id, "index", table)
     table = Table(name, metadata, Column(VALUE_LEVEL, DateTime))
     table.create()
     return table
@@ -68,11 +68,11 @@ def create_datetime_table(metadata: MetaData, file_id: int, interval: str) -> Ta
 def create_special_table(
         metadata: MetaData,
         file_id: int,
-        interval: str,
+        table: str,
         key: str,
         column_type: Union[Type[Integer], Type[String]],
 ) -> Table:
-    name = get_table_name(file_id, key, interval)
+    name = get_table_name(file_id, key, table)
     table = Table(name, metadata, Column(VALUE_LEVEL, column_type))
     table.create()
     return table

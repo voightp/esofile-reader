@@ -56,24 +56,24 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_is_simple(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
-        for interval in intervals:
-            self.assertTrue(data.is_simple(interval))
+        tables = data.get_table_names()
+        for table in tables:
+            self.assertTrue(data.is_simple(table))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_levels(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
-        for interval in intervals:
+        tables = data.get_table_names()
+        for table in tables:
             self.assertListEqual(
-                ["id", "interval", "key", "units"], data.get_levels(interval)
+                ["id", "table", "key", "units"], data.get_levels(table)
             )
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
-    def test_get_available_intervals(self, key):
+    def test_get_available_tables(self, key):
         data = self.data[key]
-        intervals = data.get_available_intervals()
-        self.assertListEqual(["monthly", "range"], intervals)
+        tables = data.get_table_names()
+        self.assertListEqual(["monthly", "range"], tables)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_datetime_index(self, key):
@@ -124,14 +124,14 @@ class TestDataClassesSimple(unittest.TestCase):
     def test_get_variables_df(self, key):
         data = self.data[key]
         df = data.get_variables_df("monthly")
-        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "units"])
+        self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "units"])
         self.assertTupleEqual(df.shape, (7, 4))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_all_variables_df(self, key):
         data = self.data[key]
         df = data.get_all_variables_df()
-        self.assertListEqual(df.columns.tolist(), ["id", "interval", "key", "units"])
+        self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "units"])
         self.assertTupleEqual(df.shape, (14, 4))
 
     def test_rename_variable_sql(self):
@@ -221,7 +221,7 @@ class TestDataClassesSimple(unittest.TestCase):
                 (2, "monthly", "BLOCK1:ZONE1", ""),
                 (6, "monthly", "BLOCK1:ZONE1", "C"),
             ],
-            names=["id", "interval", "key", "units"],
+            names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
         test_df = pd.DataFrame(
@@ -259,7 +259,7 @@ class TestDataClassesSimple(unittest.TestCase):
                 (2, "monthly", "BLOCK1:ZONE1", ""),
                 (6, "monthly", "BLOCK1:ZONE1", "C"),
             ],
-            names=["id", "interval", "key", "units"],
+            names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
@@ -291,7 +291,7 @@ class TestDataClassesSimple(unittest.TestCase):
                 (13, "range", "BLOCK1:ZONE1", "C", "value"),
                 (13, "range", "BLOCK1:ZONE1", "C", "timestamp"),
             ],
-            names=["id", "interval", "key", "units", "data"],
+            names=["id", "table", "key", "units", "data"],
         )
 
         test_df = pd.DataFrame([[4.44599391, 0, 26.16745932, 6]], columns=test_columns)
@@ -309,10 +309,7 @@ class TestDataClassesSimple(unittest.TestCase):
                 (13, "range", "BLOCK1:ZONE1", "C", "value"),
                 (13, "range", "BLOCK1:ZONE1", "C", "timestamp"),
             ],
-            names=["id", "interval", "key", "units", "data"],
+            names=["id", "table", "key", "units", "data"],
         )
-        print(df)
-
         test_df = pd.DataFrame([[3.994951, 5, 18.661821, 11]], columns=test_columns)
-
         assert_frame_equal(df, test_df, check_column_type=False)

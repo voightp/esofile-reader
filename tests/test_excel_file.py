@@ -46,7 +46,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 7),
                 "range",
                 pd.RangeIndex,
-                ["id", "interval", "key", "units"]
+                ["id", "table", "key", "units"]
         ),
         (
                 "simple-no-template-dt-index",
@@ -54,7 +54,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 7),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "units"]
+                ["id", "table", "key", "units"]
         ),
         (
                 "simple-template-monthly",
@@ -62,7 +62,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 8),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "units"]
+                ["id", "table", "key", "units"]
         ),
         (
                 "simple-template-range",
@@ -70,7 +70,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 7),
                 "range",
                 pd.RangeIndex,
-                ["id", "interval", "key", "units"]
+                ["id", "table", "key", "units"]
         )
     ])
     def test_populate_simple_tables(
@@ -91,7 +91,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 8),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "type", "units"]
+                ["id", "table", "key", "type", "units"]
         ),
         (
                 "full-template-hourly",
@@ -99,7 +99,7 @@ class TestExcelFile(unittest.TestCase):
                 (8760, 8),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "type", "units"]
+                ["id", "table", "key", "type", "units"]
         ),
         (
                 "full-template-daily",
@@ -107,7 +107,7 @@ class TestExcelFile(unittest.TestCase):
                 (365, 8),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "type", "units"]
+                ["id", "table", "key", "type", "units"]
         ),
         (
                 "full-template-monthly",
@@ -115,7 +115,7 @@ class TestExcelFile(unittest.TestCase):
                 (12, 8),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "type", "units"]
+                ["id", "table", "key", "type", "units"]
         ),
         (
                 "full-template-runperiod",
@@ -123,7 +123,7 @@ class TestExcelFile(unittest.TestCase):
                 (1, 20),
                 "timestamp",
                 pd.DatetimeIndex,
-                ["id", "interval", "key", "type", "units"]
+                ["id", "table", "key", "type", "units"]
         )
     ])
     def test_populate_full_tables(
@@ -173,13 +173,13 @@ class TestExcelFile(unittest.TestCase):
         ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
         df = ef.data.tables["monthly"]
         self.assertEqual((12, 7), df.shape)
-        self.assertListEqual(["id", "interval", "key", "type", "units"], df.columns.names)
+        self.assertListEqual(["id", "table", "key", "type", "units"], df.columns.names)
 
     def test_too_switched_template_levels(self):
         ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
         df = ef.data.tables["monthly"]
         self.assertEqual((12, 7), df.shape)
-        self.assertListEqual(["id", "interval", "key", "type", "units"], df.columns.names)
+        self.assertListEqual(["id", "table", "key", "type", "units"], df.columns.names)
 
     def test_template_missing_key_level(self):
         with self.assertRaises(InsuficientHeaderInfo):

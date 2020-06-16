@@ -47,7 +47,7 @@ class EsoFile(BaseFile):
     file_path : path like object
         A full path of the ESO file
     ignore_peaks : bool, default: True
-        Ignore peak values from 'Daily'+ intervals.
+        Ignore peak values from 'Daily'+ tables.
     year: int, default 2002
         A start year for generated datetime data.
     autopopulate: bool, default True
@@ -134,7 +134,7 @@ class EsoFile(BaseFile):
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
             add_file_name: str = "row",
-            include_interval: bool = False,
+            include_table_name: bool = False,
             include_id: bool = False,
             part_match: bool = False,
             timestamp_format: str = "default",
@@ -143,20 +143,20 @@ class EsoFile(BaseFile):
         frames = []
         groups = self._find_pairs(variables, part_match=part_match)
 
-        for interval, ids in groups.items():
+        for table, ids in groups.items():
             try:
                 df = self.peak_outputs[output_type].get_results(
-                    interval, ids, start_date, end_date
+                    table, ids, start_date, end_date
                 )
             except KeyError:
-                logging.warning(f"There are no peak outputs stored for interval: '{interval}'.")
+                logging.warning(f"There are no peak outputs stored for table: '{table}'.")
                 continue
 
             if not include_id:
                 df.columns = df.columns.droplevel(ID_LEVEL)
 
-            if not include_interval:
-                df.columns = df.columns.droplevel(INTERVAL_LEVEL)
+            if not include_table_name:
+                df.columns = df.columns.droplevel(TABLE_LEVEL)
 
             frames.append(df)
 
@@ -188,8 +188,8 @@ class EsoFile(BaseFile):
                 An end date for requested results.
             add_file_name : ('row','column',None)
                 Specify if file name should be added into results df.
-            include_interval : bool
-                Decide if 'interval' information should be included on
+            include_table_name : bool
+                Decide if 'table' information should be included on
                 the results df.
             include_day : bool
                 Add day of week into index, this is applicable only for 'timestep',

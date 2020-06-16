@@ -17,7 +17,7 @@ def get_results(
         end_date: Optional[datetime] = None,
         output_type: str = "standard",
         add_file_name: str = "row",
-        include_interval: bool = False,
+        include_table_name: bool = False,
         include_day: bool = False,
         include_id: bool = False,
         part_match: bool = False,
@@ -54,8 +54,8 @@ def get_results(
             Requested type_ of results.
          add_file_name : ('row','column',None)
             Specify if file name should be added into results df.
-         include_interval : bool
-            Decide if 'interval' information should be included on
+         include_table_name : bool
+            Decide if 'table' information should be included on
             the results df.
          include_id : bool
             Decide if variable 'id' should be included on the results df.
@@ -76,7 +76,7 @@ def get_results(
          timestamp_format : str
             Specified str format of a datetime timestamp.
          ignore_peaks : bool, default: True
-            Ignore peak values from 'Daily'+ intervals.
+            Ignore peak values from 'Daily'+ tables.
 
      Returns
      -------
@@ -88,7 +88,7 @@ def get_results(
         "end_date": end_date,
         "output_type": output_type,
         "add_file_name": add_file_name,
-        "include_interval": include_interval,
+        "include_table_name": include_table_name,
         "include_id": include_id,
         "include_day": include_day,
         "units_system": units_system,

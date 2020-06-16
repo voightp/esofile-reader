@@ -53,53 +53,53 @@ class SQLData(BaseData):
             logging.warning(f"Cannot find file reference {table_name} in {table_type}!")
         return self.storage.metadata.tables[table_name]
 
-    def _get_results_table(self, interval: str) -> Table:
-        name = get_table_name(self.id_, "results", interval)
+    def _get_results_table(self, table: str) -> Table:
+        name = get_table_name(self.id_, "results", table)
         return self._get_table(name, "numeric")
 
-    def _get_datetime_table(self, interval: str) -> Table:
-        name = get_table_name(self.id_, "index", interval)
+    def _get_datetime_table(self, table: str) -> Table:
+        name = get_table_name(self.id_, "index", table)
         return self._get_table(name, "datetime")
 
-    def _get_special_table(self, interval: str, key: str) -> Table:
-        name = get_table_name(self.id_, key, interval)
+    def _get_special_table(self, table: str, key: str) -> Table:
+        name = get_table_name(self.id_, key, table)
         return self._get_table(name, "special")
 
-    def is_simple(self, interval: str) -> bool:
-        return len(self.get_levels(interval)) == 4
+    def is_simple(self, table: str) -> bool:
+        return len(self.get_levels(table)) == 4
 
-    def get_levels(self, interval: str) -> List[str]:
-        table = self._get_results_table(interval)
-        levels = [c.name for c in table.columns if c.name != STR_VALUES]
+    def get_levels(self, table: str) -> List[str]:
+        sql_table = self._get_results_table(table)
+        levels = [c.name for c in sql_table.columns if c.name != STR_VALUES]
         return levels
 
-    def get_available_intervals(self) -> List[str]:
+    def get_table_names(self) -> List[str]:
         names = self._get_table_names("numeric")
         return [parse_table_name(r)[2] for r in names]
 
-    def get_datetime_index(self, interval: str) -> pd.DatetimeIndex:
-        table = self._get_datetime_table(interval)
+    def get_datetime_index(self, table: str) -> pd.DatetimeIndex:
+        sql_table = self._get_datetime_table(table)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(table.select()).fetchall()
+            res = conn.execute(sql_table.select()).fetchall()
             datetime_index = pd.DatetimeIndex([r[0] for r in res], name=TIMESTAMP_COLUMN)
         return datetime_index
 
-    def get_variables_dct(self, interval: str) -> Dict[int, Union[SimpleVariable, Variable]]:
+    def get_variables_dct(self, table: str) -> Dict[int, Union[SimpleVariable, Variable]]:
         variables_dct = {}
-        variables_df = self.get_variables_df(interval)
-        v = SimpleVariable if self.is_simple(interval) else Variable
+        variables_df = self.get_variables_df(table)
+        v = SimpleVariable if self.is_simple(table) else Variable
         for row in variables_df.to_numpy():
             variables_dct[row[0]] = v(*row[1:])
         return variables_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
         all_variables_dct = {}
-        for interval in self.get_available_intervals():
-            all_variables_dct[interval] = self.get_variables_dct(interval)
+        for table in self.get_table_names():
+            all_variables_dct[table] = self.get_variables_dct(table)
         return all_variables_dct
 
-    def get_variable_ids(self, interval: str) -> List[int]:
-        table = self._get_results_table(interval)
+    def get_variable_ids(self, table: str) -> List[int]:
+        table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
             res = conn.execute(select([table.c.id]))
             ids = [row[0] for row in res]
@@ -107,18 +107,19 @@ class SQLData(BaseData):
 
     def get_all_variable_ids(self) -> List[int]:
         all_ids = []
-        for interval in self.get_available_intervals():
-            all_ids.extend(self.get_variable_ids(interval))
+        for table in self.get_table_names():
+            all_ids.extend(self.get_variable_ids(table))
         return all_ids
 
-    def get_variables_df(self, interval: str) -> pd.DataFrame:
-        table = self._get_results_table(interval)
-        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-        if self.is_simple(interval):
-            s = [table.c.id, table.c.interval, table.c.key, table.c.units]
+    def get_variables_df(self, table: str) -> pd.DataFrame:
+        sql_table = self._get_results_table(table)
+        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(table):
+            s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.units]
             columns.remove(TYPE_LEVEL)
         else:
-            s = [table.c.id, table.c.interval, table.c.key, table.c.type, table.c.units]
+            s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.type,
+                 sql_table.c.units]
         with self.storage.engine.connect() as conn:
             res = conn.execute(select(s))
             df = pd.DataFrame(res, columns=columns)
@@ -126,32 +127,32 @@ class SQLData(BaseData):
 
     def get_all_variables_df(self) -> pd.DataFrame:
         frames = []
-        for interval in self.get_available_intervals():
-            frames.append(self.get_variables_df(interval))
+        for table in self.get_table_names():
+            frames.append(self.get_variables_df(table))
         return pd.concat(frames)
 
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str = ""
+            self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
-        table = self._get_results_table(interval)
+        sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
-            kwargs = {"key": new_key} if self.is_simple(interval) \
+            kwargs = {"key": new_key} if self.is_simple(table) \
                 else {"key": new_key, "type": new_type}
             conn.execute(
-                table.update().where(table.c.id == id_).values(**kwargs)
+                sql_table.update().where(sql_table.c.id == id_).values(**kwargs)
             )
 
-    def _validate(self, interval: str, array: Sequence[float]) -> bool:
-        table = self._get_results_table(interval)
+    def _validate(self, table: str, array: Sequence[float]) -> bool:
+        sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(select([table.c.str_values])).scalar()
+            res = conn.execute(select([sql_table.c.str_values])).scalar()
         # number of elements in array
         n = res.count(self.storage.SEPARATOR) + 1
         return len(array) == n
 
     def insert_column(self, variable: Variable, array: Sequence[float]) -> Optional[int]:
-        if self._validate(variable.interval, array):
-            table = self._get_results_table(variable.interval)
+        if self._validate(variable.table, array):
+            table = self._get_results_table(variable.table)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
             all_ids = self.get_all_variable_ids()
             id_gen = incremental_id_gen(checklist=all_ids, start=100)
@@ -168,9 +169,9 @@ class SQLData(BaseData):
                 "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
 
-    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
-        if self._validate(interval, array):
-            table = self._get_results_table(interval)
+    def update_variable_values(self, table: str, id_: int, array: Sequence[float]):
+        if self._validate(table, array):
+            table = self._get_results_table(table)
             str_array = self.storage.SEPARATOR.join([str(i) for i in array])
             with self.storage.engine.connect() as conn:
                 conn.execute(
@@ -183,12 +184,12 @@ class SQLData(BaseData):
                 f"Number of elements '({len(array)})' does not match!"
             )
 
-    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+    def insert_special_column(self, table: str, key: str, array: Sequence) -> None:
         ft = self.storage.file_table
-        if self._validate(interval, array):
+        if self._validate(table, array):
             column_type = Integer if all(map(lambda x: isinstance(x, int), array)) else String
             special_table = create_special_table(
-                self.storage.metadata, self.id_, interval, key, column_type
+                self.storage.metadata, self.id_, table, key, column_type
             )
             with self.storage.engine.connect() as conn:
                 conn.execute(special_table.insert(), create_value_insert(array))
@@ -201,50 +202,50 @@ class SQLData(BaseData):
                 )
         else:
             logging.warning(
-                f"Cannot add special variable '{key} into table {interval}'. "
+                f"Cannot add special variable '{key} into table {table}'. "
                 f"Number of elements '({len(array)})' does not match!"
             )
 
-    def delete_variables(self, interval: str, ids: List[int]) -> None:
-        table = self._get_results_table(interval)
+    def delete_variables(self, table: str, ids: List[int]) -> None:
+        table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_special_column(
             self,
-            interval: str,
+            table: str,
             key: str,
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        table = self._get_special_table(interval, key)
+        sql_table = self._get_special_table(table, key)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(table.select()).fetchall()
-            if self.is_simple(interval):
-                name = (SPECIAL, interval, key, "")
+            res = conn.execute(sql_table.select()).fetchall()
+            if self.is_simple(table):
+                name = (SPECIAL, table, key, "")
             else:
-                name = (SPECIAL, interval, key, "", "")
+                name = (SPECIAL, table, key, "", "")
             sr = pd.Series([r[0] for r in res], name=name)
-        index = self.get_datetime_index(interval)
+        index = self.get_datetime_index(table)
         if index is not None:
             sr.index = index
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
             include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
-        columns = [ID_LEVEL, INTERVAL_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-        if self.is_simple(interval):
+        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if self.is_simple(table):
             columns.remove(TYPE_LEVEL)
-        table = self._get_results_table(interval)
+        sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
-            res = conn.execute(table.select().where(table.c.id.in_(ids)))
+            res = conn.execute(sql_table.select().where(sql_table.c.id.in_(ids)))
             df = pd.DataFrame(res, columns=[*columns, "values"])
             if df.empty:
                 raise KeyError(
@@ -255,14 +256,14 @@ class SQLData(BaseData):
 
             df.set_index(columns, inplace=True)
             df = destringify_values(df)
-        if interval == RANGE:
+        if table == RANGE:
             # create default 'range' index
             df.index.rename(RANGE, inplace=True)
         else:
-            df.index = self.get_datetime_index(interval)
+            df.index = self.get_datetime_index(table)
             if include_day:
                 try:
-                    day_sr = self.get_special_column(interval, DAY_COLUMN, start_date, end_date)
+                    day_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
                     df.insert(0, DAY_COLUMN, day_sr)
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
                 except KeyError:
@@ -271,21 +272,21 @@ class SQLData(BaseData):
         df = df_dt_slicer(df, start_date, end_date)
         return sort_by_ids(df, ids)
 
-    def get_numeric_table(self, interval: str) -> pd.DataFrame:
-        ids = self.get_variable_ids(interval)
-        df = self.get_results(interval, ids)
+    def get_numeric_table(self, table: str) -> pd.DataFrame:
+        ids = self.get_variable_ids(table)
+        df = self.get_results(table, ids)
         return df
 
     def _global_peak(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: datetime,
             end_date: datetime,
             max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
-        df = self.get_results(interval, ids, start_date, end_date)
+        df = self.get_results(table, ids, start_date, end_date)
 
         vals = pd.DataFrame(df.max() if max_ else df.min()).T
         ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
@@ -297,18 +298,18 @@ class SQLData(BaseData):
 
     def get_global_max_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
-        return self._global_peak(interval, ids, start_date, end_date)
+        return self._global_peak(table, ids, start_date, end_date)
 
     def get_global_min_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
-        return self._global_peak(interval, ids, start_date, end_date, max_=False)
+        return self._global_peak(table, ids, start_date, end_date, max_=False)

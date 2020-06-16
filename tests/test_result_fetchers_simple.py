@@ -163,16 +163,16 @@ class TestResultFetching(unittest.TestCase):
         assert_frame_equal(df, test_df)
 
     @parameterized.expand(["dff", "pqf", "sqlf"])
-    def test_get_results_include_interval(self, key):
+    def test_get_results_include_table_name(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
         df = get_results(
             file, v, start_date=datetime(2002, 4, 10),
             end_date=datetime(2002, 6, 10),
-            include_interval=True
+            include_table_name=True
         )
         test_columns = pd.MultiIndex.from_tuples(
-            [("monthly", "BLOCK1:ZONE1", "C")], names=["interval", "key", "units"]
+            [("monthly", "BLOCK1:ZONE1", "C")], names=["table", "key", "units"]
         )
         dates = [datetime(2002, 5, 1), datetime(2002, 6, 1), ]
         test_index = pd.MultiIndex.from_product(

@@ -12,7 +12,7 @@ from tests import EF1, EF2, EF_ALL_INTERVALS, ROOT
 class TestDiffFile(TestCase):
     def test_process_diff_identical_files(self):
         diff = DiffFile(EF1, EF1)
-        for interval in diff.available_intervals:
+        for interval in diff.table_names:
             df = diff.get_numeric_table(interval)
             bool_df = df == 0
 
@@ -33,13 +33,13 @@ class TestDiffFile(TestCase):
     def test_process_diff_similar_files(self):
         diff = DiffFile(EF1, EF2)
         shapes = [(4392, 59), (183, 59), (6, 59)]
-        for interval, test_shape in zip(diff.available_intervals, shapes):
+        for interval, test_shape in zip(diff.table_names, shapes):
             self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
 
     def test_process_diff_different_datetime(self):
         diff = DiffFile(EF1, EF_ALL_INTERVALS)
         shapes = [(4392, 3), (183, 3), (6, 3)]
-        for interval, test_shape in zip(diff.available_intervals, shapes):
+        for interval, test_shape in zip(diff.table_names, shapes):
             self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
 
     def test_no_shared_intervals(self):

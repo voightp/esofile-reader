@@ -29,12 +29,12 @@ class DiffFile(BaseFile):
         data = DFData()
         id_gen = incremental_id_gen()
 
-        for interval in file.available_intervals:
-            if interval not in other_file.available_intervals:
+        for table in file.table_names:
+            if table not in other_file.table_names:
                 continue
 
-            df1 = file.get_numeric_table(interval)
-            df2 = other_file.get_numeric_table(interval)
+            df1 = file.get_numeric_table(table)
+            df2 = other_file.get_numeric_table(table)
 
             df1.columns = df1.columns.droplevel(ID_LEVEL)
             df2.columns = df2.columns.droplevel(ID_LEVEL)
@@ -52,14 +52,14 @@ class DiffFile(BaseFile):
                 header_df.insert(0, ID_LEVEL, ids)
 
                 df.columns = pd.MultiIndex.from_frame(header_df)
-                data.populate_table(interval, df)
+                data.populate_table(table, df)
 
                 for c in [N_DAYS_COLUMN, DAY_COLUMN]:
                     try:
-                        c1 = file.data.get_special_column(interval, c).loc[index_cond]
-                        c2 = file.data.get_special_column(interval, c).loc[index_cond]
+                        c1 = file.data.get_special_column(table, c).loc[index_cond]
+                        c2 = file.data.get_special_column(table, c).loc[index_cond]
                         if c1.equals(c2):
-                            data.insert_special_column(interval, c, c1)
+                            data.insert_special_column(table, c, c1)
                     except KeyError:
                         pass
 
@@ -72,15 +72,15 @@ class DiffFile(BaseFile):
         header = {}
         data = self.calculate_diff(first_file, other_file)
 
-        intervals = data.get_available_intervals()
-        if not intervals:
+        tables = data.get_table_names()
+        if not tables:
             raise NoSharedVariables(
                 f"Cannot generate diff file. Files '{first_file.file_name}' "
                 f" and '{other_file.file_name} do not have any shared variables."
             )
         else:
-            for interval in intervals:
-                header[interval] = data.get_variables_dct(interval)
+            for table in tables:
+                header[table] = data.get_variables_dct(table)
 
             tree = Tree()
             tree.populate_tree(header)

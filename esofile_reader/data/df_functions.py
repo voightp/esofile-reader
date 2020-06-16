@@ -67,7 +67,7 @@ def _local_peaks(
     return df
 
 
-def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> pd.DataFrame:
+def create_peak_outputs(table: str, df: pd.DataFrame, max_: bool = True) -> pd.DataFrame:
     """ Create DataFrame for peak minimums. """
     max_indexes = {
         D: {"val_ix": 3, "hour_ix": 4, "end_min_ix": 5},
@@ -82,7 +82,7 @@ def create_peak_outputs(interval: str, df: pd.DataFrame, max_: bool = True) -> p
         RP: {"val_ix": 0, "month_ix": 1, "day_ix": 2, "hour_ix": 3, "end_min_ix": 4},
     }
     indexes = max_indexes if max_ else min_indexes
-    return _local_peaks(df, **indexes[interval])
+    return _local_peaks(df, **indexes[table])
 
 
 def sort_by_ids(df: pd.DataFrame, ids: List[int]):

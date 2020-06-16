@@ -69,7 +69,7 @@ def parse_result_dt(date, month, day, hour, end_min):
         # index, hour and end minute is is taken from the output tuple
         m, d, h, min = datetime_helper(date.month, date.day, hour, end_min)
 
-    # interval peak value might overlap to next year
+    # table peak value might overlap to next year
     year = date.year + 1 if (m, d, h, min) == (1, 1, 0, 0) else date.year
 
     return date.replace(year=year, month=m, day=d, hour=h, minute=min)
@@ -99,7 +99,7 @@ def month_act_days(monthly_cumulative_days):
     Transform consecutive number of days in monthly data to actual number of days.
 
     EnergyPlus monthly results report a total consecutive number of days for each day.
-    Raw data reports interval as 31, 59..., this function calculates and returns
+    Raw data reports table as 31, 59..., this function calculates and returns
     actual number of days for each month 31, 28...
     """
     old_num = monthly_cumulative_days.pop(0)
@@ -123,14 +123,14 @@ def get_num_of_days(cumulative_days):
     """ Split num of days and date. """
     num_of_days = {}
 
-    for interval, values in cumulative_days.items():
-        if interval == M:
-            # calculate actual number of days for monthly interval
+    for table, values in cumulative_days.items():
+        if table == M:
+            # calculate actual number of days for monthly table
             num_of_days[M] = month_act_days(values)
         else:
-            num_of_days[interval] = values
+            num_of_days[table] = values
 
-    # calculate number of days for annual interval for
+    # calculate number of days for annual table for
     # an incomplete year run or multi year analysis
     if A in cumulative_days.keys() and RP in cumulative_days.keys():
         num_of_days[A] = find_num_of_days_annual(num_of_days[A], num_of_days[RP])
@@ -159,8 +159,8 @@ def month_end_date(date):
 
 
 def incr_year_env(first_step_data, current_step_data, previous_step_data):
-    """ Check if year value should be incremented inside environment interval. """
-    # Only 'Monthly+' intervals can have hour == 0
+    """ Check if year value should be incremented inside environment table. """
+    # Only 'Monthly+' tables can have hour == 0
     if current_step_data.hour == 0:
         if first_step_data == current_step_data:
             return True  # duplicate date -> increment year
@@ -178,14 +178,14 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
             return False
 
 
-def _to_timestamp(year, interval_tuple):
+def _to_timestamp(year, table_tuple):
     """ Convert a raw E+ date to pandas.Timestamp format. """
-    if interval_tuple.hour == 0:
-        # Monthly+ interval
-        month, day, hour, end_minute = interval_tuple
+    if table_tuple.hour == 0:
+        # Monthly+ table
+        month, day, hour, end_minute = table_tuple
     else:
         # Process raw EnergyPlus tiem and date information
-        month, day, hour, end_minute = datetime_helper(*interval_tuple)
+        month, day, hour, end_minute = datetime_helper(*table_tuple)
     return pd.Timestamp(year, month, day, hour, end_minute)
 
 
@@ -208,14 +208,14 @@ def _gen_dt(raw_dates, year):
 def convert_to_dt_index(raw_dates, year):
     """ Replace raw date information with datetime like object. """
     dates = {}
-    for interval, value in raw_dates.items():
-        dates[interval] = _gen_dt(value, year)
+    for table, value in raw_dates.items():
+        dates[table] = _gen_dt(value, year)
 
     return dates
 
 
 def update_start_dates(dates):
-    """ Set accurate first date for monthly+ intervals. """
+    """ Set accurate first date for monthly+ tables. """
 
     def _set_start_date(orig, refs):
         for ref in refs.values():
@@ -254,13 +254,13 @@ def interval_processor(dates, cumulative_days, year):
     m_to_rp = {k: v for k, v in dates.items() if k in (M, A, RP)}
 
     if m_to_rp:
-        # Separate number of days data if any M to RP interval is available
+        # Separate number of days data if any M to RP table is available
         num_of_days = get_num_of_days(cumulative_days)
 
     # transform raw int data into datetime like index
     dates = convert_to_dt_index(dates, year)
 
-    # update first day of monthly+ interval based on TS, H or D data
+    # update first day of monthly+ table based on TS, H or D data
     update_start_dates(dates)
 
     return dates, num_of_days

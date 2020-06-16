@@ -38,10 +38,10 @@ class DefaultMonitor:
     def body_started(self):
         self.report_progress(3, "processing data!")
 
-    def intervals_started(self):
+    def tables_started(self):
         if logging.root.level == logging.INFO:
             print("", flush=True)  # newline
-        self.report_progress(4, "processing intervals!")
+        self.report_progress(4, "processing tables!")
 
     def search_tree_started(self):
         self.report_progress(5, "generating search tree!")
@@ -86,7 +86,7 @@ class DefaultMonitor:
         start = self.processing_times[1]
         previous = self.processing_times[identifier - 1]
 
-        # calculate total elapsed time and time from last interval
+        # calculate total elapsed time and time from last table
         elapsed = current - start
         delta = current - previous
 

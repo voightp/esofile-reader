@@ -14,38 +14,38 @@ class BaseData(ABC):
     """
 
     @abstractmethod
-    def is_simple(self, interval: str) -> bool:
+    def is_simple(self, table: str) -> bool:
         """ Check whether data uses full or simple variable. """
         pass
 
     @abstractmethod
-    def get_levels(self, interval: str) -> List[str]:
+    def get_levels(self, table: str) -> List[str]:
         """ Get multiindex levels. """
         pass
 
     @abstractmethod
-    def get_available_intervals(self) -> List[str]:
+    def get_table_names(self) -> List[str]:
         """ Store table in database. """
         pass
 
     @abstractmethod
-    def get_datetime_index(self, interval: str) -> List[datetime]:
+    def get_datetime_index(self, table: str) -> List[datetime]:
         """ Store table in database. """
         pass
 
     @abstractmethod
-    def get_variables_dct(self, interval: str) -> Dict[int, Variable]:
-        """ Get a dict of id: variables pairs for given interval. """
+    def get_variables_dct(self, table: str) -> Dict[int, Variable]:
+        """ Get a dict of id: variables pairs for given table. """
         pass
 
     @abstractmethod
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Variable]]:
-        """ Get a dict of id: variables for all intervals. """
+        """ Get a dict of id: variables for all tables. """
         pass
 
     @abstractmethod
-    def get_variable_ids(self, interval: str) -> List[int]:
-        """ Get all variable ids for given interval. """
+    def get_variable_ids(self, table: str) -> List[int]:
+        """ Get all variable ids for given table. """
         pass
 
     @abstractmethod
@@ -54,18 +54,18 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_variables_df(self, interval: str) -> pd.DataFrame:
-        """ Get header information from a single interval."""
+    def get_variables_df(self, table: str) -> pd.DataFrame:
+        """ Get header information from a single table."""
         pass
 
     @abstractmethod
     def get_all_variables_df(self) -> pd.DataFrame:
-        """ Get header information from all intervals as a single df. """
+        """ Get header information from all tables as a single df. """
         pass
 
     @abstractmethod
     def update_variable_name(
-            self, interval: str, id_: int, new_key: str, new_type: str = ""
+            self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         """ Rename given variable. """
         pass
@@ -76,24 +76,24 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def insert_special_column(self, interval: str, key: str, array: Sequence) -> None:
+    def insert_special_column(self, table: str, key: str, array: Sequence) -> None:
         """ Add a 'special' variable into specific results table. """
         pass
 
     @abstractmethod
-    def update_variable_values(self, interval: str, id_: int, array: Sequence[float]):
+    def update_variable_values(self, table: str, id_: int, array: Sequence[float]):
         """ Update given variable values. """
         pass
 
     @abstractmethod
-    def delete_variables(self, interval: str, ids: Sequence[int]) -> None:
+    def delete_variables(self, table: str, ids: Sequence[int]) -> None:
         """ Remove given variables. """
         pass
 
     @abstractmethod
     def get_special_column(
             self,
-            interval: str,
+            table: str,
             key: str,
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
@@ -102,14 +102,14 @@ class BaseData(ABC):
         pass
 
     @abstractmethod
-    def get_numeric_table(self, interval: str) -> pd.DataFrame:
+    def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Get numeric outputs without special columns. """
         pass
 
     @abstractmethod
     def get_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
@@ -121,7 +121,7 @@ class BaseData(ABC):
     @abstractmethod
     def get_global_max_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
@@ -132,7 +132,7 @@ class BaseData(ABC):
     @abstractmethod
     def get_global_min_results(
             self,
-            interval: str,
+            table: str,
             ids: Sequence[int],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,

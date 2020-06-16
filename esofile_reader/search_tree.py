@@ -44,7 +44,7 @@ class Tree:
     Tree needs to be populated using 'populate_tree' method.
 
     Tree class is supposed to be used with SimpleVariable
-    namedtuple (this variable has 3 levels, interval, key and units).
+    namedtuple (this variable has 3 levels, table, key and units).
 
     Attributes
     ----------
@@ -81,10 +81,10 @@ class Tree:
 
         lower = map(low_string, variable)
         if isinstance(variable, SimpleVariable):
-            order = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+            order = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
             v = SimpleVariable(*lower)
         else:
-            order = [INTERVAL_LEVEL, KEY_LEVEL, UNITS_LEVEL, TYPE_LEVEL]
+            order = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL, TYPE_LEVEL]
             v = Variable(*lower)
         # each class has its own sub branch
         tree_variable = [v.__getattribute__(level) for level in order]
@@ -126,7 +126,7 @@ class Tree:
     def populate_tree(self, header_dct: Dict[str, Dict[int, Variable]]) -> Dict[int, Variable]:
         """ Create a search tree. """
         duplicates = {}
-        for interval, data in header_dct.items():
+        for table, data in header_dct.items():
             for id_, variable in data.items():
                 duplicate_id = self._add_branch(id_, variable)
                 if duplicate_id:

@@ -517,7 +517,7 @@ class ParquetData(DFData):
         """ Create parquet data from filesystem directory. """
         pqd = ParquetData()
         for p in [p for p in Path(path).iterdir() if p.is_dir()]:
-            interval = str(p.name).split("-")[1]
-            pqf = ParquetFrame.from_fs(interval, pardir)
-            pqd.tables[interval] = pqf
+            table = str(p.name).split("-")[1]
+            pqf = ParquetFrame.from_fs(table, pardir)
+            pqd.tables[table] = pqf
         return pqd

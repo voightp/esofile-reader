@@ -19,14 +19,14 @@ class TestDFDB(unittest.TestCase):
         self.assertEqual(id1, 0)
         self.assertEqual(id2, 1)
 
-        for interval in EF_ALL_INTERVALS.available_intervals:
+        for table in EF_ALL_INTERVALS.table_names:
             self.assertEqual(EF_ALL_INTERVALS.file_name, self.storage.files[0].file_name)
             self.assertEqual(EF_ALL_INTERVALS.file_path, self.storage.files[0].file_path)
             self.assertEqual(EF_ALL_INTERVALS.file_created, self.storage.files[0].file_created)
             self.assertEqual(EF_ALL_INTERVALS.search_tree, self.storage.files[0].search_tree)
             pd.testing.assert_frame_equal(
-                EF_ALL_INTERVALS.data.tables[interval],
-                self.storage.files[0].data.tables[interval],
+                EF_ALL_INTERVALS.data.tables[table],
+                self.storage.files[0].data.tables[table],
             )
 
         self.assertEqual(self.storage.files[0].type_, "EsoFile")

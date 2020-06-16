@@ -33,7 +33,7 @@ class TestTotalsFile(TestCase):
             (13, "daily", "Some Flow 1", "Mass Flow", "kg/s"),
             (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s"),
         ]
-        names = ["id", "interval", "key", "type", "units"]
+        names = ["id", "table", "key", "type", "units"]
 
         daily_columns = pd.MultiIndex.from_tuples(daily_variables, names=names)
         daily_index = pd.DatetimeIndex(
@@ -106,7 +106,7 @@ class TestTotalsFile(TestCase):
                 (5, "daily", "Walls", "Wall Gain", "W"),
                 (6, "daily", "Meter", "LIGHTS", "J"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
 
         test_index = pd.DatetimeIndex(
@@ -129,7 +129,7 @@ class TestTotalsFile(TestCase):
                 (9, "range", "Zone", "Zone Temperature", "C"),
                 (10, "range", "Heating", "Heating Load", "W"),
             ],
-            names=["id", "interval", "key", "type", "units"],
+            names=["id", "table", "key", "type", "units"],
         )
 
         test_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
@@ -139,7 +139,7 @@ class TestTotalsFile(TestCase):
 
         pd.testing.assert_frame_equal(self.tf.data.tables["range"], test_results)
 
-    def test_empty_interval(self):
+    def test_empty_table(self):
         with self.assertRaises(KeyError):
             _ = self.tf.data.tables["monthly"]
 

@@ -16,9 +16,9 @@ class TestFileFunctions(unittest.TestCase):
         bf = BaseFile()
         bf.populate_content()
 
-    def test_available_intervals(self):
+    def test_table_names(self):
         self.assertListEqual(
-            EF_ALL_INTERVALS.available_intervals,
+            EF_ALL_INTERVALS.table_names,
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
         )
 
@@ -37,13 +37,13 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNotNone(EF_ALL_INTERVALS_PEAKS.peak_outputs)
 
     def test_header_df(self):
-        names = ["id", "interval", "key", "type", "units"]
+        names = ["id", "table", "key", "type", "units"]
         self.assertEqual(EF_ALL_INTERVALS.data.get_all_variables_df().columns.to_list(), names)
         self.assertEqual(len(EF_ALL_INTERVALS.data.get_all_variables_df().index), 114)
 
         frames = []
-        for interval in EF_ALL_INTERVALS.available_intervals:
-            frames.append(EF_ALL_INTERVALS.get_header_df(interval))
+        for table in EF_ALL_INTERVALS.table_names:
+            frames.append(EF_ALL_INTERVALS.get_header_df(table))
         df = pd.concat(frames, axis=0)
         assert_frame_equal(df, EF_ALL_INTERVALS.data.get_all_variables_df())
 
@@ -111,7 +111,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -121,21 +121,21 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_find_ids_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         ids = EF_ALL_INTERVALS.find_ids(v, part_match=True)
         self.assertEqual(ids, [13])
 
     def test_find_ids_part_invalid(self):
         v = Variable(
-            interval="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
+            table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = EF_ALL_INTERVALS.find_ids(v, part_match=False)
         self.assertEqual(ids, [])
 
     def test__find_pairs(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -145,14 +145,14 @@ class TestFileFunctions(unittest.TestCase):
 
     def test__find_pairs_part_match(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = EF_ALL_INTERVALS._find_pairs(v, part_match=True)
         self.assertDictEqual(out, {"timestep": [13]})
 
     def test__find_pairs_invalid(self):
         v = Variable(
-            interval="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
         out = EF_ALL_INTERVALS._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
@@ -161,19 +161,19 @@ class TestFileFunctions(unittest.TestCase):
         v1 = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "type", "foo")
 
         self.assertTupleEqual(
-            v1, Variable(interval="timestep", key="dummy", type="type", units="foo")
+            v1, Variable(table="timestep", key="dummy", type="type", units="foo")
         )
 
     def test_rename_variable(self):
         v1 = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK1:ZONE1",
             type="Zone People Occupant Count",
             units="",
         )
         EF_ALL_INTERVALS.rename_variable(v1, new_key="NEW3", new_type="VARIABLE")
 
-        v2 = Variable(interval="timestep", key="NEW3", type="VARIABLE", units="")
+        v2 = Variable(table="timestep", key="NEW3", type="VARIABLE", units="")
         ids = EF_ALL_INTERVALS.find_ids(v2)
         self.assertListEqual(ids, [13])
 
@@ -183,13 +183,13 @@ class TestFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
-        v = Variable(interval="timestep", key="foo", type="", units="")
+        v = Variable(table="timestep", key="foo", type="", units="")
         out = EF_ALL_INTERVALS.rename_variable(v, new_key="NEW4", new_type="VARIABLE")
         self.assertIsNone(out)
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
-            interval="timestep",
+            table="timestep",
             key="BLOCK2:ZONE1",
             type="Zone People Occupant Count",
             units="",
@@ -230,17 +230,17 @@ class TestFileFunctions(unittest.TestCase):
         out = EF_ALL_INTERVALS.add_output("timestep", "new", "type", "C", [1])
         self.assertIsNone(out)
 
-    def test_add_output_invalid_interval(self):
+    def test_add_output_invalid_table(self):
         with self.assertRaises(KeyError):
             _ = EF_ALL_INTERVALS.add_output("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
-        v = Variable(interval="hourly", key=None, type="Zone People Occupant Count", units="")
+        v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
         id_, var = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
         self.assertEqual(
             var,
             Variable(
-                interval="hourly",
+                table="hourly",
                 key="Custom Key - sum",
                 type="Zone People Occupant Count",
                 units="",
@@ -248,7 +248,7 @@ class TestFileFunctions(unittest.TestCase):
         )
         EF_ALL_INTERVALS.remove_outputs(var)
         id_, var = EF_ALL_INTERVALS.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
-        self.assertEqual(var, Variable(interval="hourly", key="foo", type="bar", units=""))
+        self.assertEqual(var, Variable(table="hourly", key="foo", type="bar", units=""))
         EF_ALL_INTERVALS.remove_outputs(var)
 
     def test_aggregate_energy_rate(self):
@@ -305,22 +305,22 @@ class TestFileFunctions(unittest.TestCase):
             _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
-        v = Variable(interval="hourly", key="BLOCK1:ZONE1", type=None, units=None)
+        v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
         with self.assertRaises(CannotAggregateVariables):
             _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
-    def test_aggregate_variables_invalid_too_many_intervals(self):
-        v = Variable(interval=None, key=None, type="Zone People Occupant Count", units="")
+    def test_aggregate_variables_invalid_too_many_tables(self):
+        v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
         with self.assertRaises(CannotAggregateVariables):
             _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
     def test_as_df(self):
         df = EF_ALL_INTERVALS.get_numeric_table("hourly")
         self.assertTupleEqual(df.shape, (8760, 19))
-        self.assertListEqual(df.columns.names, ["id", "interval", "key", "type", "units"])
+        self.assertListEqual(df.columns.names, ["id", "table", "key", "type", "units"])
         self.assertEqual(df.index.name, "timestamp")
 
-    def test_as_df_invalid_interval(self):
+    def test_as_df_invalid_table(self):
         with self.assertRaises(KeyError):
             _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
