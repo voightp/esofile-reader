@@ -3,15 +3,15 @@ from unittest import TestCase
 
 from pandas.testing import assert_series_equal
 
-from esofile_reader import EsoFile, DiffFile
+from esofile_reader import EsoFile, ResultsFile
 from esofile_reader.constants import *
 from esofile_reader.exceptions import NoSharedVariables
 from tests import EF1, EF2, EF_ALL_INTERVALS, ROOT
 
 
-class TestDiffFile(TestCase):
+class TestDiffFIle(TestCase):
     def test_process_diff_identical_files(self):
-        diff = DiffFile(EF1, EF1)
+        diff = ResultsFile.from_diff(EF1, EF1)
         for interval in diff.table_names:
             df = diff.get_numeric_table(interval)
             bool_df = df == 0
@@ -31,13 +31,13 @@ class TestDiffFile(TestCase):
                 assert_series_equal(c1, c2)
 
     def test_process_diff_similar_files(self):
-        diff = DiffFile(EF1, EF2)
+        diff = ResultsFile.from_diff(EF1, EF2)
         shapes = [(4392, 59), (183, 59), (6, 59)]
         for interval, test_shape in zip(diff.table_names, shapes):
             self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
 
     def test_process_diff_different_datetime(self):
-        diff = DiffFile(EF1, EF_ALL_INTERVALS)
+        diff = ResultsFile.from_diff(EF1, EF_ALL_INTERVALS)
         shapes = [(4392, 3), (183, 3), (6, 3)]
         for interval, test_shape in zip(diff.table_names, shapes):
             self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
@@ -53,4 +53,4 @@ class TestDiffFile(TestCase):
         del ef2.data.tables["runperiod"]
 
         with self.assertRaises(NoSharedVariables):
-            DiffFile(ef1, ef2)
+            ResultsFile.from_diff(ef1, ef2)

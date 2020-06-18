@@ -2,7 +2,9 @@ import logging
 import traceback
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Dict, Union, Tuple, Sequence, Callable, Optional
+from pathlib import Path
+from typing import Dict, Sequence, Callable, Optional
+from typing import Union, List, Tuple
 
 import pandas as pd
 
@@ -12,49 +14,59 @@ from esofile_reader.convertor import (
     convert_rate_to_energy,
     convert_units,
 )
+from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.processor.interval_processor import update_dt_format
+from esofile_reader.processing.interval_processor import update_dt_format
+from esofile_reader.search_tree import Tree
 
 
 class BaseFile:
     """
-    A base class works as a base for various result file formats.
+    Generic class to provide methods to fetch data from result tables.
 
+    Parameters need to be processed externally.
 
     Attributes
     ----------
-    file_path : str
+    file_path : str or Path
         A full path of the result file.
-    file_created : datetime
-        Time and date when of the file generation..
-    data : {DFData, SQLData}
-        A class to store results data
+    file_name : str
+        File name identifier.
+    file_created : datetime.datetime
+        Time and date when of the file generation.
+    data : DFData
+        Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
+    file_type : str, default "na"
+        Identifier to store original file type.
 
-
-    Notes
-    -----
-    This class cannot be used directly!
-
-    Method 'populate_content' is only a signature method to
-    be implemented in subclasses.
 
     """
 
-    def __init__(self):
-        self.file_path = None
-        self.file_name = None
-        self.data = None
-        self.file_created = None
-        self.search_tree = None
+    def __init__(
+            self,
+            file_path: Union[str, Path],
+            file_name: str,
+            file_created: datetime,
+            data: DFData,
+            search_tree: Tree,
+            file_type: str = "na"
+    ):
+        self.file_path = file_path
+        self.file_name = file_name
+        self.data = data
+        self.file_created = file_created
+        self.search_tree = search_tree
+        self.file_type = file_type
 
     def __repr__(self):
         return (
             f"File: {self.file_name}"
             f"\n\tClass: {self.__class__.__name__}"
             f"\n\tPath: {self.file_path}"
+            f"\n\tName: {self.file_name}"
             f"\n\tCreated: {self.file_created}"
             f"\n\tAvailable tables: [{', '.join(self.table_names)}]"
         )
@@ -62,7 +74,7 @@ class BaseFile:
     @property
     def complete(self) -> bool:
         """ Check if the file has been populated. """
-        return self.data and self.search_tree
+        return self.data is not None and self.search_tree is not None
 
     @property
     def table_names(self) -> List[str]:
@@ -70,10 +82,10 @@ class BaseFile:
         return self.data.get_table_names()
 
     def is_header_simple(self, table: str) -> bool:
-        """ Check if header uses Variablesor SimpleVariable data. """
+        """ Check if header uses Variable or SimpleVariable data. """
         return self.data.is_simple(table)
 
-    def get_header_dictionary(self, table: str) -> Dict[int, Variable]:
+    def get_header_dictionary(self, table: str) -> Dict[int, Union[SimpleVariable, Variable]]:
         """ Get all variables for given table. """
         return self.data.get_variables_dct(table)
 
@@ -84,10 +96,6 @@ class BaseFile:
     def rename(self, name: str) -> None:
         """ Set a new file name. """
         self.file_name = name
-
-    def populate_content(self, *args, **kwargs) -> None:
-        """ Populate instance attributes. """
-        pass
 
     def _add_file_name(self, df: pd.DataFrame, name_position: str) -> pd.DataFrame:
         """ Add file name to index. """
@@ -353,7 +361,7 @@ class BaseFile:
         else:
             logging.warning("Cannot rename variable! Original variable not found!")
 
-    def add_output(
+    def add_variable(
             self, table: str, key: str, type: str, units: str, array: Sequence
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
@@ -449,11 +457,11 @@ class BaseFile:
             new_key = f"{new_key} - {func_name}"
 
         # results can be either tuple (id, Variable) or None
-        out = self.add_output(table, new_key, new_type, units, sr)
+        out = self.add_variable(table, new_key, new_type, units, sr)
 
         return out
 
-    def remove_outputs(
+    def remove_variables(
             self, variables: Union[Variable, List[Variable]]
     ) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """

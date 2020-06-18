@@ -15,8 +15,8 @@ from esofile_reader.data.df_data import DFData
 from esofile_reader.data.df_functions import create_peak_outputs
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processor.interval_processor import interval_processor
-from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.processing.interval_processor import interval_processor
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 
 
@@ -408,15 +408,12 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
     """ Transform processed peak output data into DataFrame like classes. """
     min_peaks = DFData()
     max_peaks = DFData()
-
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
-
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-
         df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
@@ -438,15 +435,12 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
 def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     """ Transform processed output data into DataFrame like classes. """
     data = DFData()
-
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
-
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-
         df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
@@ -503,7 +497,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
     orig_header = read_header(file, monitor)
 
     # Read body to obtain outputs and environment dictionaries
-    monitor.body_started()
+    monitor.values_started()
     content = read_body(file, last_standard_item_id, orig_header, ignore_peaks, monitor)
 
     # Get a fraction for each table and tree generated

@@ -15,7 +15,7 @@ from esofile_reader.data.df_data import DFData
 from esofile_reader.data.pqt_data import ParquetFrame, ParquetData
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
-from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.storage.df_storage import DFStorage
 
@@ -24,8 +24,7 @@ class ParquetFile(BaseFile):
     """
     A class to represent database results set.
 
-    Attributes need to be populated from one of file
-    wrappers ('EsoFile', 'DiffFile', 'TotalsFile').
+    Attributes need to be populated from processed 'ResultsFile'.
 
     Tables are stored in filesystem as pyarrow parquets.
 
@@ -43,8 +42,8 @@ class ParquetFile(BaseFile):
         A creation datetime of the reference file.
     search_tree: Tree
         Search tree instance.
-    type_: str
-        The original results file class.
+    file_type: str
+        The original results file type.
 
     Notes
     -----
@@ -68,32 +67,33 @@ class ParquetFile(BaseFile):
             file_name: str,
             data: Union[DFData, str, Path],
             file_created: datetime,
-            type_: str,
+            file_type: str,
             pardir: str = "",
             search_tree: Tree = None,
             name: str = None,
             monitor: DefaultMonitor = None,
     ):
-        super().__init__()
         self.id_ = id_
-        self.file_path = file_path
-        self.file_name = file_name
-        self.file_created = file_created
-        self.type_ = type_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
-        self.data = (
+        data = (
             ParquetData.from_dfdata(data, self.workdir, monitor=monitor)
             if isinstance(data, DFData)
             else ParquetData.from_fs(data, self.workdir, monitor=monitor)
         )
 
-        if search_tree:
-            self.search_tree = search_tree
-        else:
-            tree = Tree()
-            tree.populate_tree(self.data.get_all_variables_dct())
-            self.search_tree = tree
+        if search_tree is None:
+            search_tree = Tree()
+            search_tree.populate_tree(data.get_all_variables_dct())
+
+        super().__init__(
+            file_path,
+            file_name,
+            file_created,
+            data,
+            search_tree,
+            file_type
+        )
 
     def __enter__(self):
         return self
@@ -121,7 +121,7 @@ class ParquetFile(BaseFile):
             data=results_file.data,
             file_created=results_file.file_created,
             search_tree=results_file.search_tree,
-            type_=results_file.__class__.__name__,
+            file_type=results_file.file_type,
             pardir=pardir,
             name=name,
             monitor=monitor,
@@ -164,7 +164,7 @@ class ParquetFile(BaseFile):
             file_name=info["file_name"],
             file_created=datetime.fromtimestamp(info["file_created"]),
             data=file_dir,
-            type_=info["type"],
+            file_type=info["file_type"],
             name=info["name"],
             pardir=file_dir.parent,
         )
@@ -193,7 +193,7 @@ class ParquetFile(BaseFile):
                     "file_path": str(self.file_path),
                     "file_name": self.file_name,
                     "file_created": self.file_created.timestamp(),
-                    "type": self.type_,
+                    "file_type": self.file_type,
                 },
                 f,
                 indent=4,

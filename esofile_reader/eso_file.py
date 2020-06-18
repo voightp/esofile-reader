@@ -1,7 +1,12 @@
 import logging
 import os
 from datetime import datetime
-from typing import List, Union, Optional
+from pathlib import Path
+from typing import Optional, Dict
+from typing import Union, List
+
+from esofile_reader.data.df_data import DFData
+from esofile_reader.search_tree import Tree
 
 try:
     from typing import ForwardRef
@@ -11,121 +16,79 @@ except ImportError:
 import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.base_file import BaseFile
-from esofile_reader.diff_file import DiffFile
-from esofile_reader.processor.monitor import DefaultMonitor
-from esofile_reader.totals_file import TotalsFile
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable, ResultsFile
+from esofile_reader.mini_classes import Variable
 
 try:
-    from esofile_reader.processor.esofile_processor import read_file
+    from esofile_reader.processing.esofile_processor import read_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processor.esofile_processor import read_file
+    from esofile_reader.processing.esofile_processor import read_file
 
 
-class EsoFile(BaseFile):
+class ResultsEsoFile(BaseFile):
     """
-    The ESO class holds processed EnergyPlus output ESO file data.
+    Enhanced results file to allow storing and extracting
+    .eso file specific 'peak outputs'.
 
-    A structure for data bins is works as for 'BaseFile'.
+    File type passed to super() class is always 'eso'.
 
     Attributes
     ----------
-    file_path : str
-        A full path of the ESO file.
+    file_path : str or Path
+        A full path of the result file.
+    file_name : str
+        File name identifier.
     file_created : datetime.datetime
-        Time and date when the ESO file has been generated (extracted from original Eso file).
-    data : {DFData, SQLData}
-        A class to store results data
-        {period : {ID : (key name, variable name, units)}}
+        Time and date when of the file generation.
+    data : DFData
+        Data storage instance.
+    search_tree : Tree
+        N array tree for efficient id searching.
 
-    Parameters
-    ----------
-    file_path : path like object
-        A full path of the ESO file
-    ignore_peaks : bool, default: True
-        Ignore peak values from 'Daily'+ tables.
-    year: int, default 2002
-        A start year for generated datetime data.
-    autopopulate: bool, default True
-        Read file on initialization.
-
-    Raises
-    ------
-    IncompleteFile
-    BlankLineError
-    MultiEnvFileRequired
 
     """
 
     def __init__(
-        self,
-        file_path: str,
-        monitor: DefaultMonitor = None,
-        autopopulate=True,
-        ignore_peaks: bool = True,
-        year: int = 2002,
+            self,
+            file_path: Union[str, Path],
+            file_name: str,
+            file_created: datetime,
+            data: DFData,
+            search_tree: Tree,
+            peak_outputs: Dict[str, DFData] = None
     ):
-        super().__init__()
-        self.file_path = file_path
-        self.peak_outputs = None
-        if autopopulate:
-            self.populate_content(monitor=monitor, ignore_peaks=ignore_peaks, year=year)
+        super().__init__(file_path, file_name, file_created, data, search_tree, file_type="eso")
+        self.peak_outputs = peak_outputs
 
     @classmethod
-    def process_multi_env_file(
-        cls,
-        file_path: str,
-        monitor: DefaultMonitor = None,
-        ignore_peaks: bool = True,
-        year: int = 2002,
+    def from_multi_env_eso_file(
+            cls,
+            file_path: str,
+            monitor: DefaultMonitor = None,
+            ignore_peaks: bool = True,
+            year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
         eso_files = []
+        file_path = Path(file_path)
+        file_name = file_path.stem
+        file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
         content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
-
-        content = [c for c in list(zip(*content))[::-1]]
-        for i, (environment, outputs, peak_outputs, tree) in enumerate(content):
-            ef = EsoFile(file_path, autopopulate=False)
-            ef.file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-
+        content = [c for c in list(zip(*content))[::-1]]  # reverse to get last processed first
+        for i, (environment, data, peak_outputs, tree) in enumerate(content):
             # last processed environment uses a plain name
             # this is in place to only assign distinct names for
             # 'sizing' results which are reported first
-            name = os.path.splitext(os.path.basename(file_path))[0]
-            ef.file_name = f"{name} - {environment}" if i > 0 else name
-            ef.data = outputs
-            ef.peak_outputs = peak_outputs
-            ef.search_tree = tree
-
-            eso_files.append(ef)
-
-        return eso_files
-
-    def populate_content(
-        self, monitor: DefaultMonitor = None, ignore_peaks: bool = True, year: int = 2002,
-    ) -> None:
-        """ Process the eso file to populate attributes. """
-        self.file_name = os.path.splitext(os.path.basename(self.file_path))[0]
-        self.file_created = datetime.utcfromtimestamp(os.path.getctime(self.file_path))
-
-        content = read_file(
-            self.file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
-        )
-
-        environment_names = content[0]
-        if len(environment_names) == 1:
-            (self.data, self.peak_outputs, self.search_tree,) = [c[0] for c in content[1:]]
-        else:
-            raise MultiEnvFileRequired(
-                f"Cannot populate file {self.file_path}. "
-                f"as there are multiple environments included.\n"
-                f"Use 'EsoFile.process_multi_env_file' to "
-                f"generate multiple files."
+            name = f"{file_name} - {environment}" if i > 0 else file_name
+            ef = ResultsEsoFile(
+                file_path, name, file_created, data, tree, peak_outputs=peak_outputs
             )
+            eso_files.append(ef)
+        return eso_files
 
     def _get_peak_results(
             self,
@@ -163,10 +126,10 @@ class EsoFile(BaseFile):
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def get_results(
-        self,
-        variables: Union[Variable, List[Variable]],
-        output_type: str = "standard",
-        **kwargs,
+            self,
+            variables: Union[Variable, List[Variable]],
+            output_type: str = "standard",
+            **kwargs,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
@@ -239,10 +202,57 @@ class EsoFile(BaseFile):
 
         return df
 
-    def generate_totals(self):
-        """ Generate 'Totals' file. """
-        return TotalsFile(self)
 
-    def generate_diff(self, other_file: ResultsFile):
-        """ Generate 'Diff' file. """
-        return DiffFile(self, other_file)
+class EsoFile(ResultsEsoFile):
+    """
+    A wrapper class to allow .eso file processing by passing
+    file path as a parameter.
+
+    Parameters
+    ----------
+    file_path : str, or Path
+        A full path of the result file.
+    monitor : DefaultMonitor
+        A watcher to report processing progress.
+    ignore_peaks : bool
+        Allow skipping .eso file peak data.
+    year : int
+        A year for which index data are bound to.
+
+    Raises
+    ------
+    IncompleteFile
+    BlankLineError
+    MultiEnvFileRequired
+
+
+    """
+
+    def __init__(
+            self,
+            file_path: Union[str, Path],
+            monitor: DefaultMonitor = None,
+            ignore_peaks: bool = True,
+            year: int = 2002,
+    ):
+        file_path = Path(file_path)
+        file_name = file_path.stem
+        file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+        content = read_file(
+            file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
+        )
+        environment_names = content[0]
+        if len(environment_names) == 1:
+            data = content[1][0]
+            peak_outputs = content[2][0]
+            tree = content[3][0]
+            super().__init__(
+                file_path, file_name, file_created, data, tree, peak_outputs=peak_outputs
+            )
+        else:
+            raise MultiEnvFileRequired(
+                f"Cannot populate file {file_path}. "
+                f"as there are multiple environments included.\n"
+                f"Use '{super().__class__.__name__}.process_multi_env_file' "
+                f"to generate multiple files."
+            )

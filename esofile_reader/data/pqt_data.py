@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
 from esofile_reader.data.df_data import DFData
-from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import DefaultMonitor
 
 
 class _ParquetIndexer:

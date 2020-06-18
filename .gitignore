@@ -110,4 +110,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-/esofile_reader/processor/esofile_processor.html
+/esofile_reader/processing/esofile_processor.html

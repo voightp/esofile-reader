@@ -17,10 +17,6 @@ from esofile_reader.storage.sql_storage import SQLStorage
 class TestRangeIntervalFile(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        bf = BaseFile()
-        bf.file_name = "no-dates"
-        bf.file_path = None
-        bf.file_created = datetime.utcnow()
         variables = [
             (1, "range", "ZoneA", "Temperature", "C"),
             (2, "range", "ZoneB", "Temperature", "C"),
@@ -46,10 +42,7 @@ class TestRangeIntervalFile(unittest.TestCase):
 
         tree = Tree()
         tree.populate_tree(data.get_all_variables_dct())
-
-        bf.data = data
-        bf.search_tree = tree
-
+        bf = BaseFile("", "no-dates", datetime.utcnow(), data, tree)
         cls.bf = bf
 
         storage = SQLStorage()
@@ -118,24 +111,24 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.rename_variable(v, new_key="ZoneC", new_type="Temperature")
 
     def test_add_output(self):
-        id_, var = self.bf.add_output("range", "new", "type", "C", [1, 2, 3])
+        id_, var = self.bf.add_variable("range", "new", "type", "C", [1, 2, 3])
         self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
-        self.bf.remove_outputs(var)
+        self.bf.remove_variables(var)
 
     def test_add_output_test_tree(self):
-        id_, var = self.bf.add_output("range", "new", "type", "C", [1, 2, 3])
+        id_, var = self.bf.add_variable("range", "new", "type", "C", [1, 2, 3])
         self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
 
         ids = self.bf.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
-        self.bf.remove_outputs(var)
+        self.bf.remove_variables(var)
         ids = self.bf.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.bf.add_output("range", "new", "type", "C", [1])
+        out = self.bf.add_variable("range", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_aggregate_variables(self):
@@ -145,16 +138,18 @@ class TestRangeIntervalFile(unittest.TestCase):
             var,
             Variable(table="range", key="Custom Key - sum", type="Temperature", units="C"),
         )
-        self.bf.remove_outputs(var)
+        self.bf.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1])
-        _, v2 = self.bf.add_output("range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2])
+        _, v1 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "W",
+                                     [1, 1, 1])
+        _, v2 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "J",
+                                     [2, 2, 2])
 
         with self.assertRaises(CannotAggregateVariables):
             _ = self.bf.aggregate_variables([v1, v2], "sum")
 
-        self.bf.remove_outputs([v1, v2])
+        self.bf.remove_variables([v1, v2])
 
     def test_as_df(self):
         df = self.bf.get_numeric_table("range")

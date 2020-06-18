@@ -18,7 +18,7 @@ class DFFile(BaseFile):
     id_ : int
         Unique id identifier.
     file : ResultsFile
-        One of ('EsoFile', 'DiffFile', 'TotalsFile') results files..
+        Processed results file.
 
     Notes
     -----
@@ -27,18 +27,19 @@ class DFFile(BaseFile):
     """
 
     def __init__(self, id_: int, file: ResultsFile):
-        super().__init__()
         self.id_ = id_
-        self.file_path = file.file_path
-        self.file_name = file.file_name
-        self.file_created = file.file_created
-        self.search_tree = file.search_tree
-        self.type_ = file.__class__.__name__
         # create a new data so the original won't mutate
         data = DFData()
         for table, df in file.data.tables.items():
             data.populate_table(table, df.copy())
-        self.data = data
+        super().__init__(
+            file.file_path,
+            file.file_name,
+            file.file_created,
+            data,
+            file.search_tree,
+            file.file_type
+        )
 
 
 class DFStorage(BaseStorage):
