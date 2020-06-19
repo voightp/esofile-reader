@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.processing.interval_processor import parse_result_dt
+from esofile_reader.processing.esofile_intervals import parse_result_dt
 
 
 def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:

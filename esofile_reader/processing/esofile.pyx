@@ -15,7 +15,7 @@ from esofile_reader.data.df_data import DFData
 from esofile_reader.data.df_functions import create_peak_outputs
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.interval_processor import interval_processor
+from esofile_reader.processing.esofile_intervals import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 

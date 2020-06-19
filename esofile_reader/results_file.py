@@ -6,19 +6,19 @@ from typing import Union, List
 from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
 from esofile_reader.eso_file import ResultsEsoFile
-from esofile_reader.processing.diff_file import process_diff
-from esofile_reader.processing.excel_processor import process_excel
+from esofile_reader.processing.diff import process_diff
+from esofile_reader.processing.excel import process_excel
 from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.processing.totals_file import process_totals
+from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 
 try:
-    from esofile_reader.processing.esofile_processor import read_file
+    from esofile_reader.processing.esofile import read_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.esofile_processor import read_file
+    from esofile_reader.processing.esofile import read_file
 
 
 class ResultsFile(BaseFile):

@@ -21,12 +21,12 @@ from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable
 
 try:
-    from esofile_reader.processing.esofile_processor import read_file
+    from esofile_reader.processing.esofile import read_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.esofile_processor import read_file
+    from esofile_reader.processing.esofile import read_file
 
 
 class ResultsEsoFile(BaseFile):

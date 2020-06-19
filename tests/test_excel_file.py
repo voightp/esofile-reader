@@ -7,7 +7,7 @@ from pandas.testing import assert_index_equal
 from parameterized import parameterized
 
 from esofile_reader.exceptions import InsuficientHeaderInfo
-from esofile_reader.processing.excel_processor import is_data_row
+from esofile_reader.processing.excel import is_data_row
 from esofile_reader.results_file import ResultsFile
 from tests import ROOT
 

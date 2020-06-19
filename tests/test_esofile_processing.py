@@ -3,8 +3,8 @@ import logging
 import os
 import unittest
 
-from esofile_reader.processing.esofile_processor import *
-from esofile_reader.processing.esofile_processor import (
+from esofile_reader.processing.esofile import *
+from esofile_reader.processing.esofile import (
     _process_statement,
     _process_header_line,
     _process_interval_line,

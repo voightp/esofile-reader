@@ -17,7 +17,7 @@ from esofile_reader.convertor import (
 from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.processing.interval_processor import update_dt_format
+from esofile_reader.processing.esofile_intervals import update_dt_format
 from esofile_reader.search_tree import Tree
 
 
