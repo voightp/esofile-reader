@@ -76,7 +76,7 @@ def get_results(
          timestamp_format : str
             Specified str format of a datetime timestamp.
          ignore_peaks : bool, default: True
-            Ignore peak values from 'Daily'+ tables.
+            Ignore peak values from 'Daily'+ _tables.
 
      Returns
      -------

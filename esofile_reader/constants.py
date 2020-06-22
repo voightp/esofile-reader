@@ -19,7 +19,8 @@ KEY_LEVEL = "key"
 TYPE_LEVEL = "type"
 UNITS_LEVEL = "units"
 STR_VALUES = "str_values"
-COLUMN_LEVELS = ["id", "table", "key", "type", "units"]
+COLUMN_LEVELS = ("id", "table", "key", "type", "units")
+SIMPLE_COLUMN_LEVELS = ("id", "table", "key", "units")
 RATE_TO_ENERGY_DCT = {TS: False, H: False, D: True, M: True, A: True, RP: True}
 SPECIAL = "special"
 

@@ -414,7 +414,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
+        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
@@ -441,7 +441,7 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
+        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 

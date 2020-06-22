@@ -502,7 +502,6 @@ class ParquetFrame:
 class ParquetData(DFData):
     def __init__(self):
         super().__init__()
-        self.tables = {}
 
     @classmethod
     def from_dfdata(cls, dfdata, pardir, monitor: DefaultMonitor = None):

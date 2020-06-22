@@ -71,10 +71,18 @@ class DFData(BaseData):
     """
 
     def __init__(self):
-        self.tables = {}
+        self._tables = {}
+
+    @property
+    def tables(self):
+        return self._tables
+
+    def __setitem__(self, key: str, value: pd.DataFrame) -> None:
+        # verify column names
+        pass
 
     def populate_table(self, table: str, df: pd.DataFrame):
-        self.tables[table] = df
+        self._tables[table] = df
 
     def is_simple(self, table: str) -> bool:
         return len(self.get_levels(table)) == 4

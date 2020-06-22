@@ -113,13 +113,13 @@ class SQLData(BaseData):
 
     def get_variables_df(self, table: str) -> pd.DataFrame:
         sql_table = self._get_results_table(table)
-        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
         if self.is_simple(table):
             s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.units]
-            columns.remove(TYPE_LEVEL)
+            columns = SIMPLE_COLUMN_LEVELS
         else:
             s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.type,
                  sql_table.c.units]
+            columns = COLUMN_LEVELS
         with self.storage.engine.connect() as conn:
             res = conn.execute(select(s))
             df = pd.DataFrame(res, columns=columns)
@@ -240,9 +240,7 @@ class SQLData(BaseData):
             include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
-        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-        if self.is_simple(table):
-            columns.remove(TYPE_LEVEL)
+        columns = SIMPLE_COLUMN_LEVELS if self.is_simple(table) else COLUMN_LEVELS
         sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
             res = conn.execute(sql_table.select().where(sql_table.c.id.in_(ids)))
@@ -254,7 +252,7 @@ class SQLData(BaseData):
                     f"is not included."
                 )
 
-            df.set_index(columns, inplace=True)
+            df.set_index(list(columns), inplace=True)
             df = destringify_values(df)
         if table == RANGE:
             # create default 'range' index
