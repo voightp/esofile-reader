@@ -196,39 +196,39 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [19])
 
     def test_add_output(self):
-        id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        id_, var = self.ef.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
         self.assertEqual(100, id_)
-        self.ef.remove_outputs(var)
+        self.ef.remove_variables(var)
 
     def test_add_two_outputs(self):
-        id_, var1 = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        id_, var1 = self.ef.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
 
-        id_, var2 = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        id_, var2 = self.ef.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
-        self.ef.remove_outputs(var1)
-        self.ef.remove_outputs(var2)
+        self.ef.remove_variables(var1)
+        self.ef.remove_variables(var2)
 
     def test_add_output_test_tree(self):
-        id_, var = self.ef.add_output("runperiod", "new", "type", "C", [1])
+        id_, var = self.ef.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
         ids = self.ef.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
-        self.ef.remove_outputs(var)
+        self.ef.remove_variables(var)
         ids = self.ef.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.ef.add_output("timestep", "new", "type", "C", [1])
+        out = self.ef.add_variable("timestep", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_interval(self):
         with self.assertRaises(KeyError):
-            _ = self.ef.add_output("foo", "new", "type", "C", [1])
+            _ = self.ef.add_variable("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
@@ -242,10 +242,10 @@ class TestSqlDBFileFunctions(unittest.TestCase):
                 units="",
             ),
         )
-        self.ef.remove_outputs(var)
+        self.ef.remove_variables(var)
         id_, var = self.ef.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
         self.assertEqual(var, Variable(table="hourly", key="foo", type="bar", units=""))
-        self.ef.remove_outputs(var)
+        self.ef.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
@@ -280,7 +280,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
             columns=test_mi,
         )
         assert_frame_equal(df, test_df)
-        self.ef.remove_outputs(var)
+        self.ef.remove_variables(var)
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))

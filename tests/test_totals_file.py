@@ -3,10 +3,8 @@ from unittest import TestCase
 
 import pandas as pd
 
-from esofile_reader import DiffFile
-from esofile_reader import TotalsFile
+from esofile_reader import ResultsFile
 from esofile_reader import Variable
-from esofile_reader.base_file import BaseFile
 from esofile_reader.data.df_data import DFData
 from esofile_reader.search_tree import Tree
 
@@ -14,9 +12,6 @@ from esofile_reader.search_tree import Tree
 class TestTotalsFile(TestCase):
     @classmethod
     def setUpClass(cls):
-        bf = BaseFile()
-        bf.file_name = "base"
-        bf.file_path = "dummy/path"
         daily_variables = [
             (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
             (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
@@ -64,7 +59,7 @@ class TestTotalsFile(TestCase):
         range_columns = pd.MultiIndex.from_tuples(range_variables, names=names)
         range_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         range_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=range_columns, index=range_index
+            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=range_columns, index=range_index
         )
 
         data = DFData()
@@ -75,10 +70,8 @@ class TestTotalsFile(TestCase):
         tree = Tree()
         tree.populate_tree(data.get_all_variables_dct())
 
-        bf.data = data
-        bf.search_tree = tree
-
-        cls.tf = TotalsFile(bf)
+        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), data, tree)
+        cls.tf = ResultsFile.from_totals(bf)
 
     def test_file_name(self):
         self.assertEqual(self.tf.file_name, "base - totals")
@@ -113,7 +106,7 @@ class TestTotalsFile(TestCase):
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
         )
         test_results = pd.DataFrame(
-            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23],],
+            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], ],
             columns=test_columns,
             index=test_index,
             dtype="float64",
@@ -134,7 +127,7 @@ class TestTotalsFile(TestCase):
 
         test_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         test_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=test_columns, index=test_index
+            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=test_columns, index=test_index
         )
 
         pd.testing.assert_frame_equal(self.tf.data.tables["range"], test_results)
@@ -144,5 +137,5 @@ class TestTotalsFile(TestCase):
             _ = self.tf.data.tables["monthly"]
 
     def test_generate_diff_file(self):
-        df = DiffFile(self.tf, self.tf)
+        df = ResultsFile.from_diff(self.tf, self.tf)
         self.assertTrue(df.complete)

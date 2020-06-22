@@ -6,8 +6,9 @@ import pandas as pd
 from pandas.testing import assert_index_equal
 from parameterized import parameterized
 
-from esofile_reader.excel_file import ExcelFile, is_data_row
 from esofile_reader.exceptions import InsuficientHeaderInfo
+from esofile_reader.processing.excel import is_data_row
+from esofile_reader.results_file import ResultsFile
 from tests import ROOT
 
 RESULTS_PATH = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
@@ -76,7 +77,7 @@ class TestExcelFile(unittest.TestCase):
     def test_populate_simple_tables(
             self, sheet, table, shape, index_name, index_type, column_names
     ):
-        ef = ExcelFile(RESULTS_PATH, sheet_names=[sheet])
+        ef = ResultsFile.from_excel(RESULTS_PATH, sheet_names=[sheet])
         df = ef.data.tables[table]
         self.assertEqual(shape, df.shape)
         self.assertEqual(index_name, df.index.name)
@@ -129,7 +130,7 @@ class TestExcelFile(unittest.TestCase):
     def test_populate_full_tables(
             self, sheet, table, shape, index_name, index_type, column_names
     ):
-        ef = ExcelFile(RESULTS_PATH, sheet_names=[sheet])
+        ef = ResultsFile.from_excel(RESULTS_PATH, sheet_names=[sheet])
         df = ef.data.tables[table]
         self.assertEqual(shape, df.shape)
         self.assertEqual(index_name, df.index.name)
@@ -138,55 +139,57 @@ class TestExcelFile(unittest.TestCase):
         self.assertFalse(ef.data.is_simple(table))
 
     def test_drop_blank_lines(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["blank-lines"])
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-lines"])
         df = ef.data.tables["blank-lines"]
         self.assertEqual((12, 7), df.shape)
 
     def test_force_index_generic_column(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["force-index"], force_index=True)
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["force-index"],
+                                    force_index=True)
         df = ef.data.tables["force-index"]
         self.assertEqual((12, 6), df.shape)
         self.assertEqual("index", df.index.name)
         assert_index_equal(pd.Index(list("abcdefghijkl"), name="index"), df.index)
 
     def test_index_duplicate_values(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["duplicate-index"], force_index=True)
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["duplicate-index"],
+                                    force_index=True)
         df = ef.data.tables["duplicate-index"]
         self.assertEqual((6, 6), df.shape)
         self.assertEqual("index", df.index.name)
         assert_index_equal(pd.Index(list("aaadef"), name="index"), df.index)
 
     def test_column_duplicate_values(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["duplicate-columns"])
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["duplicate-columns"])
         df = ef.data.tables["monthly"]
         self.assertEqual((12, 7), df.shape)
 
     def test_too_few_header_rows(self):
         with self.assertRaises(InsuficientHeaderInfo):
-            _ = ExcelFile(EDGE_CASE_PATH, sheet_names=["too-few-header-items"])
+            _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-few-header-items"])
 
     def test_too_many_header_rows(self):
         with self.assertRaises(InsuficientHeaderInfo):
-            _ = ExcelFile(EDGE_CASE_PATH, sheet_names=["too-many-header-items"])
+            _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-header-items"])
 
     def test_too_many_header_rows_template(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
         df = ef.data.tables["monthly"]
         self.assertEqual((12, 7), df.shape)
         self.assertListEqual(["id", "table", "key", "type", "units"], df.columns.names)
 
     def test_too_switched_template_levels(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
         df = ef.data.tables["monthly"]
         self.assertEqual((12, 7), df.shape)
         self.assertListEqual(["id", "table", "key", "type", "units"], df.columns.names)
 
     def test_template_missing_key_level(self):
         with self.assertRaises(InsuficientHeaderInfo):
-            _ = ExcelFile(EDGE_CASE_PATH, sheet_names=["missing-key"])
+            _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["missing-key"])
 
     def test_multiple_tables(self):
-        ef = ExcelFile(EDGE_CASE_PATH, sheet_names=["multiple-tables"])
+        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["multiple-tables"])
         df = ef.data.tables["table1"]
         self.assertEqual((12, 3), df.shape)
         self.assertEqual("timestamp", df.index.name)

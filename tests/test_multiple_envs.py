@@ -10,7 +10,7 @@ class TestMultipleEnvs(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         path = os.path.join(ROOT, "eso_files/multiple_environments.eso")
-        cls.efs = EsoFile.process_multi_env_file(path)
+        cls.efs = EsoFile.from_multi_env_eso_file(path)
 
     def test_file_names(self):
         names = [

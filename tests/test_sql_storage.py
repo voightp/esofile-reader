@@ -1,6 +1,6 @@
 import unittest
 
-from esofile_reader import TotalsFile
+from esofile_reader import ResultsFile
 from esofile_reader.storage.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS, EF1
 
@@ -53,11 +53,11 @@ class TestSqlDB(unittest.TestCase):
 
     def test_04_store_file_totals(self):
         storage = SQLStorage()
-        id_ = storage.store_file(TotalsFile(EF_ALL_INTERVALS))
+        id_ = storage.store_file(ResultsFile.from_totals(EF_ALL_INTERVALS))
         res = storage.engine.execute(
-            f"""SELECT type_ FROM 'result-files' WHERE id={id_};"""
+            f"""SELECT file_type FROM 'result-files' WHERE id={id_};"""
         ).scalar()
-        self.assertEqual("TotalsFile", res)
+        self.assertEqual("totals", res)
 
     def test_05_delete_file(self):
         storage = SQLStorage()
@@ -84,10 +84,10 @@ class TestSqlDB(unittest.TestCase):
 
         for f, lf in zip([db_file1, db_file2], loaded_db_files):
             self.assertEqual(f.file_name, lf.file_name)
-            self.assertEqual(f.file_path, lf.file_path)
+            self.assertEqual(str(f.file_path), str(lf.file_path))
             self.assertEqual(f.id_, lf.id_)
             self.assertEqual(len(f.search_tree.__repr__()), len(lf.search_tree.__repr__()))
-            self.assertEqual("EsoFile", f.type_)
+            self.assertEqual("eso", f.file_type)
 
             for interval in f.table_names:
                 self.assertEqual(

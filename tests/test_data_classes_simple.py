@@ -8,8 +8,8 @@ from pandas.testing import assert_index_equal
 from parameterized import parameterized
 
 from esofile_reader.constants import N_DAYS_COLUMN
-from esofile_reader.excel_file import ExcelFile
 from esofile_reader.mini_classes import SimpleVariable
+from esofile_reader.results_file import ResultsFile
 from esofile_reader.storage.df_storage import DFStorage
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.sql_storage import SQLStorage
@@ -19,10 +19,9 @@ from tests import ROOT
 class TestDataClassesSimple(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # TODO write tests
         pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
         sheets = ["simple-template-monthly", "simple-template-range"]
-        ef = ExcelFile(pth, sheets)
+        ef = ResultsFile.from_excel(pth, sheets)
 
         cls.dfs = DFStorage()
         id_ = cls.dfs.store_file(ef)

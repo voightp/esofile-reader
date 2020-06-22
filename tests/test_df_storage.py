@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from esofile_reader import TotalsFile
+from esofile_reader.results_file import ResultsFile
 from esofile_reader.storage.df_storage import DFStorage
 from tests import EF_ALL_INTERVALS
 
@@ -14,7 +14,7 @@ class TestDFDB(unittest.TestCase):
 
     def test_01_store_file(self):
         id1 = self.storage.store_file(EF_ALL_INTERVALS)
-        id2 = self.storage.store_file(TotalsFile(EF_ALL_INTERVALS))
+        id2 = self.storage.store_file(ResultsFile.from_totals(EF_ALL_INTERVALS))
 
         self.assertEqual(id1, 0)
         self.assertEqual(id2, 1)
@@ -29,8 +29,8 @@ class TestDFDB(unittest.TestCase):
                 self.storage.files[0].data.tables[table],
             )
 
-        self.assertEqual(self.storage.files[0].type_, "EsoFile")
-        self.assertEqual(self.storage.files[1].type_, "TotalsFile")
+        self.assertEqual(self.storage.files[0].file_type, "eso")
+        self.assertEqual(self.storage.files[1].file_type, "totals")
 
     def test_02_delete_file(self):
         self.storage.delete_file(1)

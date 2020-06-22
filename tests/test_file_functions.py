@@ -6,15 +6,12 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, Variable
-from esofile_reader.base_file import CannotAggregateVariables, BaseFile
+from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import SPECIAL
 from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
 class TestFileFunctions(unittest.TestCase):
-    def test_base_file_populate_content(self):
-        bf = BaseFile()
-        bf.populate_content()
 
     def test_table_names(self):
         self.assertListEqual(
@@ -201,38 +198,38 @@ class TestFileFunctions(unittest.TestCase):
         self.assertListEqual(ids, [19])
 
     def test_add_output(self):
-        id_, var = EF_ALL_INTERVALS.add_output("runperiod", "new", "type", "C", [1])
+        id_, var = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
-        EF_ALL_INTERVALS.remove_outputs(var)
+        EF_ALL_INTERVALS.remove_variables(var)
 
     def test_add_two_outputs(self):
-        id_, var1 = EF_ALL_INTERVALS.add_output("runperiod", "new", "type", "C", [1])
+        id_, var1 = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
 
-        id_, var2 = EF_ALL_INTERVALS.add_output("runperiod", "new", "type", "C", [1])
+        id_, var2 = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
-        EF_ALL_INTERVALS.remove_outputs(var1)
-        EF_ALL_INTERVALS.remove_outputs(var2)
+        EF_ALL_INTERVALS.remove_variables(var1)
+        EF_ALL_INTERVALS.remove_variables(var2)
 
     def test_add_output_test_tree(self):
-        id_, var = EF_ALL_INTERVALS.add_output("runperiod", "new", "type", "C", [1])
+        id_, var = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
         ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
         self.assertIsNot(ids, [])
         self.assertEqual(len(ids), 1)
 
-        EF_ALL_INTERVALS.remove_outputs(var)
+        EF_ALL_INTERVALS.remove_variables(var)
         ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = EF_ALL_INTERVALS.add_output("timestep", "new", "type", "C", [1])
+        out = EF_ALL_INTERVALS.add_variable("timestep", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_table(self):
         with self.assertRaises(KeyError):
-            _ = EF_ALL_INTERVALS.add_output("foo", "new", "type", "C", [1])
+            _ = EF_ALL_INTERVALS.add_variable("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
@@ -246,10 +243,10 @@ class TestFileFunctions(unittest.TestCase):
                 units="",
             ),
         )
-        EF_ALL_INTERVALS.remove_outputs(var)
+        EF_ALL_INTERVALS.remove_variables(var)
         id_, var = EF_ALL_INTERVALS.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
         self.assertEqual(var, Variable(table="hourly", key="foo", type="bar", units=""))
-        EF_ALL_INTERVALS.remove_outputs(var)
+        EF_ALL_INTERVALS.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
@@ -284,7 +281,7 @@ class TestFileFunctions(unittest.TestCase):
             columns=test_mi,
         )
         assert_frame_equal(df, test_df)
-        EF_ALL_INTERVALS.remove_outputs(var)
+        EF_ALL_INTERVALS.remove_variables(var)
 
     def test_aggregate_invalid_variables(self):
         vars = [
@@ -325,7 +322,7 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])
+        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298, ])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_unexpected_type(self):

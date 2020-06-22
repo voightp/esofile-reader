@@ -35,7 +35,7 @@ class DefaultMonitor:
     def header_started(self):
         self.report_progress(2, "processing data dictionary!")
 
-    def body_started(self):
+    def values_started(self):
         self.report_progress(3, "processing data!")
 
     def tables_started(self):
@@ -84,7 +84,14 @@ class DefaultMonitor:
         # get first, current and previous processing times
         current = self.processing_times[identifier]
         start = self.processing_times[1]
-        previous = self.processing_times[identifier - 1]
+        i = 1
+        while True:
+            try:
+                # some points may be skipped
+                previous = self.processing_times[identifier - i]
+                break
+            except KeyError:
+                i += 1
 
         # calculate total elapsed time and time from last table
         elapsed = current - start

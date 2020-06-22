@@ -52,7 +52,7 @@ class SQLFile(BaseFile):
         A creation datetime of the reference file.
     search_tree: Tree
         Search tree instance.
-    type_: str
+    file_type: str
         Original file class name..
 
     Notes
@@ -69,16 +69,17 @@ class SQLFile(BaseFile):
             sql_data: SQLData,
             file_created: datetime,
             search_tree: Tree,
-            type_: str,
+            file_type: str,
     ):
-        super().__init__()
+        super().__init__(
+            file_path,
+            file_name,
+            file_created,
+            sql_data,
+            search_tree,
+            file_type
+        )
         self.id_ = id_
-        self.file_path = file_path
-        self.file_name = file_name
-        self.data = sql_data
-        self.file_created = file_created
-        self.search_tree = search_tree
-        self.type_ = type_
 
     def rename(self, name: str) -> None:
         self.file_name = name
@@ -112,7 +113,7 @@ class SQLStorage(BaseStorage):
                 Column("file_path", String(120)),
                 Column("file_name", String(50)),
                 Column("file_created", DateTime),
-                Column("type_", String(50)),
+                Column("file_type", String(50)),
                 Column("numeric_tables", String),
                 Column("datetime_tables", String),
                 Column("special_tables", String),
@@ -136,7 +137,7 @@ class SQLStorage(BaseStorage):
             file_path=str(results_file.file_path),
             file_name=results_file.file_name,
             file_created=results_file.file_created,
-            type_=results_file.__class__.__name__,
+            file_type=results_file.file_type,
         )
 
         # insert new file data
@@ -201,7 +202,7 @@ class SQLStorage(BaseStorage):
                 sql_data=SQLData(id_, self),
                 file_created=results_file.file_created,
                 search_tree=results_file.search_tree,
-                type_=results_file.__class__.__name__,
+                file_type=results_file.file_type
             )
             self.files[id_] = db_file
         return id_
@@ -244,7 +245,7 @@ class SQLStorage(BaseStorage):
                             file_table.c.file_path,
                             file_table.c.file_name,
                             file_table.c.file_created,
-                            file_table.c.type_,
+                            file_table.c.file_type,
                         ]
                     ).where(file_table.c.id == id_)
                 ).first()
@@ -258,7 +259,7 @@ class SQLStorage(BaseStorage):
                 sql_data=data,
                 file_created=res[3],
                 search_tree=tree,
-                type_=res[4],
+                file_type=res[4],
             )
             self.files[id_] = db_file
         return ids

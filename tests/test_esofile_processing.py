@@ -3,8 +3,8 @@ import logging
 import os
 import unittest
 
-from esofile_reader.processor.esofile_processor import *
-from esofile_reader.processor.esofile_processor import (
+from esofile_reader.processing.esofile import *
+from esofile_reader.processing.esofile import (
     _process_statement,
     _process_header_line,
     _process_interval_line,
@@ -14,7 +14,7 @@ from esofile_reader import EsoFile
 from esofile_reader.base_file import IncompleteFile
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
 from esofile_reader.mini_classes import Variable
-from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 from tests import ROOT
 
