@@ -6,13 +6,6 @@ import pandas as pd
 from sqlalchemy import Table, select, String, Integer
 
 from esofile_reader.constants import *
-from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import (
-    df_dt_slicer,
-    sr_dt_slicer,
-    merge_peak_outputs,
-    sort_by_ids
-)
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.storage.sql_functions import (
@@ -22,9 +15,16 @@ from esofile_reader.storage.sql_functions import (
     create_special_table,
     create_value_insert,
 )
+from esofile_reader.tables.base_data import BaseTables
+from esofile_reader.tables.df_functions import (
+    df_dt_slicer,
+    sr_dt_slicer,
+    merge_peak_outputs,
+    sort_by_ids
+)
 
 
-class SQLData(BaseData):
+class SQLTables(BaseTables):
     def __init__(self, id_, sql_storage):
         self.id_ = id_
         self.storage = sql_storage

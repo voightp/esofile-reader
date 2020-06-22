@@ -5,13 +5,13 @@ from typing import Sequence, List, Dict, Optional, Union
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import merge_peak_outputs, slicer, sr_dt_slicer
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import SimpleVariable, Variable
+from esofile_reader.tables.base_data import BaseTables
+from esofile_reader.tables.df_functions import merge_peak_outputs, slicer, sr_dt_slicer
 
 
-class DFData(BaseData):
+class DFTables(BaseTables):
     """
     The results are stored in a dictionary using string table identifiers
     as keys and pandas.DataFrame classes as values.
@@ -79,10 +79,27 @@ class DFData(BaseData):
 
     def __setitem__(self, key: str, value: pd.DataFrame) -> None:
         # verify column names
-        pass
+        checklist = [SIMPLE_COLUMN_LEVELS, COLUMN_LEVELS, PEAK_COLUMN_LEVELS]
+        if tuple(value.columns.names) not in checklist:
+            raise TypeError(
+                f"Cannot set table, column names must be [{', '.join(SIMPLE_COLUMN_LEVELS)}]"
+                f" or {', '.join(COLUMN_LEVELS)}.")
+        self._tables[key] = value
 
-    def populate_table(self, table: str, df: pd.DataFrame):
-        self._tables[table] = df
+    def __getitem__(self, item: str):
+        return self._tables[item]
+
+    def __delitem__(self, key: str):
+        del self._tables[key]
+
+    def keys(self):
+        return self._tables.keys()
+
+    def values(self):
+        return self._tables.values()
+
+    def items(self):
+        return self._tables.items()
 
     def is_simple(self, table: str) -> bool:
         return len(self.get_levels(table)) == 4

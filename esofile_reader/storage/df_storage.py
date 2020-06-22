@@ -1,8 +1,8 @@
 from esofile_reader.base_file import BaseFile
-from esofile_reader.data.df_data import DFData
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.base_storage import BaseStorage
+from esofile_reader.tables.df_tables import DFTables
 
 
 class DFFile(BaseFile):
@@ -29,14 +29,14 @@ class DFFile(BaseFile):
     def __init__(self, id_: int, file: ResultsFile):
         self.id_ = id_
         # create a new data so the original won't mutate
-        data = DFData()
-        for table, df in file.data.tables.items():
-            data.populate_table(table, df.copy())
+        tables = DFTables()
+        for table, df in file.tables.items():
+            tables[table] = df.copy()
         super().__init__(
             file.file_path,
             file.file_name,
             file.file_created,
-            data,
+            tables,
             file.search_tree,
             file.file_type
         )

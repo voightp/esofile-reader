@@ -40,10 +40,10 @@ class TestResultFetching(unittest.TestCase):
             "sqlf": sqlf
         }
 
-        cls.data = {
-            "dfd": dff.data,
-            "pqd": pqf.data,
-            "sqld": sqlf.data
+        cls.tables = {
+            "dfd": dff.tables,
+            "pqd": pqf.tables,
+            "sqld": sqlf.tables
         }
 
     @classmethod

@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import Union, List
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.data.df_data import DFData
 from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 try:
     from esofile_reader.processing.esofile import read_file
@@ -36,7 +36,7 @@ class ResultsFile(BaseFile):
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFData
+    data : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -51,7 +51,7 @@ class ResultsFile(BaseFile):
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFData,
+            data: DFTables,
             search_tree: Tree,
             file_type: str = "na"
     ):

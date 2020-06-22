@@ -11,13 +11,13 @@ from typing import Union, List
 from zipfile import ZipFile
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.data.df_data import DFData
-from esofile_reader.data.pqt_data import ParquetFrame, ParquetData
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.tables.pqt_tables import ParquetFrame, ParquetTables
 
 
 class ParquetFile(BaseFile):
@@ -36,7 +36,7 @@ class ParquetFile(BaseFile):
         A file path of the reference file.
     file_name: str
         File name of the reference file.
-    data: {DFData, path like}
+    data: {DFTables, path like}
         Original tables.
     file_created: datetime
         A creation datetime of the reference file.
@@ -65,7 +65,7 @@ class ParquetFile(BaseFile):
             id_: int,
             file_path: str,
             file_name: str,
-            data: Union[DFData, str, Path],
+            tables: Union[DFTables, str, Path],
             file_created: datetime,
             file_type: str,
             pardir: str = "",
@@ -76,21 +76,21 @@ class ParquetFile(BaseFile):
         self.id_ = id_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
-        data = (
-            ParquetData.from_dfdata(data, self.workdir, monitor=monitor)
-            if isinstance(data, DFData)
-            else ParquetData.from_fs(data, self.workdir, monitor=monitor)
+        tables = (
+            ParquetTables.from_dftables(tables, self.workdir, monitor=monitor)
+            if isinstance(tables, DFTables)
+            else ParquetTables.from_fs(tables, self.workdir, monitor=monitor)
         )
 
         if search_tree is None:
             search_tree = Tree()
-            search_tree.populate_tree(data.get_all_variables_dct())
+            search_tree.populate_tree(tables.get_all_variables_dct())
 
         super().__init__(
             file_path,
             file_name,
             file_created,
-            data,
+            tables,
             search_tree,
             file_type
         )
@@ -118,7 +118,7 @@ class ParquetFile(BaseFile):
             id_=id_,
             file_path=results_file.file_path,
             file_name=results_file.file_name,
-            data=results_file.data,
+            tables=results_file.tables,
             file_created=results_file.file_created,
             search_tree=results_file.search_tree,
             file_type=results_file.file_type,
@@ -163,7 +163,7 @@ class ParquetFile(BaseFile):
             file_path=info["file_path"],
             file_name=info["file_name"],
             file_created=datetime.fromtimestamp(info["file_created"]),
-            data=file_dir,
+            tables=file_dir,
             file_type=info["file_type"],
             name=info["name"],
             pardir=file_dir.parent,
@@ -177,7 +177,7 @@ class ParquetFile(BaseFile):
     def save_meta(self) -> Path:
         """ Save index parquets and json info. """
         # store column, index and chunk table parquets
-        for tbl in self.data.tables.values():
+        for tbl in self.tables.values():
             tbl.save_info_parquets()
 
         # store attributes as json
@@ -258,7 +258,7 @@ class ParquetStorage(DFStorage):
         if monitor:
             # number of steps is equal to number of parquet files
             n_steps = 0
-            for tbl in results_file.data.tables.values():
+            for tbl in results_file.tables.values():
                 n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
                 n_steps += n
 
@@ -320,7 +320,7 @@ class ParquetStorage(DFStorage):
                 shutil.copytree(file.workdir, new_workdir)
 
                 # update parquet frame root
-                for table in file.data.tables.values():
+                for table in file.tables.values():
                     table_name = table.name
                     table.workdir = Path(new_workdir, table_name)
 

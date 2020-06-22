@@ -12,8 +12,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
-from esofile_reader.data.df_data import DFData
 from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.tables.df_tables import DFTables
 
 
 class _ParquetIndexer:
@@ -499,14 +499,14 @@ class ParquetFrame:
         self._chunks_table.drop(drop_items, axis=0, inplace=True)
 
 
-class ParquetData(DFData):
+class ParquetTables(DFTables):
     def __init__(self):
         super().__init__()
 
     @classmethod
-    def from_dfdata(cls, dfdata, pardir, monitor: DefaultMonitor = None):
+    def from_dftables(cls, dfdata, pardir, monitor: DefaultMonitor = None):
         """ Create parquet data from DataFrame like class. """
-        pqd = ParquetData()
+        pqd = ParquetTables()
         for k, v in dfdata.tables.items():
             pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, monitor=monitor)
         return pqd
@@ -514,7 +514,7 @@ class ParquetData(DFData):
     @classmethod
     def from_fs(cls, path, pardir, monitor: DefaultMonitor = None):
         """ Create parquet data from filesystem directory. """
-        pqd = ParquetData()
+        pqd = ParquetTables()
         for p in [p for p in Path(path).iterdir() if p.is_dir()]:
             table = str(p.name).split("-")[1]
             pqf = ParquetFrame.from_fs(table, pardir)
