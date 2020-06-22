@@ -18,7 +18,6 @@ from tests import ROOT
 class TestResultFetching(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # TODO write tests
         pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
         sheets = ["simple-template-monthly", "simple-template-range"]
         ef = ResultsFile.from_excel(pth, sheets)
