@@ -8,14 +8,14 @@ from sqlalchemy import Table, select, String, Integer
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.storage.sql_functions import (
+from esofile_reader.storages.sql_functions import (
     destringify_values,
     get_table_name,
     parse_table_name,
     create_special_table,
     create_value_insert,
 )
-from esofile_reader.tables.base_data import BaseTables
+from esofile_reader.tables.base_tables import BaseTables
 from esofile_reader.tables.df_functions import (
     df_dt_slicer,
     sr_dt_slicer,

@@ -9,7 +9,7 @@ from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import SPECIAL
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT, EF_ALL_INTERVALS
 
 

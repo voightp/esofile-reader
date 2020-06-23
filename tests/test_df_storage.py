@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from esofile_reader.results_file import ResultsFile
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storages.df_storage import DFStorage
 from tests import EF_ALL_INTERVALS
 
 

@@ -9,8 +9,8 @@ from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from esofile_reader.tables.df_tables import DFTables
 
 

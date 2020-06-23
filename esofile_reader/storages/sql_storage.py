@@ -19,8 +19,8 @@ from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.search_tree import Tree
-from esofile_reader.storage.base_storage import BaseStorage
-from esofile_reader.storage.sql_functions import (
+from esofile_reader.storages.base_storage import BaseStorage
+from esofile_reader.storages.sql_functions import (
     create_results_table,
     create_datetime_table,
     merge_df_values,

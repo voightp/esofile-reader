@@ -8,9 +8,9 @@ from parameterized import parameterized
 
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.mini_classes import Variable
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.df_storage import DFStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from esofile_reader.tables.df_functions import sr_dt_slicer, df_dt_slicer, sort_by_ids
 from tests import EF_ALL_INTERVALS
 

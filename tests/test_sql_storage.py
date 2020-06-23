@@ -1,7 +1,7 @@
 import unittest
 
 from esofile_reader import ResultsFile
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS, EF1
 
 

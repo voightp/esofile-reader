@@ -15,7 +15,7 @@ from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.tables.df_tables import DFTables
 from esofile_reader.tables.pqt_tables import ParquetFrame, ParquetTables
 

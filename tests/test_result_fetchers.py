@@ -10,9 +10,9 @@ from esofile_reader import EsoFile, get_results
 from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.mini_classes import Variable
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.df_storage import DFStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT, EF1, EF2_PEAKS
 
 

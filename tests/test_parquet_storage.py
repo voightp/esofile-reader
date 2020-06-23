@@ -8,7 +8,7 @@ from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.storage.pqt_storage import ParquetStorage, ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import ROOT, EF1, EF_ALL_INTERVALS
 

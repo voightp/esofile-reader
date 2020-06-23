@@ -9,9 +9,9 @@ from parameterized import parameterized
 from esofile_reader.fetchers import get_results
 from esofile_reader.mini_classes import SimpleVariable
 from esofile_reader.results_file import ResultsFile
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.df_storage import DFStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT
 
 
