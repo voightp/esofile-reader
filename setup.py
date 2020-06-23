@@ -29,7 +29,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     ext_modules=cythonize(
-        "./esofile_reader/processor/esofile_processor.pyx",
+        "./esofile_reader/processing/esofile.pyx",
         annotate=True,
         compiler_directives={"language_level": "3", "profile": True, "linetrace": True},
     ),
