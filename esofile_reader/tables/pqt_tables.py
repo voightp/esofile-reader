@@ -504,10 +504,10 @@ class ParquetTables(DFTables):
         super().__init__()
 
     @classmethod
-    def from_dftables(cls, dfdata, pardir, monitor: DefaultMonitor = None):
+    def from_dftables(cls, dftables, pardir, monitor: DefaultMonitor = None):
         """ Create parquet data from DataFrame like class. """
         pqd = ParquetTables()
-        for k, v in dfdata.tables.items():
+        for k, v in dftables.tables.items():
             pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, monitor=monitor)
         return pqd
 

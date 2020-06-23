@@ -35,7 +35,7 @@ class BaseFile:
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFTables
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -50,13 +50,13 @@ class BaseFile:
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFTables,
+            tables: DFTables,
             search_tree: Tree,
             file_type: str = "na",
     ):
         self.file_path = file_path
         self.file_name = file_name
-        self.tables = data
+        self.tables = tables
         self.file_created = file_created
         self.search_tree = search_tree
         self.file_type = file_type

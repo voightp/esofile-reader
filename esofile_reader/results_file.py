@@ -36,7 +36,7 @@ class ResultsFile(BaseFile):
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFTables
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -51,11 +51,11 @@ class ResultsFile(BaseFile):
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFTables,
+            tables: DFTables,
             search_tree: Tree,
             file_type: str = "na",
     ):
-        super().__init__(file_path, file_name, file_created, data, search_tree, file_type)
+        super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     @classmethod
     def from_excel(
@@ -73,7 +73,7 @@ class ResultsFile(BaseFile):
         if not monitor:
             monitor = DefaultMonitor(file_path)
         monitor.processing_started()
-        data, search_tree = process_excel(
+        tables, search_tree = process_excel(
             file_path,
             monitor,
             sheet_names=sheet_names,
@@ -81,7 +81,7 @@ class ResultsFile(BaseFile):
             header_limit=header_limit,
         )
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="excel"
+            file_path, file_name, file_created, tables, search_tree, file_type="excel"
         )
         monitor.processing_finished()
         return results_file
@@ -103,9 +103,9 @@ class ResultsFile(BaseFile):
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
-        data, search_tree = process_totals(results_file)
+        tables, search_tree = process_totals(results_file)
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="totals"
+            file_path, file_name, file_created, tables, search_tree, file_type="totals"
         )
         return results_file
 
@@ -115,8 +115,8 @@ class ResultsFile(BaseFile):
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        data, search_tree = process_diff(file, other_file)
+        tables, search_tree = process_diff(file, other_file)
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="totals"
+            file_path, file_name, file_created, tables, search_tree, file_type="totals"
         )
         return results_file

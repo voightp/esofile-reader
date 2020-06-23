@@ -36,7 +36,7 @@ class ParquetFile(BaseFile):
         A file path of the reference file.
     file_name: str
         File name of the reference file.
-    data: {DFTables, path like}
+    tables: {DFTables, path like}
         Original tables.
     file_created: datetime
         A creation datetime of the reference file.

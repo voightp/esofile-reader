@@ -44,7 +44,7 @@ class ResultsEsoFile(BaseFile):
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFTables
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -57,11 +57,12 @@ class ResultsEsoFile(BaseFile):
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFTables,
+            tables: DFTables,
             search_tree: Tree,
             peak_outputs: Dict[str, DFTables] = None,
     ):
-        super().__init__(file_path, file_name, file_created, data, search_tree, file_type="eso")
+        super().__init__(file_path, file_name, file_created, tables, search_tree,
+                         file_type="eso")
         self.peak_outputs = peak_outputs
 
     @classmethod
