@@ -83,7 +83,8 @@ class DFTables(BaseTables):
         if tuple(value.columns.names) not in checklist:
             raise TypeError(
                 f"Cannot set table, column names must be [{', '.join(SIMPLE_COLUMN_LEVELS)}]"
-                f" or {', '.join(COLUMN_LEVELS)}.")
+                f" or {', '.join(COLUMN_LEVELS)}."
+            )
         self._tables[key] = value
 
     def __getitem__(self, item: str):

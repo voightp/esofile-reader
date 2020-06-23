@@ -53,7 +53,7 @@ class ResultsFile(BaseFile):
             file_created: datetime,
             data: DFTables,
             search_tree: Tree,
-            file_type: str = "na"
+            file_type: str = "na",
     ):
         super().__init__(file_path, file_name, file_created, data, search_tree, file_type)
 
@@ -64,7 +64,7 @@ class ResultsFile(BaseFile):
             sheet_names: List[str] = None,
             force_index: bool = False,
             monitor: DefaultMonitor = None,
-            header_limit=10
+            header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from excel spreadsheet. """
         file_path = Path(file_path)
@@ -78,7 +78,7 @@ class ResultsFile(BaseFile):
             monitor,
             sheet_names=sheet_names,
             force_index=force_index,
-            header_limit=header_limit
+            header_limit=header_limit,
         )
         results_file = ResultsFile(
             file_path, file_name, file_created, data, search_tree, file_type="excel"
@@ -88,10 +88,7 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_eso_file(
-            cls,
-            file_path: str,
-            monitor: DefaultMonitor = None,
-            year: int = 2002,
+            cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
     ) -> Union[List["ResultsFile"], "ResultsFile"]:
         """ Generate 'ResultsFile' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle

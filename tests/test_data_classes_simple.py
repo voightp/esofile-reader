@@ -35,17 +35,9 @@ class TestDataClassesSimple(unittest.TestCase):
         id_ = cls.sqls.store_file(ef)
         sqlf = cls.sqls.files[id_]
 
-        cls.files = {
-            "dff": dff,
-            "pqf": pqf,
-            "sqlf": sqlf
-        }
+        cls.files = {"dff": dff, "pqf": pqf, "sqlf": sqlf}
 
-        cls.tables = {
-            "dfd": dff.tables,
-            "pqd": pqf.tables,
-            "sqld": sqlf.tables
-        }
+        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables, "sqld": sqlf.tables}
 
     @classmethod
     def tearDownClass(cls):
@@ -64,9 +56,7 @@ class TestDataClassesSimple(unittest.TestCase):
         tables = self.tables[key]
         table_names = tables.get_table_names()
         for table in table_names:
-            self.assertListEqual(
-                ["id", "table", "key", "units"], tables.get_levels(table)
-            )
+            self.assertListEqual(["id", "table", "key", "units"], tables.get_levels(table))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_available_tables(self, key):
@@ -216,10 +206,7 @@ class TestDataClassesSimple(unittest.TestCase):
         tables = self.tables[key]
         df = tables.get_results("monthly", [2, 6])
         test_columns = pd.MultiIndex.from_tuples(
-            [
-                (2, "monthly", "BLOCK1:ZONE1", ""),
-                (6, "monthly", "BLOCK1:ZONE1", "C"),
-            ],
+            [(2, "monthly", "BLOCK1:ZONE1", ""), (6, "monthly", "BLOCK1:ZONE1", "C"), ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
@@ -248,25 +235,15 @@ class TestDataClassesSimple(unittest.TestCase):
     def test_get_results_sliced(self, key):
         tables = self.tables[key]
         df = tables.get_results(
-            "monthly",
-            [2, 6],
-            start_date=datetime(2002, 4, 1),
-            end_date=datetime(2002, 6, 1),
+            "monthly", [2, 6], start_date=datetime(2002, 4, 1), end_date=datetime(2002, 6, 1),
         )
         test_columns = pd.MultiIndex.from_tuples(
-            [
-                (2, "monthly", "BLOCK1:ZONE1", ""),
-                (6, "monthly", "BLOCK1:ZONE1", "C"),
-            ],
+            [(2, "monthly", "BLOCK1:ZONE1", ""), (6, "monthly", "BLOCK1:ZONE1", "C"), ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [
-                [4.394446155, 22.78142137],
-                [4.44599391, 24.3208488],
-                [3.99495105, 25.47972495],
-            ],
+            [[4.394446155, 22.78142137], [4.44599391, 24.3208488], [3.99495105, 25.47972495], ],
             columns=test_columns,
             index=test_index,
         )

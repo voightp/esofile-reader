@@ -86,9 +86,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
-        v = Variable(
-            table="range", key="BLOCK1", type="Zone People Occupant Count", units=""
-        )
+        v = Variable(table="range", key="BLOCK1", type="Zone People Occupant Count", units="")
         out = self.bf._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
@@ -135,16 +133,17 @@ class TestRangeIntervalFile(unittest.TestCase):
         v = Variable(table="range", key=None, type="Temperature", units="C")
         id_, var = self.bf.aggregate_variables(v, "sum")
         self.assertEqual(
-            var,
-            Variable(table="range", key="Custom Key - sum", type="Temperature", units="C"),
+            var, Variable(table="range", key="Custom Key - sum", type="Temperature", units="C"),
         )
         self.bf.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "W",
-                                     [1, 1, 1])
-        _, v2 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "J",
-                                     [2, 2, 2])
+        _, v1 = self.bf.add_variable(
+            "range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1]
+        )
+        _, v2 = self.bf.add_variable(
+            "range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2]
+        )
 
         with self.assertRaises(CannotAggregateVariables):
             _ = self.bf.aggregate_variables([v1, v2], "sum")
@@ -193,16 +192,10 @@ class TestRangeIntervalFile(unittest.TestCase):
         loaded_pqs = ParquetStorage.load_storage(path)
         loaded_pqf = loaded_pqs.files[id_]
 
-        assert_index_equal(
-            pqf.tables["range"].index, loaded_pqf.tables["range"].index
-        )
+        assert_index_equal(pqf.tables["range"].index, loaded_pqf.tables["range"].index)
 
-        assert_index_equal(
-            pqf.tables["range"].columns, loaded_pqf.tables["range"].columns
-        )
+        assert_index_equal(pqf.tables["range"].columns, loaded_pqf.tables["range"].columns)
 
-        assert_frame_equal(
-            pqf.tables["range"].get_df(), loaded_pqf.tables["range"].get_df()
-        )
+        assert_frame_equal(pqf.tables["range"].get_df(), loaded_pqf.tables["range"].get_df())
 
         path.unlink()

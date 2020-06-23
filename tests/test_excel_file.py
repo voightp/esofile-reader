@@ -40,40 +40,42 @@ class TestExcelFile(unittest.TestCase):
         sr = pd.Series(["a", "b", pd.NaT, pd.NaT, 0.1])
         self.assertFalse(is_data_row(sr))
 
-    @parameterized.expand([
-        (
-                "simple-no-template-no-index",
-                "simple-no-template-no-index",
-                (12, 7),
-                "range",
-                pd.RangeIndex,
-                ["id", "table", "key", "units"]
-        ),
-        (
-                "simple-no-template-dt-index",
-                "simple-no-template-dt-index",
-                (12, 7),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "units"]
-        ),
-        (
-                "simple-template-monthly",
-                "monthly",
-                (12, 8),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "units"]
-        ),
-        (
-                "simple-template-range",
-                "range",
-                (12, 7),
-                "range",
-                pd.RangeIndex,
-                ["id", "table", "key", "units"]
-        )
-    ])
+    @parameterized.expand(
+        [
+            (
+                    "simple-no-template-no-index",
+                    "simple-no-template-no-index",
+                    (12, 7),
+                    "range",
+                    pd.RangeIndex,
+                    ["id", "table", "key", "units"],
+            ),
+            (
+                    "simple-no-template-dt-index",
+                    "simple-no-template-dt-index",
+                    (12, 7),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "units"],
+            ),
+            (
+                    "simple-template-monthly",
+                    "monthly",
+                    (12, 8),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "units"],
+            ),
+            (
+                    "simple-template-range",
+                    "range",
+                    (12, 7),
+                    "range",
+                    pd.RangeIndex,
+                    ["id", "table", "key", "units"],
+            ),
+        ]
+    )
     def test_populate_simple_tables(
             self, sheet, table, shape, index_name, index_type, column_names
     ):
@@ -85,48 +87,50 @@ class TestExcelFile(unittest.TestCase):
         self.assertListEqual(column_names, df.columns.names)
         self.assertTrue(ef.tables.is_simple(table))
 
-    @parameterized.expand([
-        (
-                "no-template-full-dt-index",
-                "no-template-full-dt-index",
-                (12, 8),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "type", "units"]
-        ),
-        (
-                "full-template-hourly",
-                "hourly",
-                (8760, 8),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "type", "units"]
-        ),
-        (
-                "full-template-daily",
-                "daily",
-                (365, 8),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "type", "units"]
-        ),
-        (
-                "full-template-monthly",
-                "monthly",
-                (12, 8),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "type", "units"]
-        ),
-        (
-                "full-template-runperiod",
-                "runperiod",
-                (1, 20),
-                "timestamp",
-                pd.DatetimeIndex,
-                ["id", "table", "key", "type", "units"]
-        )
-    ])
+    @parameterized.expand(
+        [
+            (
+                    "no-template-full-dt-index",
+                    "no-template-full-dt-index",
+                    (12, 8),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "type", "units"],
+            ),
+            (
+                    "full-template-hourly",
+                    "hourly",
+                    (8760, 8),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "type", "units"],
+            ),
+            (
+                    "full-template-daily",
+                    "daily",
+                    (365, 8),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "type", "units"],
+            ),
+            (
+                    "full-template-monthly",
+                    "monthly",
+                    (12, 8),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "type", "units"],
+            ),
+            (
+                    "full-template-runperiod",
+                    "runperiod",
+                    (1, 20),
+                    "timestamp",
+                    pd.DatetimeIndex,
+                    ["id", "table", "key", "type", "units"],
+            ),
+        ]
+    )
     def test_populate_full_tables(
             self, sheet, table, shape, index_name, index_type, column_names
     ):
@@ -144,16 +148,18 @@ class TestExcelFile(unittest.TestCase):
         self.assertEqual((12, 7), df.shape)
 
     def test_force_index_generic_column(self):
-        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["force-index"],
-                                    force_index=True)
+        ef = ResultsFile.from_excel(
+            EDGE_CASE_PATH, sheet_names=["force-index"], force_index=True
+        )
         df = ef.tables["force-index"]
         self.assertEqual((12, 6), df.shape)
         self.assertEqual("index", df.index.name)
         assert_index_equal(pd.Index(list("abcdefghijkl"), name="index"), df.index)
 
     def test_index_duplicate_values(self):
-        ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["duplicate-index"],
-                                    force_index=True)
+        ef = ResultsFile.from_excel(
+            EDGE_CASE_PATH, sheet_names=["duplicate-index"], force_index=True
+        )
         df = ef.tables["duplicate-index"]
         self.assertEqual((6, 6), df.shape)
         self.assertEqual("index", df.index.name)

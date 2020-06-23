@@ -157,10 +157,7 @@ class TestPeakResults(unittest.TestCase):
         for table in EF_ALL_INTERVALS_PEAKS.table_names:
             variables = [
                 Variable(
-                    table,
-                    "Environment",
-                    "Site Diffuse Solar Radiation Rate per Area",
-                    "W/m2",
+                    table, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2",
                 ),
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
@@ -173,9 +170,7 @@ class TestPeakResults(unittest.TestCase):
                 output_type="global_max",
             )
             self.assertEqual(df.index.names, ["file", None])
-            self.assertEqual(
-                df.columns.names, ["id", "table", "key", "type", "units", "data"]
-            )
+            self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units", "data"])
 
             df = EF_ALL_INTERVALS_PEAKS.get_results(
                 variables,
@@ -199,9 +194,7 @@ class TestPeakResults(unittest.TestCase):
                 output_type="global_max",
             )
             self.assertEqual(df.index.names, [None])
-            self.assertEqual(
-                df.columns.names, ["id", "table", "key", "type", "units", "data"]
-            )
+            self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units", "data"])
 
     def test_timestamp_format(self):
         first = [
@@ -215,10 +208,7 @@ class TestPeakResults(unittest.TestCase):
         for table, f in zip(EF_ALL_INTERVALS_PEAKS.table_names, first):
             variables = [
                 Variable(
-                    table,
-                    "Environment",
-                    "Site Diffuse Solar Radiation Rate per Area",
-                    "W/m2",
+                    table, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2",
                 ),
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]

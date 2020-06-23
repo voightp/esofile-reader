@@ -127,8 +127,7 @@ def parse_header(
         )
         if n < 2:
             raise InsuficientHeaderInfo(
-                f"Not enough information to create header. "
-                f"There's only {n} level.\n{msg}"
+                f"Not enough information to create header. " f"There's only {n} level.\n{msg}"
             )
         elif n > 3:
             raise InsuficientHeaderInfo(f"There's too many header levels: {n}.\n{msg}")
@@ -199,10 +198,7 @@ def build_df_table(
     elif is_range(df.index):
         # is_range requires range like array with length > 1
         df.index = pd.RangeIndex(
-            start=df.index[0],
-            stop=df.index[-1] + 1,
-            step=df.index[1] - df.index[0],
-            name=RANGE
+            start=df.index[0], stop=df.index[-1] + 1, step=df.index[1] - df.index[0], name=RANGE
         )
     else:
         df.index.rename(INDEX, inplace=True)
@@ -239,7 +235,7 @@ def process_excel(
         # process header data
         monitor.header_started()
         header_mi, skiprows, index_column = parse_header(
-            df.iloc[: header_limit, :], force_index=force_index
+            df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
@@ -258,9 +254,7 @@ def process_excel(
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
                 dfi, end_id = build_df_table(
-                    df.loc[:, table_level == key],
-                    name=key,
-                    start_id=start_id,
+                    df.loc[:, table_level == key], name=key, start_id=start_id,
                 )
                 start_id = end_id
                 df_tables[key] = dfi

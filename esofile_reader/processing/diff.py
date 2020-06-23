@@ -52,9 +52,7 @@ def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFTables:
     return tables
 
 
-def process_diff(
-        first_file: ResultsFile, other_file: ResultsFile
-) -> Tuple[Data, Tree]:
+def process_diff(first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Data, Tree]:
     """ Create diff outputs. """
     header = {}
     tables = calculate_diff(first_file, other_file)

@@ -86,14 +86,7 @@ class ParquetFile(BaseFile):
             search_tree = Tree()
             search_tree.populate_tree(tables.get_all_variables_dct())
 
-        super().__init__(
-            file_path,
-            file_name,
-            file_created,
-            tables,
-            search_tree,
-            file_type
-        )
+        super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     def __enter__(self):
         return self

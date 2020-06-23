@@ -168,7 +168,7 @@ def si_to_ip(orig_units):
         "Pa": ("in. of water (60°F)", 248.84),
         "Pa/m": ("ft of water per 100 ft pipe", 98.1),
         "Pa-s": ("lbf-s/ft2 (dynamic viscosity m)", 47.88026),
-        'W/m2': ("W/sqf", 10.76),
+        "W/m2": ("W/sqf", 10.76),
         "W/m-K": ("Btu-ft/h-ft2-°F", 1.730735),
         "W/m2-K": ("Btu/h-ft2-°F (overall heat transfer coefficient U)", 5.678263),
         "C": ("F", c_to_fahrenheit),

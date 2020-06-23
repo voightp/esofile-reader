@@ -193,16 +193,12 @@ class TestParquetStorage(unittest.TestCase):
         for table in EF_ALL_INTERVALS.table_names:
             test_df = EF_ALL_INTERVALS.get_numeric_table(table)
             for f in ef1_files:
-                assert_frame_equal(
-                    test_df, f.get_numeric_table(table), check_column_type=False
-                )
+                assert_frame_equal(test_df, f.get_numeric_table(table), check_column_type=False)
 
         for table in EF1.table_names:
             test_df = EF1.get_numeric_table(table)
             for f in ef2_files:
-                assert_frame_equal(
-                    test_df, f.get_numeric_table(table), check_column_type=False
-                )
+                assert_frame_equal(test_df, f.get_numeric_table(table), check_column_type=False)
 
         p1.unlink()
         p2.unlink()

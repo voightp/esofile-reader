@@ -38,7 +38,7 @@ class DFFile(BaseFile):
             file.file_created,
             tables,
             file.search_tree,
-            file.file_type
+            file.file_type,
         )
 
 

@@ -69,14 +69,7 @@ class SQLFile(BaseFile):
             search_tree: Tree,
             file_type: str,
     ):
-        super().__init__(
-            file_path,
-            file_name,
-            file_created,
-            sql_tables,
-            search_tree,
-            file_type
-        )
+        super().__init__(file_path, file_name, file_created, sql_tables, search_tree, file_type)
         self.id_ = id_
 
     def rename(self, name: str) -> None:
@@ -200,7 +193,7 @@ class SQLStorage(BaseStorage):
                 sql_tables=SQLTables(id_, self),
                 file_created=results_file.file_created,
                 search_tree=results_file.search_tree,
-                file_type=results_file.file_type
+                file_type=results_file.file_type,
             )
             self.files[id_] = db_file
         return id_

@@ -52,7 +52,7 @@ class BaseFile:
             file_created: datetime,
             data: DFTables,
             search_tree: Tree,
-            file_type: str = "na"
+            file_type: str = "na",
     ):
         self.file_path = file_path
         self.file_name = file_name
@@ -416,9 +416,7 @@ class BaseFile:
             raise CannotAggregateVariables("Cannot find variables!")
 
         if len(groups.keys()) > 1:
-            raise CannotAggregateVariables(
-                "Cannot aggregate variables from different tables!"
-            )
+            raise CannotAggregateVariables("Cannot aggregate variables from different tables!")
 
         table, ids = list(groups.items())[0]
 

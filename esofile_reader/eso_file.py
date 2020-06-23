@@ -59,7 +59,7 @@ class ResultsEsoFile(BaseFile):
             file_created: datetime,
             data: DFTables,
             search_tree: Tree,
-            peak_outputs: Dict[str, DFTables] = None
+            peak_outputs: Dict[str, DFTables] = None,
     ):
         super().__init__(file_path, file_name, file_created, data, search_tree, file_type="eso")
         self.peak_outputs = peak_outputs
@@ -238,9 +238,7 @@ class EsoFile(ResultsEsoFile):
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-        content = read_file(
-            file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
-        )
+        content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
         environment_names = content[0]
         if len(environment_names) == 1:
             tables = content[1][0]

@@ -107,10 +107,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
         self.assertListEqual([13], ids)
@@ -131,10 +128,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test__find_pairs(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual({"timestep": [13]}, out)
@@ -161,10 +155,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_rename_variable(self):
         v1 = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         self.ef.rename_variable(v1, new_key="NEW1", new_type="VARIABLE")
 
@@ -184,10 +175,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK2:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = self.ef.rename_variable(v, new_key="", new_type="")
         self.assertIsNone(out)

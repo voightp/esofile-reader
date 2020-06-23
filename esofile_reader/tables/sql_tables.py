@@ -20,7 +20,7 @@ from esofile_reader.tables.df_functions import (
     df_dt_slicer,
     sr_dt_slicer,
     merge_peak_outputs,
-    sort_by_ids
+    sort_by_ids,
 )
 
 
@@ -117,8 +117,13 @@ class SQLTables(BaseTables):
             s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.units]
             columns = SIMPLE_COLUMN_LEVELS
         else:
-            s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.type,
-                 sql_table.c.units]
+            s = [
+                sql_table.c.id,
+                sql_table.c.table,
+                sql_table.c.key,
+                sql_table.c.type,
+                sql_table.c.units,
+            ]
             columns = COLUMN_LEVELS
         with self.storage.engine.connect() as conn:
             res = conn.execute(select(s))
@@ -136,11 +141,12 @@ class SQLTables(BaseTables):
     ) -> None:
         sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
-            kwargs = {"key": new_key} if self.is_simple(table) \
+            kwargs = (
+                {"key": new_key}
+                if self.is_simple(table)
                 else {"key": new_key, "type": new_type}
-            conn.execute(
-                sql_table.update().where(sql_table.c.id == id_).values(**kwargs)
             )
+            conn.execute(sql_table.update().where(sql_table.c.id == id_).values(**kwargs))
 
     def _validate(self, table: str, array: Sequence[float]) -> bool:
         sql_table = self._get_results_table(table)
