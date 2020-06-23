@@ -5,10 +5,10 @@ from typing import Dict, Generator, List
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.data.df_data import DFData
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, ResultsFile
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 VARIABLE_GROUPS = {
     "AFN Zone",
@@ -178,11 +178,11 @@ def process_totals(file: ResultsFile):
 
         return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
 
-    data = DFData()
+    tables = DFTables()
     id_gen = incremental_id_gen(start=1)
 
     for table in file.table_names:
-        out = file.data.get_numeric_table(table)
+        out = file.tables.get_numeric_table(table)
 
         # find invalid ids
         ids = ignored_ids(out)
@@ -198,7 +198,7 @@ def process_totals(file: ResultsFile):
         out.columns = out.columns.droplevel(COLUMN_LEVELS[1:])
 
         # get header variables and filter them
-        variable_dct = file.data.get_variables_dct(table)
+        variable_dct = file.tables.get_variables_dct(table)
         variable_dct = {k: v for k, v in variable_dct.items() if k not in ids}
 
         header_df = _get_grouped_vars(id_gen, variable_dct)
@@ -215,18 +215,18 @@ def process_totals(file: ResultsFile):
 
         # restore index
         df.index = out.index
-        data.populate_table(table, df)
+        tables[table] = df
 
         for c in [N_DAYS_COLUMN, DAY_COLUMN]:
             try:
-                c1 = file.data.get_special_column(table, c)
-                c2 = file.data.get_special_column(table, c)
+                c1 = file.tables.get_special_column(table, c)
+                c2 = file.tables.get_special_column(table, c)
                 if c1.equals(c2):
-                    data.insert_special_column(table, c, c1)
+                    tables.insert_special_column(table, c, c1)
             except KeyError:
                 pass
 
     tree = Tree()
-    tree.populate_tree(data.get_all_variables_dct())
+    tree.populate_tree(tables.get_all_variables_dct())
 
-    return data, tree
+    return tables, tree

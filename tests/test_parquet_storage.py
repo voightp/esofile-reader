@@ -7,9 +7,9 @@ from pathlib import Path
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, ResultsFile
-from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.storage.pqt_storage import ParquetStorage, ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
+from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import ROOT, EF1, EF_ALL_INTERVALS
 
 logging.basicConfig(level=logging.INFO)
@@ -90,10 +90,10 @@ class TestParquetStorage(unittest.TestCase):
                 pqf.get_numeric_table(interval),
                 check_column_type=False,
             )
-            pqf.data.tables[interval].get_df()
+            pqf.tables[interval].get_df()
             assert_frame_equal(
-                EF_ALL_INTERVALS.data.tables[interval],
-                pqf.data.tables[interval].get_df(),
+                EF_ALL_INTERVALS.tables[interval],
+                pqf.tables[interval].get_df(),
                 check_column_type=False,
             )
         pqf.clean_up()
@@ -193,16 +193,12 @@ class TestParquetStorage(unittest.TestCase):
         for table in EF_ALL_INTERVALS.table_names:
             test_df = EF_ALL_INTERVALS.get_numeric_table(table)
             for f in ef1_files:
-                assert_frame_equal(
-                    test_df, f.get_numeric_table(table), check_column_type=False
-                )
+                assert_frame_equal(test_df, f.get_numeric_table(table), check_column_type=False)
 
         for table in EF1.table_names:
             test_df = EF1.get_numeric_table(table)
             for f in ef2_files:
-                assert_frame_equal(
-                    test_df, f.get_numeric_table(table), check_column_type=False
-                )
+                assert_frame_equal(test_df, f.get_numeric_table(table), check_column_type=False)
 
         p1.unlink()
         p2.unlink()
@@ -212,7 +208,7 @@ class TestParquetStorage(unittest.TestCase):
                 id_=0,
                 file_path=EF_ALL_INTERVALS.file_path,
                 file_name=EF_ALL_INTERVALS.file_name,
-                data=EF_ALL_INTERVALS.data,
+                tables=EF_ALL_INTERVALS.tables,
                 file_created=EF_ALL_INTERVALS.file_created,
                 search_tree=EF_ALL_INTERVALS.search_tree,
                 file_type=EF_ALL_INTERVALS.file_type,

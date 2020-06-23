@@ -6,25 +6,25 @@ import pandas as pd
 from sqlalchemy import Table, select, String, Integer
 
 from esofile_reader.constants import *
-from esofile_reader.data.base_data import BaseData
-from esofile_reader.data.df_functions import (
-    df_dt_slicer,
-    sr_dt_slicer,
-    merge_peak_outputs,
-    sort_by_ids
-)
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.storage.sql_functions import (
+from esofile_reader.storages.sql_functions import (
     destringify_values,
     get_table_name,
     parse_table_name,
     create_special_table,
     create_value_insert,
 )
+from esofile_reader.tables.base_tables import BaseTables
+from esofile_reader.tables.df_functions import (
+    df_dt_slicer,
+    sr_dt_slicer,
+    merge_peak_outputs,
+    sort_by_ids,
+)
 
 
-class SQLData(BaseData):
+class SQLTables(BaseTables):
     def __init__(self, id_, sql_storage):
         self.id_ = id_
         self.storage = sql_storage
@@ -113,13 +113,18 @@ class SQLData(BaseData):
 
     def get_variables_df(self, table: str) -> pd.DataFrame:
         sql_table = self._get_results_table(table)
-        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
         if self.is_simple(table):
             s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.units]
-            columns.remove(TYPE_LEVEL)
+            columns = SIMPLE_COLUMN_LEVELS
         else:
-            s = [sql_table.c.id, sql_table.c.table, sql_table.c.key, sql_table.c.type,
-                 sql_table.c.units]
+            s = [
+                sql_table.c.id,
+                sql_table.c.table,
+                sql_table.c.key,
+                sql_table.c.type,
+                sql_table.c.units,
+            ]
+            columns = COLUMN_LEVELS
         with self.storage.engine.connect() as conn:
             res = conn.execute(select(s))
             df = pd.DataFrame(res, columns=columns)
@@ -136,11 +141,12 @@ class SQLData(BaseData):
     ) -> None:
         sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
-            kwargs = {"key": new_key} if self.is_simple(table) \
+            kwargs = (
+                {"key": new_key}
+                if self.is_simple(table)
                 else {"key": new_key, "type": new_type}
-            conn.execute(
-                sql_table.update().where(sql_table.c.id == id_).values(**kwargs)
             )
+            conn.execute(sql_table.update().where(sql_table.c.id == id_).values(**kwargs))
 
     def _validate(self, table: str, array: Sequence[float]) -> bool:
         sql_table = self._get_results_table(table)
@@ -240,9 +246,7 @@ class SQLData(BaseData):
             include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
-        columns = [ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-        if self.is_simple(table):
-            columns.remove(TYPE_LEVEL)
+        columns = SIMPLE_COLUMN_LEVELS if self.is_simple(table) else COLUMN_LEVELS
         sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
             res = conn.execute(sql_table.select().where(sql_table.c.id.in_(ids)))
@@ -254,7 +258,7 @@ class SQLData(BaseData):
                     f"is not included."
                 )
 
-            df.set_index(columns, inplace=True)
+            df.set_index(list(columns), inplace=True)
             df = destringify_values(df)
         if table == RANGE:
             # create default 'range' index

@@ -12,7 +12,6 @@ from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
 
 
 class TestFileFunctions(unittest.TestCase):
-
     def test_table_names(self):
         self.assertListEqual(
             EF_ALL_INTERVALS.table_names,
@@ -20,7 +19,7 @@ class TestFileFunctions(unittest.TestCase):
         )
 
     def test_all_ids(self):
-        self.assertEqual(len(EF_ALL_INTERVALS.data.get_all_variable_ids()), 114)
+        self.assertEqual(len(EF_ALL_INTERVALS.tables.get_all_variable_ids()), 114)
 
     def test_created(self):
         self.assertTrue(isinstance(EF_ALL_INTERVALS.file_created, datetime))
@@ -35,14 +34,16 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         names = ["id", "table", "key", "type", "units"]
-        self.assertEqual(EF_ALL_INTERVALS.data.get_all_variables_df().columns.to_list(), names)
-        self.assertEqual(len(EF_ALL_INTERVALS.data.get_all_variables_df().index), 114)
+        self.assertEqual(
+            EF_ALL_INTERVALS.tables.get_all_variables_df().columns.to_list(), names
+        )
+        self.assertEqual(len(EF_ALL_INTERVALS.tables.get_all_variables_df().index), 114)
 
         frames = []
         for table in EF_ALL_INTERVALS.table_names:
             frames.append(EF_ALL_INTERVALS.get_header_df(table))
         df = pd.concat(frames, axis=0)
-        assert_frame_equal(df, EF_ALL_INTERVALS.data.get_all_variables_df())
+        assert_frame_equal(df, EF_ALL_INTERVALS.tables.get_all_variables_df())
 
     def test_rename(self):
         original = EF_ALL_INTERVALS.file_name
@@ -108,10 +109,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = EF_ALL_INTERVALS.find_ids(v, part_match=False)
         self.assertEqual(ids, [13])
@@ -132,10 +130,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test__find_pairs(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = EF_ALL_INTERVALS._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {"timestep": [13]})
@@ -163,10 +158,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_rename_variable(self):
         v1 = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         EF_ALL_INTERVALS.rename_variable(v1, new_key="NEW3", new_type="VARIABLE")
 
@@ -186,10 +178,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK2:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = EF_ALL_INTERVALS.rename_variable(v, new_key="", new_type="")
         self.assertIsNone(out)
@@ -293,7 +282,7 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.data.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
+        ef.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

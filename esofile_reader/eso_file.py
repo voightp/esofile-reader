@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Optional, Dict
 from typing import Union, List
 
-from esofile_reader.data.df_data import DFData
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 try:
     from typing import ForwardRef
@@ -44,7 +44,7 @@ class ResultsEsoFile(BaseFile):
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFData
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -57,11 +57,12 @@ class ResultsEsoFile(BaseFile):
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFData,
+            tables: DFTables,
             search_tree: Tree,
-            peak_outputs: Dict[str, DFData] = None
+            peak_outputs: Dict[str, DFTables] = None,
     ):
-        super().__init__(file_path, file_name, file_created, data, search_tree, file_type="eso")
+        super().__init__(file_path, file_name, file_created, tables, search_tree,
+                         file_type="eso")
         self.peak_outputs = peak_outputs
 
     @classmethod
@@ -238,16 +239,14 @@ class EsoFile(ResultsEsoFile):
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-        content = read_file(
-            file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year
-        )
+        content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
         environment_names = content[0]
         if len(environment_names) == 1:
-            data = content[1][0]
+            tables = content[1][0]
             peak_outputs = content[2][0]
             tree = content[3][0]
             super().__init__(
-                file_path, file_name, file_created, data, tree, peak_outputs=peak_outputs
+                file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
             )
         else:
             raise MultiEnvFileRequired(

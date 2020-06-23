@@ -9,9 +9,9 @@ from parameterized import parameterized
 from esofile_reader.fetchers import get_results
 from esofile_reader.mini_classes import SimpleVariable
 from esofile_reader.results_file import ResultsFile
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.df_storage import DFStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT
 
 
@@ -34,17 +34,9 @@ class TestResultFetching(unittest.TestCase):
         id_ = cls.sqls.store_file(ef)
         sqlf = cls.sqls.files[id_]
 
-        cls.files = {
-            "dff": dff,
-            "pqf": pqf,
-            "sqlf": sqlf
-        }
+        cls.files = {"dff": dff, "pqf": pqf, "sqlf": sqlf}
 
-        cls.data = {
-            "dfd": dff.data,
-            "pqd": pqf.data,
-            "sqld": sqlf.data
-        }
+        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables, "sqld": sqlf.tables}
 
     @classmethod
     def tearDownClass(cls):
@@ -64,20 +56,22 @@ class TestResultFetching(unittest.TestCase):
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
         test_df = pd.DataFrame(
-            {"dummy": [
-                19.14850348,
-                18.99527211,
-                20.98875615,
-                22.78142137,
-                24.3208488,
-                25.47972495,
-                26.16745932,
-                25.68404781,
-                24.15289436,
-                22.47691717,
-                20.58877632,
-                18.66182101,
-            ]},
+            {
+                "dummy": [
+                    19.14850348,
+                    18.99527211,
+                    20.98875615,
+                    22.78142137,
+                    24.3208488,
+                    25.47972495,
+                    26.16745932,
+                    25.68404781,
+                    24.15289436,
+                    22.47691717,
+                    20.58877632,
+                    18.66182101,
+                ]
+            },
             index=test_index,
         )
         test_df.columns = test_columns
@@ -97,16 +91,18 @@ class TestResultFetching(unittest.TestCase):
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
         test_df = pd.DataFrame(
-            {"dummy": [
-                24.3208488,
-                25.47972495,
-                26.16745932,
-                25.68404781,
-                24.15289436,
-                22.47691717,
-                20.58877632,
-                18.66182101,
-            ]},
+            {
+                "dummy": [
+                    24.3208488,
+                    25.47972495,
+                    26.16745932,
+                    25.68404781,
+                    24.15289436,
+                    22.47691717,
+                    20.58877632,
+                    18.66182101,
+                ]
+            },
             index=test_index,
         )
         test_df.columns = test_columns
@@ -126,16 +122,18 @@ class TestResultFetching(unittest.TestCase):
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
         test_df = pd.DataFrame(
-            {"dummy": [
-                19.14850348,
-                18.99527211,
-                20.98875615,
-                22.78142137,
-                24.3208488,
-                25.47972495,
-                26.16745932,
-                25.68404781,
-            ]},
+            {
+                "dummy": [
+                    19.14850348,
+                    18.99527211,
+                    20.98875615,
+                    22.78142137,
+                    24.3208488,
+                    25.47972495,
+                    26.16745932,
+                    25.68404781,
+                ]
+            },
             index=test_index,
         )
         test_df.columns = test_columns
@@ -152,7 +150,10 @@ class TestResultFetching(unittest.TestCase):
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONE1", "C")], names=["key", "units"]
         )
-        dates = [datetime(2002, 5, 1), datetime(2002, 6, 1), ]
+        dates = [
+            datetime(2002, 5, 1),
+            datetime(2002, 6, 1),
+        ]
         test_index = pd.MultiIndex.from_product(
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
@@ -166,14 +167,19 @@ class TestResultFetching(unittest.TestCase):
         file = self.files[key]
         v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
         df = get_results(
-            file, v, start_date=datetime(2002, 4, 10),
+            file,
+            v,
+            start_date=datetime(2002, 4, 10),
             end_date=datetime(2002, 6, 10),
-            include_table_name=True
+            include_table_name=True,
         )
         test_columns = pd.MultiIndex.from_tuples(
             [("monthly", "BLOCK1:ZONE1", "C")], names=["table", "key", "units"]
         )
-        dates = [datetime(2002, 5, 1), datetime(2002, 6, 1), ]
+        dates = [
+            datetime(2002, 5, 1),
+            datetime(2002, 6, 1),
+        ]
         test_index = pd.MultiIndex.from_product(
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
@@ -233,11 +239,7 @@ class TestResultFetching(unittest.TestCase):
         ]
         df = get_results(file, v, units_system="IP", rate_to_energy_dct={"monthly": False})
         test_columns = pd.MultiIndex.from_tuples(
-            [
-                ("BLOCK3:ZONE1", ""),
-                ("Environment", "W/sqf"),
-                ("BLOCK1:ZONE1", "F"),
-            ],
+            [("BLOCK3:ZONE1", ""), ("Environment", "W/sqf"), ("BLOCK1:ZONE1", "F"), ],
             names=["key", "units"],
         )
         dates = pd.date_range(start="2002/01/01", freq="MS", periods=12)
@@ -297,7 +299,7 @@ class TestResultFetching(unittest.TestCase):
                 [186766200.0],
                 [112393800.0],
                 [74236500.0],
-                [46707300.0]
+                [46707300.0],
             ],
             columns=test_columns,
             index=test_index,

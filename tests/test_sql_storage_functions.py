@@ -9,7 +9,7 @@ from esofile_reader import EsoFile
 from esofile_reader import Variable
 from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import SPECIAL
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT, EF_ALL_INTERVALS
 
 
@@ -27,7 +27,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         )
 
     def test_all_ids(self):
-        self.assertEqual(114, len(self.ef.data.get_all_variable_ids()))
+        self.assertEqual(114, len(self.ef.tables.get_all_variable_ids()))
 
     def test_created(self):
         self.assertTrue(isinstance(self.ef.file_created, datetime))
@@ -38,9 +38,9 @@ class TestSqlDBFileFunctions(unittest.TestCase):
     def test_header_df(self):
         self.assertEqual(
             ["id", "table", "key", "type", "units"],
-            self.ef.data.get_all_variables_df().columns.to_list(),
+            self.ef.tables.get_all_variables_df().columns.to_list(),
         )
-        self.assertEqual(len(self.ef.data.get_all_variables_df().index), 114)
+        self.assertEqual(len(self.ef.tables.get_all_variables_df().index), 114)
 
     def test_rename(self):
         original = self.ef.file_name
@@ -107,10 +107,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         ids = self.ef.find_ids(v, part_match=False)
         self.assertListEqual([13], ids)
@@ -131,10 +128,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test__find_pairs(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = self.ef._find_pairs(v, part_match=False)
         self.assertDictEqual({"timestep": [13]}, out)
@@ -161,10 +155,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_rename_variable(self):
         v1 = Variable(
-            table="timestep",
-            key="BLOCK1:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
         self.ef.rename_variable(v1, new_key="NEW1", new_type="VARIABLE")
 
@@ -184,10 +175,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_rename_variable_invalid_names(self):
         v = Variable(
-            table="timestep",
-            key="BLOCK2:ZONE1",
-            type="Zone People Occupant Count",
-            units="",
+            table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
         )
         out = self.ef.rename_variable(v, new_key="", new_type="")
         self.assertIsNone(out)
@@ -284,7 +272,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_aggregate_energy_rate_invalid(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.data.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
+        ef.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
 
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")

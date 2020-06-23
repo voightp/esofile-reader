@@ -188,9 +188,7 @@ class TestStandardResults(unittest.TestCase):
                 include_id=True,
             )
             self.assertEqual(df.index.names, ["timestamp", "day"])
-            self.assertEqual(
-                df.columns.names, ["file", "id", "table", "key", "type", "units"]
-            )
+            self.assertEqual(df.columns.names, ["file", "id", "table", "key", "type", "units"])
 
             df = EF_ALL_INTERVALS.get_results(
                 variables,

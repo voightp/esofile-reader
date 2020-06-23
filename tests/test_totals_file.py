@@ -5,8 +5,8 @@ import pandas as pd
 
 from esofile_reader import ResultsFile
 from esofile_reader import Variable
-from esofile_reader.data.df_data import DFData
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 
 class TestTotalsFile(TestCase):
@@ -62,15 +62,15 @@ class TestTotalsFile(TestCase):
             [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=range_columns, index=range_index
         )
 
-        data = DFData()
-        data.populate_table("daily", daily_results)
-        data.populate_table("monthly", monthly_results)
-        data.populate_table("range", range_results)
+        tables = DFTables()
+        tables["daily"] = daily_results
+        tables["monthly"] = monthly_results
+        tables["range"] = range_results
 
         tree = Tree()
-        tree.populate_tree(data.get_all_variables_dct())
+        tree.populate_tree(tables.get_all_variables_dct())
 
-        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), data, tree)
+        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree)
         cls.tf = ResultsFile.from_totals(bf)
 
     def test_file_name(self):
@@ -112,7 +112,7 @@ class TestTotalsFile(TestCase):
             dtype="float64",
         )
 
-        pd.testing.assert_frame_equal(self.tf.data.tables["daily"], test_results)
+        pd.testing.assert_frame_equal(self.tf.tables["daily"], test_results)
 
     def test_non_grouped_variables(self):
         test_columns = pd.MultiIndex.from_tuples(
@@ -130,11 +130,11 @@ class TestTotalsFile(TestCase):
             [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=test_columns, index=test_index
         )
 
-        pd.testing.assert_frame_equal(self.tf.data.tables["range"], test_results)
+        pd.testing.assert_frame_equal(self.tf.tables["range"], test_results)
 
     def test_empty_table(self):
         with self.assertRaises(KeyError):
-            _ = self.tf.data.tables["monthly"]
+            _ = self.tf.tables["monthly"]
 
     def test_generate_diff_file(self):
         df = ResultsFile.from_diff(self.tf, self.tf)

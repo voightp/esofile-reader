@@ -8,10 +8,10 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from esofile_reader.constants import *
-from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import InsuficientHeaderInfo
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 
 def is_data_row(sr: pd.Series):
@@ -127,8 +127,7 @@ def parse_header(
         )
         if n < 2:
             raise InsuficientHeaderInfo(
-                f"Not enough information to create header. "
-                f"There's only {n} level.\n{msg}"
+                f"Not enough information to create header. " f"There's only {n} level.\n{msg}"
             )
         elif n > 3:
             raise InsuficientHeaderInfo(f"There's too many header levels: {n}.\n{msg}")
@@ -152,7 +151,7 @@ def parse_header(
 def build_df_table(
         raw_df: pd.DataFrame, name: str, start_id: int = 1,
 ) -> Tuple[pd.DataFrame, int]:
-    """ Finalize DataFrame data to match required DFData structure. """
+    """ Finalize DataFrame data to match required DFTables structure. """
 
     def is_range(array):
         if all(map(lambda x: isinstance(x, int), array)) and len(array) > 1:
@@ -199,10 +198,7 @@ def build_df_table(
     elif is_range(df.index):
         # is_range requires range like array with length > 1
         df.index = pd.RangeIndex(
-            start=df.index[0],
-            stop=df.index[-1] + 1,
-            step=df.index[1] - df.index[0],
-            name=RANGE
+            start=df.index[0], stop=df.index[-1] + 1, step=df.index[1] - df.index[0], name=RANGE
         )
     else:
         df.index.rename(INDEX, inplace=True)
@@ -227,7 +223,7 @@ def process_excel(
     monitor.reset_progress(0, new_max=n_steps)
 
     start_id = 1
-    df_data = DFData()
+    df_tables = DFTables()
     for name in sheet_names:
         ws = wb[name]
         df = pd.DataFrame(ws.values)
@@ -239,7 +235,7 @@ def process_excel(
         # process header data
         monitor.header_started()
         header_mi, skiprows, index_column = parse_header(
-            df.iloc[: header_limit, :], force_index=force_index
+            df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
@@ -252,21 +248,19 @@ def process_excel(
 
         df.columns = header_mi
 
-        # populate DFData
+        # populate DFTables
         monitor.tables_started()
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
                 dfi, end_id = build_df_table(
-                    df.loc[:, table_level == key],
-                    name=key,
-                    start_id=start_id,
+                    df.loc[:, table_level == key], name=key, start_id=start_id,
                 )
                 start_id = end_id
-                df_data.populate_table(key, dfi)
+                df_tables[key] = dfi
         else:
             df, _ = build_df_table(df, name=name)
-            df_data.populate_table(name, df)
+            df_tables[name] = df
 
         # increment progress
         monitor.update_progress()
@@ -274,6 +268,6 @@ def process_excel(
     # create search tree
     monitor.search_tree_started()
     tree = Tree()
-    tree.populate_tree(df_data.get_all_variables_dct())
+    tree.populate_tree(df_tables.get_all_variables_dct())
 
-    return df_data, tree
+    return df_tables, tree

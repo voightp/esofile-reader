@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from esofile_reader.results_file import ResultsFile
-from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storages.df_storage import DFStorage
 from tests import EF_ALL_INTERVALS
 
 
@@ -25,8 +25,7 @@ class TestDFDB(unittest.TestCase):
             self.assertEqual(EF_ALL_INTERVALS.file_created, self.storage.files[0].file_created)
             self.assertEqual(EF_ALL_INTERVALS.search_tree, self.storage.files[0].search_tree)
             pd.testing.assert_frame_equal(
-                EF_ALL_INTERVALS.data.tables[table],
-                self.storage.files[0].data.tables[table],
+                EF_ALL_INTERVALS.tables[table], self.storage.files[0].tables[table],
             )
 
         self.assertEqual(self.storage.files[0].file_type, "eso")

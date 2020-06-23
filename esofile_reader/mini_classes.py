@@ -22,4 +22,4 @@ ResultsFile = Union[
 ]
 
 # type_ hint to wrap all storage types
-Data = Union[ForwardRef("SQLData"), ForwardRef("DFData")]  # noqa: F821
+Data = Union[ForwardRef("SQLTables"), ForwardRef("DFTables")]  # noqa: F821

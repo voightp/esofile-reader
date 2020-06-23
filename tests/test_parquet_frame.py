@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.tables.pqt_tables import ParquetFrame
 
 # global incrementor to create unique parquet file for each test
 i = 0

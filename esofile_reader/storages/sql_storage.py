@@ -17,26 +17,24 @@ from sqlalchemy import (
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
-from esofile_reader.data.sql_data import SQLData
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.search_tree import Tree
-from esofile_reader.storage.base_storage import BaseStorage
-from esofile_reader.storage.sql_functions import (
+from esofile_reader.storages.base_storage import BaseStorage
+from esofile_reader.storages.sql_functions import (
     create_results_table,
     create_datetime_table,
     merge_df_values,
     create_value_insert,
     create_special_table,
 )
+from esofile_reader.tables.sql_tables import SQLTables
 
 
 class SQLFile(BaseFile):
     """
     A class to represent database results set.
 
-    Attributes need to be populated from one of file
-    wrappers ('EsoFile', 'DiffFile', 'TotalsFile').
-
+    Attributes need to be populated from processed ResultsFile.
 
     Attributes
     ----------
@@ -46,7 +44,7 @@ class SQLFile(BaseFile):
         A file path of the reference file.
     file_name: str
         File name of the reference file.
-    sql_data: SQLData
+    sql_tables: SQLTables
         Processed SQL data instance.
     file_created: datetime
         A creation datetime of the reference file.
@@ -66,24 +64,17 @@ class SQLFile(BaseFile):
             id_: int,
             file_path: str,
             file_name: str,
-            sql_data: SQLData,
+            sql_tables: SQLTables,
             file_created: datetime,
             search_tree: Tree,
             file_type: str,
     ):
-        super().__init__(
-            file_path,
-            file_name,
-            file_created,
-            sql_data,
-            search_tree,
-            file_type
-        )
+        super().__init__(file_path, file_name, file_created, sql_tables, search_tree, file_type)
         self.id_ = id_
 
     def rename(self, name: str) -> None:
         self.file_name = name
-        self.data.update_file_name(name)
+        self.tables.update_file_name(name)
 
 
 class SQLStorage(BaseStorage):
@@ -145,7 +136,7 @@ class SQLStorage(BaseStorage):
             id_ = conn.execute(ins).inserted_primary_key[0]
             file_input = {"numeric_tables": [], "datetime_tables": [], "special_tables": []}
             for table in results_file.table_names:
-                df = results_file.data.tables[table]
+                df = results_file.tables[table]
                 is_simple = results_file.is_header_simple(table)
                 results_table = create_results_table(self.metadata, id_, table, is_simple)
                 file_input["numeric_tables"].append(results_table.name)
@@ -199,10 +190,10 @@ class SQLStorage(BaseStorage):
                 id_,
                 file_path=results_file.file_path,
                 file_name=results_file.file_name,
-                sql_data=SQLData(id_, self),
+                sql_tables=SQLTables(id_, self),
                 file_created=results_file.file_created,
                 search_tree=results_file.search_tree,
-                file_type=results_file.file_type
+                file_type=results_file.file_type,
             )
             self.files[id_] = db_file
         return id_
@@ -249,14 +240,14 @@ class SQLStorage(BaseStorage):
                         ]
                     ).where(file_table.c.id == id_)
                 ).first()
-            data = SQLData(res[0], self)
+            tables = SQLTables(res[0], self)
             tree = Tree()
-            tree.populate_tree(data.get_all_variables_dct())
+            tree.populate_tree(tables.get_all_variables_dct())
             db_file = SQLFile(
                 id_=res[0],
                 file_path=res[1],
                 file_name=res[2],
-                sql_data=data,
+                sql_tables=tables,
                 file_created=res[3],
                 search_tree=tree,
                 file_type=res[4],

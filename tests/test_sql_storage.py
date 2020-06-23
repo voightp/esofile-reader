@@ -1,7 +1,7 @@
 import unittest
 
 from esofile_reader import ResultsFile
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.sql_storage import SQLStorage
 from tests import EF_ALL_INTERVALS, EF1
 
 
@@ -9,7 +9,7 @@ class TestSqlDB(unittest.TestCase):
     def test_01_store_file_not_set_up(self):
         storage = SQLStorage()
         storage.engine = None
-        storage.metadata = None
+        storage.metatables = None
         with self.assertRaises(AttributeError):
             storage.store_file(EF_ALL_INTERVALS)
 

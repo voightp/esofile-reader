@@ -14,11 +14,11 @@ from esofile_reader.convertor import (
     convert_rate_to_energy,
     convert_units,
 )
-from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processing.esofile_intervals import update_dt_format
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 
 class BaseFile:
@@ -35,7 +35,7 @@ class BaseFile:
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFData
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -50,13 +50,13 @@ class BaseFile:
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFData,
+            tables: DFTables,
             search_tree: Tree,
-            file_type: str = "na"
+            file_type: str = "na",
     ):
         self.file_path = file_path
         self.file_name = file_name
-        self.data = data
+        self.tables = tables
         self.file_created = file_created
         self.search_tree = search_tree
         self.file_type = file_type
@@ -74,24 +74,24 @@ class BaseFile:
     @property
     def complete(self) -> bool:
         """ Check if the file has been populated. """
-        return self.data is not None and self.search_tree is not None
+        return self.tables is not None and self.search_tree is not None
 
     @property
     def table_names(self) -> List[str]:
         """ Get all available tables. """
-        return self.data.get_table_names()
+        return self.tables.get_table_names()
 
     def is_header_simple(self, table: str) -> bool:
         """ Check if header uses Variable or SimpleVariable data. """
-        return self.data.is_simple(table)
+        return self.tables.is_simple(table)
 
     def get_header_dictionary(self, table: str) -> Dict[int, Union[SimpleVariable, Variable]]:
         """ Get all variables for given table. """
-        return self.data.get_variables_dct(table)
+        return self.tables.get_variables_dct(table)
 
     def get_header_df(self, table: str) -> pd.DataFrame:
         """ Get all variables for given table. """
-        return self.data.get_variables_df(table)
+        return self.tables.get_variables_df(table)
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -168,7 +168,7 @@ class BaseFile:
             else:
                 # all inputs are integers
                 ids = variables
-            header = self.data.get_all_variables_df()
+            header = self.tables.get_all_variables_df()
             # filter values by id, isin cannot be used as it breaks ids order
             df = header.set_index(ID_LEVEL)
             df = df.loc[ids, [TABLE_LEVEL]]
@@ -258,13 +258,13 @@ class BaseFile:
         """
 
         def standard():
-            return self.data.get_results(table, ids, start_date, end_date, include_day)
+            return self.tables.get_results(table, ids, start_date, end_date, include_day)
 
         def global_max():
-            return self.data.get_global_max_results(table, ids, start_date, end_date)
+            return self.tables.get_global_max_results(table, ids, start_date, end_date)
 
         def global_min():
-            return self.data.get_global_min_results(table, ids, start_date, end_date)
+            return self.tables.get_global_min_results(table, ids, start_date, end_date)
 
         res = {
             "standard": standard,
@@ -295,7 +295,7 @@ class BaseFile:
                 # convert 'rate' or 'energy' when standard results are requested
                 if output_type == "standard" and rate_to_energy_dct[table]:
                     try:
-                        n_days = self.data.get_special_column(
+                        n_days = self.tables.get_special_column(
                             table, N_DAYS_COLUMN, start_date, end_date
                         )
                     except KeyError:
@@ -356,7 +356,7 @@ class BaseFile:
             self.search_tree.add_variable(ids[0], new_var)
 
             # rename variable in data set
-            self.data.update_variable_name(table, ids[0], new_var.key, new_var.type)
+            self.tables.update_variable_name(table, ids[0], new_var.key, new_var.type)
             return ids[0], new_var
         else:
             logging.warning("Cannot rename variable! Original variable not found!")
@@ -366,7 +366,7 @@ class BaseFile:
     ) -> Tuple[int, Variable]:
         """ Add specified output variable to the file. """
         new_var = self.create_header_variable(table, key, type, units)
-        id_ = self.data.insert_column(new_var, array)
+        id_ = self.tables.insert_column(new_var, array)
         if id_:
             self.search_tree.add_variable(id_, new_var)
             return id_, new_var
@@ -416,13 +416,11 @@ class BaseFile:
             raise CannotAggregateVariables("Cannot find variables!")
 
         if len(groups.keys()) > 1:
-            raise CannotAggregateVariables(
-                "Cannot aggregate variables from different tables!"
-            )
+            raise CannotAggregateVariables("Cannot aggregate variables from different tables!")
 
         table, ids = list(groups.items())[0]
 
-        df = self.data.get_results(table, ids)
+        df = self.tables.get_results(table, ids)
         variables = df.columns.get_level_values(TYPE_LEVEL).tolist()
         units = df.columns.get_level_values(UNITS_LEVEL).tolist()
 
@@ -432,7 +430,7 @@ class BaseFile:
         elif rate_and_energy_units(units) and table != RANGE:
             # it's needed to assign multi index to convert energy
             try:
-                n_days = self.data.get_special_column(table, N_DAYS_COLUMN)
+                n_days = self.tables.get_special_column(table, N_DAYS_COLUMN)
             except KeyError:
                 n_days = None
                 if table in [M, A, RP]:
@@ -469,7 +467,7 @@ class BaseFile:
 
         groups = self._find_pairs(variables)
         for table, ids in groups.items():
-            self.data.delete_variables(table, ids)
+            self.tables.delete_variables(table, ids)
 
         # clean up the tree
         self.search_tree.remove_variables(variables)
@@ -479,7 +477,7 @@ class BaseFile:
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
         try:
-            df = self.data.get_numeric_table(table)
+            df = self.tables.get_numeric_table(table)
         except KeyError:
             raise KeyError(f"Cannot find table: '{table}'.\n{traceback.format_exc()}")
         return df

@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import Union, List
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.data.df_data import DFData
 from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 try:
     from esofile_reader.processing.esofile import read_file
@@ -36,7 +36,7 @@ class ResultsFile(BaseFile):
         File name identifier.
     file_created : datetime.datetime
         Time and date when of the file generation.
-    data : DFData
+    tables : DFTables
         Data storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
@@ -51,11 +51,11 @@ class ResultsFile(BaseFile):
             file_path: Union[str, Path],
             file_name: str,
             file_created: datetime,
-            data: DFData,
+            tables: DFTables,
             search_tree: Tree,
-            file_type: str = "na"
+            file_type: str = "na",
     ):
-        super().__init__(file_path, file_name, file_created, data, search_tree, file_type)
+        super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     @classmethod
     def from_excel(
@@ -64,7 +64,7 @@ class ResultsFile(BaseFile):
             sheet_names: List[str] = None,
             force_index: bool = False,
             monitor: DefaultMonitor = None,
-            header_limit=10
+            header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from excel spreadsheet. """
         file_path = Path(file_path)
@@ -73,25 +73,22 @@ class ResultsFile(BaseFile):
         if not monitor:
             monitor = DefaultMonitor(file_path)
         monitor.processing_started()
-        data, search_tree = process_excel(
+        tables, search_tree = process_excel(
             file_path,
             monitor,
             sheet_names=sheet_names,
             force_index=force_index,
-            header_limit=header_limit
+            header_limit=header_limit,
         )
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="excel"
+            file_path, file_name, file_created, tables, search_tree, file_type="excel"
         )
         monitor.processing_finished()
         return results_file
 
     @classmethod
     def from_eso_file(
-            cls,
-            file_path: str,
-            monitor: DefaultMonitor = None,
-            year: int = 2002,
+            cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
     ) -> Union[List["ResultsFile"], "ResultsFile"]:
         """ Generate 'ResultsFile' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
@@ -106,9 +103,9 @@ class ResultsFile(BaseFile):
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
-        data, search_tree = process_totals(results_file)
+        tables, search_tree = process_totals(results_file)
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="totals"
+            file_path, file_name, file_created, tables, search_tree, file_type="totals"
         )
         return results_file
 
@@ -118,8 +115,8 @@ class ResultsFile(BaseFile):
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        data, search_tree = process_diff(file, other_file)
+        tables, search_tree = process_diff(file, other_file)
         results_file = ResultsFile(
-            file_path, file_name, file_created, data, search_tree, file_type="totals"
+            file_path, file_name, file_created, tables, search_tree, file_type="totals"
         )
         return results_file

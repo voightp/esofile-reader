@@ -3,16 +3,16 @@ from typing import Tuple
 import pandas as pd
 
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
-from esofile_reader.data.df_data import DFData
 from esofile_reader.exceptions import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFile, Data
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_tables import DFTables
 
 
-def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFData:
+def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFTables:
     """ Calculate difference between two results files. """
-    data = DFData()
+    tables = DFTables()
     id_gen = incremental_id_gen()
 
     for table in file.table_names:
@@ -38,38 +38,36 @@ def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFData:
             header_df.insert(0, ID_LEVEL, ids)
 
             df.columns = pd.MultiIndex.from_frame(header_df)
-            data.populate_table(table, df)
+            tables[table] = df
 
             for c in [N_DAYS_COLUMN, DAY_COLUMN]:
                 try:
-                    c1 = file.data.get_special_column(table, c).loc[index_cond]
-                    c2 = file.data.get_special_column(table, c).loc[index_cond]
+                    c1 = file.tables.get_special_column(table, c).loc[index_cond]
+                    c2 = file.tables.get_special_column(table, c).loc[index_cond]
                     if c1.equals(c2):
-                        data.insert_special_column(table, c, c1)
+                        tables.insert_special_column(table, c, c1)
                 except KeyError:
                     pass
 
-    return data
+    return tables
 
 
-def process_diff(
-        first_file: ResultsFile, other_file: ResultsFile
-) -> Tuple[Data, Tree]:
+def process_diff(first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Data, Tree]:
     """ Create diff outputs. """
     header = {}
-    data = calculate_diff(first_file, other_file)
+    tables = calculate_diff(first_file, other_file)
 
-    tables = data.get_table_names()
-    if not tables:
+    table_names = tables.get_table_names()
+    if not table_names:
         raise NoSharedVariables(
             f"Cannot generate diff file. Files '{first_file.file_name}' "
             f" and '{other_file.file_name} do not have any shared variables."
         )
     else:
-        for table in tables:
-            header[table] = data.get_variables_dct(table)
+        for table in table_names:
+            header[table] = tables.get_variables_dct(table)
 
         tree = Tree()
         tree.populate_tree(header)
 
-        return data, tree
+        return tables, tree

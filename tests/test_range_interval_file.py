@@ -7,11 +7,11 @@ from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
-from esofile_reader.data.df_data import DFData
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.storages.sql_storage import SQLStorage
+from esofile_reader.tables.df_tables import DFTables
 
 
 class TestRangeIntervalFile(unittest.TestCase):
@@ -37,12 +37,12 @@ class TestRangeIntervalFile(unittest.TestCase):
             index=index,
         )
 
-        data = DFData()
-        data.populate_table("range", results)
+        tables = DFTables()
+        tables["range"] = results
 
         tree = Tree()
-        tree.populate_tree(data.get_all_variables_dct())
-        bf = BaseFile("", "no-dates", datetime.utcnow(), data, tree)
+        tree.populate_tree(tables.get_all_variables_dct())
+        bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree)
         cls.bf = bf
 
         storage = SQLStorage()
@@ -53,7 +53,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertListEqual(self.bf.table_names, ["range"])
 
     def test_all_ids(self):
-        self.assertEqual(len(self.bf.data.get_all_variable_ids()), 4)
+        self.assertEqual(len(self.bf.tables.get_all_variable_ids()), 4)
 
     def test_created(self):
         self.assertTrue(isinstance(self.bf.file_created, datetime))
@@ -63,10 +63,10 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_header_df(self):
         self.assertEqual(
-            self.bf.data.get_all_variables_df().columns.to_list(),
+            self.bf.tables.get_all_variables_df().columns.to_list(),
             ["id", "table", "key", "type", "units"],
         )
-        self.assertEqual(len(self.bf.data.get_all_variables_df().index), 4)
+        self.assertEqual(len(self.bf.tables.get_all_variables_df().index), 4)
 
     def test_find_ids(self):
         v = Variable(table="range", key="ZoneC", type="Temperature", units="C")
@@ -86,9 +86,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
-        v = Variable(
-            table="range", key="BLOCK1", type="Zone People Occupant Count", units=""
-        )
+        v = Variable(table="range", key="BLOCK1", type="Zone People Occupant Count", units="")
         out = self.bf._find_pairs(v, part_match=False)
         self.assertDictEqual(out, {})
 
@@ -135,16 +133,17 @@ class TestRangeIntervalFile(unittest.TestCase):
         v = Variable(table="range", key=None, type="Temperature", units="C")
         id_, var = self.bf.aggregate_variables(v, "sum")
         self.assertEqual(
-            var,
-            Variable(table="range", key="Custom Key - sum", type="Temperature", units="C"),
+            var, Variable(table="range", key="Custom Key - sum", type="Temperature", units="C"),
         )
         self.bf.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "W",
-                                     [1, 1, 1])
-        _, v2 = self.bf.add_variable("range", "CHILLER", "Chiller Electric Power", "J",
-                                     [2, 2, 2])
+        _, v1 = self.bf.add_variable(
+            "range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1]
+        )
+        _, v2 = self.bf.add_variable(
+            "range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2]
+        )
 
         with self.assertRaises(CannotAggregateVariables):
             _ = self.bf.aggregate_variables([v1, v2], "sum")
@@ -177,11 +176,11 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_sql_no_n_days_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_special_column("range", N_DAYS_COLUMN)
+            self.db_bf.tables.get_special_column("range", N_DAYS_COLUMN)
 
     def test_sql_no_day_column(self):
         with self.assertRaises(KeyError):
-            self.db_bf.data.get_special_column("range", DAY_COLUMN)
+            self.db_bf.tables.get_special_column("range", DAY_COLUMN)
 
     def test_parquet_file(self):
         path = Path("range_pqs" + ParquetStorage.EXT)
@@ -193,16 +192,10 @@ class TestRangeIntervalFile(unittest.TestCase):
         loaded_pqs = ParquetStorage.load_storage(path)
         loaded_pqf = loaded_pqs.files[id_]
 
-        assert_index_equal(
-            pqf.data.tables["range"].index, loaded_pqf.data.tables["range"].index
-        )
+        assert_index_equal(pqf.tables["range"].index, loaded_pqf.tables["range"].index)
 
-        assert_index_equal(
-            pqf.data.tables["range"].columns, loaded_pqf.data.tables["range"].columns
-        )
+        assert_index_equal(pqf.tables["range"].columns, loaded_pqf.tables["range"].columns)
 
-        assert_frame_equal(
-            pqf.data.tables["range"].get_df(), loaded_pqf.data.tables["range"].get_df()
-        )
+        assert_frame_equal(pqf.tables["range"].get_df(), loaded_pqf.tables["range"].get_df())
 
         path.unlink()

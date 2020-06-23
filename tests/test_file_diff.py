@@ -21,36 +21,36 @@ class TestDiffFIle(TestCase):
 
             # check if n days and day of week columns are copied
             if interval in [TS, H, D]:
-                c1 = diff.data.get_special_column(interval, DAY_COLUMN)
-                c2 = EF1.data.get_special_column(interval, DAY_COLUMN)
+                c1 = diff.tables.get_special_column(interval, DAY_COLUMN)
+                c2 = EF1.tables.get_special_column(interval, DAY_COLUMN)
                 assert_series_equal(c1, c2)
 
             if interval in [M, A, RP]:
-                c1 = diff.data.get_special_column(interval, N_DAYS_COLUMN)
-                c2 = EF1.data.get_special_column(interval, N_DAYS_COLUMN)
+                c1 = diff.tables.get_special_column(interval, N_DAYS_COLUMN)
+                c2 = EF1.tables.get_special_column(interval, N_DAYS_COLUMN)
                 assert_series_equal(c1, c2)
 
     def test_process_diff_similar_files(self):
         diff = ResultsFile.from_diff(EF1, EF2)
         shapes = [(4392, 59), (183, 59), (6, 59)]
         for interval, test_shape in zip(diff.table_names, shapes):
-            self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
+            self.assertTupleEqual(diff.tables[interval].shape, test_shape)
 
     def test_process_diff_different_datetime(self):
         diff = ResultsFile.from_diff(EF1, EF_ALL_INTERVALS)
         shapes = [(4392, 3), (183, 3), (6, 3)]
         for interval, test_shape in zip(diff.table_names, shapes):
-            self.assertTupleEqual(diff.data.tables[interval].shape, test_shape)
+            self.assertTupleEqual(diff.tables[interval].shape, test_shape)
 
     def test_no_shared_intervals(self):
         ef1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
         ef2 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
 
-        del ef1.data.tables["hourly"]
-        del ef1.data.tables["daily"]
+        del ef1.tables["hourly"]
+        del ef1.tables["daily"]
 
-        del ef2.data.tables["monthly"]
-        del ef2.data.tables["runperiod"]
+        del ef2.tables["monthly"]
+        del ef2.tables["runperiod"]
 
         with self.assertRaises(NoSharedVariables):
             ResultsFile.from_diff(ef1, ef2)

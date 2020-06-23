@@ -11,13 +11,13 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.data.df_data import DFData
-from esofile_reader.data.df_functions import create_peak_outputs
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import interval_processor
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
+from esofile_reader.tables.df_functions import create_peak_outputs
+from esofile_reader.tables.df_tables import DFTables
 
 
 def _eso_file_version(raw_version):
@@ -406,23 +406,23 @@ def create_header_df(
 
 def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
     """ Transform processed peak output data into DataFrame like classes. """
-    min_peaks = DFData()
-    max_peaks = DFData()
+    min_peaks = DFTables()
+    max_peaks = DFTables()
     for interval, values in raw_peak_outputs.items():
         df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
+        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
         min_df = create_peak_outputs(interval, df, max_=False)
-        min_peaks.populate_table(interval, min_df)
+        min_peaks[interval] = min_df
 
         max_df = create_peak_outputs(interval, df)
-        max_peaks.populate_table(interval, max_df)
+        max_peaks[interval] = max_df
 
         monitor.update_progress(i=step)
 
@@ -434,28 +434,28 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
 
 def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     """ Transform processed output data into DataFrame like classes. """
-    data = DFData()
+    tables = DFTables()
     for interval, values in raw_outputs.items():
         df_values = create_values_df(values, ID_LEVEL)
         df_header = create_header_df(
             header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
         )
         df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=COLUMN_LEVELS[1:], append=True, inplace=True)
+        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
-        # store the data in  DFData class
-        data.populate_table(interval, df)
+        # store the data in  DFTables class
+        tables[interval] = df
 
         monitor.update_progress(i=step)
 
     # add other special columns, structure is {KEY: {INTERVAL: ARRAY}}
     for key, dict in other_data.items():
         for interval, arr in dict.items():
-            data.insert_special_column(interval, key, arr)
+            tables.insert_special_column(interval, key, arr)
 
-    return data
+    return tables
 
 
 def remove_duplicates(dup_ids, header_dct, outputs_dct):
