@@ -1,28 +1,50 @@
-    [build-system]
-    requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
+[tool.poetry]
+name = "esofile-reader"
+version = "0.1.0"
+description = ""
+authors = ["voightp <vojtechpanek@seznam.cz>"]
+license = "Proprietary"
 
-    [tool.setuptools_scm]
-    write_to = "esofile_reader/version.py"
+build = "build.py"
 
-    [tool.black]
-    line-length = 96
+[tool.poetry.dependencies]
+python = "^3.6.8"
+numpy = "^1.19.0"
+pandas = "^1.0.5"
+openpyxl = {version = "^3.0.4", optional = true}
+pyarrow = {version = "^0.17.1", optional = true}
+sqlalchemy = {version = "^1.3.18", optional = true}
 
-    include = '\.pyi?$'
-    exclude = '''
-    /(
-        \.git
-      | \.venv
-      | _build
-      | buck-out
-      | build
-      | dist
-      | \.github
-      | \.idea
-      | \.htmlcov
+[tool.poetry.dev-dependencies]
+black = "^19.10b0"
+coverage = "^5.1"
+parameterized = "^0.7.4"
+cython = "^0.29.20"
 
-      # The following are specific to Black, you probably don't want those.
-      | blib2to3
-    )/
-    '''
+[tool.poetry.extras]
+storage = ["openpyxl", "pyarrow", "sqlalchemy"]
 
+[tool.black]
+line-length = 96
+
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | \.github
+  | \.eggs
+  | \.idea
+  | \.htmlcov
+
+)/
+'''
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
 
