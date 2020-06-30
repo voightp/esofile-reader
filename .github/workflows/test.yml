@@ -28,7 +28,9 @@ jobs:
 
     - if: ${{ matrix.os }} == 'ubuntu-latest' || ${{ matrix.os }} == macOS-latest'
       name: Set up Poetry ${{ matrix.os }}
-      run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+      run: |
+        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        source $HOME/.poetry/env
 
     - if: ${{ matrix.os == 'windows-latest' }}
       name: Set up Poetry ${{ matrix.os }}
