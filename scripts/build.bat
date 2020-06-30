@@ -1,1 +1,0 @@
-cd .. & .\venv\scripts\activate & .\venv\scripts\python setup.py sdist bdist_wheel & .\venv\scripts\deactivate

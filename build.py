@@ -5,9 +5,7 @@ from Cython.Build import cythonize
 
 
 def build(setup_kwargs):
-    """
-    This function is mandatory in order to build the extensions.
-    """
+    """ This function is mandatory in order to build the extensions. """
     extensions = cythonize([
         Extension(
             "esofile_reader.processing.esofile",
