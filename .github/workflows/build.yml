@@ -2,29 +2,39 @@ name: Build
 
 on:
   push:
-    branches: master
-  release:
-    types: [created]
+    - install-poetry # TODO replace with master once working
+#  release:
+#    types: [created]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.6'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install wheel
-    - name: Build
-      run: |
-        python setup.py bdist_wheel
-    - name: Upload math result for job 1
-      uses: actions/upload-artifact@v1
-      with:
-        name: dist
-        path: dist
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+
+      - name: Set up Poetry
+        shell: bash
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+          echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
+
+      - name: Configure poetry
+        shell: bash
+        run: poetry config virtualenvs.in-project true
+
+      - name: Install dependencies
+        shell: bash
+        run: poetry install && poetry install -E storage
+
+      - name: Build
+        run: poetry build
+
+      - name: Upload math result for job 1
+        uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: dist
