@@ -30,6 +30,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
   tests:
+    needs: linting
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -40,27 +41,27 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Set up Poetry
-      shell: bash
-      run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-        echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
+      - name: Set up Poetry
+        shell: bash
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+          echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
 
-    - name: Configure poetry
-      shell: bash
-      run: poetry config virtualenvs.in-project true
+      - name: Configure poetry
+        shell: bash
+        run: poetry config virtualenvs.in-project true
 
-    - name: Install dependencies
-      shell: bash
-      run: poetry install && poetry install -E storage
+      - name: Install dependencies
+        shell: bash
+        run: poetry install && poetry install -E storage
 
-    - name: Test with unittest
-      shell: bash
-      run: poetry run python -m unittest discover -s ./tests -t ./tests -p test_*.py
+      - name: Test with unittest
+        shell: bash
+        run: poetry run python -m unittest discover -s ./tests -t ./tests -p test_*.py
 
 
         
