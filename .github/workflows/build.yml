@@ -3,9 +3,10 @@ name: Build
 on:
   push:
     branches:
-      - install-poetry # TODO replace with master once working
-#  release:
-#    types: [created]
+      - master
+  release:
+    types: [created]
+
 defaults:
   run:
     shell: bash
