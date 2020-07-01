@@ -35,7 +35,10 @@ jobs:
 
     - if: ${{ matrix.os == 'windows-latest' }}
       name: Set up Poetry ${{ matrix.os }}
-      run: (Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python
+      run: |
+        (Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python
+        $env:Path -= ";$env:USERPROFILE.\poetry\bin"
+        $env:Path -split ';'
 
     - name: Check Poetry
       run: poetry -V
