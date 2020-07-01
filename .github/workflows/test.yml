@@ -33,6 +33,7 @@ jobs:
         echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
 
     - name: Check Poetry
+      shell: bash
       run: poetry -V
 
     - name: Configure poetry
