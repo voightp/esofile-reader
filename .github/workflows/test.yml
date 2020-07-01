@@ -10,6 +10,10 @@ on:
     branches:
       - master
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   linting:
     runs-on: windows-latest
@@ -46,21 +50,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up Poetry
-        shell: bash
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
           echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
 
       - name: Configure poetry
-        shell: bash
         run: poetry config virtualenvs.in-project true
 
       - name: Install dependencies
-        shell: bash
         run: poetry install && poetry install -E storage
 
       - name: Test with unittest
-        shell: bash
         run: poetry run python -m unittest discover -s ./tests -t ./tests -p test_*.py
 
 

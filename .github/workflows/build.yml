@@ -2,7 +2,8 @@ name: Build
 
 on:
   push:
-    - install-poetry # TODO replace with master once working
+    branches:
+      - install-poetry # TODO replace with master once working
 #  release:
 #    types: [created]
 defaults:
