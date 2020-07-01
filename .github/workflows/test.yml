@@ -32,13 +32,13 @@ jobs:
         curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
         echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
 
-    - name: Check Poetry
-      shell: bash
-      run: poetry -V
-
     - name: Configure poetry
       shell: bash
       run: poetry config virtualenvs.in-project true
+
+    - name: Install dependencies
+      shell: bash
+      run: poetry install && poetry install -E storage
 
 
         
