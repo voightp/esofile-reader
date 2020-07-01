@@ -5,6 +5,9 @@ on:
     - install-poetry # TODO replace with master once working
 #  release:
 #    types: [created]
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
@@ -17,17 +20,14 @@ jobs:
           python-version: '3.8'
 
       - name: Set up Poetry
-        shell: bash
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
           echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
 
       - name: Configure poetry
-        shell: bash
         run: poetry config virtualenvs.in-project true
 
       - name: Install dependencies
-        shell: bash
         run: poetry install && poetry install -E storage
 
       - name: Build
