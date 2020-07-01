@@ -5,7 +5,7 @@ on:
   # but only for the master branch
   push:
     branches:
-      - install-poetry # TODO replace with master once working
+      - master
   pull_request:
     branches:
       - master
