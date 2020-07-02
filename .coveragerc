@@ -28,6 +28,7 @@ omit  =
     esofile_reader\data\base_data.py
     esofile_reader\storage\base_storage.py
     venv\*
+    .venv\*
     tests\*
 
 [paths]

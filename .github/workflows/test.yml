@@ -6,9 +6,13 @@ on:
   push:
     branches:
       - master
+    path-ignore:
+      - 'scripts/**'
   pull_request:
     branches:
       - master
+    path-ignore:
+      - 'scripts/**'
 
 defaults:
   run:
