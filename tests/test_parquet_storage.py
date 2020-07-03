@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import os
 import unittest
 from pathlib import Path
@@ -11,8 +10,6 @@ from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import ROOT, EF1, EF_ALL_INTERVALS
-
-logging.basicConfig(level=logging.INFO)
 
 
 class TestParquetStorage(unittest.TestCase):

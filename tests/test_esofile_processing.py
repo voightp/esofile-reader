@@ -1,5 +1,4 @@
 import datetime
-import logging
 import os
 import unittest
 
@@ -390,10 +389,10 @@ class TestEsoFileProcessing(unittest.TestCase):
         with self.assertRaises(InvalidLineSyntax):
             read_file(os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"))
 
-    def test_logging_level_info(self):
-        logging.basicConfig(level=logging.INFO)
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-        logging.basicConfig(level=logging.WARNING)
+    # def test_logging_level_info(self):
+    #     logger.setLevel(logging.INFO)
+    #     EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+    #     logger.setLevel(logging.WARNING)
 
     def test_monitor_zero_division_catched(self):
         monitor = DefaultMonitor("dummy")

@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Union, List, Tuple
@@ -9,6 +8,7 @@ from openpyxl import load_workbook
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo
+from esofile_reader.logger import logger
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -93,7 +93,7 @@ def parse_header(
                     else:
                         levels[ix] = row
                 else:
-                    logging.info(
+                    logger.info(
                         f"Unexpected column identifier: {ix}"
                         f"Only {', '.join(COLUMN_LEVELS)} are allowed."
                     )

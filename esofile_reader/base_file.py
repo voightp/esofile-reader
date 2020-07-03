@@ -1,4 +1,3 @@
-import logging
 import traceback
 from collections import defaultdict
 from datetime import datetime
@@ -15,6 +14,7 @@ from esofile_reader.convertor import (
     convert_units,
 )
 from esofile_reader.exceptions import *
+from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processing.esofile_intervals import update_dt_format
 from esofile_reader.search_tree import Tree
@@ -102,7 +102,7 @@ class BaseFile:
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            logging.warning(
+            logger.warning(
                 f"Invalid name position!\n'add_file_name' kwarg must "
                 f"be one of: '{', '.join(pos)}'.\nSetting 'row'."
             )
@@ -130,7 +130,7 @@ class BaseFile:
 
             return df
         else:
-            logging.warning(
+            logger.warning(
                 f"Any of requested variables is not "
                 f"included in the Eso file '{self.file_name}'."
             )
@@ -343,7 +343,7 @@ class BaseFile:
         new_key = key if not new_key else new_key
 
         if (not new_type and not new_key) or (key == new_key and type_ == new_type):
-            logging.warning(
+            logger.warning(
                 "Cannot rename variable! Type and key are "
                 "not specified or are the same as original variable."
             )
@@ -359,7 +359,7 @@ class BaseFile:
             self.tables.update_variable_name(table, ids[0], new_var.key, new_var.type)
             return ids[0], new_var
         else:
-            logging.warning("Cannot rename variable! Original variable not found!")
+            logger.warning("Cannot rename variable! Original variable not found!")
 
     def add_variable(
             self, table: str, key: str, type: str, units: str, array: Sequence

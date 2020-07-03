@@ -1,4 +1,4 @@
-import logging
+from esofile_reader.logger import logger
 
 
 def energy_table(new_units, per_area=False):
@@ -47,7 +47,7 @@ def energy_table(new_units, per_area=False):
         tbl = table_pa if per_area else table
         return tbl[new_units.lower()]
     except KeyError:
-        logging.info(f"Specified energy units '{new_units}' cannot be converted!")
+        logger.info(f"Specified energy units '{new_units}' cannot be converted!")
 
 
 def rate_table(new_units, per_area=False):
@@ -84,7 +84,7 @@ def rate_table(new_units, per_area=False):
         tbl = table_pa if per_area else table
         return tbl[new_units.lower()]
     except KeyError:
-        logging.info(f"Specified rate units '{new_units}'cannot be converted!")
+        logger.info(f"Specified rate units '{new_units}'cannot be converted!")
 
 
 def si_to_ip(orig_units):
@@ -178,7 +178,7 @@ def si_to_ip(orig_units):
     try:
         return (orig_units, *table[orig_units])
     except KeyError:
-        logging.info(f"Cannot convert to IP, original units '{orig_units}' left!")
+        logger.info(f"Cannot convert to IP, original units '{orig_units}' left!")
 
 # duplicates = {
 # 'g': ('g', 'ounce (mass, avoirdupois)', 28.35),

@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import Sequence, List, Dict, Optional, Union
 
@@ -7,6 +6,7 @@ from sqlalchemy import Table, select, String, Integer
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.storages.sql_functions import (
     destringify_values,
@@ -50,7 +50,7 @@ class SQLTables(BaseTables):
     def _get_table(self, table_name: str, table_type: str) -> Table:
         names = self._get_table_names(table_type)
         if table_name not in names:
-            logging.warning(f"Cannot find file reference {table_name} in {table_type}!")
+            logger.warning(f"Cannot find file reference {table_name} in {table_type}!")
         return self.storage.metadata.tables[table_name]
 
     def _get_results_table(self, table: str) -> Table:
@@ -170,7 +170,7 @@ class SQLTables(BaseTables):
                 conn.execute(statement)
             return id_
         else:
-            logging.warning(
+            logger.warning(
                 "Cannot add new variable '{0} {1} {2} {3}'. "
                 "Number of elements '({4})' does not match!".format(*variable, len(array))
             )
@@ -185,7 +185,7 @@ class SQLTables(BaseTables):
                 )
             return id_
         else:
-            logging.warning(
+            logger.warning(
                 f"Cannot update variable '{id_}'. "
                 f"Number of elements '({len(array)})' does not match!"
             )
@@ -207,7 +207,7 @@ class SQLTables(BaseTables):
                     ft.update().where(ft.c.id == self.id_).values(special_tables=new_res)
                 )
         else:
-            logging.warning(
+            logger.warning(
                 f"Cannot add special variable '{key} into table {table}'. "
                 f"Number of elements '({len(array)})' does not match!"
             )

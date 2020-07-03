@@ -1,10 +1,10 @@
-import logging
 import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict
 from typing import Union, List
 
+from esofile_reader.logger import logger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -113,7 +113,7 @@ class ResultsEsoFile(BaseFile):
                     table, ids, start_date, end_date
                 )
             except KeyError:
-                logging.warning(f"There are no peak outputs stored for table: '{table}'.")
+                logger.warning(f"There are no peak outputs stored for table: '{table}'.")
                 continue
 
             if not include_id:
