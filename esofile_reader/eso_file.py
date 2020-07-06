@@ -61,8 +61,9 @@ class ResultsEsoFile(BaseFile):
             search_tree: Tree,
             peak_outputs: Dict[str, DFTables] = None,
     ):
-        super().__init__(file_path, file_name, file_created, tables, search_tree,
-                         file_type="eso")
+        super().__init__(
+            file_path, file_name, file_created, tables, search_tree, file_type="eso"
+        )
         self.peak_outputs = peak_outputs
 
     @classmethod

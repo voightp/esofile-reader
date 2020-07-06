@@ -170,7 +170,7 @@ class Tree:
             self,
             variable: Union[SimpleVariable, Variable],
             part_match: bool = False,
-            check_only: bool = False
+            check_only: bool = False,
     ) -> List[int]:
         """ Find variable ids for given arguments. """
         tree_variable = self.tree_variable(variable)

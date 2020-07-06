@@ -56,10 +56,10 @@ class TestExcelFile(unittest.TestCase):
         )
         test_mi = pd.MultiIndex.from_tuples(
             [
-                ('Air Temperature', 'BLOCK1:ZONE1', 'C'),
-                ('Wet Bulb Temperature', 'BLOCK1:ZONE1', 'C')
+                ("Air Temperature", "BLOCK1:ZONE1", "C"),
+                ("Wet Bulb Temperature", "BLOCK1:ZONE1", "C"),
             ],
-            names=['key', 'type', 'units']
+            names=["key", "type", "units"],
         )
         mi, skip_rows, index_column = parse_header(df)
         assert_index_equal(test_mi, mi)
@@ -76,8 +76,7 @@ class TestExcelFile(unittest.TestCase):
             ]
         )
         test_mi = pd.MultiIndex.from_tuples(
-            [("Air Temperature", "C"), ("Wet Bulb Temperature", "C")],
-            names=["key", "units"]
+            [("Air Temperature", "C"), ("Wet Bulb Temperature", "C")], names=["key", "units"]
         )
         mi, skip_rows, index_column = parse_header(df)
         assert_index_equal(test_mi, mi)
@@ -256,11 +255,14 @@ class TestExcelFile(unittest.TestCase):
         ef = ResultsFile.from_excel(RESULTS_PATH)
         self.assertListEqual(
             [
-                'simple-no-template-dt-index',
-                'simple-no-template-no-index',
-                'monthly',
-                'range',
-                'no-template-full-dt-index', 'hourly', 'daily', 'runperiod'
+                "simple-no-template-dt-index",
+                "simple-no-template-no-index",
+                "monthly",
+                "range",
+                "no-template-full-dt-index",
+                "hourly",
+                "daily",
+                "runperiod",
             ],
-            ef.table_names
+            ef.table_names,
         )
