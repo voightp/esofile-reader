@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -7,7 +8,7 @@ from pandas.testing import assert_index_equal
 from parameterized import parameterized
 
 from esofile_reader.exceptions import InsuficientHeaderInfo
-from esofile_reader.processing.excel import is_data_row
+from esofile_reader.processing.excel import is_data_row, parse_header
 from esofile_reader.results_file import ResultsFile
 from tests import ROOT
 
@@ -39,6 +40,52 @@ class TestExcelFile(unittest.TestCase):
     def test_is_data_row_more_strings(self):
         sr = pd.Series(["a", "b", pd.NaT, pd.NaT, 0.1])
         self.assertFalse(is_data_row(sr))
+
+    def test_skip_row_header(self):
+        f = "%d/%m/%Y %H:%M"
+        df = pd.DataFrame(
+            [
+                ["eplusout", None, None],
+                ["Date/Time", "Air Temperature", "Wet Bulb Temperature"],
+                [None, "BLOCK1:ZONE1", "BLOCK1:ZONE1"],
+                [None, "C", "C"],
+                [datetime.strptime("01/01/2002 01:00", f), -5.998554089, -9.083890143],
+                [datetime.strptime("01/01/2002 02:00", f), -6.358205625, -9.466095593],
+                [datetime.strptime("01/01/2002 03:00", f), -6.18423747, -9.391278551],
+            ]
+        )
+        test_mi = pd.MultiIndex.from_tuples(
+            [
+                ("Air Temperature", "BLOCK1:ZONE1", "C"),
+                ("Wet Bulb Temperature", "BLOCK1:ZONE1", "C"),
+            ],
+            names=["key", "type", "units"],
+        )
+        mi, skip_rows, index_column = parse_header(df)
+        assert_index_equal(test_mi, mi)
+
+    def test_template_no_index_name(self):
+        f = "%d/%m/%Y %H:%M"
+        df = pd.DataFrame(
+            [
+                ["key", "Air Temperature", "Wet Bulb Temperature"],
+                ["units", "C", "C"],
+                [datetime.strptime("01/01/2002 01:00", f), -5.998554089, -9.083890143],
+                [datetime.strptime("01/01/2002 02:00", f), -6.358205625, -9.466095593],
+                [datetime.strptime("01/01/2002 03:00", f), -6.18423747, -9.391278551],
+            ]
+        )
+        test_mi = pd.MultiIndex.from_tuples(
+            [("Air Temperature", "C"), ("Wet Bulb Temperature", "C")], names=["key", "units"]
+        )
+        mi, skip_rows, index_column = parse_header(df)
+        assert_index_equal(test_mi, mi)
+
+    def test_insufficient_header_info(self):
+        # let's say that there is a lot of text rows
+        with self.assertRaises(InsuficientHeaderInfo):
+            df = pd.DataFrame([["this", "is", "test", "header", "row"]] * 10)
+            parse_header(df, force_index=False)
 
     @parameterized.expand(
         [
@@ -203,3 +250,19 @@ class TestExcelFile(unittest.TestCase):
         df = ef.tables["table2"]
         self.assertEqual((12, 5), df.shape)
         self.assertEqual("timestamp", df.index.name)
+
+    def test_all_tables(self):
+        ef = ResultsFile.from_excel(RESULTS_PATH)
+        self.assertListEqual(
+            [
+                "simple-no-template-dt-index",
+                "simple-no-template-no-index",
+                "monthly",
+                "range",
+                "no-template-full-dt-index",
+                "hourly",
+                "daily",
+                "runperiod",
+            ],
+            ef.table_names,
+        )

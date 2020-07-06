@@ -300,6 +300,10 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         with self.assertRaises(KeyError):
             _ = self.ef.get_numeric_table("foo")
 
+    def test_invalid_table_name(self):
+        with self.assertRaises(NameError):
+            _ = self.ef.get_numeric_table("foo-bar")
+
 
 if __name__ == "__main__":
     unittest.main()

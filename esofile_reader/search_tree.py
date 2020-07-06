@@ -1,8 +1,8 @@
 import contextlib
-import logging
 from typing import Union, Optional, Dict, List
 
 from esofile_reader.constants import *
+from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, SimpleVariable
 
 
@@ -167,19 +167,22 @@ class Tree:
                     self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
 
     def find_ids(
-            self, variable: Union[SimpleVariable, Variable], part_match: bool = False
+            self,
+            variable: Union[SimpleVariable, Variable],
+            part_match: bool = False,
+            check_only: bool = False,
     ) -> List[int]:
         """ Find variable ids for given arguments. """
         tree_variable = self.tree_variable(variable)
         ids = []
         self._loop(self.root, ids, tree_variable, part_match=part_match)
-        if not ids:
-            logging.warning(f"'{variable}' not found in tree!")
+        if not ids and check_only:
+            logger.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
 
     def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Check if variable exists. """
-        return bool(self.find_ids(variable, part_match=False))
+        return bool(self.find_ids(variable, part_match=False, check_only=True))
 
     def _rem_loop(self, node: Node, tree_variable: List[str], level: int = 0) -> None:
         def remove_recursively(n):

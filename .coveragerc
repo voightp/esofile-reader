@@ -14,12 +14,16 @@ exclude_lines =
     # Don't complain if tests don't hit defensive assertion code:
     raise AssertionError
     raise NotImplementedError
+    except ModuleNotFoundError
 
     # Don't complain if non-runnable code isn't run:
     if __name__ == .__main__.:
 
     # Don't complain if debug statements are missed:
     if logging.root.level == logging.INFO:
+
+    # Ignore pass statement
+    pass
 
 ignore_errors = True
 
@@ -30,6 +34,7 @@ omit  =
     venv\*
     .venv\*
     tests\*
+    __init__.py
 
 [paths]
 source =

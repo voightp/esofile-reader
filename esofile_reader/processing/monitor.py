@@ -3,6 +3,8 @@ import os
 import time
 import traceback
 
+from esofile_reader.logger import logger
+
 
 class DefaultMonitor:
     # processing raw file takes approximately 70% of total time
@@ -39,7 +41,7 @@ class DefaultMonitor:
         self.report_progress(3, "processing data!")
 
     def tables_started(self):
-        if logging.root.level == logging.INFO:
+        if logger.level == logging.INFO:
             print("", flush=True)  # newline
         self.report_progress(4, "processing tables!")
 
@@ -55,7 +57,7 @@ class DefaultMonitor:
         self.report_progress(7, "generating tables!")
 
     def processing_finished(self):
-        if logging.root.level == logging.INFO:
+        if logger.level == logging.INFO:
             print("", flush=True)  # newline
         self.report_progress(8, "processing finished!")
         self.report_processing_time()
@@ -74,7 +76,7 @@ class DefaultMonitor:
     def update_progress(self, i=1):
         self.progress += i
         self.counter = 0
-        if logging.root.level == logging.INFO:
+        if logger.level == logging.INFO:
             print("." * int(i), end="", flush=True)
 
     def calc_time(self, identifier):
@@ -108,24 +110,24 @@ class DefaultMonitor:
             else:
                 elapsed, delta = self.calc_time(identifier)
                 if identifier == 1:
-                    logging.info("*" * 80)
-                    logging.info(f"\tFile: '{self.name}'")
+                    logger.info("*" * 80)
+                    logger.info(f"\tFile: '{self.name}'")
                     msg = f"\t{identifier} - {text: <30}"
                 else:
                     msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
 
-            logging.info(msg)
+            logger.info(msg)
 
     def report_processing_time(self):
         try:
             abs_proc = self.n_lines / (self.processing_times[8] - self.processing_times[1])
         except ZeroDivisionError:
-            logging.exception(f"Unexpected processing time." f"{traceback.format_exc()}")
+            logger.warning(f"Unexpected processing time. {traceback.format_exc()}")
             abs_proc = -1
-        logging.info(f"\n\t>> Results processing speed: {abs_proc:.0f} lines per s")
+        logger.info(f"\n\t>> Results processing speed: {abs_proc:.0f} lines per s")
 
     def report_storing_time(self):
         t = self.processing_times[10] - self.processing_times[9]
-        if logging.root.level == logging.INFO:
+        if logger.level == logging.INFO:
             print("", flush=True)  # newline
-        logging.info(f"\t>> File {self.name} stored in: {t:.5f}s")
+        logger.info(f"\t>> File {self.name} stored in: {t:.5f}s")

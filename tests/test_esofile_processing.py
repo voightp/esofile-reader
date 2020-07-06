@@ -10,7 +10,7 @@ from esofile_reader.processing.esofile import (
     _process_interval_line,
 )
 
-from esofile_reader import EsoFile
+from esofile_reader import EsoFile, logger, ResultsFile
 from esofile_reader.base_file import IncompleteFile
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
 from esofile_reader.mini_classes import Variable
@@ -391,9 +391,12 @@ class TestEsoFileProcessing(unittest.TestCase):
             read_file(os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"))
 
     def test_logging_level_info(self):
-        logging.basicConfig(level=logging.INFO)
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-        logging.basicConfig(level=logging.WARNING)
+        try:
+            logger.setLevel(logging.INFO)
+            EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+
+        finally:
+            logger.setLevel(logging.ERROR)
 
     def test_monitor_zero_division_catched(self):
         monitor = DefaultMonitor("dummy")
@@ -403,7 +406,8 @@ class TestEsoFileProcessing(unittest.TestCase):
         monitor.processing_times[1] = 0
         monitor.report_processing_time()
 
+    def test_results_file_from_eso(self):
+        ef = ResultsFile.from_eso_file(os.path.join(ROOT, "eso_files/eplusout1.eso"))
+        self.assertListEqual(['hourly', 'daily', 'monthly', 'runperiod'], ef.table_names)
 
 # fmt: on
-if __name__ == "__main__":
-    unittest.main()

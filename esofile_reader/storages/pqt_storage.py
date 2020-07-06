@@ -1,7 +1,6 @@
 import contextlib
 import io
 import json
-import logging
 import math
 import shutil
 import tempfile
@@ -12,6 +11,7 @@ from zipfile import ZipFile
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.logger import logger
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
@@ -202,7 +202,7 @@ class ParquetFile(BaseFile):
 
         # use memory buffer if name or dir is not specified
         if name is None or dir_ is None:
-            logging.info("Name or dir not specified. Saving zip into IO Buffer.")
+            logger.info("Name or dir not specified. Saving zip into IO Buffer.")
             device = io.BytesIO()
         else:
             device = Path(dir_, f"{name}{self.EXT}")

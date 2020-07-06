@@ -3,8 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from pandas.testing import assert_frame_equal
-from pandas.testing import assert_index_equal
+from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
 from parameterized import parameterized
 
 from esofile_reader.constants import N_DAYS_COLUMN
@@ -61,8 +60,39 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_available_tables(self, key):
         tables = self.tables[key]
-        tables = tables.get_table_names()
-        self.assertListEqual(["monthly", "range"], tables)
+        table_names = tables.get_table_names()
+        self.assertListEqual(["monthly", "range"], table_names)
+
+    @parameterized.expand(["dfd", "pqd"])
+    def test_get_available_tables(self, key):
+        tables = self.tables[key]
+        table_names = tables.keys()
+        self.assertListEqual(["monthly", "range"], list(table_names))
+
+    @parameterized.expand(["dfd", "pqd"])
+    def test_set_table_invalid(self, key):
+        tables = self.tables[key]
+        variables = [
+            (1, "test", "ZoneA", "Temperature", "C"),
+            (2, "test", "ZoneB", "Temperature", "C"),
+            (3, "test", "ZoneC", "Temperature", "C"),
+            (4, "test", "ZoneC", "Heating Load", "W"),
+        ]
+        columns = pd.MultiIndex.from_tuples(
+            variables, names=["id", "WRONG", "key", "type", "units"]
+        )
+        index = pd.RangeIndex(start=0, stop=3, step=1, name="range")
+        df = pd.DataFrame(
+            [
+                [25.123, 27.456, 14.546, 1000],
+                [25.123, 27.456, 14.546, 2000],
+                [25.123, 27.456, 14.546, 3000],
+            ],
+            columns=columns,
+            index=index,
+        )
+        with self.assertRaises(TypeError):
+            tables["test"] = df
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_datetime_index(self, key):
@@ -157,6 +187,16 @@ class TestDataClassesSimple(unittest.TestCase):
         if key != "sqld":
             with self.assertRaises(KeyError):
                 _ = tables["monthly"][id_]
+
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_insert_special_column(self, key="sqld"):
+        tables = self.tables[key]
+        values = list("abcdefghijkl")
+        tables.insert_special_column("monthly", "TEST", values)
+        sr = tables.get_special_column("monthly", "TEST")
+        index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
+        test_sr = pd.Series(values, name=("special", "monthly", "TEST", ""), index=index)
+        assert_series_equal(sr, test_sr)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_remove_variable_invalid(self, key):
