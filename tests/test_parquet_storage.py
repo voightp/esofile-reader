@@ -1,15 +1,18 @@
 import contextlib
+import logging
 import os
 import unittest
 from pathlib import Path
 
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, ResultsFile
+from esofile_reader import EsoFile, logger
+from esofile_reader import ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
-from tests import ROOT, EF1, EF_ALL_INTERVALS
+from tests import EF1, EF_ALL_INTERVALS
+from tests import ROOT
 
 
 class TestParquetStorage(unittest.TestCase):
@@ -227,3 +230,12 @@ class TestParquetStorage(unittest.TestCase):
         id_ = self.storage.store_file(EF_ALL_INTERVALS)
         out = self.storage.files[id_].save_as()
         self.assertIsInstance(out, io.BytesIO)
+
+    def test_store_file_logging(self):
+        try:
+            logger.setLevel(logging.INFO)
+            self.storage.store_file(EF_ALL_INTERVALS, monitor=DefaultMonitor("dummy"))
+            self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
+            self.assertEqual("eso", self.storage.files[0].file_type)
+        finally:
+            logger.setLevel(logging.ERROR)

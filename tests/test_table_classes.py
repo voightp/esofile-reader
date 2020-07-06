@@ -265,7 +265,7 @@ class TestDataClasses(unittest.TestCase):
         tables.update_variable_values("monthly", 983, original_vals)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
-    def test_insert_special_column(self, key="sqld"):
+    def test_insert_special_column(self, key):
         tables = self.tables[key]
         values = list("abcdefghijkl")
         tables.insert_special_column("monthly", "TEST", values)
@@ -273,6 +273,12 @@ class TestDataClasses(unittest.TestCase):
         index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
         test_sr = pd.Series(values, name=("special", "monthly", "TEST", "", ""), index=index)
         assert_series_equal(sr, test_sr)
+
+    @parameterized.expand(["dfd", "pqd", "sqld"])
+    def test_insert_special_column_invalid(self, key):
+        tables = self.tables[key]
+        values = list("abcdefghij")
+        self.assertFalse(tables.insert_special_column("monthly", "TEST", values))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_special_column_invalid(self, key):

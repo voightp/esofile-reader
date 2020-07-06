@@ -475,3 +475,9 @@ class TestMixedSearchTree(unittest.TestCase):
         res = self.tree.add_variable(17, v)
         self.assertFalse(res)
         self.assertListEqual([1], self.tree.find_ids(v))
+
+    def test_find_ids_warning(self):
+        v = SimpleVariable("daily", "BLOCK1:ZONE1 Zone Temperature", "C")
+        res = self.tree.add_variable(17, v)
+        self.assertFalse(res)
+        self.assertListEqual([1], self.tree.find_ids(v, check_only=True))

@@ -34,6 +34,33 @@ def is_data_row(sr: pd.Series):
     return numeric_count >= non_numeric_count
 
 
+def validate_header(is_template, levels, column_levels):
+    """ Validate collected header information and return ordered header. """
+    ordered_levels = {}
+    if is_template:
+        # reorder levels using standard order
+        ordered_levels = {lev: levels[lev] for lev in column_levels if lev in levels}
+    else:
+        n = len(levels)
+        msg = (
+            "Expected levels are either:\n\tkey\n\tunits"
+            "\nfor two level header or:\n\tkey\n\ttype\n\tunits"
+            "\nfor three level header."
+        )
+        if n < 2:
+            raise InsuficientHeaderInfo(
+                f"Not enough information to create header. " f"There's only {n} level.\n{msg}"
+            )
+        elif n > 3:
+            raise InsuficientHeaderInfo(f"There's too many header levels: {n}.\n{msg}")
+        keys = [KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
+        if n == 2:
+            keys.remove(TYPE_LEVEL)
+        for key, row in zip(keys, list(levels.values())):
+            ordered_levels[key] = row
+    return ordered_levels
+
+
 def parse_header(
         df: pd.DataFrame, force_index: bool = False
 ) -> Tuple[pd.MultiIndex, int, bool]:
@@ -75,7 +102,7 @@ def parse_header(
         if index_column:
             ix = sr.iloc[0]
             row = sr.iloc[1:]
-            if row.dropna(how="all").empty:
+            if row.dropna(how="all").empty and ix not in index_names:
                 # ignore rows without any value
                 pass
             elif is_template:
@@ -113,29 +140,8 @@ def parse_header(
             "Failed to automatically retrieve header information from DataFrame!"
         )
 
-    # validate gathered data
-    ordered_levels = {}
-    if is_template:
-        # reorder levels using standard order
-        ordered_levels = {lev: levels[lev] for lev in column_levels if lev in levels}
-    else:
-        n = len(levels)
-        msg = (
-            "Expected levels are either:\n\tkey\n\tunits"
-            "\nfor two level header or:\n\tkey\n\ttype\n\tunits"
-            "\nfor three level header."
-        )
-        if n < 2:
-            raise InsuficientHeaderInfo(
-                f"Not enough information to create header. " f"There's only {n} level.\n{msg}"
-            )
-        elif n > 3:
-            raise InsuficientHeaderInfo(f"There's too many header levels: {n}.\n{msg}")
-        keys = [KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL]
-        if n == 2:
-            keys.remove(TYPE_LEVEL)
-        for key, row in zip(keys, list(levels.values())):
-            ordered_levels[key] = row
+    # validate gathered information, raises 'InsufficientHeaderInfo'
+    ordered_levels = validate_header(is_template, levels, column_levels)
 
     # transpose DataFrame to get items in columns
     header_df = pd.DataFrame(ordered_levels).T

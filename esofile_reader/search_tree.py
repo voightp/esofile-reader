@@ -182,7 +182,7 @@ class Tree:
 
     def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Check if variable exists. """
-        return bool(self.find_ids(variable, part_match=False))
+        return bool(self.find_ids(variable, part_match=False, check_only=True))
 
     def _rem_loop(self, node: Node, tree_variable: List[str], level: int = 0) -> None:
         def remove_recursively(n):

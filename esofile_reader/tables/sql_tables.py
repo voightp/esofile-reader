@@ -190,9 +190,10 @@ class SQLTables(BaseTables):
                 f"Number of elements '({len(array)})' does not match!"
             )
 
-    def insert_special_column(self, table: str, key: str, array: Sequence) -> None:
+    def insert_special_column(self, table: str, key: str, array: Sequence) -> bool:
         ft = self.storage.file_table
-        if self._validate(table, array):
+        valid = self._validate(table, array)
+        if valid:
             column_type = Integer if all(map(lambda x: isinstance(x, int), array)) else String
             special_table = create_special_table(
                 self.storage.metadata, self.id_, table, key, column_type
@@ -211,6 +212,7 @@ class SQLTables(BaseTables):
                 f"Cannot add special variable '{key} into table {table}'. "
                 f"Number of elements '({len(array)})' does not match!"
             )
+        return valid
 
     def delete_variables(self, table: str, ids: List[int]) -> None:
         table = self._get_results_table(table)
