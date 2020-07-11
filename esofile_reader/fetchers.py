@@ -130,7 +130,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
             rstr = variables
 
         logger.warning(
-            f"Any of requested variables was not found!\n" f"Requested variables: [{rstr}]"
+            f"Any of requested variables was not found!\nRequested variables: [{rstr}]"
         )
         return
     return res

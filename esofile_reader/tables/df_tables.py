@@ -111,7 +111,7 @@ class DFTables(BaseTables):
     def get_table_names(self) -> List[str]:
         return list(self.tables.keys())
 
-    def get_datetime_index(self, table: str) -> pd.DatetimeIndex:
+    def get_datetime_index(self, table: str) -> Optional[pd.DatetimeIndex]:
         index = self.tables[table].index
         if isinstance(index, pd.DatetimeIndex):
             return index
@@ -265,7 +265,6 @@ class DFTables(BaseTables):
     ) -> pd.DataFrame:
         df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
-
         if include_day:
             try:
                 days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
@@ -277,7 +276,6 @@ class DFTables(BaseTables):
                     df.set_index(DAY_COLUMN, append=True, inplace=True)
                 except AttributeError:
                     pass
-
         return df
 
     def _global_peak(

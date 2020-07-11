@@ -9,9 +9,12 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.convertor import (
-    rate_and_energy_units,
+    is_rate_or_energy,
     convert_rate_to_energy,
     convert_units,
+    is_daily,
+    is_hourly,
+    is_timestep
 )
 from esofile_reader.exceptions import *
 from esofile_reader.logger import logger
@@ -19,6 +22,8 @@ from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processing.esofile_intervals import update_dt_format
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
+
+VariableType = Union[SimpleVariable, Variable]
 
 
 class BaseFile:
@@ -85,13 +90,21 @@ class BaseFile:
         """ Check if header uses Variable or SimpleVariable data. """
         return self.tables.is_simple(table)
 
-    def get_header_dictionary(self, table: str) -> Dict[int, Union[SimpleVariable, Variable]]:
+    def get_header_dictionary(self, table: str) -> Dict[int, VariableType]:
         """ Get all variables for given table. """
         return self.tables.get_variables_dct(table)
 
     def get_header_df(self, table: str) -> pd.DataFrame:
         """ Get all variables for given table. """
         return self.tables.get_variables_df(table)
+
+    def get_numeric_table(self, table: str) -> pd.DataFrame:
+        """ Return the file as a single DataFrame (without special columns). """
+        try:
+            df = self.tables.get_numeric_table(table)
+        except KeyError:
+            raise KeyError(f"Cannot find table: '{table}'.\n{traceback.format_exc()}")
+        return df
 
     def rename(self, name: str) -> None:
         """ Set a new file name. """
@@ -132,11 +145,11 @@ class BaseFile:
         else:
             logger.warning(
                 f"Any of requested variables is not "
-                f"included in the Eso file '{self.file_name}'."
+                f"included in the results file '{self.file_name}'."
             )
 
     def _find_pairs(
-            self, variables: Union[Variable, List[Variable], List[int]],
+            self, variables: Union[VariableType, List[VariableType], List[int]],
             part_match: bool = False
     ) -> Dict[str, List[int]]:
         """
@@ -144,7 +157,7 @@ class BaseFile:
 
         Parameters
         ----------
-        variables : list of {Variable, int}
+        variables : list of {Variable, SimpleVariable int}
             A list of 'Variable' named tuples.
         part_match : bool
             Only substring of the part of variable is enough
@@ -183,8 +196,10 @@ class BaseFile:
             )
         return out
 
-    def find_ids(
-            self, variables: Union[Variable, List[Variable]], part_match: bool = False
+    def find_id(
+            self,
+            variables: Union[VariableType, List[VariableType]],
+            part_match: bool = False
     ) -> List[int]:
         """ Find ids for a list of 'Variables'. """
         variables = variables if isinstance(variables, list) else [variables]
@@ -193,9 +208,21 @@ class BaseFile:
             ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
         return ids
 
+    def can_convert_rate_to_energy(self, table: str) -> bool:
+        """ Check if it's possible to convert rate to energy. """
+        try:
+            # can convert as there's a 'N DAYS' column
+            self.tables.get_special_column(table, N_DAYS_COLUMN)
+            return True
+        except KeyError:
+            # only other option to covert rate to energy is when
+            # table reports daily, hourly or timestep results
+            index = self.tables.get_datetime_index(table)
+            return is_daily(index) or is_hourly(index) or is_timestep(index)
+
     def get_results(
             self,
-            variables: Union[Variable, List[Variable], int, List[int]],
+            variables: Union[VariableType, List[VariableType], int, List[int]],
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
             output_type: str = "standard",
@@ -266,17 +293,17 @@ class BaseFile:
         def global_min():
             return self.tables.get_global_min_results(table, ids, start_date, end_date)
 
-        res = {
+        switch = {
             "standard": standard,
             "global_max": global_max,
             "global_min": global_min,
         }
 
-        if output_type not in res:
+        if output_type not in switch:
             raise InvalidOutputType(
                 f"Invalid output type_ '{output_type}' "
                 f"requested.\n'output_type' kwarg must be"
-                f" one of '{', '.join(res.keys())}'."
+                f" one of '{', '.join(switch.keys())}'."
             )
 
         if units_system not in ["SI", "IP"]:
@@ -289,19 +316,17 @@ class BaseFile:
         frames = []
         pairs = self._find_pairs(variables, part_match=part_match)
         for table, ids in pairs.items():
-            df = res[output_type]()
-
-            if table != RANGE:
-                # convert 'rate' or 'energy' when standard results are requested
-                if output_type == "standard" and rate_to_energy_dct[table]:
+            df = switch[output_type]()
+            if output_type == "standard" and rate_to_energy_dct[table]:
+                if self.can_convert_rate_to_energy(table):
+                    # convert 'rate' or 'energy' when standard results are requested
                     try:
                         n_days = self.tables.get_special_column(
                             table, N_DAYS_COLUMN, start_date, end_date
                         )
                     except KeyError:
                         n_days = None
-
-                    df = convert_rate_to_energy(df, table, n_days)
+                    df = convert_rate_to_energy(df, n_days)
 
             if units_system != "SI" or rate_units != "W" or energy_units != "J":
                 df = convert_units(df, units_system, rate_units, energy_units)
@@ -316,15 +341,33 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def create_header_variable(self, table: str, key: str, var: str, units: str) -> Variable:
+    def _validate_variable_type(self, table: str, key: str, units: str, type_: Optional[str]):
+        """ Check if an appropriate variable type is requested. """
+        var_cls = SimpleVariable if type_ is None else Variable
+        table_cls = SimpleVariable if self.is_header_simple(table) else Variable
+        if var_cls != table_cls:
+            raise TypeError(
+                "Cannot create header variable!"
+                f"Trying to add {var_cls.__name__} into {table_cls.__name__} table."
+            )
+        var_args = [table, key, type_, units]
+        if var_cls is SimpleVariable:
+            var_args.pop(2)
+        return var_cls(*var_args)
+
+    def create_header_variable(
+            self, table: str, key: str, units: str, type_: str = None
+    ) -> VariableType:
         """ Create unique header variable. """
 
         def add_num():
             new_key = f"{key} ({i})"
-            return Variable(table, new_key, var, units)
+            return self._validate_variable_type(table, new_key, units, type_)
 
-        variable = Variable(table, key, var, units)
+        # check if adding appropriate variable type
+        variable = self._validate_variable_type(table, key, units, type_)
 
+        # avoid duplicate variable name
         i = 0
         while self.search_tree.variable_exists(variable):
             i += 1
@@ -333,52 +376,52 @@ class BaseFile:
         return variable
 
     def rename_variable(
-            self, variable: Variable, new_type: str = "", new_key: str = ""
-    ) -> Tuple[int, Variable]:
+            self,
+            variable: VariableType,
+            new_key: Optional[str] = None,
+            new_type: Optional[str] = None,
+    ) -> Tuple[int, Union[Variable, SimpleVariable]]:
         """ Rename the given 'Variable' using given names. """
-        ids = self.find_ids(variable)
-        table, key, type_, units = variable
+        if new_key is None and new_type is None:
+            logger.warning("Cannot rename variable! Type and key are not specified.")
+        else:
+            # assign original values if one of new ones is not specified
+            table, key, units = variable.table, variable.key, variable.units
+            new_key = new_key if new_key is not None else key
+            if type(variable) is Variable:
+                new_type = new_type if new_type is not None else variable.type
 
-        new_type = type_ if not new_type else new_type
-        new_key = key if not new_key else new_key
-
-        if (not new_type and not new_key) or (key == new_key and type_ == new_type):
-            logger.warning(
-                "Cannot rename variable! Type and key are "
-                "not specified or are the same as original variable."
-            )
-        elif ids:
-            # remove current item to avoid item duplicity
-            self.search_tree.remove_variable(variable)
+            id_ = self.find_id(variable)[0]
 
             # create new variable and add it into tree
-            new_var = self.create_header_variable(table, new_key, new_type, units)
-            self.search_tree.add_variable(ids[0], new_var)
+            new_variable = self.create_header_variable(table, new_key, new_type, units)
+
+            # remove current item to avoid item duplicity
+            self.search_tree.remove_variable(variable)
+            self.search_tree.add_variable(id_, new_variable)
 
             # rename variable in data set
-            self.tables.update_variable_name(table, ids[0], new_var.key, new_var.type)
-            return ids[0], new_var
-        else:
-            logger.warning("Cannot rename variable! Original variable not found!")
+            self.tables.update_variable_name(table, id_, new_variable.key, new_variable.type)
+            return id_, new_variable
 
-    def add_variable(
-            self, table: str, key: str, type: str, units: str, array: Sequence
-    ) -> Tuple[int, Variable]:
+    def insert_variable(
+            self, table: str, key: str, units: str, array: Sequence, type_: str = None
+    ) -> Optional[Tuple[int, VariableType]]:
         """ Add specified output variable to the file. """
-        new_var = self.create_header_variable(table, key, type, units)
-        id_ = self.tables.insert_column(new_var, array)
+        new_variable = self.create_header_variable(table, key, units, type_=type_)
+        id_ = self.tables.insert_column(new_variable, array)
         if id_:
-            self.search_tree.add_variable(id_, new_var)
-            return id_, new_var
+            self.search_tree.add_variable(id_, new_variable)
+            return id_, new_variable
 
     def aggregate_variables(
             self,
-            variables: Union[Variable, List[Variable]],
+            variables: Union[VariableType, List[VariableType]],
             func: Union[str, Callable],
             new_key: str = "Custom Key",
             new_type: str = "Custom Variable",
             part_match: bool = False,
-    ) -> Tuple[int, Variable]:
+    ) -> Optional[Tuple[int, VariableType]]:
         """
         Aggregate given variables using given function.
 
@@ -427,57 +470,46 @@ class BaseFile:
         if len(set(units)) == 1:
             # no processing required
             units = units[0]
-        elif rate_and_energy_units(units) and table != RANGE:
+        elif is_rate_or_energy(units):
             # it's needed to assign multi index to convert energy
-            try:
-                n_days = self.tables.get_special_column(table, N_DAYS_COLUMN)
-            except KeyError:
-                n_days = None
-                if table in [M, A, RP]:
-                    raise CannotAggregateVariables(
-                        f"Cannot aggregate variables. " f"'{N_DAYS_COLUMN}' is not available!"
-                    )
-            df = convert_rate_to_energy(df, table, n_days)
-            units = next(u for u in units if u in ("J", "J/m2"))
+            if self.can_convert_rate_to_energy(table):
+                try:
+                    n_days = self.tables.get_special_column(table, N_DAYS_COLUMN)
+                except KeyError:
+                    # n_days is not required for daily, hourly and timestep intervals
+                    n_days = None
+                df = convert_rate_to_energy(df, n_days)
+                units = next(u for u in units if u in ("J", "J/m2"))
+            else:
+                raise CannotAggregateVariables(
+                    "Cannot aggregate variables. Variables use different units!"
+                )
         else:
             raise CannotAggregateVariables(
-                "Cannot aggregate variables. " "Variables use different units!"
+                "Cannot aggregate variables. Variables use different units!"
             )
 
         sr = df.aggregate(func, axis=1)
 
+        # use original names if defaults are kept
         if new_type == "Custom Variable":
             if all(map(lambda x: x == variables[0], variables)):
                 new_type = variables[0]
-
         if new_key == "Custom Key":
             func_name = func.__name__ if callable(func) else func
             new_key = f"{new_key} - {func_name}"
 
-        # results can be either tuple (id, Variable) or None
-        out = self.add_variable(table, new_key, new_type, units, sr)
+        # return value can be either tuple (id, Variable) or None
+        out = self.insert_variable(table, new_key, new_type, units, sr)
 
         return out
 
     def remove_variables(
-            self, variables: Union[Variable, List[Variable]]
+            self, variables: Union[VariableType, List[VariableType]]
     ) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
-        variables = variables if isinstance(variables, list) else [variables]
-
-        groups = self._find_pairs(variables)
+        groups = self._find_pairs(variables if isinstance(variables, list) else [variables])
         for table, ids in groups.items():
             self.tables.delete_variables(table, ids)
-
-        # clean up the tree
         self.search_tree.remove_variables(variables)
-
         return groups
-
-    def get_numeric_table(self, table: str) -> pd.DataFrame:
-        """ Return the file as a single DataFrame (without special columns). """
-        try:
-            df = self.tables.get_numeric_table(table)
-        except KeyError:
-            raise KeyError(f"Cannot find table: '{table}'.\n{traceback.format_exc()}")
-        return df
