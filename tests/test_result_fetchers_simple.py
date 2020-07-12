@@ -196,7 +196,7 @@ class TestResultFetching(unittest.TestCase):
             SimpleVariable("monthly", "Environment", "W/m2"),
             SimpleVariable("monthly", "BLOCK1:ZONE1", "kgWater/kgDryAir"),
         ]
-        df = get_results(file, v, units_system="SI", rate_to_energy_dct={"monthly": False})
+        df = get_results(file, v, units_system="SI", rate_to_energy=False)
         test_columns = pd.MultiIndex.from_tuples(
             [
                 ("BLOCK3:ZONE1", ""),
@@ -237,7 +237,7 @@ class TestResultFetching(unittest.TestCase):
             SimpleVariable("monthly", "Environment", "W/m2"),
             SimpleVariable("monthly", "BLOCK1:ZONE1", "C"),
         ]
-        df = get_results(file, v, units_system="IP", rate_to_energy_dct={"monthly": False})
+        df = get_results(file, v, units_system="IP", rate_to_energy=False)
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK3:ZONE1", ""), ("Environment", "W/sqf"), ("BLOCK1:ZONE1", "F"), ],
             names=["key", "units"],
@@ -269,16 +269,8 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_rate_to_energy(self, key):
         file = self.files[key]
-        rate_to_energy = {
-            "timestep": True,
-            "hourly": True,
-            "daily": True,
-            "monthly": True,
-            "annual": True,
-            "runperiod": True,
-        }
         v = [SimpleVariable("monthly", "Environment", "W/m2")]
-        df = get_results(file, v, rate_to_energy_dct=rate_to_energy)
+        df = get_results(file, v, rate_to_energy=True)
         test_columns = pd.MultiIndex.from_tuples(
             [("Environment", "J/m2"), ], names=["key", "units"],
         )

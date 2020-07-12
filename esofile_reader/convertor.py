@@ -117,18 +117,18 @@ def is_rate_or_energy(units: List[str]) -> bool:
 
 def is_daily(index: pd.DatetimeIndex):
     """ Check if index represents daily interval. """
-    return all(map(lambda x: int(x) == 8.64e13, np.diff(index)))
+    return len(index) > 1 and all(map(lambda x: int(x) == 8.64e13, np.diff(index)))
 
 
 def is_hourly(index: pd.DatetimeIndex):
     """ Check if index represents hourly interval. """
-    return all(map(lambda x: int(x) == 3.6e12, np.diff(index)))
+    return len(index) > 1 and all(map(lambda x: int(x) == 3.6e12, np.diff(index)))
 
 
 def is_timestep(index: pd.DatetimeIndex):
     """ Check if index represents timestep interval. """
     unique_arr = np.unique(np.diff(index))
-    return len(unique_arr) == 1 and unique_arr[0] < 3.6e12
+    return len(index) > 1 and len(unique_arr) == 1 and int(unique_arr[0]) < 3.6e12
 
 
 def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
@@ -139,7 +139,7 @@ def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
 
 def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
-    if is_hourly(df.index) == H or is_timestep(df.index):
+    if is_hourly(df.index) or is_timestep(df.index):
         n_steps = get_n_steps(df.index)
         ratio = n_steps / 3600
     elif is_daily(df.index):

@@ -70,14 +70,14 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_find_ids(self):
         v = Variable(table="range", key="ZoneC", type="Temperature", units="C")
-        ids = self.bf.find_ids(v, part_match=False)
+        ids = self.bf.find_id(v, part_match=False)
         self.assertEqual(ids, [3])
 
     def test_find_ids_part_invalid(self):
         v = Variable(
             table="range", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        ids = self.bf.find_ids(v, part_match=False)
+        ids = self.bf.find_id(v, part_match=False)
         self.assertEqual(ids, [])
 
     def test__find_pairs(self):
@@ -92,7 +92,7 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test_create_new_header_variable(self):
         v1 = self.bf.create_header_variable(
-            table="range", key="ZoneC", var="Temperature", units="C"
+            table="range", key="ZoneC", type_="Temperature", units="C"
         )
         self.assertTupleEqual(
             v1, Variable(table="range", key="ZoneC (1)", type="Temperature", units="C")
@@ -103,18 +103,18 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.rename_variable(v, new_key="NEW", new_type="VARIABLE")
 
         v = Variable(table="range", key="NEW", type="VARIABLE", units="C")
-        ids = self.bf.find_ids(v)
+        ids = self.bf.find_id(v)
         self.assertListEqual(ids, [3])
 
         self.bf.rename_variable(v, new_key="ZoneC", new_type="Temperature")
 
     def test_add_output(self):
-        id_, var = self.bf.add_variable("range", "new", "type", "C", [1, 2, 3])
+        id_, var = self.bf.insert_variable("range", "new", "C", [1, 2, 3], type_="type")
         self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
         self.bf.remove_variables(var)
 
     def test_add_output_test_tree(self):
-        id_, var = self.bf.add_variable("range", "new", "type", "C", [1, 2, 3])
+        id_, var = self.bf.insert_variable("range", "new", "C", [1, 2, 3], type_="type")
         self.assertTupleEqual(var, Variable("range", "new", "type", "C"))
 
         ids = self.bf.search_tree.find_ids(var)
@@ -126,7 +126,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.bf.add_variable("range", "new", "type", "C", [1])
+        out = self.bf.insert_variable("range", "new", "C", [1], "type")
         self.assertIsNone(out)
 
     def test_aggregate_variables(self):
@@ -138,17 +138,18 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.bf.remove_variables(var)
 
     def test_aggregate_energy_rate(self):
-        _, v1 = self.bf.add_variable(
-            "range", "CHILLER", "Chiller Electric Power", "W", [1, 1, 1]
-        )
-        _, v2 = self.bf.add_variable(
-            "range", "CHILLER", "Chiller Electric Power", "J", [2, 2, 2]
-        )
+        try:
+            _, v1 = self.bf.insert_variable(
+                "range", "CHILLER", "W", [1, 1, 1], type_="Chiller Electric Power"
+            )
+            _, v2 = self.bf.insert_variable(
+                "range", "CHILLER", "J", [2, 2, 2], "Chiller Electric Power",
+            )
 
-        with self.assertRaises(CannotAggregateVariables):
-            _ = self.bf.aggregate_variables([v1, v2], "sum")
-
-        self.bf.remove_variables([v1, v2])
+            with self.assertRaises(CannotAggregateVariables):
+                _ = self.bf.aggregate_variables([v1, v2], "sum")
+        finally:
+            self.bf.remove_variables([v1, v2])
 
     def test_as_df(self):
         df = self.bf.get_numeric_table("range")

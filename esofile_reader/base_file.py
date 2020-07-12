@@ -218,7 +218,9 @@ class BaseFile:
             # only other option to covert rate to energy is when
             # table reports daily, hourly or timestep results
             index = self.tables.get_datetime_index(table)
-            return is_daily(index) or is_hourly(index) or is_timestep(index)
+            if index is not None:
+                return is_daily(index) or is_hourly(index) or is_timestep(index)
+        return False
 
     def get_results(
             self,
@@ -235,7 +237,7 @@ class BaseFile:
             rate_units: str = "W",
             energy_units: str = "J",
             timestamp_format: str = "default",
-            rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+            rate_to_energy: bool = False,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
@@ -268,7 +270,7 @@ class BaseFile:
             to match when searching for variables if this is True.
         units_system : {'SI', 'IP'}
             Selected units type_ for requested outputs.
-        rate_to_energy_dct : dct
+        rate_to_energy : bool
             Defines if 'rate' will be converted to energy.
         rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
             Convert default 'Rate' outputs to requested units.
@@ -317,7 +319,7 @@ class BaseFile:
         pairs = self._find_pairs(variables, part_match=part_match)
         for table, ids in pairs.items():
             df = switch[output_type]()
-            if output_type == "standard" and rate_to_energy_dct[table]:
+            if output_type == "standard" and rate_to_energy:
                 if self.can_convert_rate_to_energy(table):
                     # convert 'rate' or 'energy' when standard results are requested
                     try:
@@ -341,14 +343,20 @@ class BaseFile:
 
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
-    def _validate_variable_type(self, table: str, key: str, units: str, type_: Optional[str]):
+    def _validate_variable_type(
+            self,
+            table: str,
+            key: str,
+            units: str,
+            type_: Optional[str] = None
+    ) -> VariableType:
         """ Check if an appropriate variable type is requested. """
         var_cls = SimpleVariable if type_ is None else Variable
         table_cls = SimpleVariable if self.is_header_simple(table) else Variable
         if var_cls != table_cls:
             raise TypeError(
                 "Cannot create header variable!"
-                f"Trying to add {var_cls.__name__} into {table_cls.__name__} table."
+                f" Trying to add {var_cls.__name__} into {table_cls.__name__} table."
             )
         var_args = [table, key, type_, units]
         if var_cls is SimpleVariable:
@@ -391,18 +399,27 @@ class BaseFile:
             if type(variable) is Variable:
                 new_type = new_type if new_type is not None else variable.type
 
-            id_ = self.find_id(variable)[0]
+            ids = self.find_id(variable)
+            if ids:
+                id_ = ids[0]
+                # create new variable and add it into tree
+                new_variable = self.create_header_variable(table, new_key, units,
+                                                           type_=new_type)
 
-            # create new variable and add it into tree
-            new_variable = self.create_header_variable(table, new_key, new_type, units)
+                # remove current item to avoid item duplicity
+                self.search_tree.remove_variable(variable)
+                self.search_tree.add_variable(id_, new_variable)
 
-            # remove current item to avoid item duplicity
-            self.search_tree.remove_variable(variable)
-            self.search_tree.add_variable(id_, new_variable)
-
-            # rename variable in data set
-            self.tables.update_variable_name(table, id_, new_variable.key, new_variable.type)
-            return id_, new_variable
+                # rename variable in data set
+                if type(variable) is Variable:
+                    self.tables.update_variable_name(
+                        table, id_, new_variable.key, new_variable.type
+                    )
+                else:
+                    self.tables.update_variable_name(table, id_, new_variable.key)
+                return id_, new_variable
+            else:
+                logger.warning(f"Cannot rename variable! {variable} not found.")
 
     def insert_variable(
             self, table: str, key: str, units: str, array: Sequence, type_: str = None
@@ -454,7 +471,6 @@ class BaseFile:
 
         """
         groups = self._find_pairs(variables, part_match=part_match)
-
         if not groups:
             raise CannotAggregateVariables("Cannot find variables!")
 
@@ -462,9 +478,10 @@ class BaseFile:
             raise CannotAggregateVariables("Cannot aggregate variables from different tables!")
 
         table, ids = list(groups.items())[0]
+        if len(ids) < 2:
+            raise CannotAggregateVariables("Cannot aggregate less than 2 variables.!")
 
         df = self.tables.get_results(table, ids)
-        variables = df.columns.get_level_values(TYPE_LEVEL).tolist()
         units = df.columns.get_level_values(UNITS_LEVEL).tolist()
 
         if len(set(units)) == 1:
@@ -492,15 +509,21 @@ class BaseFile:
         sr = df.aggregate(func, axis=1)
 
         # use original names if defaults are kept
-        if new_type == "Custom Variable":
-            if all(map(lambda x: x == variables[0], variables)):
-                new_type = variables[0]
+        if TYPE_LEVEL in df.columns.names:
+            variable_types = df.columns.get_level_values(TYPE_LEVEL).tolist()
+            if new_type == "Custom Variable":
+                if all(map(lambda x: x == variable_types[0], variable_types)):
+                    new_type = variable_types[0]
+        else:
+            # new_type is not valid for SimpleVariable
+            new_type = None
+
         if new_key == "Custom Key":
             func_name = func.__name__ if callable(func) else func
             new_key = f"{new_key} - {func_name}"
 
         # return value can be either tuple (id, Variable) or None
-        out = self.insert_variable(table, new_key, new_type, units, sr)
+        out = self.insert_variable(table, new_key, units, sr, type_=new_type)
 
         return out
 

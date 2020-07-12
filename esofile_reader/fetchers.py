@@ -1,10 +1,9 @@
 from datetime import datetime
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Optional
 
 import pandas as pd
 
 from esofile_reader.base_file import BaseFile
-from esofile_reader.constants import *
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable
@@ -25,7 +24,7 @@ def get_results(
         rate_units: str = "W",
         energy_units: str = "J",
         timestamp_format: str = "default",
-        rate_to_energy_dct: Dict[str, bool] = RATE_TO_ENERGY_DCT,
+        rate_to_energy: bool = False,
         ignore_peaks: bool = True,
 ):
     """
@@ -67,7 +66,7 @@ def get_results(
             to match when searching for variables if this is True.
          units_system : {'SI', 'IP'}
             Selected units type_ for requested outputs.
-         rate_to_energy_dct : dct
+         rate_to_energy : bool
             Defines if 'rate' will be converted to energy.
          rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
             Convert default 'Rate' outputs to requested units.
@@ -92,7 +91,7 @@ def get_results(
         "include_id": include_id,
         "include_day": include_day,
         "units_system": units_system,
-        "rate_to_energy_dct": rate_to_energy_dct,
+        "rate_to_energy": rate_to_energy,
         "rate_units": rate_units,
         "energy_units": energy_units,
         "timestamp_format": timestamp_format,
