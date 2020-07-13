@@ -167,6 +167,10 @@ class TestFileFunctions(unittest.TestCase):
             v1, Variable(table="timestep", key="dummy", type="type", units="foo")
         )
 
+    def test_create_new_header_variable_wrong_type(self):
+        with self.assertRaises(TypeError):
+            _ = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "foo")
+
     def test_rename_variable(self):
         v1 = Variable(
             table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
@@ -281,6 +285,22 @@ class TestFileFunctions(unittest.TestCase):
             columns=test_mi,
         )
         assert_frame_equal(df, test_df)
+        EF_ALL_INTERVALS.remove_variables(var)
+
+    def test_aggregate_energy_rate_hourly(self):
+        v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
+        v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
+        test_sr = EF_ALL_INTERVALS.get_results([v1, v2], rate_to_energy=True).sum(axis=1)
+        test_df = pd.DataFrame(test_sr)
+        test_mi = pd.MultiIndex.from_tuples(
+            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
+        )
+        test_df.columns = test_mi
+
+        id_, var = EF_ALL_INTERVALS.aggregate_variables([v1, v2], "sum")
+        df = EF_ALL_INTERVALS.get_results(id_)
+        assert_frame_equal(test_df, df)
+
         EF_ALL_INTERVALS.remove_variables(var)
 
     def test_aggregate_invalid_variables(self):
