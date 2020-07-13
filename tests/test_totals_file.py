@@ -80,7 +80,7 @@ class TestTotalsFile(TestCase):
         self.assertEqual(self.tf.file_path, "dummy/path")
 
     def test_search_tree(self):
-        ids = self.tf.find_ids(
+        ids = self.tf.find_id(
             [
                 Variable("daily", "Zone", "Zone Temperature", "C"),
                 Variable("daily", "Meter", "LIGHTS", "J"),

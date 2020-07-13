@@ -521,20 +521,11 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
     def test_get_results_rate_to_energy(self, key):
         file = self.files[key]
-        rate_to_energy = {
-            "timestep": True,
-            "hourly": True,
-            "daily": True,
-            "monthly": True,
-            "annual": True,
-            "runperiod": True,
-        }
-
         v = [
             Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(file, v, rate_to_energy_dct=rate_to_energy)
+        df = get_results(file, v, rate_to_energy=True)
 
         self.assertListEqual(df.columns.get_level_values("units").tolist(), ["J/m2", "J"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 217800, 5)
@@ -549,20 +540,11 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
     def test_get_results_rate(self, key):
         file = self.files[key]
-        rate_to_energy = {
-            "timestep": False,
-            "hourly": False,
-            "daily": False,
-            "monthly": False,
-            "annual": False,
-            "runperiod": False,
-        }
-
         v = [
             Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(file, v, rate_to_energy_dct=rate_to_energy, rate_units="kW")
+        df = get_results(file, v, rate_to_energy=False, rate_units="kW")
 
         self.assertListEqual(df.columns.get_level_values("units").tolist(), ["kW/m2", "kW"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 0.0605, 5)
@@ -577,20 +559,11 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
     def test_get_results_energy(self, key):
         file = self.files[key]
-        rate_to_energy = {
-            "timestep": True,
-            "hourly": True,
-            "daily": True,
-            "monthly": True,
-            "annual": True,
-            "runperiod": True,
-        }
-
         v = [
             Variable(None, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2"),
             Variable(None, "BLOCK1:ZONEB", "Zone People Sensible Heating Rate", "W"),
         ]
-        df = get_results(file, v, rate_to_energy_dct=rate_to_energy, energy_units="MJ")
+        df = get_results(file, v, rate_to_energy=True, energy_units="MJ")
 
         self.assertListEqual(df.columns.get_level_values("units").tolist(), ["MJ/m2", "MJ"] * 4)
         self.assertAlmostEqual(df.iloc[7, 0], 0.21780, 5)

@@ -265,8 +265,9 @@ def process_excel(
                 start_id = end_id
                 df_tables[key] = dfi
         else:
-            df, _ = build_df_table(df, name=name)
+            df, end_id = build_df_table(df, name=name, start_id=start_id)
             df_tables[name] = df
+            start_id = end_id
 
         # increment progress
         monitor.update_progress()

@@ -166,7 +166,7 @@ class ResultsEsoFile(BaseFile):
                 to match when searching for variables if this is True.
             units_system : {'SI', 'IP'}
                 Selected units type_ for requested outputs.
-            rate_to_energy_dct : dct
+            rate_to_energy_ : bool
                 Defines if 'rate' will be converted to energy.
             rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
                 Convert default 'Rate' outputs to requested units.
@@ -185,7 +185,7 @@ class ResultsEsoFile(BaseFile):
             if self.peak_outputs:
                 ignore = [
                     "units_system",
-                    "rate_to_energy_dct",
+                    "rate_to_energy",
                     "rate_units",
                     "energy_units",
                     "include_day",

@@ -109,21 +109,21 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         v = Variable(
             table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        ids = self.ef.find_ids(v, part_match=False)
+        ids = self.ef.find_id(v, part_match=False)
         self.assertListEqual([13], ids)
 
     def test_find_ids_part_match(self):
         v = Variable(
             table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
-        ids = self.ef.find_ids(v, part_match=True)
+        ids = self.ef.find_id(v, part_match=True)
         self.assertListEqual([13], ids)
 
     def test_find_ids_part_invalid(self):
         v = Variable(
             table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        ids = self.ef.find_ids(v, part_match=False)
+        ids = self.ef.find_id(v, part_match=False)
         self.assertListEqual([], ids)
 
     def test__find_pairs(self):
@@ -148,7 +148,7 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         self.assertDictEqual({}, out)
 
     def test_create_new_header_variable(self):
-        v1 = self.ef.create_header_variable("timestep", "dummy", "type", "foo")
+        v1 = self.ef.create_header_variable("timestep", "dummy", "foo", type_="type")
         self.assertTupleEqual(
             v1, Variable(table="timestep", key="dummy", type="type", units="foo")
         )
@@ -160,12 +160,12 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         self.ef.rename_variable(v1, new_key="NEW1", new_type="VARIABLE")
 
         v2 = Variable(table="timestep", key="NEW1", type="VARIABLE", units="")
-        ids = self.ef.find_ids(v2)
+        ids = self.ef.find_id(v2)
         self.assertListEqual(ids, [13])
 
         # revert change
         self.ef.rename_variable(v2, new_key=v1.key, new_type=v1.type)
-        ids = self.ef.find_ids(v1)
+        ids = self.ef.find_id(v1)
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
@@ -177,29 +177,29 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         v = Variable(
             table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
         )
-        out = self.ef.rename_variable(v, new_key="", new_type="")
+        out = self.ef.rename_variable(v)
         self.assertIsNone(out)
 
-        ids = self.ef.find_ids(v)
+        ids = self.ef.find_id(v)
         self.assertListEqual(ids, [19])
 
     def test_add_output(self):
-        id_, var = self.ef.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var = self.ef.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
         self.assertEqual(100, id_)
         self.ef.remove_variables(var)
 
     def test_add_two_outputs(self):
-        id_, var1 = self.ef.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var1 = self.ef.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
 
-        id_, var2 = self.ef.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var2 = self.ef.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
         self.ef.remove_variables(var1)
         self.ef.remove_variables(var2)
 
     def test_add_output_test_tree(self):
-        id_, var = self.ef.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var = self.ef.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
         ids = self.ef.search_tree.find_ids(var)
@@ -211,12 +211,12 @@ class TestSqlDBFileFunctions(unittest.TestCase):
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = self.ef.add_variable("timestep", "new", "type", "C", [1])
+        out = self.ef.insert_variable("timestep", "new", "C", [1], type_="type")
         self.assertIsNone(out)
 
     def test_add_output_invalid_interval(self):
         with self.assertRaises(KeyError):
-            _ = self.ef.add_variable("foo", "new", "type", "C", [1])
+            _ = self.ef.insert_variable("foo", "new", "C", [1], type_="type")
 
     def test_aggregate_variables(self):
         v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
@@ -303,7 +303,3 @@ class TestSqlDBFileFunctions(unittest.TestCase):
     def test_invalid_table_name(self):
         with self.assertRaises(NameError):
             _ = self.ef.get_numeric_table("foo-bar")
-
-
-if __name__ == "__main__":
-    unittest.main()

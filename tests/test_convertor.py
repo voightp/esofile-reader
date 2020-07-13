@@ -131,16 +131,16 @@ class TestOutputsConversion(unittest.TestCase):
         self.assertListEqual(df.columns.tolist(), [(1, "ft"), (2, "W/m2")])
 
     def test_rate_and_energy_units(self):
-        self.assertTrue(rate_and_energy_units(["W", "J", "J"]))
+        self.assertTrue(is_rate_or_energy(["W", "J", "J"]))
 
     def test_rate_and_energy_units_per_area(self):
-        self.assertTrue(rate_and_energy_units(["W/m2", "J/m2", "J/m2"]))
+        self.assertTrue(is_rate_or_energy(["W/m2", "J/m2", "J/m2"]))
 
     def test_rate_and_energy_units_invalid(self):
-        self.assertFalse(rate_and_energy_units(["W", "J", "J/m2"]))
+        self.assertFalse(is_rate_or_energy(["W", "J", "J/m2"]))
 
     def test_rate_and_energy_units_per_area_invalid(self):
-        self.assertFalse(rate_and_energy_units(["W/m2", "JW/m2", "J"]))
+        self.assertFalse(is_rate_or_energy(["W/m2", "JW/m2", "J"]))
 
     def test_get_n_steps(self):
         dt_index = pd.date_range("01/01/2002 01:00", freq="h", periods=5)
@@ -157,7 +157,6 @@ class TestOutputsConversion(unittest.TestCase):
             pd.date_range("01/01/2002 01:00", freq="h", periods=3), name=TIMESTAMP_COLUMN
         )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
-
         df = convert_rate_to_energy(df, H)
 
         test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
@@ -167,7 +166,6 @@ class TestOutputsConversion(unittest.TestCase):
         test_df = pd.DataFrame(
             [[1, 1 * 3600], [2, None], [3, 3 * 3600]], index=test_index, columns=test_columns
         )
-
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_daily(self):
@@ -176,8 +174,7 @@ class TestOutputsConversion(unittest.TestCase):
             pd.date_range("01/01/2002 01:00", freq="d", periods=3), name=TIMESTAMP_COLUMN
         )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
-
-        df = convert_rate_to_energy(df, D)
+        df = convert_rate_to_energy(df)
 
         test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
         test_index = pd.Index(
@@ -188,7 +185,6 @@ class TestOutputsConversion(unittest.TestCase):
             index=test_index,
             columns=test_columns,
         )
-
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_n_days(self):
@@ -199,7 +195,7 @@ class TestOutputsConversion(unittest.TestCase):
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
         nd_df = pd.DataFrame({"n_days": [30, 30, 31]}, index=index)
 
-        df = convert_rate_to_energy(df, M, nd_df["n_days"])
+        df = convert_rate_to_energy(df, nd_df["n_days"])
 
         test_columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "J/m2")], names=["id", "units"])
         test_index = pd.Index(
@@ -210,7 +206,6 @@ class TestOutputsConversion(unittest.TestCase):
             index=test_index,
             columns=test_columns,
         )
-
         assert_frame_equal(df, test_df)
 
     def test_rate_to_energy_na(self):
@@ -221,7 +216,7 @@ class TestOutputsConversion(unittest.TestCase):
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
         nd_df = pd.DataFrame({"n_days": [30, 30, 31]}, index=index)
 
-        df = convert_rate_to_energy(df, M, nd_df["n_days"])
+        df = convert_rate_to_energy(df, nd_df["n_days"])
         assert_frame_equal(df, df)
 
     def test_rate_to_energy_missing_ndays(self):
@@ -230,7 +225,6 @@ class TestOutputsConversion(unittest.TestCase):
             pd.date_range("01/01/2002 01:00", freq="30d", periods=3), name=TIMESTAMP_COLUMN
         )
         df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
-
         with self.assertRaises(TypeError):
             _ = convert_rate_to_energy(df, M)
 
@@ -239,7 +233,3 @@ class TestOutputsConversion(unittest.TestCase):
 
     def test_rate_units_invalid(self):
         self.assertIsNone(rate_table("FOO"))
-
-
-if __name__ == "__main__":
-    unittest.main()

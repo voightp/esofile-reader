@@ -1,5 +1,6 @@
 from typing import List, Union, Callable, Sequence
 
+import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
@@ -7,10 +8,10 @@ from esofile_reader.conversion_tables import energy_table, rate_table, si_to_ip
 
 
 def apply_conversion(
-    df: pd.DataFrame,
-    orig_units: List[str],
-    new_units: List[str],
-    conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
+        df: pd.DataFrame,
+        orig_units: List[str],
+        new_units: List[str],
+        conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
 ) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
@@ -37,7 +38,7 @@ def apply_conversion(
 
 
 def convert_units(
-    df: pd.DataFrame, units_system: str, rate_units: str, energy_units
+        df: pd.DataFrame, units_system: str, rate_units: str, energy_units
 ) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
@@ -75,11 +76,11 @@ def convert_units(
 
 
 def update_multiindex(
-    df: pd.DataFrame,
-    level: Union[str, int],
-    old_vals: List[str],
-    new_vals: List[str],
-    axis: int = 1,
+        df: pd.DataFrame,
+        level: Union[str, int],
+        old_vals: List[str],
+        new_vals: List[str],
+        axis: int = 1,
 ) -> None:
     """ Replace multiindex values on a specific level inplace. """
 
@@ -107,11 +108,27 @@ def update_multiindex(
         df.index = new_mi
 
 
-def rate_and_energy_units(units: List[str]) -> bool:
+def is_rate_or_energy(units: List[str]) -> bool:
     """ Check if all units are rate and energy. """
     return all(map(lambda x: x in ("J", "W"), units)) or all(
         map(lambda x: x in ("J/m2", "W/m2"), units)
     )
+
+
+def is_daily(index: pd.DatetimeIndex):
+    """ Check if index represents daily interval. """
+    return len(index) > 1 and all(map(lambda x: int(x) == 8.64e13, np.diff(index)))
+
+
+def is_hourly(index: pd.DatetimeIndex):
+    """ Check if index represents hourly interval. """
+    return len(index) > 1 and all(map(lambda x: int(x) == 3.6e12, np.diff(index)))
+
+
+def is_timestep(index: pd.DatetimeIndex):
+    """ Check if index represents timestep interval. """
+    unique_arr = np.unique(np.diff(index))
+    return len(index) > 1 and len(unique_arr) == 1 and int(unique_arr[0]) < 3.6e12
 
 
 def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
@@ -120,12 +137,12 @@ def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     return 3600 / timedelta.seconds
 
 
-def convert_rate_to_energy(df: pd.DataFrame, table: str, n_days: int = None) -> pd.DataFrame:
+def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
-    if table == H or table == TS:
+    if is_hourly(df.index) or is_timestep(df.index):
         n_steps = get_n_steps(df.index)
         ratio = n_steps / 3600
-    elif table == D:
+    elif is_daily(df.index):
         ratio = 1 / (24 * 3600)
     else:
         ratio = 1 / (n_days * 24 * 3600)

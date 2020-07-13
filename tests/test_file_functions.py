@@ -18,6 +18,18 @@ class TestFileFunctions(unittest.TestCase):
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
         )
 
+    def test_can_convert_rate_to_energy(self):
+        pairs = [
+            ("timestep", True),
+            ("hourly", True),
+            ("daily", True),
+            ("monthly", True),
+            ("runperiod", True),
+            ("annual", True),
+        ]
+        for table, can_convert in pairs:
+            self.assertEqual(can_convert, EF_ALL_INTERVALS.can_convert_rate_to_energy(table))
+
     def test_all_ids(self):
         self.assertEqual(len(EF_ALL_INTERVALS.tables.get_all_variable_ids()), 114)
 
@@ -111,21 +123,21 @@ class TestFileFunctions(unittest.TestCase):
         v = Variable(
             table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        ids = EF_ALL_INTERVALS.find_ids(v, part_match=False)
+        ids = EF_ALL_INTERVALS.find_id(v, part_match=False)
         self.assertEqual(ids, [13])
 
     def test_find_ids_part_match(self):
         v = Variable(
             table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
-        ids = EF_ALL_INTERVALS.find_ids(v, part_match=True)
+        ids = EF_ALL_INTERVALS.find_id(v, part_match=True)
         self.assertEqual(ids, [13])
 
     def test_find_ids_part_invalid(self):
         v = Variable(
             table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        ids = EF_ALL_INTERVALS.find_ids(v, part_match=False)
+        ids = EF_ALL_INTERVALS.find_id(v, part_match=False)
         self.assertEqual(ids, [])
 
     def test__find_pairs(self):
@@ -150,8 +162,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):
-        v1 = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "type", "foo")
-
+        v1 = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "foo", type_="type")
         self.assertTupleEqual(
             v1, Variable(table="timestep", key="dummy", type="type", units="foo")
         )
@@ -163,12 +174,12 @@ class TestFileFunctions(unittest.TestCase):
         EF_ALL_INTERVALS.rename_variable(v1, new_key="NEW3", new_type="VARIABLE")
 
         v2 = Variable(table="timestep", key="NEW3", type="VARIABLE", units="")
-        ids = EF_ALL_INTERVALS.find_ids(v2)
+        ids = EF_ALL_INTERVALS.find_id(v2)
         self.assertListEqual(ids, [13])
 
         # revert change
         EF_ALL_INTERVALS.rename_variable(v2, new_key=v1.key, new_type=v1.type)
-        ids = EF_ALL_INTERVALS.find_ids(v1)
+        ids = EF_ALL_INTERVALS.find_id(v1)
         self.assertListEqual(ids, [13])
 
     def test_rename_variable_invalid(self):
@@ -180,28 +191,28 @@ class TestFileFunctions(unittest.TestCase):
         v = Variable(
             table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
         )
-        out = EF_ALL_INTERVALS.rename_variable(v, new_key="", new_type="")
+        out = EF_ALL_INTERVALS.rename_variable(v)
         self.assertIsNone(out)
 
-        ids = EF_ALL_INTERVALS.find_ids(v)
+        ids = EF_ALL_INTERVALS.find_id(v)
         self.assertListEqual(ids, [19])
 
     def test_add_output(self):
-        id_, var = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
         EF_ALL_INTERVALS.remove_variables(var)
 
     def test_add_two_outputs(self):
-        id_, var1 = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var1 = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], "type")
         self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
 
-        id_, var2 = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var2 = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], "type")
         self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
         EF_ALL_INTERVALS.remove_variables(var1)
         EF_ALL_INTERVALS.remove_variables(var2)
 
     def test_add_output_test_tree(self):
-        id_, var = EF_ALL_INTERVALS.add_variable("runperiod", "new", "type", "C", [1])
+        id_, var = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], type_="type")
         self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
 
         ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
@@ -213,12 +224,12 @@ class TestFileFunctions(unittest.TestCase):
         self.assertEqual(ids, [])
 
     def test_add_output_invalid(self):
-        out = EF_ALL_INTERVALS.add_variable("timestep", "new", "type", "C", [1])
+        out = EF_ALL_INTERVALS.insert_variable("timestep", "new", "type", "C", [1])
         self.assertIsNone(out)
 
     def test_add_output_invalid_table(self):
         with self.assertRaises(KeyError):
-            _ = EF_ALL_INTERVALS.add_variable("foo", "new", "type", "C", [1])
+            _ = EF_ALL_INTERVALS.insert_variable("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
         v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
@@ -319,7 +330,3 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS._find_pairs(
                 [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
             )
-
-
-if __name__ == "__main__":
-    unittest.main()
