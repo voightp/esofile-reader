@@ -1,3 +1,4 @@
+import io
 from datetime import datetime
 from pathlib import Path
 from typing import Union, List, Tuple
@@ -220,7 +221,9 @@ def process_excel(
         header_limit: int = 10,
 ):
     """ Create results file data based on given excel workbook."""
-    wb = load_workbook(filename=file_path, read_only=True)
+    with open(file_path, "rb") as f:
+        in_memory_file = io.BytesIO(f.read())
+    wb = load_workbook(filename=in_memory_file, read_only=True)
     if not sheet_names:
         sheet_names = wb.sheetnames
 

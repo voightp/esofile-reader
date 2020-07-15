@@ -1,14 +1,15 @@
 import os
 import unittest
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, Variable
+from esofile_reader import EsoFile, Variable, ResultsFile
 from esofile_reader.base_file import CannotAggregateVariables
-from esofile_reader.constants import SPECIAL
-from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS
+from esofile_reader.constants import SPECIAL, ID_LEVEL
+from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS, EF1
 
 
 class TestFileFunctions(unittest.TestCase):
@@ -350,3 +351,23 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS._find_pairs(
                 [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
             )
+
+    def test_to_excel(self):
+        p = Path("test.xlsx")
+        try:
+            EF1.to_excel(p)
+            self.assertTrue(p.exists())
+            test_ef = ResultsFile.from_excel(p)
+            for table_name in EF1.table_names:
+                df = EF1.tables[table_name].copy()
+                test_df = test_ef.tables[table_name]
+                df.columns = df.columns.droplevel(ID_LEVEL)
+                test_df.columns = test_df.columns.droplevel(ID_LEVEL)
+
+                print(df)
+                print(test_df)
+
+                assert_frame_equal(df, test_df, check_dtype=False)
+
+        finally:
+            p.unlink()
