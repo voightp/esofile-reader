@@ -302,4 +302,4 @@ class TestSqlDBFileFunctions(unittest.TestCase):
 
     def test_invalid_table_name(self):
         with self.assertRaises(NameError):
-            _ = self.ef.get_numeric_table("foo-bar")
+            _ = self.ef.get_numeric_table("foo|bar")

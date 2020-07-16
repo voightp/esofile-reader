@@ -61,13 +61,13 @@ class TestDataClassesSimple(unittest.TestCase):
     def test_get_available_tables(self, key):
         tables = self.tables[key]
         table_names = tables.get_table_names()
-        self.assertListEqual(["monthly", "range"], table_names)
+        self.assertListEqual(["monthly-simple", "range"], table_names)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_get_available_tables(self, key):
         tables = self.tables[key]
         table_names = tables.keys()
-        self.assertListEqual(["monthly", "range"], list(table_names))
+        self.assertListEqual(["monthly-simple", "range"], list(table_names))
 
     @parameterized.expand(["dfd", "pqd"])
     def test_set_table_invalid(self, key):
@@ -97,7 +97,7 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_datetime_index(self, key):
         tables = self.tables[key]
-        index = tables.get_datetime_index("monthly")
+        index = tables.get_datetime_index("monthly-simple")
         assert_index_equal(
             index,
             pd.DatetimeIndex(
@@ -124,7 +124,7 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_variables_dct(self, key):
         tables = self.tables[key]
-        variables = tables.get_variables_dct("monthly")
+        variables = tables.get_variables_dct("monthly-simple")
         self.assertListEqual(list(variables.keys()), [1, 2, 3, 4, 5, 6, 7])
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
@@ -142,7 +142,7 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_variables_df(self, key):
         tables = self.tables[key]
-        df = tables.get_variables_df("monthly")
+        df = tables.get_variables_df("monthly-simple")
         self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "units"])
         self.assertTupleEqual(df.shape, (7, 4))
 
@@ -155,72 +155,73 @@ class TestDataClassesSimple(unittest.TestCase):
 
     def test_rename_variable_sql(self):
         sqld = self.tables["sqld"]
-        sqld.update_variable_name("monthly", 1, "FOO")
+        sqld.update_variable_name("monthly-simple", 1, "FOO")
         with self.sqls.engine.connect() as conn:
-            table = sqld._get_results_table("monthly")
+            table = sqld._get_results_table("monthly-simple")
             res = conn.execute(table.select().where(table.c.id == 1)).first()
             var = (res[0], res[1], res[2], res[3])
-            self.assertTupleEqual(var, (1, "monthly", "FOO", "W/m2"))
+            self.assertTupleEqual(var, (1, "monthly-simple", "FOO", "W/m2"))
 
-        sqld.update_variable_name("monthly", 1, "Environment")
+        sqld.update_variable_name("monthly-simple", 1, "Environment")
         with self.sqls.engine.connect() as conn:
-            table = sqld._get_results_table("monthly")
+            table = sqld._get_results_table("monthly-simple")
             res = conn.execute(table.select().where(table.c.id == 1)).first()
             var = (res[0], res[1], res[2], res[3])
-            self.assertTupleEqual(var, (1, "monthly", "Environment", "W/m2"))
+            self.assertTupleEqual(var, (1, "monthly-simple", "Environment", "W/m2"))
 
     @parameterized.expand(["dfd", "pqd"])
     def test_rename_variable(self, key):
         tables = self.tables[key]
-        tables.update_variable_name("monthly", 1, "FOO")
-        col1 = tables["monthly"].loc[:, [(1, "monthly", "FOO", "W/m2")]]
+        tables.update_variable_name("monthly-simple", 1, "FOO")
+        col1 = tables["monthly-simple"].loc[:, [(1, "monthly-simple", "FOO", "W/m2")]]
 
-        tables.update_variable_name("monthly", 1, "Environment")
-        col2 = tables["monthly"].loc[:, [(1, "monthly", "Environment", "W/m2")]]
+        tables.update_variable_name("monthly-simple", 1, "Environment")
+        col2 = tables["monthly-simple"].loc[:, [(1, "monthly-simple", "Environment", "W/m2")]]
         self.assertEqual(col1.iloc[:, 0].array, col2.iloc[:, 0].array)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_add_remove_variable(self, key):
         tables = self.tables[key]
-        id_ = tables.insert_column(SimpleVariable("monthly", "FOO", "C"), list(range(12)))
-        tables.delete_variables("monthly", [id_])
+        id_ = tables.insert_column(SimpleVariable("monthly-simple", "FOO", "C"),
+                                   list(range(12)))
+        tables.delete_variables("monthly-simple", [id_])
         if key != "sqld":
             with self.assertRaises(KeyError):
-                _ = tables["monthly"][id_]
+                _ = tables["monthly-simple"][id_]
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_insert_special_column(self, key="sqld"):
         tables = self.tables[key]
         values = list("abcdefghijkl")
-        tables.insert_special_column("monthly", "TEST", values)
-        sr = tables.get_special_column("monthly", "TEST")
+        tables.insert_special_column("monthly-simple", "TEST", values)
+        sr = tables.get_special_column("monthly-simple", "TEST")
         index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
-        test_sr = pd.Series(values, name=("special", "monthly", "TEST", ""), index=index)
+        test_sr = pd.Series(values, name=("special", "monthly-simple", "TEST", ""), index=index)
         assert_series_equal(sr, test_sr)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_remove_variable_invalid(self, key):
         tables = self.tables[key]
         with self.assertRaises(KeyError):
-            tables.delete_variables("monthly", [100000])
+            tables.delete_variables("monthly-simple", [100000])
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_update_variable(self, key):
         tables = self.tables[key]
-        original_vals = tables.get_results("monthly", 1).iloc[:, 0]
-        tables.update_variable_values("monthly", 1, list(range(12)))
-        vals = tables.get_results("monthly", 1).iloc[:, 0].to_list()
+        original_vals = tables.get_results("monthly-simple", 1).iloc[:, 0]
+        tables.update_variable_values("monthly-simple", 1, list(range(12)))
+        vals = tables.get_results("monthly-simple", 1).iloc[:, 0].to_list()
         self.assertListEqual(vals, list(range(12)))
-        tables.update_variable_values("monthly", 1, original_vals)
+        tables.update_variable_values("monthly-simple", 1, original_vals)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_update_variable_invalid(self, key):
         tables = self.tables[key]
-        original_vals = tables.get_results("monthly", 1).iloc[:, 0]
-        tables.update_variable_values("monthly", 1, list(range(11)))
-        vals = tables.get_results("monthly", 1).iloc[:, 0].to_list()
+        original_vals = tables.get_results("monthly-simple", 1).iloc[:, 0]
+        tables.update_variable_values("monthly-simple", 1, list(range(11)))
+        vals = tables.get_results("monthly-simple", 1).iloc[:, 0].to_list()
         self.assertListEqual(vals, original_vals.to_list())
-        tables.update_variable_values("monthly", 1, original_vals)
+        tables.update_variable_values("monthly-simple", 1, original_vals)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_get_special_column_invalid(self, key):
@@ -231,22 +232,23 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_number_of_days(self, key):
         tables = self.tables[key]
-        col = tables.get_special_column("monthly", N_DAYS_COLUMN)
+        col = tables.get_special_column("monthly-simple", N_DAYS_COLUMN)
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_all_results(self, key):
         tables = self.tables[key]
-        df = tables.get_numeric_table("monthly")
+        df = tables.get_numeric_table("monthly-simple")
         self.assertTupleEqual(df.shape, (12, 7))
 
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_get_results(self, key):
         tables = self.tables[key]
-        df = tables.get_results("monthly", [2, 6])
+        df = tables.get_results("monthly-simple", [2, 6])
         test_columns = pd.MultiIndex.from_tuples(
-            [(2, "monthly", "BLOCK1:ZONE1", ""), (6, "monthly", "BLOCK1:ZONE1", "C"), ],
+            [(2, "monthly-simple", "BLOCK1:ZONE1", ""),
+             (6, "monthly-simple", "BLOCK1:ZONE1", "C"), ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
@@ -275,10 +277,12 @@ class TestDataClassesSimple(unittest.TestCase):
     def test_get_results_sliced(self, key):
         tables = self.tables[key]
         df = tables.get_results(
-            "monthly", [2, 6], start_date=datetime(2002, 4, 1), end_date=datetime(2002, 6, 1),
+            "monthly-simple", [2, 6], start_date=datetime(2002, 4, 1),
+            end_date=datetime(2002, 6, 1),
         )
         test_columns = pd.MultiIndex.from_tuples(
-            [(2, "monthly", "BLOCK1:ZONE1", ""), (6, "monthly", "BLOCK1:ZONE1", "C"), ],
+            [(2, "monthly-simple", "BLOCK1:ZONE1", ""),
+             (6, "monthly-simple", "BLOCK1:ZONE1", "C"), ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")

@@ -536,3 +536,9 @@ class BaseFile:
             self.tables.delete_variables(table, ids)
         self.search_tree.remove_variables(variables)
         return groups
+
+    def to_excel(self, path: Union[str, Path], **kwargs) -> None:
+        """ Save file as excel. """
+        with pd.ExcelWriter(path) as writer:
+            for table_name, df in self.tables.items():
+                df.to_excel(writer, sheet_name=table_name, **kwargs)

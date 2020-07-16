@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.testing import assert_index_equal
 from parameterized import parameterized
 
-from esofile_reader.exceptions import InsuficientHeaderInfo
+from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.processing.excel import is_data_row, parse_header
 from esofile_reader.results_file import ResultsFile
 from tests import ROOT
@@ -107,7 +107,7 @@ class TestExcelFile(unittest.TestCase):
             ),
             (
                     "simple-template-monthly",
-                    "monthly",
+                    "monthly-simple",
                     (12, 8),
                     "timestamp",
                     pd.DatetimeIndex,
@@ -257,12 +257,33 @@ class TestExcelFile(unittest.TestCase):
             [
                 "simple-no-template-dt-index",
                 "simple-no-template-no-index",
-                "monthly",
+                "monthly-simple",
+                "daily-simple",
                 "range",
                 "no-template-full-dt-index",
                 "hourly",
                 "daily",
+                "monthly",
                 "runperiod",
             ],
             ef.table_names,
         )
+
+    def test_duplicate_table_names(self):
+        rf = ResultsFile.from_excel(
+            EDGE_CASE_PATH, sheet_names=["dup-names-table", "dup-names"]
+        )
+        self.assertListEqual(["dup-names", "dup-names (2)"], rf.table_names)
+
+        rf = ResultsFile.from_excel(
+            EDGE_CASE_PATH, sheet_names=["dup-names", "dup-names-table"]
+        )
+        self.assertListEqual(["dup-names", "dup-names (2)"], rf.table_names)
+
+    def test_no_numeric_outputs(self):
+        with self.assertRaises(NoResults):
+            _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["only-special-column"])
+
+    def test_blank_sheet(self):
+        with self.assertRaises(NoResults):
+            ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-sheet"])

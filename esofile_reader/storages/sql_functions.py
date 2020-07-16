@@ -8,7 +8,7 @@ from esofile_reader.constants import *
 
 
 def parse_table_name(name: str) -> Optional[Tuple[int, str, str]]:
-    p = re.compile("^(\d+)-([\w\s]+)-([\w\s]+)$")
+    p = re.compile(r"^(\d+)\|([\w\s-]+)\|([\w\s-]+)$")
     f = p.findall(name)
     if f:
         id_ = int(f[0][0])
@@ -18,8 +18,8 @@ def parse_table_name(name: str) -> Optional[Tuple[int, str, str]]:
 
 
 def get_table_name(file_id: int, key: str, table: str) -> str:
-    name = f"{file_id}-{key}-{table}"
-    p = re.compile("^(\d+)-([\w\s]+)-([\w\s]+)$")
+    name = f"{file_id}|{key}|{table}"
+    p = re.compile(r"^(\d+)\|([\w\s-]+)\|([\w\s-]+)$")
     if bool(p.match(name)):
         return name
     else:

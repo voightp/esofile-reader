@@ -15,7 +15,7 @@ from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT
 
 
-class TestResultFetching(unittest.TestCase):
+class TestResultFetchingSimple(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pth = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
@@ -46,7 +46,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results(self, key):
         file = self.files[key]
-        v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
+        v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(file, v)
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONE1", "C")], names=["key", "units"]
@@ -81,7 +81,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_start_date(self, key):
         file = self.files[key]
-        v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
+        v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(file, v, start_date=datetime(2002, 4, 15))
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONE1", "C")], names=["key", "units"]
@@ -112,7 +112,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_end_date(self, key):
         file = self.files[key]
-        v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
+        v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(file, v, end_date=datetime(2002, 8, 10))
         test_columns = pd.MultiIndex.from_tuples(
             [("BLOCK1:ZONE1", "C")], names=["key", "units"]
@@ -143,7 +143,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_output_type_start_end_date(self, key):
         file = self.files[key]
-        v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
+        v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(
             file, v, start_date=datetime(2002, 4, 10), end_date=datetime(2002, 6, 10)
         )
@@ -165,7 +165,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_include_table_name(self, key):
         file = self.files[key]
-        v = SimpleVariable("monthly", "BLOCK1:ZONE1", "C")
+        v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(
             file,
             v,
@@ -174,7 +174,7 @@ class TestResultFetching(unittest.TestCase):
             include_table_name=True,
         )
         test_columns = pd.MultiIndex.from_tuples(
-            [("monthly", "BLOCK1:ZONE1", "C")], names=["table", "key", "units"]
+            [("monthly-simple", "BLOCK1:ZONE1", "C")], names=["table", "key", "units"]
         )
         dates = [
             datetime(2002, 5, 1),
@@ -192,9 +192,9 @@ class TestResultFetching(unittest.TestCase):
     def test_get_multiple_results_units_system_si(self, key):
         file = self.files[key]
         v = [
-            SimpleVariable("monthly", "BLOCK3:ZONE1", ""),
-            SimpleVariable("monthly", "Environment", "W/m2"),
-            SimpleVariable("monthly", "BLOCK1:ZONE1", "kgWater/kgDryAir"),
+            SimpleVariable("monthly-simple", "BLOCK3:ZONE1", ""),
+            SimpleVariable("monthly-simple", "Environment", "W/m2"),
+            SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "kgWater/kgDryAir"),
         ]
         df = get_results(file, v, units_system="SI", rate_to_energy=False)
         test_columns = pd.MultiIndex.from_tuples(
@@ -233,9 +233,9 @@ class TestResultFetching(unittest.TestCase):
     def test_get_multiple_results_units_system_ip(self, key):
         file = self.files[key]
         v = [
-            SimpleVariable("monthly", "BLOCK3:ZONE1", ""),
-            SimpleVariable("monthly", "Environment", "W/m2"),
-            SimpleVariable("monthly", "BLOCK1:ZONE1", "C"),
+            SimpleVariable("monthly-simple", "BLOCK3:ZONE1", ""),
+            SimpleVariable("monthly-simple", "Environment", "W/m2"),
+            SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C"),
         ]
         df = get_results(file, v, units_system="IP", rate_to_energy=False)
         test_columns = pd.MultiIndex.from_tuples(
@@ -269,7 +269,7 @@ class TestResultFetching(unittest.TestCase):
     @parameterized.expand(["dff", "pqf", "sqlf"])
     def test_get_results_rate_to_energy(self, key):
         file = self.files[key]
-        v = [SimpleVariable("monthly", "Environment", "W/m2")]
+        v = [SimpleVariable("monthly-simple", "Environment", "W/m2")]
         df = get_results(file, v, rate_to_energy=True)
         test_columns = pd.MultiIndex.from_tuples(
             [("Environment", "J/m2"), ], names=["key", "units"],

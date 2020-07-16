@@ -1,3 +1,4 @@
+import io
 from datetime import datetime
 from pathlib import Path
 from typing import Union, List, Tuple
@@ -7,7 +8,8 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InsuficientHeaderInfo
+from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
+from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.logger import logger
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
@@ -155,7 +157,7 @@ def parse_header(
 
 
 def build_df_table(
-        raw_df: pd.DataFrame, name: str, start_id: int = 1,
+        raw_df: pd.DataFrame, table_name: str, start_id: int = 1,
 ) -> Tuple[pd.DataFrame, int]:
     """ Finalize DataFrame data to match required DFTables structure. """
 
@@ -168,9 +170,10 @@ def build_df_table(
     if any(duplicated):
         raw_df = raw_df.loc[:, ~duplicated]
 
-    # include table name row if it's not already present
-    if TABLE_LEVEL not in raw_df.columns.names:
-        raw_df = pd.concat([raw_df], keys=[name], names=[TABLE_LEVEL], axis=1)
+    # original table name may differ as it may not be unique
+    if TABLE_LEVEL in raw_df.columns.names:
+        raw_df.columns = raw_df.columns.droplevel(TABLE_LEVEL)
+    raw_df = pd.concat([raw_df], keys=[table_name], names=[TABLE_LEVEL], axis=1)
 
     key_level = raw_df.columns.get_level_values(KEY_LEVEL)
     special_rows = key_level.isin([DAY_COLUMN, N_DAYS_COLUMN])
@@ -220,7 +223,9 @@ def process_excel(
         header_limit: int = 10,
 ):
     """ Create results file data based on given excel workbook."""
-    wb = load_workbook(filename=file_path, read_only=True)
+    with open(file_path, "rb") as f:
+        in_memory_file = io.BytesIO(f.read())
+    wb = load_workbook(filename=in_memory_file, read_only=True)
     if not sheet_names:
         sheet_names = wb.sheetnames
 
@@ -238,6 +243,9 @@ def process_excel(
         df.dropna(axis=0, how="all", inplace=True)
         df.dropna(axis=1, how="all", inplace=True)
 
+        if df.empty:
+            continue
+
         # process header data
         monitor.header_started()
         header_mi, skiprows, index_column = parse_header(
@@ -254,27 +262,33 @@ def process_excel(
 
         df.columns = header_mi
 
-        # populate DFTables
         monitor.tables_started()
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
+                table_name = get_str_identifier(key, df_tables.keys(), start_i=1)
                 dfi, end_id = build_df_table(
-                    df.loc[:, table_level == key], name=key, start_id=start_id,
+                    df.loc[:, table_level == key], table_name=table_name, start_id=start_id,
                 )
                 start_id = end_id
-                df_tables[key] = dfi
+                # ignore empty frames
+                if not dfi.loc[:, dfi.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
+                    df_tables[table_name] = dfi
         else:
-            df, end_id = build_df_table(df, name=name, start_id=start_id)
-            df_tables[name] = df
+            table_name = get_str_identifier(name, df_tables.keys(), start_i=1)
+            df, end_id = build_df_table(df, table_name=table_name, start_id=start_id)
+            if not df.loc[:, df.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
+                df_tables[table_name] = df
             start_id = end_id
 
         # increment progress
         monitor.update_progress()
 
-    # create search tree
-    monitor.search_tree_started()
-    tree = Tree()
-    tree.populate_tree(df_tables.get_all_variables_dct())
+    if len(df_tables.keys()) > 0:
+        monitor.search_tree_started()
+        tree = Tree()
+        tree.populate_tree(df_tables.get_all_variables_dct())
+    else:
+        raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
 
     return df_tables, tree
