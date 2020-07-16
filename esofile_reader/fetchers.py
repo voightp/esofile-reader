@@ -3,15 +3,14 @@ from typing import Union, List, Optional
 
 import pandas as pd
 
-from esofile_reader.base_file import BaseFile
+from esofile_reader.base_file import BaseFile, VariableType
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.logger import logger
-from esofile_reader.mini_classes import Variable
 
 
 def get_results(
         files,
-        variables: Union[Variable, List[Variable]],
+        variables: Union[VariableType, List[VariableType]],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         output_type: str = "standard",
