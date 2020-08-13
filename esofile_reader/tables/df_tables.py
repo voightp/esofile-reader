@@ -77,6 +77,10 @@ class DFTables(BaseTables):
     def tables(self):
         return self._tables
 
+    @property
+    def empty(self):
+        return not bool(self._tables)
+
     def __setitem__(self, key: str, value: pd.DataFrame) -> None:
         # verify column names
         checklist = [SIMPLE_COLUMN_LEVELS, COLUMN_LEVELS, PEAK_COLUMN_LEVELS]

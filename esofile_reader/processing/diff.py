@@ -1,22 +1,23 @@
-from typing import Tuple
-
 import pandas as pd
 
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
-from esofile_reader.exceptions import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 
-def calculate_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
-    """ Calculate difference between two results files. """
+def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
+    """ Create diff outputs. """
     tables = DFTables()
     id_gen = incremental_id_gen()
 
     for table in file.table_names:
-        if table not in other_file.table_names:
+        try:
+            # avoid different column indexes
+            if file.tables.is_simple(table) != other_file.tables.is_simple(table):
+                continue
+        except KeyError:
+            # table is not available on the other file
             continue
 
         df1 = file.get_numeric_table(table)
@@ -48,28 +49,4 @@ def calculate_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTabl
                         tables.insert_special_column(table, c, c1)
                 except KeyError:
                     pass
-
     return tables
-
-
-def process_diff(
-    first_file: ResultsFileType, other_file: ResultsFileType
-) -> Tuple[DFTables, Tree]:
-    """ Create diff outputs. """
-    header = {}
-    tables = calculate_diff(first_file, other_file)
-
-    table_names = tables.get_table_names()
-    if not table_names:
-        raise NoSharedVariables(
-            f"Cannot generate diff file. Files '{first_file.file_name}' "
-            f" and '{other_file.file_name} do not have any shared variables."
-        )
-    else:
-        for table in table_names:
-            header[table] = tables.get_variables_dct(table)
-
-        tree = Tree()
-        tree.populate_tree(header)
-
-        return tables, tree

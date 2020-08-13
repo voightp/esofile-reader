@@ -1,10 +1,11 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Optional
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.eso_file import ResultsEsoFile
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel
 from esofile_reader.processing.monitor import DefaultMonitor
@@ -89,7 +90,7 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_eso_file(
         cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
-    ) -> Union[List["ResultsFile"], "ResultsFile"]:
+    ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
         eso_files = ResultsEsoFile.from_multi_env_eso_file(
@@ -98,27 +99,33 @@ class ResultsFile(BaseFile):
         return eso_files[0] if len(eso_files) == 1 else eso_files
 
     @classmethod
-    def from_totals(cls, results_file: "ResultsFile") -> "ResultsFile":
+    def from_totals(cls, results_file: ResultsFileType) -> Optional["ResultsFile"]:
         """ Generate totals 'ResultsFileType' from another file. """
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
-        tables, search_tree = process_totals(results_file)
-        results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type="totals"
-        )
-        return results_file
+        tables = process_totals(results_file)
+        if not tables.empty:
+            tree = Tree()
+            tree.populate_tree(tables.get_all_variables_dct())
+            results_file = ResultsFile(
+                file_path, file_name, file_created, tables, tree, file_type="totals"
+            )
+            return results_file
 
     @classmethod
     def from_diff(
-        cls, file: "ResultsFile", other_file: "ResultsFile"
-    ) -> "ResultsFile":
+        cls, file: ResultsFileType, other_file: ResultsFileType
+    ) -> Optional["ResultsFile"]:
         """ Generate 'Results' file as a difference between two files. """
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        tables, search_tree = process_diff(file, other_file)
-        results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type="totals"
-        )
-        return results_file
+        tables = process_diff(file, other_file)
+        if not tables.empty:
+            tree = Tree()
+            tree.populate_tree(tables.get_all_variables_dct())
+            results_file = ResultsFile(
+                file_path, file_name, file_created, tables, tree, file_type="totals"
+            )
+            return results_file

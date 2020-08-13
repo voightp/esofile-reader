@@ -7,7 +7,6 @@ from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, ResultsFileType
-from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 VARIABLE_GROUPS = {
@@ -163,7 +162,7 @@ def _get_grouped_vars(
     return pd.DataFrame(rows, columns=cols, index=index)
 
 
-def process_totals(file: ResultsFileType):
+def process_totals(file: ResultsFileType) -> DFTables:
     """ Generate 'totals' outputs. """
 
     def ignored_ids(df):
@@ -182,6 +181,10 @@ def process_totals(file: ResultsFileType):
     id_gen = incremental_id_gen(start=1)
 
     for table in file.table_names:
+        if file.tables.is_simple(table):
+            # simple table cannot generate totals
+            continue
+
         out = file.tables.get_numeric_table(table)
 
         # find invalid ids
@@ -225,8 +228,4 @@ def process_totals(file: ResultsFileType):
                     tables.insert_special_column(table, c, c1)
             except KeyError:
                 pass
-
-    tree = Tree()
-    tree.populate_tree(tables.get_all_variables_dct())
-
-    return tables, tree
+    return tables
