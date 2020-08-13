@@ -164,7 +164,7 @@ class DFTables(BaseTables):
         return pd.concat(frames)
 
     def update_variable_name(
-            self, table: str, id_: int, new_key: str, new_type: str = ""
+        self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         mi_df = self.tables[table].columns.to_frame(index=False)
         if self.is_simple(table):
@@ -174,7 +174,7 @@ class DFTables(BaseTables):
         self.tables[table].columns = pd.MultiIndex.from_frame(mi_df)
 
     def _validate(
-            self, table: str, variable: Union[Variable, SimpleVariable], array: Sequence
+        self, table: str, variable: Union[Variable, SimpleVariable], array: Sequence
     ) -> bool:
         df_length = len(self.tables[table].index)
         valid = len(array) == df_length
@@ -186,7 +186,7 @@ class DFTables(BaseTables):
         return valid
 
     def insert_column(
-            self, variable: Union[SimpleVariable, Variable], array: Sequence
+        self, variable: Union[SimpleVariable, Variable], array: Sequence
     ) -> Optional[int]:
         if self._validate(variable.table, variable, array):
             all_ids = self.get_all_variable_ids()
@@ -233,11 +233,11 @@ class DFTables(BaseTables):
         self.tables[table].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def get_special_column(
-            self,
-            table: str,
-            name: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        name: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.Series:
         if name not in self.tables[table].columns.get_level_values(KEY_LEVEL):
             raise KeyError(f"'{name}' column is not available " f"on the given data set.")
@@ -256,12 +256,12 @@ class DFTables(BaseTables):
         return self.tables[table].loc[:, cond].copy()
 
     def get_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
-            include_day: bool = False,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
@@ -279,12 +279,12 @@ class DFTables(BaseTables):
         return df
 
     def _global_peak(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: datetime,
-            end_date: datetime,
-            max_: bool = True,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: datetime,
+        end_date: datetime,
+        max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(table, ids, start_date, end_date)
@@ -298,19 +298,19 @@ class DFTables(BaseTables):
         return df
 
     def get_global_max_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(table, ids, start_date, end_date)
 
     def get_global_min_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(table, ids, start_date, end_date, max_=False)

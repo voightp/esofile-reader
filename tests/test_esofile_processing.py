@@ -83,7 +83,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         f = [
             "7,1,Environment,Site Outdoor Air Drybulb Temperature [C] !Hourly",
             "",
-            "End of Data Dictionary",
+            "End of TableType Dictionary",
         ]
         g = (l for l in f)
         with self.assertRaises(BlankLineError):

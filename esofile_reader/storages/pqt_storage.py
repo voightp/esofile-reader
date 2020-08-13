@@ -12,7 +12,7 @@ from zipfile import ZipFile
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.logger import logger
-from esofile_reader.mini_classes import ResultsFile
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.df_storage import DFStorage
@@ -24,7 +24,7 @@ class ParquetFile(BaseFile):
     """
     A class to represent database results set.
 
-    Attributes need to be populated from processed 'ResultsFile'.
+    Attributes need to be populated from processed 'ResultsFileType'.
 
     Tables are stored in filesystem as pyarrow parquets.
 
@@ -61,17 +61,17 @@ class ParquetFile(BaseFile):
     EXT = ".cff"
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            tables: Union[DFTables, str, Path],
-            file_created: datetime,
-            file_type: str,
-            pardir: str = "",
-            search_tree: Tree = None,
-            name: str = None,
-            monitor: DefaultMonitor = None,
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        tables: Union[DFTables, str, Path],
+        file_created: datetime,
+        file_type: str,
+        pardir: str = "",
+        search_tree: Tree = None,
+        name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         self.id_ = id_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
@@ -100,12 +100,12 @@ class ParquetFile(BaseFile):
 
     @classmethod
     def from_results_file(
-            cls,
-            id_: int,
-            results_file: ResultsFile,
-            pardir: str = "",
-            name: str = None,
-            monitor: DefaultMonitor = None,
+        cls,
+        id_: int,
+        results_file: ResultsFileType,
+        pardir: str = "",
+        name: str = None,
+        monitor: DefaultMonitor = None,
     ):
         pqs = ParquetFile(
             id_=id_,
@@ -124,7 +124,7 @@ class ParquetFile(BaseFile):
 
     @classmethod
     def load_file(
-            cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
+        cls, source: Union[str, Path, io.BytesIO], dest_dir: Union[str, Path] = ""
     ) -> "ParquetFile":
         """ Load parquet storage into given location. """
         source = source if isinstance(source, (Path, io.BytesIO)) else Path(source)
@@ -195,7 +195,7 @@ class ParquetFile(BaseFile):
         return info
 
     def save_as(
-            self, dir_: Union[str, Path] = None, name: str = None
+        self, dir_: Union[str, Path] = None, name: str = None
     ) -> Union[Path, io.BytesIO]:
         """ Save parquet storage into given location. """
         info = self.save_meta()
@@ -246,7 +246,7 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFile, monitor: DefaultMonitor = None) -> int:
+    def store_file(self, results_file: ResultsFileType, monitor: DefaultMonitor = None) -> int:
         """ Store results file as 'ParquetFile'. """
         if monitor:
             # number of steps is equal to number of parquet files

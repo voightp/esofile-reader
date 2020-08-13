@@ -134,12 +134,12 @@ class Tree:
         return duplicates
 
     def _loop(
-            self,
-            node: Node,
-            ids: List[int],
-            tree_variable: List[Optional[str]],
-            part_match: bool = False,
-            level: int = 0,
+        self,
+        node: Node,
+        ids: List[int],
+        tree_variable: List[Optional[str]],
+        part_match: bool = False,
+        level: int = 0,
     ) -> None:
         """ Search through the tree to find ids. """
         if level == len(tree_variable):
@@ -167,10 +167,10 @@ class Tree:
                     self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
 
     def find_ids(
-            self,
-            variable: Union[SimpleVariable, Variable],
-            part_match: bool = False,
-            check_only: bool = False,
+        self,
+        variable: Union[SimpleVariable, Variable],
+        part_match: bool = False,
+        check_only: bool = False,
     ) -> List[int]:
         """ Find variable ids for given arguments. """
         tree_variable = self.tree_variable(variable)

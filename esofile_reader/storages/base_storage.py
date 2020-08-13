@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from esofile_reader.mini_classes import ResultsFile
+from esofile_reader.mini_classes import ResultsFileType
 
 
 class BaseStorage(ABC):
@@ -13,7 +13,7 @@ class BaseStorage(ABC):
         self.files = {}
 
     @abstractmethod
-    def store_file(self, results_file: ResultsFile) -> int:
+    def store_file(self, results_file: ResultsFileType) -> int:
         """ Store file in the 'class' database. """
         pass
 

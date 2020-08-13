@@ -37,7 +37,7 @@ class ResultsFile(BaseFile):
     file_created : datetime.datetime
         Time and date when of the file generation.
     tables : DFTables
-        Data storage instance.
+        TableType storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
     file_type : str, default "na"
@@ -47,26 +47,26 @@ class ResultsFile(BaseFile):
     """
 
     def __init__(
-            self,
-            file_path: Union[str, Path],
-            file_name: str,
-            file_created: datetime,
-            tables: DFTables,
-            search_tree: Tree,
-            file_type: str = "na",
+        self,
+        file_path: Union[str, Path],
+        file_name: str,
+        file_created: datetime,
+        tables: DFTables,
+        search_tree: Tree,
+        file_type: str = "na",
     ):
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     @classmethod
     def from_excel(
-            cls,
-            file_path: Union[str, Path],
-            sheet_names: List[str] = None,
-            force_index: bool = False,
-            monitor: DefaultMonitor = None,
-            header_limit=10,
+        cls,
+        file_path: Union[str, Path],
+        sheet_names: List[str] = None,
+        force_index: bool = False,
+        monitor: DefaultMonitor = None,
+        header_limit=10,
     ) -> "ResultsFile":
-        """ Generate 'ResultsFile' from excel spreadsheet. """
+        """ Generate 'ResultsFileType' from excel spreadsheet. """
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
@@ -88,9 +88,9 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_eso_file(
-            cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
+        cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
     ) -> Union[List["ResultsFile"], "ResultsFile"]:
-        """ Generate 'ResultsFile' from EnergyPlus .eso file. """
+        """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
         eso_files = ResultsEsoFile.from_multi_env_eso_file(
             file_path, monitor, ignore_peaks=True, year=year
@@ -99,7 +99,7 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_totals(cls, results_file: "ResultsFile") -> "ResultsFile":
-        """ Generate totals 'ResultsFile' from another file. """
+        """ Generate totals 'ResultsFileType' from another file. """
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
@@ -110,7 +110,9 @@ class ResultsFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_diff(cls, file: "ResultsFile", other_file: "ResultsFile") -> "ResultsFile":
+    def from_diff(
+        cls, file: "ResultsFile", other_file: "ResultsFile"
+    ) -> "ResultsFile":
         """ Generate 'Results' file as a difference between two files. """
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"

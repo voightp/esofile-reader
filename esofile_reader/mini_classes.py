@@ -14,12 +14,14 @@ SimpleVariable = namedtuple("SimpleVariable", "table key units")
 IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
 
 # type_ hint to wrap all result types
-ResultsFile = Union[
+ResultsFileType = Union[
     ForwardRef("EsoFile"),  # noqa: F821
-    ForwardRef("DiffFile"),  # noqa: F821
+    ForwardRef("ResultsFile"),  # noqa: F821
     ForwardRef("TotalsFile"),  # noqa: F821
     ForwardRef("DatabaseFile"),  # noqa: F821
 ]
 
 # type_ hint to wrap all storage types
-Data = Union[ForwardRef("SQLTables"), ForwardRef("DFTables")]  # noqa: F821
+TableType = Union[
+    ForwardRef("SQLTables"), ForwardRef("DFTables"), ForwardRef("ParquetTables")  # noqa: F821
+]

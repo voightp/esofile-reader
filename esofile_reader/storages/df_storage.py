@@ -1,6 +1,6 @@
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import ResultsFile
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.storages.base_storage import BaseStorage
 from esofile_reader.tables.df_tables import DFTables
 
@@ -17,7 +17,7 @@ class DFFile(BaseFile):
     ----------
     id_ : int
         Unique id identifier.
-    file : ResultsFile
+    file : ResultsFileType
         Processed results file.
 
     Notes
@@ -26,7 +26,7 @@ class DFFile(BaseFile):
 
     """
 
-    def __init__(self, id_: int, file: ResultsFile):
+    def __init__(self, id_: int, file: ResultsFileType):
         self.id_ = id_
         # create a new data so the original won't mutate
         tables = DFTables()
@@ -47,7 +47,7 @@ class DFStorage(BaseStorage):
         super().__init__()
         self.files = {}
 
-    def store_file(self, results_file: ResultsFile) -> int:
+    def store_file(self, results_file: ResultsFileType) -> int:
         id_gen = incremental_id_gen(checklist=list(self.files.keys()))
         id_ = next(id_gen)
         self.files[id_] = DFFile(id_, results_file)

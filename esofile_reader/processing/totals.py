@@ -6,7 +6,7 @@ import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.logger import logger
-from esofile_reader.mini_classes import Variable, ResultsFile
+from esofile_reader.mini_classes import Variable, ResultsFileType
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -112,7 +112,7 @@ def _calculate_totals(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _get_grouped_vars(
-        id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
+    id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
 ) -> pd.DataFrame:
     """ Group header variables. """
     groups = {}
@@ -163,7 +163,7 @@ def _get_grouped_vars(
     return pd.DataFrame(rows, columns=cols, index=index)
 
 
-def process_totals(file: ResultsFile):
+def process_totals(file: ResultsFileType):
     """ Generate 'totals' outputs. """
 
     def ignored_ids(df):

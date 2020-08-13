@@ -17,7 +17,7 @@ from sqlalchemy import (
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.constants import *
-from esofile_reader.mini_classes import ResultsFile
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.base_storage import BaseStorage
 from esofile_reader.storages.sql_functions import (
@@ -34,7 +34,7 @@ class SQLFile(BaseFile):
     """
     A class to represent database results set.
 
-    Attributes need to be populated from processed ResultsFile.
+    Attributes need to be populated from processed ResultsFileType.
 
     Attributes
     ----------
@@ -60,14 +60,14 @@ class SQLFile(BaseFile):
     """
 
     def __init__(
-            self,
-            id_: int,
-            file_path: str,
-            file_name: str,
-            sql_tables: SQLTables,
-            file_created: datetime,
-            search_tree: Tree,
-            file_type: str,
+        self,
+        id_: int,
+        file_path: str,
+        file_name: str,
+        sql_tables: SQLTables,
+        file_created: datetime,
+        search_tree: Tree,
+        file_type: str,
     ):
         super().__init__(file_path, file_name, file_created, sql_tables, search_tree, file_type)
         self.id_ = id_
@@ -115,7 +115,7 @@ class SQLStorage(BaseStorage):
 
         return engine, metadata
 
-    def store_file(self, results_file: ResultsFile) -> int:
+    def store_file(self, results_file: ResultsFileType) -> int:
         if not self.metadata or not self.engine:
             raise AttributeError(
                 f"Cannot store file into database."

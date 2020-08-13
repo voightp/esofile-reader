@@ -9,22 +9,22 @@ from esofile_reader.logger import logger
 
 
 def get_results(
-        files,
-        variables: Union[VariableType, List[VariableType]],
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        output_type: str = "standard",
-        add_file_name: str = "row",
-        include_table_name: bool = False,
-        include_day: bool = False,
-        include_id: bool = False,
-        part_match: bool = False,
-        units_system: str = "SI",
-        rate_units: str = "W",
-        energy_units: str = "J",
-        timestamp_format: str = "default",
-        rate_to_energy: bool = False,
-        ignore_peaks: bool = True,
+    files,
+    variables: Union[VariableType, List[VariableType]],
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    output_type: str = "standard",
+    add_file_name: str = "row",
+    include_table_name: bool = False,
+    include_day: bool = False,
+    include_id: bool = False,
+    part_match: bool = False,
+    units_system: str = "SI",
+    rate_units: str = "W",
+    energy_units: str = "J",
+    timestamp_format: str = "default",
+    rate_to_energy: bool = False,
+    ignore_peaks: bool = True,
 ):
     """
      Return a pandas.DataFrame object with outputs for specified request.

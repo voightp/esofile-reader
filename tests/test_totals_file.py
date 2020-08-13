@@ -3,8 +3,7 @@ from unittest import TestCase
 
 import pandas as pd
 
-from esofile_reader import ResultsFile
-from esofile_reader import Variable
+from esofile_reader import ResultsFile, Variable
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 

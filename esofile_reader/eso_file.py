@@ -1,8 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict
-from typing import Union, List
+from typing import Optional, Dict, Union, List
 
 from esofile_reader.logger import logger
 from esofile_reader.search_tree import Tree
@@ -45,7 +44,7 @@ class ResultsEsoFile(BaseFile):
     file_created : datetime.datetime
         Time and date when of the file generation.
     tables : DFTables
-        Data storage instance.
+        TableType storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
 
@@ -53,13 +52,13 @@ class ResultsEsoFile(BaseFile):
     """
 
     def __init__(
-            self,
-            file_path: Union[str, Path],
-            file_name: str,
-            file_created: datetime,
-            tables: DFTables,
-            search_tree: Tree,
-            peak_outputs: Dict[str, DFTables] = None,
+        self,
+        file_path: Union[str, Path],
+        file_name: str,
+        file_created: datetime,
+        tables: DFTables,
+        search_tree: Tree,
+        peak_outputs: Dict[str, DFTables] = None,
     ):
         super().__init__(
             file_path, file_name, file_created, tables, search_tree, file_type="eso"
@@ -68,11 +67,11 @@ class ResultsEsoFile(BaseFile):
 
     @classmethod
     def from_multi_env_eso_file(
-            cls,
-            file_path: str,
-            monitor: DefaultMonitor = None,
-            ignore_peaks: bool = True,
-            year: int = 2002,
+        cls,
+        file_path: str,
+        monitor: DefaultMonitor = None,
+        ignore_peaks: bool = True,
+        year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
         eso_files = []
@@ -93,16 +92,16 @@ class ResultsEsoFile(BaseFile):
         return eso_files
 
     def _get_peak_results(
-            self,
-            variables: List[Variable],
-            output_type: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
-            add_file_name: str = "row",
-            include_table_name: bool = False,
-            include_id: bool = False,
-            part_match: bool = False,
-            timestamp_format: str = "default",
+        self,
+        variables: List[Variable],
+        output_type: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        add_file_name: str = "row",
+        include_table_name: bool = False,
+        include_id: bool = False,
+        part_match: bool = False,
+        timestamp_format: str = "default",
     ) -> pd.DataFrame:
         """ Return local peak results. """
         frames = []
@@ -128,10 +127,10 @@ class ResultsEsoFile(BaseFile):
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def get_results(
-            self,
-            variables: Union[Variable, List[Variable]],
-            output_type: str = "standard",
-            **kwargs,
+        self,
+        variables: Union[Variable, List[Variable]],
+        output_type: str = "standard",
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
@@ -231,11 +230,11 @@ class EsoFile(ResultsEsoFile):
     """
 
     def __init__(
-            self,
-            file_path: Union[str, Path],
-            monitor: DefaultMonitor = None,
-            ignore_peaks: bool = True,
-            year: int = 2002,
+        self,
+        file_path: Union[str, Path],
+        monitor: DefaultMonitor = None,
+        ignore_peaks: bool = True,
+        year: int = 2002,
     ):
         file_path = Path(file_path)
         file_name = file_path.stem
