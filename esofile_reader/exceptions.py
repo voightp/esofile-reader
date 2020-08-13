@@ -28,12 +28,6 @@ class CannotAggregateVariables(Exception):
     pass
 
 
-class NoSharedVariables(Exception):
-    """ Raised when source diff files have no common variables. """
-
-    pass
-
-
 class NoResults(Exception):
     """ Exception raised when results are requested from an incomplete file. """
 

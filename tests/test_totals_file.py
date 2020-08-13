@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from unittest import TestCase
 
 import pandas as pd
@@ -6,6 +7,7 @@ import pandas as pd
 from esofile_reader import ResultsFile, Variable
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
+from tests import ROOT
 
 
 class TestTotalsFile(TestCase):
@@ -138,3 +140,10 @@ class TestTotalsFile(TestCase):
     def test_generate_diff_file(self):
         df = ResultsFile.from_diff(self.tf, self.tf)
         self.assertTrue(df.complete)
+
+    def test_only_simple_tables(self):
+        rf = ResultsFile.from_excel(
+            Path(ROOT, "eso_files/test_excel_results.xlsx"),
+            sheet_names=["simple-template-monthly", "simple-template-daily"],
+        )
+        self.assertIsNone(ResultsFile.from_totals(rf))
