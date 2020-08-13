@@ -23,5 +23,5 @@ ResultsFileType = Union[
 
 # type_ hint to wrap all storage types
 TableType = Union[
-    ForwardRef("SQLTables"), ForwardRef("DFTables"), ForwardRef("ParquetTables")
-]  # noqa: F821
+    ForwardRef("SQLTables"), ForwardRef("DFTables"), ForwardRef("ParquetTables")  # noqa: F821
+]
