@@ -284,7 +284,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
             line_id = int(split_line[0])
             line = split_line[1:]
         except ValueError:
-            if "End of TableType" in raw_line:
+            if "End of Data" in raw_line:
                 break
             elif raw_line == "":
                 monitor.processing_failed(f"Empty line!.")
