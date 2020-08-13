@@ -137,7 +137,7 @@ class SQLTables(BaseTables):
         return pd.concat(frames)
 
     def update_variable_name(
-            self, table: str, id_: int, new_key: str, new_type: str = ""
+        self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         sql_table = self._get_results_table(table)
         with self.storage.engine.connect() as conn:
@@ -220,11 +220,11 @@ class SQLTables(BaseTables):
             conn.execute(table.delete().where(table.c.id.in_(ids)))
 
     def get_special_column(
-            self,
-            table: str,
-            key: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        key: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.Series:
         sql_table = self._get_special_table(table, key)
         with self.storage.engine.connect() as conn:
@@ -240,12 +240,12 @@ class SQLTables(BaseTables):
         return sr_dt_slicer(sr, start_date, end_date)
 
     def get_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
-            include_day: bool = False,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         ids = ids if isinstance(ids, list) else [ids]
         columns = SIMPLE_COLUMN_LEVELS if self.is_simple(table) else COLUMN_LEVELS
@@ -284,12 +284,12 @@ class SQLTables(BaseTables):
         return df
 
     def _global_peak(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: datetime,
-            end_date: datetime,
-            max_: bool = True,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: datetime,
+        end_date: datetime,
+        max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
         df = self.get_results(table, ids, start_date, end_date)
@@ -303,19 +303,19 @@ class SQLTables(BaseTables):
         return df
 
     def get_global_max_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(table, ids, start_date, end_date)
 
     def get_global_min_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         return self._global_peak(table, ids, start_date, end_date, max_=False)

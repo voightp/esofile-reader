@@ -30,7 +30,7 @@ def get_table_name(file_id: int, key: str, table: str) -> str:
 
 
 def create_results_table(
-        metadata: MetaData, file_id: int, table: str, is_simple: bool
+    metadata: MetaData, file_id: int, table: str, is_simple: bool
 ) -> Table:
     name = get_table_name(file_id, "results", table)
     if is_simple:
@@ -66,11 +66,11 @@ def create_datetime_table(metadata: MetaData, file_id: int, table: str) -> Table
 
 
 def create_special_table(
-        metadata: MetaData,
-        file_id: int,
-        table: str,
-        key: str,
-        column_type: Union[Type[Integer], Type[String]],
+    metadata: MetaData,
+    file_id: int,
+    table: str,
+    key: str,
+    column_type: Union[Type[Integer], Type[String]],
 ) -> Table:
     name = get_table_name(file_id, key, table)
     table = Table(name, metadata, Column(VALUE_LEVEL, column_type))

@@ -14,13 +14,12 @@ class TestSimpleFileFunctions(unittest.TestCase):
     def setUp(self) -> None:
         self.rf = ResultsFile.from_excel(
             Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx"),
-            sheet_names=["simple-template-monthly", "simple-no-template-no-index"]
+            sheet_names=["simple-template-monthly", "simple-no-template-no-index"],
         )
 
     def test_table_names(self):
         self.assertListEqual(
-            self.rf.table_names,
-            ["monthly-simple", "simple-no-template-no-index"],
+            self.rf.table_names, ["monthly-simple", "simple-no-template-no-index"],
         )
 
     def test_can_convert_rate_to_energy(self):
@@ -42,9 +41,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
 
     def test_header_df(self):
         names = ["id", "table", "key", "units"]
-        self.assertEqual(
-            self.rf.tables.get_all_variables_df().columns.to_list(), names
-        )
+        self.assertEqual(self.rf.tables.get_all_variables_df().columns.to_list(), names)
         self.assertEqual(len(self.rf.tables.get_all_variables_df().index), 14)
 
         frames = []
@@ -105,12 +102,9 @@ class TestSimpleFileFunctions(unittest.TestCase):
         df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
 
         mi = pd.MultiIndex.from_product(
-            [["test_excel_results"], ["01-01", "02-01", "03-01"]],
-            names=["file", "timestamp"],
+            [["test_excel_results"], ["01-01", "02-01", "03-01"]], names=["file", "timestamp"],
         )
-        df = self.rf._merge_frame(
-            [df1, df2], add_file_name="row", timestamp_format="%d-%m"
-        )
+        df = self.rf._merge_frame([df1, df2], add_file_name="row", timestamp_format="%d-%m")
         assert_frame_equal(
             df, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6], "b": [1, 2, 3]}, index=mi)
         )
@@ -213,8 +207,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
         v3 = SimpleVariable(table="monthly-simple", key="BLOCK3:ZONE1", units="")
         id_, var = self.rf.aggregate_variables([v1, v2, v3], "sum")
         self.assertEqual(
-            var,
-            SimpleVariable(table="monthly-simple", key="Custom Key - sum", units=""),
+            var, SimpleVariable(table="monthly-simple", key="Custom Key - sum", units=""),
         )
 
     def test_aggregate_variables_too_few_variables(self):

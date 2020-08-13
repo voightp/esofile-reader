@@ -65,7 +65,7 @@ class BaseTables(ABC):
 
     @abstractmethod
     def update_variable_name(
-            self, table: str, id_: int, new_key: str, new_type: str = ""
+        self, table: str, id_: int, new_key: str, new_type: str = ""
     ) -> None:
         """ Rename given variable. """
         pass
@@ -92,11 +92,11 @@ class BaseTables(ABC):
 
     @abstractmethod
     def get_special_column(
-            self,
-            table: str,
-            key: str,
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        key: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.Series:
         """ Get a special column. """
         pass
@@ -108,34 +108,34 @@ class BaseTables(ABC):
 
     @abstractmethod
     def get_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
-            include_day: bool = False,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
         pass
 
     @abstractmethod
     def get_global_max_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame max results for given variables. """
         pass
 
     @abstractmethod
     def get_global_min_results(
-            self,
-            table: str,
-            ids: Sequence[int],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
+        self,
+        table: str,
+        ids: Sequence[int],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame min results for given variables. """
         pass

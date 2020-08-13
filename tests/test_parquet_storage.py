@@ -6,13 +6,11 @@ from pathlib import Path
 
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, logger
-from esofile_reader import ResultsFile
+from esofile_reader import EsoFile, logger, ResultsFile
 from esofile_reader.processing.monitor import DefaultMonitor
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
-from tests import EF1, EF_ALL_INTERVALS
-from tests import ROOT
+from tests import EF1, EF_ALL_INTERVALS, ROOT
 
 
 class TestParquetStorage(unittest.TestCase):
@@ -205,16 +203,16 @@ class TestParquetStorage(unittest.TestCase):
 
     def test_15_parquet_file_context_manager(self):
         with ParquetFile(
-                id_=0,
-                file_path=EF_ALL_INTERVALS.file_path,
-                file_name=EF_ALL_INTERVALS.file_name,
-                tables=EF_ALL_INTERVALS.tables,
-                file_created=EF_ALL_INTERVALS.file_created,
-                search_tree=EF_ALL_INTERVALS.search_tree,
-                file_type=EF_ALL_INTERVALS.file_type,
-                pardir="",
-                name="foo",
-                monitor=None,
+            id_=0,
+            file_path=EF_ALL_INTERVALS.file_path,
+            file_name=EF_ALL_INTERVALS.file_name,
+            tables=EF_ALL_INTERVALS.tables,
+            file_created=EF_ALL_INTERVALS.file_created,
+            search_tree=EF_ALL_INTERVALS.search_tree,
+            file_type=EF_ALL_INTERVALS.file_type,
+            pardir="",
+            name="foo",
+            monitor=None,
         ) as pqf:
             workdir = pqf.workdir
             self.assertTrue(workdir.exists())

@@ -31,8 +31,7 @@ class _ParquetIndexer:
         self.frame = frame
 
     def get_column_items(
-            self,
-            col: Union[Sequence[Union[str, int, bool, tuple]], Union[str, int, bool, tuple]],
+        self, col: Union[Sequence[Union[str, int, bool, tuple]], Union[str, int, bool, tuple]],
     ) -> Tuple[List[tuple], Optional[List[Union[str, int, tuple]]]]:
         """ Get column multiindex items as a list of tuples. """
 
@@ -249,7 +248,7 @@ class ParquetFrame:
 
     @staticmethod
     def insert_mi_column_item(
-            mi: pd.MultiIndex, new_item: tuple, pos: int = None
+        mi: pd.MultiIndex, new_item: tuple, pos: int = None
     ) -> pd.MultiIndex:
         """ Insert or append new item into column MultiIndex. """
         if pos is None or pos == len(mi):
@@ -269,7 +268,7 @@ class ParquetFrame:
 
     @staticmethod
     def replace_mi_items(
-            mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]
+        mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]
     ) -> pd.MultiIndex:
         """ Insert or append new item into column MultiIndex. """
         items = mi.tolist()
@@ -402,10 +401,10 @@ class ParquetFrame:
         self._index = df.index
 
     def update_columns(
-            self,
-            items: List[tuple],
-            array: Sequence,
-            rows: Union[slice, Sequence] = slice(None, None, None),
+        self,
+        items: List[tuple],
+        array: Sequence,
+        rows: Union[slice, Sequence] = slice(None, None, None),
     ) -> None:
         """ Update column MultiIndex in stored parquet files. """
         for chunk_name, orig_items in self.get_chunk_item_pairs(items).items():
@@ -414,7 +413,7 @@ class ParquetFrame:
             self.save_df_to_parquet(chunk_name, df)
 
     def _insert_column(
-            self, item: Union[tuple, str, int], array: Sequence, pos: int = None
+        self, item: Union[tuple, str, int], array: Sequence, pos: int = None
     ) -> None:
         """ Insert new column into frame with lowest number of columns. """
         if isinstance(item, (str, int)):

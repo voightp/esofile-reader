@@ -77,7 +77,7 @@ def read_header(eso_file, monitor):
     """
     Read header dictionary of the eso file.
 
-    The file is being read line by line until the 'End of Data Dictionary'
+    The file is being read line by line until the 'End of TableType Dictionary'
     is reached. Raw line is processed and the line is added as an item to
     the header_dict dictionary. The outputs dictionary is populated with
     dictionaries using output ids as keys and blank lists as values
@@ -220,7 +220,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
     Read body of the eso file.
 
     The line from eso file is processed line by line until the
-    'End of Data' is reached. Interval line is stored in the 'envs'
+    'End of TableType' is reached. Interval line is stored in the 'envs'
     list, where each item represents a single environment.
     Result line is stored in the 'outputs' dictionary.
 
@@ -284,7 +284,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
             line_id = int(split_line[0])
             line = split_line[1:]
         except ValueError:
-            if "End of Data" in raw_line:
+            if "End of TableType" in raw_line:
                 break
             elif raw_line == "":
                 monitor.processing_failed(f"Empty line!.")

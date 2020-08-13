@@ -5,12 +5,12 @@ import pandas as pd
 from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
 from esofile_reader.exceptions import *
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import ResultsFile, Data
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 
-def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFTables:
+def calculate_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
     """ Calculate difference between two results files. """
     tables = DFTables()
     id_gen = incremental_id_gen()
@@ -52,7 +52,9 @@ def calculate_diff(file: ResultsFile, other_file: ResultsFile) -> DFTables:
     return tables
 
 
-def process_diff(first_file: ResultsFile, other_file: ResultsFile) -> Tuple[Data, Tree]:
+def process_diff(
+    first_file: ResultsFileType, other_file: ResultsFileType
+) -> Tuple[DFTables, Tree]:
     """ Create diff outputs. """
     header = {}
     tables = calculate_diff(first_file, other_file)

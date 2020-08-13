@@ -8,10 +8,10 @@ from esofile_reader.conversion_tables import energy_table, rate_table, si_to_ip
 
 
 def apply_conversion(
-        df: pd.DataFrame,
-        orig_units: List[str],
-        new_units: List[str],
-        conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
+    df: pd.DataFrame,
+    orig_units: List[str],
+    new_units: List[str],
+    conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
 ) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
     for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
@@ -38,7 +38,7 @@ def apply_conversion(
 
 
 def convert_units(
-        df: pd.DataFrame, units_system: str, rate_units: str, energy_units
+    df: pd.DataFrame, units_system: str, rate_units: str, energy_units
 ) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
@@ -76,11 +76,11 @@ def convert_units(
 
 
 def update_multiindex(
-        df: pd.DataFrame,
-        level: Union[str, int],
-        old_vals: List[str],
-        new_vals: List[str],
-        axis: int = 1,
+    df: pd.DataFrame,
+    level: Union[str, int],
+    old_vals: List[str],
+    new_vals: List[str],
+    axis: int = 1,
 ) -> None:
     """ Replace multiindex values on a specific level inplace. """
 

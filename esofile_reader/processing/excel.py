@@ -64,7 +64,7 @@ def validate_header(is_template, levels, column_levels):
 
 
 def parse_header(
-        df: pd.DataFrame, force_index: bool = False
+    df: pd.DataFrame, force_index: bool = False
 ) -> Tuple[pd.MultiIndex, int, bool]:
     """ Extract header related information from excel worksheet. """
     index_names = [TIMESTAMP_COLUMN, RANGE, INDEX]
@@ -157,7 +157,7 @@ def parse_header(
 
 
 def build_df_table(
-        raw_df: pd.DataFrame, table_name: str, start_id: int = 1,
+    raw_df: pd.DataFrame, table_name: str, start_id: int = 1,
 ) -> Tuple[pd.DataFrame, int]:
     """ Finalize DataFrame data to match required DFTables structure. """
 
@@ -216,11 +216,11 @@ def build_df_table(
 
 
 def process_excel(
-        file_path: Union[str, Path],
-        monitor: DefaultMonitor,
-        sheet_names: List[str] = None,
-        force_index: bool = False,
-        header_limit: int = 10,
+    file_path: Union[str, Path],
+    monitor: DefaultMonitor,
+    sheet_names: List[str] = None,
+    force_index: bool = False,
+    header_limit: int = 10,
 ):
     """ Create results file data based on given excel workbook."""
     with open(file_path, "rb") as f:

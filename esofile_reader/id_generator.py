@@ -13,11 +13,11 @@ def incremental_id_gen(start: int = 0, checklist: List[int] = None) -> int:
 
 
 def get_str_identifier(
-        base_name: str,
-        check_list: List[str],
-        delimiter=" ",
-        start_i: int = None,
-        brackets: bool = True
+    base_name: str,
+    check_list: List[str],
+    delimiter=" ",
+    start_i: int = None,
+    brackets: bool = True,
 ) -> str:
     """ Create a unique name by adding index number to the base name. """
 

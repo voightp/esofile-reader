@@ -182,8 +182,9 @@ class TestDataClassesSimple(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd", "sqld"])
     def test_add_remove_variable(self, key):
         tables = self.tables[key]
-        id_ = tables.insert_column(SimpleVariable("monthly-simple", "FOO", "C"),
-                                   list(range(12)))
+        id_ = tables.insert_column(
+            SimpleVariable("monthly-simple", "FOO", "C"), list(range(12))
+        )
         tables.delete_variables("monthly-simple", [id_])
         if key != "sqld":
             with self.assertRaises(KeyError):
@@ -247,8 +248,10 @@ class TestDataClassesSimple(unittest.TestCase):
         tables = self.tables[key]
         df = tables.get_results("monthly-simple", [2, 6])
         test_columns = pd.MultiIndex.from_tuples(
-            [(2, "monthly-simple", "BLOCK1:ZONE1", ""),
-             (6, "monthly-simple", "BLOCK1:ZONE1", "C"), ],
+            [
+                (2, "monthly-simple", "BLOCK1:ZONE1", ""),
+                (6, "monthly-simple", "BLOCK1:ZONE1", "C"),
+            ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(1, 13)], name="timestamp")
@@ -277,12 +280,16 @@ class TestDataClassesSimple(unittest.TestCase):
     def test_get_results_sliced(self, key):
         tables = self.tables[key]
         df = tables.get_results(
-            "monthly-simple", [2, 6], start_date=datetime(2002, 4, 1),
+            "monthly-simple",
+            [2, 6],
+            start_date=datetime(2002, 4, 1),
             end_date=datetime(2002, 6, 1),
         )
         test_columns = pd.MultiIndex.from_tuples(
-            [(2, "monthly-simple", "BLOCK1:ZONE1", ""),
-             (6, "monthly-simple", "BLOCK1:ZONE1", "C"), ],
+            [
+                (2, "monthly-simple", "BLOCK1:ZONE1", ""),
+                (6, "monthly-simple", "BLOCK1:ZONE1", "C"),
+            ],
             names=["id", "table", "key", "units"],
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")

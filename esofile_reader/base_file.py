@@ -2,8 +2,7 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Sequence, Callable, Optional
-from typing import Union, List, Tuple
+from typing import Dict, Sequence, Callable, Optional, Union, List, Tuple
 
 import pandas as pd
 
@@ -14,7 +13,7 @@ from esofile_reader.convertor import (
     convert_units,
     is_daily,
     is_hourly,
-    is_timestep
+    is_timestep,
 )
 from esofile_reader.exceptions import *
 from esofile_reader.logger import logger
@@ -41,7 +40,7 @@ class BaseFile:
     file_created : datetime.datetime
         Time and date when of the file generation.
     tables : DFTables
-        Data storage instance.
+        TableType storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
     file_type : str, default "na"
@@ -51,13 +50,13 @@ class BaseFile:
     """
 
     def __init__(
-            self,
-            file_path: Union[str, Path],
-            file_name: str,
-            file_created: datetime,
-            tables: DFTables,
-            search_tree: Tree,
-            file_type: str = "na",
+        self,
+        file_path: Union[str, Path],
+        file_name: str,
+        file_created: datetime,
+        tables: DFTables,
+        search_tree: Tree,
+        file_type: str = "na",
     ):
         self.file_path = file_path
         self.file_name = file_name
@@ -125,10 +124,10 @@ class BaseFile:
         return pd.concat([df], axis=axis, keys=[self.file_name], names=["file"])
 
     def _merge_frame(
-            self,
-            frames: List[pd.DataFrame],
-            timestamp_format: str = "default",
-            add_file_name: str = "row",
+        self,
+        frames: List[pd.DataFrame],
+        timestamp_format: str = "default",
+        add_file_name: str = "row",
     ) -> pd.DataFrame:
         """ Merge result DataFrames into a single one. """
         if frames:
@@ -149,8 +148,9 @@ class BaseFile:
             )
 
     def _find_pairs(
-            self, variables: Union[VariableType, List[VariableType], List[int]],
-            part_match: bool = False
+        self,
+        variables: Union[VariableType, List[VariableType], List[int]],
+        part_match: bool = False,
     ) -> Dict[str, List[int]]:
         """
         Find variable ids for a list of 'Variables'.
@@ -197,9 +197,7 @@ class BaseFile:
         return out
 
     def find_id(
-            self,
-            variables: Union[VariableType, List[VariableType]],
-            part_match: bool = False
+        self, variables: Union[VariableType, List[VariableType]], part_match: bool = False
     ) -> List[int]:
         """ Find ids for a list of 'Variables'. """
         variables = variables if isinstance(variables, list) else [variables]
@@ -223,21 +221,21 @@ class BaseFile:
         return False
 
     def get_results(
-            self,
-            variables: Union[VariableType, List[VariableType], int, List[int]],
-            start_date: Optional[datetime] = None,
-            end_date: Optional[datetime] = None,
-            output_type: str = "standard",
-            add_file_name: str = "row",
-            include_table_name: bool = False,
-            include_day: bool = False,
-            include_id: bool = False,
-            part_match: bool = False,
-            units_system: str = "SI",
-            rate_units: str = "W",
-            energy_units: str = "J",
-            timestamp_format: str = "default",
-            rate_to_energy: bool = False,
+        self,
+        variables: Union[VariableType, List[VariableType], int, List[int]],
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        output_type: str = "standard",
+        add_file_name: str = "row",
+        include_table_name: bool = False,
+        include_day: bool = False,
+        include_id: bool = False,
+        part_match: bool = False,
+        units_system: str = "SI",
+        rate_units: str = "W",
+        energy_units: str = "J",
+        timestamp_format: str = "default",
+        rate_to_energy: bool = False,
     ) -> pd.DataFrame:
         """
         Return a pandas.DataFrame object with results for given variables.
@@ -344,11 +342,7 @@ class BaseFile:
         return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def _validate_variable_type(
-            self,
-            table: str,
-            key: str,
-            units: str,
-            type_: Optional[str] = None
+        self, table: str, key: str, units: str, type_: Optional[str] = None
     ) -> VariableType:
         """ Check if an appropriate variable type is requested. """
         var_cls = SimpleVariable if type_ is None else Variable
@@ -364,7 +358,7 @@ class BaseFile:
         return var_cls(*var_args)
 
     def create_header_variable(
-            self, table: str, key: str, units: str, type_: str = None
+        self, table: str, key: str, units: str, type_: str = None
     ) -> VariableType:
         """ Create unique header variable. """
 
@@ -384,10 +378,10 @@ class BaseFile:
         return variable
 
     def rename_variable(
-            self,
-            variable: VariableType,
-            new_key: Optional[str] = None,
-            new_type: Optional[str] = None,
+        self,
+        variable: VariableType,
+        new_key: Optional[str] = None,
+        new_type: Optional[str] = None,
     ) -> Tuple[int, Union[Variable, SimpleVariable]]:
         """ Rename the given 'Variable' using given names. """
         if new_key is None and new_type is None:
@@ -403,8 +397,9 @@ class BaseFile:
             if ids:
                 id_ = ids[0]
                 # create new variable and add it into tree
-                new_variable = self.create_header_variable(table, new_key, units,
-                                                           type_=new_type)
+                new_variable = self.create_header_variable(
+                    table, new_key, units, type_=new_type
+                )
 
                 # remove current item to avoid item duplicity
                 self.search_tree.remove_variable(variable)
@@ -422,7 +417,7 @@ class BaseFile:
                 logger.warning(f"Cannot rename variable! {variable} not found.")
 
     def insert_variable(
-            self, table: str, key: str, units: str, array: Sequence, type_: str = None
+        self, table: str, key: str, units: str, array: Sequence, type_: str = None
     ) -> Optional[Tuple[int, VariableType]]:
         """ Add specified output variable to the file. """
         new_variable = self.create_header_variable(table, key, units, type_=type_)
@@ -432,12 +427,12 @@ class BaseFile:
             return id_, new_variable
 
     def aggregate_variables(
-            self,
-            variables: Union[VariableType, List[VariableType]],
-            func: Union[str, Callable],
-            new_key: str = "Custom Key",
-            new_type: str = "Custom Variable",
-            part_match: bool = False,
+        self,
+        variables: Union[VariableType, List[VariableType]],
+        func: Union[str, Callable],
+        new_key: str = "Custom Key",
+        new_type: str = "Custom Variable",
+        part_match: bool = False,
     ) -> Optional[Tuple[int, VariableType]]:
         """
         Aggregate given variables using given function.
@@ -528,7 +523,7 @@ class BaseFile:
         return out
 
     def remove_variables(
-            self, variables: Union[VariableType, List[VariableType]]
+        self, variables: Union[VariableType, List[VariableType]]
     ) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
         groups = self._find_pairs(variables if isinstance(variables, list) else [variables])
