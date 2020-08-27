@@ -105,6 +105,25 @@ class TestOutputsConversion(unittest.TestCase):
         )
         assert_frame_equal(out, test_df)
 
+    def test_convert_units_si_to_ip_w_sqf_vs_Btuh(self):
+        columns = pd.MultiIndex.from_tuples(
+            [(1, "m"), (2, "W/m2"), (3, "deltaC")], names=["id", "units"]
+        )
+        df = pd.DataFrame([[1, 1, 1], [2, 2, 2]], columns=columns)
+        out = convert_units(df, "IP", "Btu/h", "J")
+
+        test_mi = pd.MultiIndex.from_tuples(
+            [(1, "ft"), (2, "Btu/h-ft2"), (3, "deltaF")], names=["id", "units"]
+        )
+        test_df = pd.DataFrame(
+            [
+                [1 / 0.3048, 1 / (0.2930711 * 10.76391), 1.8],
+                [2 / 0.3048, 2 / (0.2930711 * 10.76391), 3.6],
+            ],
+            columns=test_mi,
+        )
+        assert_frame_equal(out, test_df)
+
     def test_convert_units_no_valid(self):
         columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)

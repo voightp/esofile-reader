@@ -42,10 +42,7 @@ def convert_units(
 ) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_inputs = []
-
     for units in set(df.columns.get_level_values(UNITS_LEVEL)):
-        inp = None
-
         if units == "J" and energy_units != "J":
             inp = energy_table(energy_units)
         elif units == "J/m2" and energy_units != "J":
@@ -56,15 +53,16 @@ def convert_units(
             inp = rate_table(rate_units, per_area=True)
         elif units_system == "IP":
             inp = si_to_ip(units)
+        else:
+            continue
 
-        if inp:
-            if units != inp[0]:
-                # TODO remove for distribution
-                raise AssertionError(
-                    f"Original units '{units}' do not match " f"converted units '{inp[0]}'."
-                )
-            else:
-                conversion_inputs.append(inp)
+        if units != inp[0]:
+            # TODO remove for distribution
+            raise AssertionError(
+                f"Original units '{units}' do not match " f"converted units '{inp[0]}'."
+            )
+        else:
+            conversion_inputs.append(inp)
 
     if not conversion_inputs:
         # there's nothing to convert
