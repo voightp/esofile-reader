@@ -1,4 +1,4 @@
-from typing import List, Union, Callable, Sequence
+from typing import List, Union, Sequence, Tuple, Any
 
 import numpy as np
 import pandas as pd
@@ -8,13 +8,10 @@ from esofile_reader.conversion_tables import energy_table, rate_table, si_to_ip
 
 
 def apply_conversion(
-    df: pd.DataFrame,
-    orig_units: List[str],
-    new_units: List[str],
-    conversion_ratios: List[Union[float, int, Callable, Sequence, pd.Series]],
+    df: pd.DataFrame, conversion_tuples: List[Tuple[str, str, Any]],
 ) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
-    for old, new, ratio in zip(orig_units, new_units, conversion_ratios):
+    for old, new, ratio in conversion_tuples:
         cnd = df.columns.get_level_values(UNITS_LEVEL) == old
         if all(map(lambda x: not x, cnd)):
             # no applicable units
@@ -31,18 +28,17 @@ def apply_conversion(
             df.loc[:, cnd] = df.loc[:, cnd].div(ratio.values, axis=0)
         else:
             df.loc[:, cnd] = df.loc[:, cnd].div(ratio, axis=0)
-
+    orig_units, new_units, _ = zip(*conversion_tuples)
     update_multiindex(df, UNITS_LEVEL, orig_units, new_units)
-
     return df
 
 
-def convert_units(
-    df: pd.DataFrame, units_system: str, rate_units: str, energy_units
-) -> pd.DataFrame:
-    """ Convert raw E+ results to use requested units. """
-    conversion_inputs = []
-    for units in set(df.columns.get_level_values(UNITS_LEVEL)):
+def create_conversion_tuples(
+    source_units: Sequence, units_system: str, rate_units: str, energy_units
+) -> List[Tuple[str, str, Any]]:
+    """ Get relevant converted units and conversion ratios. """
+    conversion_tuples = []
+    for units in source_units:
         if units == "J" and energy_units != "J":
             inp = energy_table(energy_units)
         elif units == "J/m2" and energy_units != "J":
@@ -54,23 +50,27 @@ def convert_units(
         elif units_system == "IP":
             inp = si_to_ip(units)
         else:
-            continue
+            inp = None
+        if inp:
+            conversion_tuples.append(inp)
+    return conversion_tuples
 
-        if units != inp[0]:
-            # TODO remove for distribution
-            raise AssertionError(
-                f"Original units '{units}' do not match " f"converted units '{inp[0]}'."
-            )
-        else:
-            conversion_inputs.append(inp)
 
-    if not conversion_inputs:
+def convert_units(
+    df: pd.DataFrame, units_system: str, rate_units: str, energy_units
+) -> pd.DataFrame:
+    """ Convert raw E+ results to use requested units. """
+    conversion_tuples = create_conversion_tuples(
+        df.columns.get_level_values(UNITS_LEVEL).unique(),
+        units_system=units_system,
+        rate_units=rate_units,
+        energy_units=energy_units,
+    )
+    if conversion_tuples:
         # there's nothing to convert
+        return apply_conversion(df, conversion_tuples)
+    else:
         return df
-
-    orig_units, new_units, conversion_ratios = zip(*conversion_inputs)
-
-    return apply_conversion(df, orig_units, new_units, conversion_ratios)
 
 
 def update_multiindex(
@@ -131,8 +131,7 @@ def is_timestep(index: pd.DatetimeIndex):
 
 def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     """ Get a number of timesteps per hour. """
-    timedelta = dt_index[1] - dt_index[0]
-    return 3600 / timedelta.seconds
+    return 3600 / (dt_index[1] - dt_index[0]).seconds
 
 
 def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame:
@@ -144,11 +143,6 @@ def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame
         ratio = 1 / (24 * 3600)
     else:
         ratio = 1 / (n_days * 24 * 3600)
-
-    orig_units = ["W", "W/m2"]
-    new_units = ["J", "J/m2"]
-
     # ratios are the same for standard and normalized units
-    conversion_ratios = [ratio, ratio]
-
-    return apply_conversion(df, orig_units, new_units, conversion_ratios)
+    conversion_tuples = [("W", "J", ratio), ("W/m2", "J/m2", ratio)]
+    return apply_conversion(df, conversion_tuples)

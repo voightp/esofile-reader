@@ -9,7 +9,7 @@ class TestOutputsConversion(unittest.TestCase):
     def test_apply_conversion(self):
         columns = pd.MultiIndex.from_tuples([(1, "bar"), (2, "baz")], names=["id", "units"])
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-        out = apply_conversion(df, ["bar"], ["foo"], [2])
+        out = apply_conversion(df, [("bar", "foo", 2)])
 
         test_mi = pd.MultiIndex.from_tuples([(1, "foo"), (2, "baz")], names=["id", "units"])
         test_df = pd.DataFrame([[0.5, 1], [1, 2]], columns=test_mi)
@@ -20,7 +20,7 @@ class TestOutputsConversion(unittest.TestCase):
             [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
         )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-        out = apply_conversion(df, ["bar"], ["foo"], [2])
+        out = apply_conversion(df, [("bar", "foo", 2)])
 
         test_mi = pd.MultiIndex.from_tuples(
             [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
@@ -33,7 +33,7 @@ class TestOutputsConversion(unittest.TestCase):
             [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
         )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-        out = apply_conversion(df, ["bar"], ["foo"], [lambda x: 2 * x])
+        out = apply_conversion(df, [("bar", "foo", lambda x: 2 * x)])
 
         test_mi = pd.MultiIndex.from_tuples(
             [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
@@ -46,7 +46,7 @@ class TestOutputsConversion(unittest.TestCase):
             [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
         )
         df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-        out = apply_conversion(df, ["bar"], ["foo"], [[2, 4]])
+        out = apply_conversion(df, [("bar", "foo", [2, 4])])
 
         test_mi = pd.MultiIndex.from_tuples(
             [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
