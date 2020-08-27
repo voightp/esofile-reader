@@ -1,7 +1,9 @@
+from typing import Tuple, Union, Callable
+
 from esofile_reader.logger import logger
 
 
-def energy_table(new_units, per_area=False):
+def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
     """
     Find conversion rate for given energy units.
 
@@ -17,6 +19,19 @@ def energy_table(new_units, per_area=False):
         J       ->      Btu         /       1055.056
         J       ->      kBtu        /       1 055 056
         J       ->      MBtu        /       1 055 056 000
+
+    Arguments
+    ---------
+    new_units : str
+        Requested energy units.
+    per_area : bool
+        Define if new units should be normalized.
+
+    Returns
+    -------
+    Tuple of str, str, int or float
+        original units, new units, conversion factor
+
     """
 
     table = {
@@ -50,7 +65,7 @@ def energy_table(new_units, per_area=False):
         logger.info(f"Specified energy units '{new_units}' cannot be converted!")
 
 
-def rate_table(new_units, per_area=False):
+def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
     """
     Find conversion rate for given rate units.
 
@@ -62,6 +77,19 @@ def rate_table(new_units, per_area=False):
         W       ->      MBtu/h      /       293 071.1
         W       ->      kW          /       1000
         W       ->      MW          /       1000 000
+
+        Arguments
+    ---------
+    new_units : str
+        Requested energy units.
+    per_area : bool
+        Define if new units should be normalized.
+
+    Returns
+    -------
+    Tuple of str, str, int or float
+        original units, new units, conversion factor
+
     """
 
     table = {
@@ -87,7 +115,7 @@ def rate_table(new_units, per_area=False):
         logger.info(f"Specified rate units '{new_units}'cannot be converted!")
 
 
-def si_to_ip(orig_units):
+def si_to_ip(orig_units: str) -> Tuple[str, str, Union[int, float, Callable]]:
     """
     Covert units when IP units system requested.
 
@@ -100,11 +128,8 @@ def si_to_ip(orig_units):
 
     Returns:
     --------
-    str
-        Converted units.
-    float
-        A conversion factor between original and
-        returned units.
+    Tuple of str, str, int or float or Callable
+        original units, new units, conversion factor
 
     """
 
