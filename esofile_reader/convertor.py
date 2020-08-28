@@ -34,11 +34,11 @@ def apply_conversion(
 
 
 def create_conversion_tuples(
-    source_units: Sequence, units_system: str, rate_units: str, energy_units
+    source_units: pd.Series, units_system: str, rate_units: str, energy_units
 ) -> List[Tuple[str, str, Any]]:
     """ Get relevant converted units and conversion ratios. """
     conversion_tuples = []
-    for units in source_units:
+    for units in source_units.unique():
         if units == "J" and energy_units != "J":
             inp = energy_table(energy_units)
         elif units == "J/m2" and energy_units != "J":
@@ -61,7 +61,7 @@ def convert_units(
 ) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
     conversion_tuples = create_conversion_tuples(
-        df.columns.get_level_values(UNITS_LEVEL).unique(),
+        df.columns.get_level_values(UNITS_LEVEL),
         units_system=units_system,
         rate_units=rate_units,
         energy_units=energy_units,
