@@ -1,5 +1,6 @@
 import contextlib
-from typing import Union, Optional, Dict, List
+from copy import copy
+from typing import Union, Optional, Dict, List, Iterator
 
 from esofile_reader.constants import *
 from esofile_reader.logger import logger
@@ -20,10 +21,10 @@ class Node:
     ----------
     parent : Node
         A parent node of the node.
-    key : {str, int}
+    key : str
         A node identifier.
-    children : list of Node
-        Node represents a leaf if children is 'None'.
+    children : {Dict of {str : Node}, LeafNode}
+        Child nodes or variable id.
 
     Notes
     -----
@@ -31,10 +32,38 @@ class Node:
 
     """
 
-    def __init__(self, parent: Optional["Node"], key: Union[str, int]):
+    def __init__(self, parent: Optional["Node"], key: str):
         self.parent = parent
         self.key = key
-        self.children = set()
+        self.children = {}
+
+
+class LeafNode:
+    """ A bottom node of a tree.
+
+    Parameters
+    ----------
+    parent : {Node, None}
+        A parent nod of the node.
+    key : str
+        A node identifier.
+
+    Attributes
+    ----------
+    parent : Node
+        A parent node of the node.
+    key : int
+        A node identifier.
+
+    Notes
+    -----
+    Children are not ordered!
+
+    """
+
+    def __init__(self, parent: Node, key: Union[str, int]):
+        self.parent = parent
+        self.key = key
 
 
 class Tree:
@@ -58,21 +87,24 @@ class Tree:
         self.root = Node(None, "groot")
 
     def __repr__(self):
-        def _loopstr(node: Node, lst: list, level: int = -1) -> None:
+        def create_string_items(node: Node, lst: list, level: int = -1) -> None:
             """ Create a string representation of a tree. """
             level += 1
             tabs = level * "\t"
             lst.append(f"{tabs}{node.key}\n")
-            if node.children:
-                for child in sorted(list(node.children), key=lambda x: str(x.key)):
-                    _loopstr(child, lst, level=level)
+            if not isinstance(node, LeafNode):
+                if isinstance(node.children, LeafNode):
+                    create_string_items(node.children, lst, level=level)
+                elif isinstance(node, Node):
+                    for child in sorted(list(node.children.values()), key=lambda x: str(x.key)):
+                        create_string_items(child, lst, level=level)
 
-        lst = []
-        _loopstr(self.root, lst)
-        return str.join("", lst)
+        string_items = []
+        create_string_items(self.root, string_items)
+        return str.join("", string_items)
 
     @staticmethod
-    def tree_variable(variable: Union[Variable, SimpleVariable]):
+    def create_variable_iterator(variable: Union[Variable, SimpleVariable]) -> Iterator:
         """ Pass reordered variable. """
 
         def low_string(s):
@@ -89,31 +121,27 @@ class Tree:
         # each class has its own sub branch
         tree_variable = [v.__getattribute__(level) for level in order]
         tree_variable.insert(0, v.__class__.__name__)
-        return tree_variable
+        return iter(tree_variable)
 
     @staticmethod
     def _add_node(node_key: str, parent: Node) -> Node:
         """ Create a new node if it does not exists. """
-        children = parent.children
-        try:
-            nd = next(ch for ch in children if ch.key == node_key)
-        except StopIteration:
-            nd = Node(parent, node_key)
-            parent.children.add(nd)
-        return nd
+        if node_key in parent.children:
+            node = parent.children[node_key]
+        else:
+            node = Node(parent, node_key)
+            parent.children[node_key] = node
+        return node
 
     def _add_branch(self, id_: int, variable: Union[Variable, SimpleVariable]) -> Optional[int]:
         """ Append a branch to the tree. """
-        tree_variable = self.tree_variable(variable)
+        tree_variable = self.create_variable_iterator(variable)
         parent = self.root
         for node_key in tree_variable:
-            # all keys needs to be str
             parent = self._add_node(node_key, parent)
-        # add 'leaf'
-        val = Node(parent, id_)
-        val.children = None
+        leaf = LeafNode(parent, id_)
         if not parent.children:
-            parent.children.add(val)
+            parent.children = leaf
         else:
             # there's already a leaf, variable is a duplicate
             return id_
@@ -133,38 +161,36 @@ class Tree:
                     duplicates[duplicate_id] = variable
         return duplicates
 
-    def _loop(
+    def loop(
         self,
         node: Node,
         ids: List[int],
-        tree_variable: List[Optional[str]],
+        tree_variable: Iterator[Optional[str]],
         part_match: bool = False,
-        level: int = 0,
     ) -> None:
         """ Search through the tree to find ids. """
-        if level == len(tree_variable):
-            # reached bottom level, bottom node has only single leaf id node
-            ids.append(next(iter(node.children)).key)
-        else:
-            condition = tree_variable[level]
-            level += 1
-            if condition is not None:
+        try:
+            variable_piece = next(tree_variable)
+            if variable_piece is not None:
                 # First level ('Variable', 'SimpleVariable') needs to completely match
-                if part_match and level != 1:
+                if part_match:
                     # multiple children can match the condition
-                    for nd in node.children:
-                        if condition in nd.key:
-                            self._loop(
-                                nd, ids, tree_variable, part_match=part_match, level=level
+                    for node_key, child_node in node.children.items():
+                        if variable_piece in node_key:
+                            self.loop(
+                                child_node, ids, copy(tree_variable), part_match=part_match
                             )
                 else:
-                    with contextlib.suppress(StopIteration):
-                        nd = next(n for n in node.children if n.key == condition)
-                        self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
+                    with contextlib.suppress(KeyError):
+                        child_node = node.children[variable_piece]
+                        self.loop(child_node, ids, tree_variable, part_match=part_match)
             else:
                 # Condition not applied, loop through all children
-                for nd in node.children:
-                    self._loop(nd, ids, tree_variable, part_match=part_match, level=level)
+                for child_node in node.children.values():
+                    self.loop(child_node, ids, copy(tree_variable), part_match=part_match)
+        except StopIteration:
+            # reached bottom level, bottom node holds only leaf
+            ids.append(node.children.key)
 
     def find_ids(
         self,
@@ -173,9 +199,12 @@ class Tree:
         check_only: bool = False,
     ) -> List[int]:
         """ Find variable ids for given arguments. """
-        tree_variable = self.tree_variable(variable)
+        tree_variable = self.create_variable_iterator(variable)
         ids = []
-        self._loop(self.root, ids, tree_variable, part_match=part_match)
+        variable_type = next(tree_variable)
+        with contextlib.suppress(KeyError):
+            node = self.root.children[variable_type]
+            self.loop(node, ids, tree_variable, part_match=part_match)
         if not ids and check_only:
             logger.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
@@ -184,31 +213,30 @@ class Tree:
         """ Check if variable exists. """
         return bool(self.find_ids(variable, part_match=False, check_only=True))
 
-    def _rem_loop(self, node: Node, tree_variable: List[str], level: int = 0) -> None:
+    def loop_remove(self, node: Node, tree_variable: Iterator[str]) -> None:
         def remove_recursively(n):
             parent = n.parent
             if parent:
-                parent.children.remove(n)
+                parent.children.pop(n.key)
                 if not parent.children:
                     # remove node only if there are no children left
                     remove_recursively(parent)
 
-        if len(node.children) == 1 and not next(iter(node.children)).children:
-            remove_recursively(node)
-        else:
-            condition = tree_variable[level]
-            level += 1
-            if condition is not None:
-                with contextlib.suppress(StopIteration):
-                    nd = next(n for n in node.children if n.key == condition)
-                    self._rem_loop(nd, tree_variable, level=level)
+        try:
+            variable_piece = next(tree_variable)
+            if variable_piece is not None:
+                with contextlib.suppress(KeyError):
+                    child_node = node.children[variable_piece]
+                    self.loop_remove(child_node, tree_variable)
             else:
-                for nd in list(node.children):
-                    self._rem_loop(nd, tree_variable, level=level)
+                for child_node_key in list(node.children.keys()):
+                    self.loop_remove(node.children[child_node_key], copy(tree_variable))
+        except StopIteration:
+            remove_recursively(node)
 
     def remove_variable(self, variable: Union[SimpleVariable, Variable]) -> None:
-        tree_variable = self.tree_variable(variable)
-        self._rem_loop(self.root, tree_variable)
+        tree_variable = self.create_variable_iterator(variable)
+        self.loop_remove(self.root, tree_variable)
 
     def remove_variables(self, variables: Union[Variable, List[Variable]]):
         """ Remove variable from the tree. """
