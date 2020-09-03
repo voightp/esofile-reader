@@ -33,7 +33,7 @@ class TestSimpleSearchTree(unittest.TestCase):
         node = Node(None, "FOO")
         self.assertIsNone(node.parent)
         self.assertEqual("FOO", node.key)
-        self.assertSetEqual(set(), node.children)
+        self.assertDictEqual(dict(), node.children)
 
     def test_tree_structure(self):
         tree = Tree()
@@ -54,14 +54,14 @@ class TestSimpleSearchTree(unittest.TestCase):
             }
         }
 
-        for ch0 in tree.root.children:
-            for ch1 in ch0.children:
-                for ch2 in ch1.children:
-                    for ch3 in ch2.children:
-                        for leaf in ch3.children:
-                            self.assertEqual(
-                                test_tree[ch0.key][ch1.key][ch2.key][ch3.key], leaf.key
-                            )
+        for ch0 in tree.root.children.values():
+            for ch1 in ch0.children.values():
+                for ch2 in ch1.children.values():
+                    for ch3 in ch2.children.values():
+                        leaf = ch3.children
+                        self.assertEqual(
+                            test_tree[ch0.key][ch1.key][ch2.key][ch3.key], leaf.key
+                        )
 
     def test_add_branch(self):
         v = SimpleVariable("monthly", "new key new type_", "C")
@@ -182,7 +182,7 @@ class TestSearchTree(unittest.TestCase):
         node = Node(None, "FOO")
         self.assertIsNone(node.parent)
         self.assertEqual("FOO", node.key)
-        self.assertSetEqual(set(), node.children)
+        self.assertDictEqual(dict(), node.children)
 
     def test_tree_structure(self):
         tree = Tree()
@@ -202,16 +202,16 @@ class TestSearchTree(unittest.TestCase):
                 "monthly": {"b": {"h": {"g": 4}}},
             }
         }
-        for ch0 in tree.root.children:
-            for ch1 in ch0.children:
-                for ch2 in ch1.children:
-                    for ch3 in ch2.children:
-                        for ch4 in ch3.children:
-                            for leaf in ch4.children:
-                                self.assertEqual(
-                                    test_tree[ch0.key][ch1.key][ch2.key][ch3.key][ch4.key],
-                                    leaf.key,
-                                )
+        for ch0 in tree.root.children.values():
+            for ch1 in ch0.children.values():
+                for ch2 in ch1.children.values():
+                    for ch3 in ch2.children.values():
+                        for ch4 in ch3.children.values():
+                            leaf = ch4.children
+                            self.assertEqual(
+                                test_tree[ch0.key][ch1.key][ch2.key][ch3.key][ch4.key],
+                                leaf.key,
+                            )
 
     def test_add_branch(self):
         v = Variable("monthly", "new key", "new type_", "C")
