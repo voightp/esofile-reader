@@ -2,19 +2,30 @@ import datetime
 import logging
 import os
 import unittest
+from collections import defaultdict
+from functools import partial
 
-from esofile_reader.processing.esofile import *
-from esofile_reader.processing.esofile import (
-    _process_statement,
-    _process_header_line,
-    _process_interval_line,
-)
+import numpy as np
 
 from esofile_reader import EsoFile, logger, ResultsFile
 from esofile_reader.base_file import IncompleteFile
+from esofile_reader.constants import *
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
-from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.processing.esofile import (
+    process_statement_line,
+    process_header_line,
+    read_header,
+    process_sub_monthly_interval_lines,
+    process_monthly_plus_interval_lines,
+    read_body,
+    read_file,
+    generate_outputs,
+    generate_peak_outputs,
+    remove_duplicates
+)
+from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.search_tree import Tree
 from tests import ROOT
 
@@ -29,7 +40,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_esofile_statement(self):
         line = "Program Version,EnergyPlus, " "Version 9.1.0-08d2e308bb, YMD=2019.07.23 15:19"
-        version, timestamp = _process_statement(line)
+        version, timestamp = process_statement_line(line)
         self.assertEqual(version, 910)
         self.assertEqual(timestamp, datetime.datetime(2019, 7, 23, 15, 19, 00))
 
@@ -38,7 +49,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             "8,7,Environment,Site Outdoor Air Drybulb Temperature [C] "
             "!Daily [Value,Min,Hour,Minute,Max,Hour,Minute]"
         )
-        line_id, key, var, units, interval = _process_header_line(line)
+        line_id, key, var, units, interval = process_header_line(line)
 
         self.assertEqual(line_id, 8)
         self.assertEqual(key, "Environment")
@@ -48,7 +59,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_header_line2(self):
         line = "302,1,InteriorEquipment:Electricity [J] !Hourly"
-        line_id, key, var, units, interval = _process_header_line(line)
+        line_id, key, var, units, interval = process_header_line(line)
 
         self.assertEqual(line_id, 302)
         self.assertEqual(key, "Meter")
@@ -59,7 +70,7 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_header_line3(self):
         line = "302,1,InteriorEquipment,Electricity,[J], !Hourly"
         with self.assertRaises(AttributeError):
-            _process_header_line(line)
+            process_header_line(line)
 
     def test_read_header1(self):
         f = [
@@ -69,7 +80,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         ]
         g = (l for l in f)
 
-        header_dct = read_header(g, DefaultMonitor("foo"))
+        header_dct = read_header(g, EsoFileMonitor("foo"))
 
         test_header = defaultdict(partial(defaultdict))
         test_header["hourly"][7] = Variable(
@@ -87,11 +98,11 @@ class TestEsoFileProcessing(unittest.TestCase):
         ]
         g = (l for l in f)
         with self.assertRaises(BlankLineError):
-            read_header(g, DefaultMonitor("foo"))
+            read_header(g, EsoFileMonitor("foo"))
 
     def test_read_header3(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, EsoFileMonitor("foo"))
             self.assertEqual(header.keys(), header.keys())
 
             for interval, variables in header.items():
@@ -121,12 +132,12 @@ class TestEsoFileProcessing(unittest.TestCase):
         l4 = ["365"]
         l5 = ["1"]
 
-        l0 = _process_interval_line(2, l0)
-        l1 = _process_interval_line(2, l1)
-        l2 = _process_interval_line(3, l2)
-        l3 = _process_interval_line(4, l3)
-        l4 = _process_interval_line(5, l4)
-        l5 = _process_interval_line(6, l5)
+        l0 = process_sub_monthly_interval_lines(2, l0)
+        l1 = process_sub_monthly_interval_lines(2, l1)
+        l2 = process_sub_monthly_interval_lines(3, l2)
+        l3 = process_monthly_plus_interval_lines(4, l3)
+        l4 = process_monthly_plus_interval_lines(5, l4)
+        l5 = process_monthly_plus_interval_lines(6, l5)
 
         self.assertEqual(l0[0], H)
         self.assertEqual(l1[0], TS)
@@ -151,7 +162,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_read_body(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, EsoFileMonitor("foo"))
 
         with open(self.body_pth, "r") as f:
             (
@@ -161,7 +172,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
-            ) = read_body(f, 6, header, False, DefaultMonitor("dummy"))
+            ) = read_body(f, 6, header, False, EsoFileMonitor("dummy"))
             # fmt: off
             self.assertEqual(
                 raw_outputs[0]["timestep"][7],
@@ -265,7 +276,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
-        monitor = DefaultMonitor("foo")
+        monitor = EsoFileMonitor("foo")
         with open(self.header_pth, "r") as f:
             header = read_header(f, monitor)
 
@@ -273,7 +284,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             content = read_body(f, 6, header, False, monitor)
             env_names, _, raw_peak_outputs, dates, cumulative_days, day_of_week = content
 
-        dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
+        dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
         outputs = generate_peak_outputs(
             raw_peak_outputs[0], header, dates, monitor, 1
         )
@@ -294,7 +305,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
-        monitor = DefaultMonitor("foo")
+        monitor = EsoFileMonitor("foo")
         with open(self.header_pth, "r") as f:
             header = read_header(f, monitor)
 
@@ -306,9 +317,9 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
-            ) = read_body(f, 6, header, False, DefaultMonitor("dummy"))
+            ) = read_body(f, 6, header, False, EsoFileMonitor("dummy"))
 
-        dates, n_days = interval_processor(dates[0], cumulative_days[0], 2002)
+        dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
         outputs = generate_outputs(raw_outputs[0], header, dates, other_data, monitor, 1)
@@ -330,7 +341,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_create_tree(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, DefaultMonitor("foo"))
+            header = read_header(f, EsoFileMonitor("foo"))
             tree = Tree()
             dup_ids = tree.populate_tree(header)
 
@@ -370,25 +381,28 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_header_invalid_line(self):
         f = (line for line in ["this is wrong!"])
         with self.assertRaises(AttributeError):
-            read_header(f, DefaultMonitor("foo"))
+            read_header(f, EsoFileMonitor("foo"))
 
     def test_body_invalid_line(self):
         f = (line for line in ["this is wrong!"])
         with self.assertRaises(InvalidLineSyntax):
-            read_body(f, 6, {"a": []}, False, DefaultMonitor("foo"))
+            read_body(f, 6, {"a": []}, False, EsoFileMonitor("foo"))
 
     def test_body_blank_line(self):
         f = (line for line in [""])
         with self.assertRaises(BlankLineError):
-            read_body(f, 6, {"a": []}, False, DefaultMonitor("foo"))
+            read_body(f, 6, {"a": []}, False, EsoFileMonitor("foo"))
 
     def test_file_blank_line(self):
         with self.assertRaises(IncompleteFile):
-            read_file(self.incomplete)
+            read_file(self.incomplete, EsoFileMonitor("some/path"))
 
     def test_non_numeric_line(self):
         with self.assertRaises(InvalidLineSyntax):
-            read_file(os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"))
+            read_file(
+                os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"),
+                EsoFileMonitor("some/path")
+            )
 
     def test_logging_level_info(self):
         try:
@@ -397,17 +411,5 @@ class TestEsoFileProcessing(unittest.TestCase):
 
         finally:
             logger.setLevel(logging.ERROR)
-
-    def test_monitor_zero_division_catched(self):
-        monitor = DefaultMonitor("dummy")
-        EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), monitor=monitor)
-
-        monitor.processing_times[8] = 0
-        monitor.processing_times[1] = 0
-        monitor.report_processing_time()
-
-    def test_results_file_from_eso(self):
-        ef = ResultsFile.from_eso_file(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-        self.assertListEqual(['hourly', 'daily', 'monthly', 'runperiod'], ef.table_names)
 
 # fmt: on

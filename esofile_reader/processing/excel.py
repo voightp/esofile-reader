@@ -11,7 +11,7 @@ from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.logger import logger
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -217,7 +217,7 @@ def build_df_table(
 
 def process_excel(
     file_path: Union[str, Path],
-    monitor: DefaultMonitor,
+    monitor: EsoFileMonitor,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -231,7 +231,8 @@ def process_excel(
 
     # each table represents a single step + add one for tree generation
     n_steps = len(sheet_names) + 1
-    monitor.reset_progress(0, new_max=n_steps)
+    monitor.log_section_started("processing sheets!")
+    monitor.reset_progress(maximum=n_steps)
 
     start_id = 1
     df_tables = DFTables()
@@ -247,13 +248,13 @@ def process_excel(
             continue
 
         # process header data
-        monitor.header_started()
+        monitor.log_section_started("processing data dictionary!")
         header_mi, skiprows, index_column = parse_header(
             df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
-        monitor.values_started()
+        monitor.log_section_started("processing data!")
         df = df.iloc[skiprows:, :]
         if index_column:
             df.set_index(keys=df.columns[0], inplace=True)
@@ -262,7 +263,7 @@ def process_excel(
 
         df.columns = header_mi
 
-        monitor.tables_started()
+        monitor.log_section_started("processing tables!")
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
@@ -281,11 +282,10 @@ def process_excel(
                 df_tables[table_name] = df
             start_id = end_id
 
-        # increment progress
-        monitor.update_progress()
+        monitor.increment_progress()
 
     if len(df_tables.keys()) > 0:
-        monitor.search_tree_started()
+        monitor.log_section_started("generating search tree!")
         tree = Tree()
         tree.populate_tree(df_tables.get_all_variables_dct())
     else:

@@ -160,14 +160,14 @@ class TestParquetFrame(TestCase):
 
     def test_loc_slice_rows(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2)],
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2)],
         )
 
     def test_loc(self):
         assert_frame_equal(
-            self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
-            self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), [2]],
+            self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+            self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
         )
 
     def test_invalid_loc(self):
@@ -217,8 +217,8 @@ class TestParquetFrame(TestCase):
     def test_loc_sliced_setter(self):
         new_col = [1, 2]
         var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-        self.test_df.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
-        self.pqf.loc[datetime(2002, 1, 1): datetime(2002, 1, 2), var] = new_col
+        self.test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
+        self.pqf.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), var] = new_col
         assert_frame_equal(self.test_df, self.pqf.get_df())
 
     def test_loc_invalid_setter(self):

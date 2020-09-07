@@ -294,7 +294,7 @@ class TestDataClassesSimple(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[4.394446155, 22.78142137], [4.44599391, 24.3208488], [3.99495105, 25.47972495], ],
+            [[4.394446155, 22.78142137], [4.44599391, 24.3208488], [3.99495105, 25.47972495],],
             columns=test_columns,
             index=test_index,
         )

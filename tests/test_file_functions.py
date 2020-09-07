@@ -343,7 +343,7 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298, ])
+        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_unexpected_type(self):

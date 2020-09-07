@@ -1,99 +1,89 @@
-import logging
-import os
 import time
-import traceback
+from pathlib import Path
+from typing import Union, Tuple
 
 from esofile_reader.logger import logger
 
 
-class DefaultMonitor:
+class GenericMonitor:
+    def __init__(self, path: Union[str, Path]):
+        self.path = path
+        self.processing_times = []
+        self.section_counter = 0
+        self.max_progress = 0
+        self.progress = 0
+
+    @property
+    def name(self) -> str:
+        return Path(self.path).name
+
+    def log_message(self, message: str) -> None:
+        logger.info(message)
+
+    def log_section_started(self, message: str) -> None:
+        self.processing_times.append(time.perf_counter())
+        self.log_message(message)
+        self.section_counter += 1
+
+    def increment_progress(self, i: Union[int, float] = 1) -> None:
+        self.progress += i
+
+    def reset_progress(self, maximum: int, current: int = 0):
+        self.max_progress = maximum
+        self.progress = current
+
+    def log_task_started(self) -> None:
+        self.processing_times.append(time.perf_counter())
+
+    def log_task_finished(self) -> None:
+        self.processing_times.append(time.perf_counter())
+
+    def log_task_failed(self, message: str) -> None:
+        logger.warning(message)
+
+
+class EsoFileMonitor(GenericMonitor):
     # processing raw file takes approximately 70% of total time
     PROGRESS_FRACTION = 0.7
 
-    def __init__(self, path):
-        self.path = path
-        self.processing_times = {}
+    def __init__(self, path: Union[str, Path]):
+        super().__init__(path)
         self.n_lines = -1
         self.chunk_size = -1
-        self.max_progress = 50
-        self.progress = 0
         self.counter = 0
 
-    @property
-    def name(self):
-        return os.path.basename(self.path)
+    def log_message(self, message: str) -> None:
+        elapsed, delta = self.calculate_section_time()
+        new_message = (
+            f"\t{self.section_counter} - {message: <30} {elapsed:10.5f}s | {delta:.5f}s"
+        )
+        logger.info(new_message)
 
-    def set_chunk_size(self, n_lines):
-        n_steps = int(self.PROGRESS_FRACTION * self.max_progress)
+    def log_task_started(self):
+        super().log_task_started()
+        logger.info("*" * 80)
+        logger.info(f"\tFile: '{self.name}'")
+
+    def log_task_finished(self) -> None:
+        super().log_task_finished()
+        total_time = self.n_lines / (self.processing_times[-1] - self.processing_times[0])
+        logger.info(f"\n\t>> Results processing speed: {total_time:.0f} lines per s")
+
+    def log_task_failed(self, message: str):
+        logger.warning(message)
+
+    def initialize_attributes(self, n_lines: int) -> None:
+        max_progress = 50
+        n_steps = int(self.PROGRESS_FRACTION * max_progress)
+        self.max_progress = max_progress
         self.n_lines = n_lines
         self.chunk_size = n_lines // n_steps
 
-    def processing_failed(self, info):
-        self.report_progress(-1, f"processing failed\n\t{info}")
-
-    def processing_started(self):
-        self.report_progress(1, "pre-processing!")
-
-    def header_started(self):
-        self.report_progress(2, "processing data dictionary!")
-
-    def values_started(self):
-        self.report_progress(3, "processing data!")
-
-    def tables_started(self):
-        if logger.level == logging.INFO:
-            print("", flush=True)  # newline
-        self.report_progress(4, "processing tables!")
-
-    def search_tree_started(self):
-        self.report_progress(5, "generating search tree!")
-
-    def peak_outputs_started(self, peaks_ignored):
-        self.report_progress(
-            6, "skipping peak tables!" if peaks_ignored else "generating peak tables!"
-        )
-
-    def outputs_started(self):
-        self.report_progress(7, "generating tables!")
-
-    def processing_finished(self):
-        if logger.level == logging.INFO:
-            print("", flush=True)  # newline
-        self.report_progress(8, "processing finished!")
-        self.report_processing_time()
-
-    def storing_started(self):
-        self.report_progress(9, "writing parquets!")
-
-    def storing_finished(self):
-        self.report_progress(10, "parquets written!")
-        self.report_storing_time()
-
-    def reset_progress(self, new_progress=0, new_max=0):
-        self.progress = new_progress
-        self.max_progress = new_max
-
-    def update_progress(self, i=1):
-        self.progress += i
-        self.counter = 0
-        if logger.level == logging.INFO:
-            print("." * int(i), end="", flush=True)
-
-    def calc_time(self, identifier):
-        if identifier == 1:
-            return None, None
-
+    def calculate_section_time(self) -> Tuple[float, float]:
         # get first, current and previous processing times
-        current = self.processing_times[identifier]
-        start = self.processing_times[1]
-        i = 1
-        while True:
-            try:
-                # some points may be skipped
-                previous = self.processing_times[identifier - i]
-                break
-            except KeyError:
-                i += 1
+        current = self.processing_times[self.section_counter]
+        start = self.processing_times[0]
+        previous = self.processing_times[self.section_counter - 1]
 
         # calculate total elapsed time and time from last table
         elapsed = current - start
@@ -101,33 +91,17 @@ class DefaultMonitor:
 
         return elapsed, delta
 
-    def report_progress(self, identifier, text):
-        self.processing_times[identifier] = time.perf_counter()
 
-        if identifier not in [9, 10]:
-            if identifier == -1:
-                msg = f"\t{identifier} - {text}"
-            else:
-                elapsed, delta = self.calc_time(identifier)
-                if identifier == 1:
-                    logger.info("*" * 80)
-                    logger.info(f"\tFile: '{self.name}'")
-                    msg = f"\t{identifier} - {text: <30}"
-                else:
-                    msg = f"\t{identifier} - {text: <30} {elapsed:10.5f}s | {delta:.5f}s"
+class StorageMonitor(GenericMonitor):
+    def __init__(self, path: Union[str, Path]):
+        super().__init__(path)
 
-            logger.info(msg)
+    def log_task_started(self):
+        super().log_task_started()
+        logger.info("*" * 80)
+        logger.info(f"\tFile: '{self.name}'")
 
-    def report_processing_time(self):
-        try:
-            abs_proc = self.n_lines / (self.processing_times[8] - self.processing_times[1])
-        except ZeroDivisionError:
-            logger.warning(f"Unexpected processing time. {traceback.format_exc()}")
-            abs_proc = -1
-        logger.info(f"\n\t>> Results processing speed: {abs_proc:.0f} lines per s")
-
-    def report_storing_time(self):
-        t = self.processing_times[10] - self.processing_times[9]
-        if logger.level == logging.INFO:
-            print("", flush=True)  # newline
-        logger.info(f"\t>> File {self.name} stored in: {t:.5f}s")
+    def log_task_finished(self) -> None:
+        super().log_task_finished()
+        total_time = self.processing_times[-1] - self.processing_times[0]
+        logger.info(f"\n\t>> File stored in: {total_time:.0f}s.")

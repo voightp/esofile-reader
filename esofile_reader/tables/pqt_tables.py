@@ -12,7 +12,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import GenericMonitor
 from esofile_reader.tables.df_tables import DFTables
 
 
@@ -132,7 +132,7 @@ class ParquetFrame:
         self._indexer[:, key] = value
 
     @classmethod
-    def from_df(cls, df, name, pardir="", monitor: DefaultMonitor = None):
+    def from_df(cls, df, name, pardir="", monitor: GenericMonitor = None):
         pqf = ParquetFrame(name, pardir)
         pqf.store_df(df, monitor=monitor)
         return pqf
@@ -376,7 +376,7 @@ class ParquetFrame:
 
         return df.loc[:, items]
 
-    def store_df(self, df: pd.DataFrame, monitor: DefaultMonitor = None) -> None:
+    def store_df(self, df: pd.DataFrame, monitor: GenericMonitor = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
         df = df.copy()
@@ -384,7 +384,7 @@ class ParquetFrame:
         start = 0
         frames = []
         for i in range(n):
-            dfi = df.iloc[:, start: start + self.CHUNK_SIZE]
+            dfi = df.iloc[:, start : start + self.CHUNK_SIZE]
 
             # create chunk reference df
             chunk_name, chunk_df = self.create_chunk(dfi.columns.values, dfi.columns.names)
@@ -394,7 +394,7 @@ class ParquetFrame:
             start += self.CHUNK_SIZE
 
             if monitor:
-                monitor.update_progress()
+                monitor.increment_progress()
 
         self._chunks_table = pd.concat(frames)
         self._columns = df.columns
@@ -503,7 +503,7 @@ class ParquetTables(DFTables):
         super().__init__()
 
     @classmethod
-    def from_dftables(cls, dftables, pardir, monitor: DefaultMonitor = None):
+    def from_dftables(cls, dftables, pardir, monitor: GenericMonitor = None):
         """ Create parquet data from DataFrame like class. """
         pqd = ParquetTables()
         for k, v in dftables.tables.items():
@@ -511,7 +511,7 @@ class ParquetTables(DFTables):
         return pqd
 
     @classmethod
-    def from_fs(cls, path, pardir, monitor: DefaultMonitor = None):
+    def from_fs(cls, path, pardir, monitor: GenericMonitor = None):
         """ Create parquet data from filesystem directory. """
         pqd = ParquetTables()
         for p in [p for p in Path(path).iterdir() if p.is_dir()]:

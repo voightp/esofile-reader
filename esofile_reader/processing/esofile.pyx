@@ -1,10 +1,11 @@
-import datetime as dt
 import logging
 import re
 from collections import defaultdict
 from copy import deepcopy
+from datetime import datetime
 from functools import partial
-from typing import Dict, List
+from pathlib import Path
+from typing import Dict, List, Tuple, TextIO, Optional, Union
 
 import cython
 import numpy as np
@@ -13,35 +14,35 @@ import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile_intervals import interval_processor
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.monitor import EsoFileMonitor, GenericMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_functions import create_peak_outputs
 from esofile_reader.tables.df_tables import DFTables
 
 
-def _eso_file_version(raw_version):
+def get_eso_file_version(raw_version: str) -> int:
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
     return int(version[(start + 1): (start + 6)].replace(".", ""))
 
 
-def _dt_timestamp(timestamp):
+def get_eso_file_timestamp(timestamp: str) -> datetime:
     """ Return date and time of the eso file generation as a Datetime. """
     timestamp = timestamp.split("=")[1].strip()
-    return dt.datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
+    return datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
-def _process_statement(line):
+def process_statement_line(line: str) -> Tuple[int, datetime]:
     """ Extract the version and time of the file generation. """
-    _, _, raw_version, tmstmp = line.split(",")
-    version = _eso_file_version(raw_version)
-    timestamp = _dt_timestamp(tmstmp)
+    _, _, raw_version, timestamp = line.split(",")
+    version = get_eso_file_version(raw_version)
+    timestamp = get_eso_file_timestamp(timestamp)
     return version, timestamp
 
 
-def _process_header_line(line):
+def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
     """
     Process E+ dictionary line and populate period header dictionaries.
 
@@ -73,7 +74,7 @@ def _process_header_line(line):
     return int(line_id), key, type_, units, interval.lower()
 
 
-def read_header(eso_file, monitor):
+def read_header(eso_file: TextIO, monitor: EsoFileMonitor) -> Dict[str, Dict[int, Variable]]:
     """
     Read header dictionary of the eso file.
 
@@ -87,6 +88,8 @@ def read_header(eso_file, monitor):
     ----------
     eso_file : EsoFile
         Opened EnergyPlus result file.
+    monitor: EsoFileMonitor
+        Monitor to report processing progress.
 
     Returns
     -------
@@ -99,7 +102,7 @@ def read_header(eso_file, monitor):
     cdef str raw_line, key_nm, var_nm, units, interval
     # //@formatter:on
 
-    header_dct = defaultdict(partial(defaultdict))
+    header = defaultdict(partial(defaultdict))
 
     chunk = monitor.chunk_size
     counter = monitor.counter
@@ -109,44 +112,32 @@ def read_header(eso_file, monitor):
 
         counter += 1
         if counter == chunk:
-            monitor.update_progress()
+            monitor.increment_progress()
             counter = 0
 
         try:
-            id_, key_nm, var_nm, units, interval = _process_header_line(raw_line)
+            id_, key, type_, units, interval = process_header_line(raw_line)
         except AttributeError:
             if "End of Data Dictionary" in raw_line:
                 break
             elif raw_line == "":
-                monitor.processing_failed("Empty line!")
+                monitor.log_task_failed("Empty line!")
                 raise BlankLineError
             else:
                 msg = f"Unexpected line syntax: '{raw_line}'!"
-                monitor.processing_failed(msg)
+                monitor.log_task_failed(msg)
                 raise InvalidLineSyntax(msg)
 
-        header_dct[interval][id_] = Variable(interval, key_nm, var_nm, units)
+        header[interval][id_] = Variable(interval, key, type_, units)
 
-    return header_dct
+    return header
 
 
-def _process_interval_line(line_id, data):
+def process_sub_monthly_interval_lines(
+    line_id: int, data: List[str]
+) -> Tuple[str, IntervalTuple, str]:
     """
-    Sort interval line into relevant period dictionaries.
-
-    Note
-    ----
-    Each interval holds a specific piece of information i.e.:
-        ts, hourly : [Day of Simulation, Month, Day of Month,
-                        DST Indicator, Hour, StartMinute, EndMinute, DayType]
-        daily : [Cumulative Day of Simulation, Month, Day of Month,DST Indicator, DayType]
-        monthly : [Cumulative Day of Simulation, Month]
-        annual : [Year] (only when custom weather file is used) otherwise [int]
-        runperiod :  [Cumulative Day of Simulation]
-
-    For annual and runperiod intervals, a dummy line is assigned (for
-    runperiod only date information - cumulative days are known). This
-    is processed later in interval processor module.
+    Process sub-hourly, hourly and daily interval line.
 
     Parameters
     ----------
@@ -155,19 +146,17 @@ def _process_interval_line(line_id, data):
     data : list of str
         Line line passed as a list of strings (without ID).
 
+    Note
+    ----
+    Data by given interval:
+        timestep, hourly : [Day of Simulation, Month, Day of Month,
+                        DST Indicator, Hour, StartMinute, EndMinute, DayType]
+        daily : [Cumulative Day of Simulation, Month, Day of Month,DST Indicator, DayType]
+
     Returns
     -------
-    For timestep, hourly and daily results only interval
-    identifier tuple of int to specify date and time information
+        Interval identifier and numeric date time information and day of week..
 
-    tuple of (str, tuple of (n*int))
-        Interval identifier and numeric date time information.
-
-    For monthly, annual and runperiod cumulative days
-    of simulation info is included in the lowest level tuple.
-
-    tuple of (str, tuple of (int, tuple of (int,int))
-        Interval identifier, cumulative num of days and date information.
     """
 
     def hourly_interval():
@@ -178,15 +167,49 @@ def _process_interval_line(line_id, data):
 
         # check if interval is timestep or hourly interval
         if i[5] == 0 and i[6] == 60:
-            return H, interval, data[-1]
+            return H, interval, data[-1].strip()
         else:
-            return TS, interval, data[-1]
+            return TS, interval, data[-1].strip()
 
     def daily_interval():
         """ Populate D list and return identifier. """
         # omit day of week in in conversion
         i = [int(item) for item in data[:-1]]
-        return D, IntervalTuple(i[1], i[2], 0, 0), data[-1]
+        return D, IntervalTuple(i[1], i[2], 0, 0), data[-1].strip()
+
+    categories = {
+        2: hourly_interval,
+        3: daily_interval,
+    }
+
+    return categories[line_id]()
+
+
+def process_monthly_plus_interval_lines(
+    line_id: int, data: List[str]
+) -> Tuple[str, IntervalTuple, Optional[int]]:
+    """
+    Process sub-hourly, hourly and daily interval line.
+
+    Parameters
+    ----------
+    line_id : int
+        An id of the interval.
+    data : list of str
+        Line line passed as a list of strings (without ID).
+
+    Note
+    ----
+    Data by given interval:
+        monthly : [Cumulative Day of Simulation, Month]
+        annual : [Year] (only when custom weather file is used) otherwise [int]
+        runperiod :  [Cumulative Day of Simulation]
+
+    Returns
+    -------
+        Interval identifier and numeric date time information and day of week..
+
+    """
 
     def monthly_interval():
         """ Populate M list and return identifier. """
@@ -202,8 +225,6 @@ def _process_interval_line(line_id, data):
 
     # switcher to return line for a specific interval
     categories = {
-        2: hourly_interval,
-        3: daily_interval,
         4: monthly_interval,
         5: runperiod_interval,
         6: annual_interval,
@@ -215,7 +236,20 @@ def _process_interval_line(line_id, data):
 @cython.boundscheck(False)
 @cython.wraparound(True)
 @cython.binding(True)
-def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
+def read_body(
+    eso_file: TextIO,
+    highest_interval_id: int,
+    header: Dict[str, Dict[int, Variable]],
+    ignore_peaks: bool,
+    monitor: EsoFileMonitor
+) -> Tuple[
+    List[str],
+    List[Dict[str, dict]],
+    List[Optional[Dict[str, dict]]],
+    List[Dict[str, list]],
+    List[Dict[str, list]],
+    List[Dict[str, list]]
+]:
     """
     Read body of the eso file.
 
@@ -233,12 +267,12 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
         Opened EnergyPlus result file.
     highest_interval_id : int
         A maximum index defining an interval (higher is considered a result)
-    header_dct : dict of {str: dict of {int : []))
+    header : dict of {str: dict of {int : []))
         A dictionary of expected eso file results with initialized blank lists.
         This is generated by 'read_header' function.
     ignore_peaks : bool, default: True
         Ignore peak values from 'Daily'+ intervals.
-    monitor : DefaultMonitor, CustomMonitor
+    monitor : EsoFileMonitor, CustomMonitor
         A custom class to monitor processing progress
 
     Returns
@@ -268,15 +302,15 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
     cdef dict days_of_week = {}
     # //@formatter:on
 
-    chunk = monitor.chunk_size
+    chunk_size = monitor.chunk_size
     counter = monitor.counter
 
     while True:
         raw_line = next(eso_file)
 
         counter += 1
-        if counter == chunk:
-            monitor.update_progress()
+        if counter == chunk_size:
+            monitor.increment_progress()
             counter = 0
 
         try:
@@ -287,11 +321,12 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
             if "End of Data" in raw_line:
                 break
             elif raw_line == "":
-                monitor.processing_failed(f"Empty line!.")
+                msg = "Empty line!"
+                monitor.log_task_failed(msg)
                 raise BlankLineError
             else:
                 msg = f"Unexpected line syntax: '{raw_line}'!"
-                monitor.processing_failed(msg)
+                monitor.log_task_failed(msg)
                 raise InvalidLineSyntax(msg)
 
         if line_id <= highest_interval_id:
@@ -304,7 +339,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
                 days_of_week = {}
 
                 # initialize bins for the current environment
-                for interval, dct in header_dct.items():
+                for interval, dct in header.items():
                     if interval in (M, A, RP):
                         cumulative_days[interval] = []
                     else:
@@ -332,10 +367,15 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
 
             else:
                 try:
-                    interval, date, other = _process_interval_line(line_id, line)
+                    if line_id > 3:
+                        interval, date, n_days = process_monthly_plus_interval_lines(line_id, line)
+                        cumulative_days[interval].append(n_days)
+                    else:
+                        interval, date, day = process_sub_monthly_interval_lines(line_id, line)
+                        days_of_week[interval].append(day)
                 except ValueError:
                     msg = f"Unexpected value in line '{raw_line}'."
-                    monitor.processing_failed(msg)
+                    monitor.log_task_failed(msg)
                     raise InvalidLineSyntax(msg)
 
                 # Populate last environment list with interval line
@@ -350,12 +390,6 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
                 if line_id >= 3 and not ignore_peaks:
                     for v in peak_outputs[interval].values():
                         v.append(np.nan)
-
-                if line_id <= 3:
-                    days_of_week[interval].append(other.strip())
-                else:
-                    cumulative_days[interval].append(other)
-
         else:
             # current line represents a result, replace nan values from the last step
             peak_res = None
@@ -367,7 +401,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
                     peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
             except ValueError:
                 msg = f"Unexpected value in line '{raw_line}'."
-                monitor.processing_failed(msg)
+                monitor.log_task_failed(msg)
                 raise InvalidLineSyntax(msg)
 
             outputs[interval][line_id][-1] = res
@@ -384,7 +418,7 @@ def read_body(eso_file, highest_interval_id, header_dct, ignore_peaks, monitor):
     )
 
 
-def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.DataFrame:
+def create_values_df(outputs_dct: Dict[int, List[float]], index_name: str) -> pd.DataFrame:
     """ Create a raw values pd.DataFrame for given interval. """
     df = pd.DataFrame(outputs_dct)
     df = df.T
@@ -393,18 +427,24 @@ def create_values_df(outputs_dct: Dict[int, Variable], index_name: str) -> pd.Da
 
 
 def create_header_df(
-        header_dct: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
+    header: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
 ) -> pd.DataFrame:
     """ Create a raw header pd.DataFrame for given interval. """
     rows, index = [], []
-    for id_, var in header_dct.items():
+    for id_, var in header.items():
         rows.append([interval, var.key, var.type, var.units])
         index.append(id_)
 
     return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
 
 
-def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
+def generate_peak_outputs(
+    raw_peak_outputs: Dict[str, Dict[int, List[float]]],
+    header: Dict[str, Dict[int, Variable]],
+    dates: Dict[str,],
+    monitor: EsoFileMonitor,
+    step: float
+) -> Dict[str, DFTables]:
     """ Transform processed peak output data into DataFrame like classes. """
     min_peaks = DFTables()
     max_peaks = DFTables()
@@ -424,7 +464,7 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
         max_df = create_peak_outputs(interval, df)
         max_peaks[interval] = max_df
 
-        monitor.update_progress(i=step)
+        monitor.increment_progress(i=step)
 
     # Peak outputs are stored in dictionary to distinguish min and max
     peak_outputs = {"local_min": min_peaks, "local_max": max_peaks}
@@ -432,7 +472,14 @@ def generate_peak_outputs(raw_peak_outputs, header, dates, monitor, step):
     return peak_outputs
 
 
-def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
+def generate_outputs(
+    raw_outputs: Dict[str, Dict[int, List[float]]],
+    header: Dict[str, Dict[int, Variable]],
+    dates: Dict[str,],
+    other_data: Dict[str, Dict[str, list]],
+    monitor: EsoFileMonitor,
+    step: float
+) -> DFTables:
     """ Transform processed output data into DataFrame like classes. """
     tables = DFTables()
     for interval, values in raw_outputs.items():
@@ -448,7 +495,7 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
         # store the data in  DFTables class
         tables[interval] = df
 
-        monitor.update_progress(i=step)
+        monitor.increment_progress(i=step)
 
     # add other special columns, structure is {KEY: {INTERVAL: ARRAY}}
     for key, dict in other_data.items():
@@ -458,21 +505,27 @@ def generate_outputs(raw_outputs, header, dates, other_data, monitor, step):
     return tables
 
 
-def remove_duplicates(dup_ids, header_dct, outputs_dct):
+def remove_duplicates(
+    duplicate_ids: Dict[int, Variable],
+    header: Dict[str, Dict[int, Variable]],
+    outputs: Dict[str, Dict[int, List[float]]]
+) -> None:
     """ Remove duplicate outputs from results set. """
-    for id_, v in dup_ids.items():
+    for id_, v in duplicate_ids.items():
         logging.info(
             f"Duplicate variable found, removing variable id: '{id_}' - "
             f"{v.table} | {v.key} | {v.type} | {v.units}."
         )
-        for dct in [header_dct, outputs_dct]:
+        for dct in [header, outputs]:
             try:
                 del dct[v.table][id_]
             except KeyError:
                 pass
 
 
-def process_file(file, monitor, year, ignore_peaks=True):
+def process_file(
+    file: TextIO, monitor: EsoFileMonitor, year: int, ignore_peaks: bool = True
+) -> Tuple[List[str], List[DFTables], List[Optional[Dict[str, DFTables]]], List[Tree]]:
     """ Process raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -482,7 +535,7 @@ def process_file(file, monitor, year, ignore_peaks=True):
     # //@formatter:on
 
     # process first few standard lines, ignore timestamp
-    version, timestamp = _process_statement(next(file))
+    version, timestamp = process_statement_line(next(file))
     monitor.counter += 1
     last_standard_item_id = 6 if version >= 890 else 5
 
@@ -493,11 +546,12 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    monitor.header_started()
+    monitor.log_section_started("processing data dictionary!")
     orig_header = read_header(file, monitor)
 
     # Read body to obtain outputs and environment dictionaries
-    monitor.values_started()
+    monitor.log_section_started("processing data!")
+    monitor.reset_progress(maximum=50)
     content = read_body(file, last_standard_item_id, orig_header, ignore_peaks, monitor)
 
     # Get a fraction for each table and tree generated
@@ -508,51 +562,47 @@ def process_file(file, monitor, year, ignore_peaks=True):
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
         # Generate datetime data
-        monitor.tables_started()
-        dates, n_days = interval_processor(dates, cumulative_days, year)
+        monitor.log_section_started("processing dates!")
+        dates, n_days = process_raw_date_data(dates, cumulative_days, year)
 
         # Create a 'search tree' to allow searching for variables
-        monitor.search_tree_started()
+        monitor.log_section_started("generating search tree!")
         header = deepcopy(orig_header)
 
         tree = Tree()
         dup_ids = tree.populate_tree(header)
         trees.append(tree)
-        monitor.update_progress(step)
+        monitor.increment_progress(step)
 
         if dup_ids:
             # remove duplicates from header and outputs
             remove_duplicates(dup_ids, header, out)
 
-        monitor.peak_outputs_started(ignore_peaks)
         if not ignore_peaks:
+            monitor.log_section_started("generating peak tables!")
             peak_outputs = generate_peak_outputs(peak, header, dates, monitor, step)
         else:
             peak_outputs = None
         all_peak_outputs.append(peak_outputs)
 
         # transform standard dictionaries into DataFrame like Output classes
-        monitor.outputs_started()
+        monitor.log_section_started("generating tables!")
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
         outputs = generate_outputs(out, header, dates, other_data, monitor, step)
         all_outputs.append(outputs)
 
     # update progress to compensate for reminder
     if monitor.progress != monitor.max_progress:
-        monitor.update_progress()
-
-    monitor.processing_finished()
+        monitor.increment_progress()
+    monitor.log_section_started("creating class instance!")
 
     return environments, all_outputs, all_peak_outputs, trees
 
 
-def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
-    """ Open the eso file and trigger file processing. """
-    if monitor is None:
-        monitor = DefaultMonitor(file_path)
-    monitor.processing_started()
-
-    # count number of lines to report progress
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.binding(True)
+def count_lines(file_path: Union[str, Path]):
     # //@formatter:off
     cdef int i
     # //@formatter:on
@@ -560,13 +610,24 @@ def read_file(file_path, monitor=None, ignore_peaks=True, year=2002):
         i = 0
         for _ in f:
             i += 1
-    monitor.set_chunk_size(n_lines=i + 1)
+    i += 1
+    return i
 
+
+def read_file(
+    file_path: Union[str, Path],
+    monitor: EsoFileMonitor,
+    ignore_peaks: bool = True,
+    year: int = 2002
+) -> Tuple[List[str], List[DFTables], List[Optional[Dict[str, DFTables]]], List[Tree]]:
+    """ Open the eso file and trigger file processing. """
+    monitor.log_section_started("pre-processing!")
+    n_lines = count_lines(file_path)
+    monitor.initialize_attributes(n_lines=n_lines)
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
-
     except StopIteration:
         msg = f"File is not complete!"
-        monitor.processing_failed(msg)
+        monitor.log_task_failed(msg)
         raise IncompleteFile(msg)

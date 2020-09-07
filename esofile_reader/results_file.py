@@ -8,7 +8,7 @@ from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -64,7 +64,7 @@ class ResultsFile(BaseFile):
         file_path: Union[str, Path],
         sheet_names: List[str] = None,
         force_index: bool = False,
-        monitor: DefaultMonitor = None,
+        monitor: EsoFileMonitor = None,
         header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFileType' from excel spreadsheet. """
@@ -72,8 +72,8 @@ class ResultsFile(BaseFile):
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
         if not monitor:
-            monitor = DefaultMonitor(file_path)
-        monitor.processing_started()
+            monitor = EsoFileMonitor(file_path)
+        monitor.log_task_started()
         tables, search_tree = process_excel(
             file_path,
             monitor,
@@ -84,12 +84,12 @@ class ResultsFile(BaseFile):
         results_file = ResultsFile(
             file_path, file_name, file_created, tables, search_tree, file_type="excel"
         )
-        monitor.processing_finished()
+        monitor.log_task_finished()
         return results_file
 
     @classmethod
     def from_eso_file(
-        cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
+        cls, file_path: str, monitor: EsoFileMonitor = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle

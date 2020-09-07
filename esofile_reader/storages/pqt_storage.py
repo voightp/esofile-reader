@@ -6,14 +6,14 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from zipfile import ZipFile
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.logger import logger
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import StorageMonitor, GenericMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.tables.df_tables import DFTables
@@ -71,7 +71,7 @@ class ParquetFile(BaseFile):
         pardir: str = "",
         search_tree: Tree = None,
         name: str = None,
-        monitor: DefaultMonitor = None,
+        monitor: GenericMonitor = None,
     ):
         self.id_ = id_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
@@ -105,7 +105,7 @@ class ParquetFile(BaseFile):
         results_file: ResultsFileType,
         pardir: str = "",
         name: str = None,
-        monitor: DefaultMonitor = None,
+        monitor: GenericMonitor = None,
     ):
         pqs = ParquetFile(
             id_=id_,
@@ -246,17 +246,19 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFileType, monitor: DefaultMonitor = None) -> int:
+    def store_file(self, results_file: ResultsFileType, monitor: GenericMonitor = None) -> int:
         """ Store results file as 'ParquetFile'. """
-        if monitor:
-            # number of steps is equal to number of parquet files
-            n_steps = 0
-            for tbl in results_file.tables.values():
-                n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
-                n_steps += n
+        if not monitor:
+            monitor = StorageMonitor(results_file.file_path)
+        monitor.log_task_started()
+        # number of steps is equal to number of parquet files
+        n_steps = 0
+        for tbl in results_file.tables.values():
+            n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
+            n_steps += n
 
-            monitor.reset_progress(new_max=n_steps)
-            monitor.storing_started()
+        monitor.log_section_started("writing parquets!")
+        monitor.reset_progress(n_steps)
 
         id_gen = incremental_id_gen(checklist=list(self.files.keys()))
         id_ = next(id_gen)
@@ -264,10 +266,7 @@ class ParquetStorage(DFStorage):
             id_=id_, results_file=results_file, pardir=self.workdir, name="", monitor=monitor
         )
         self.files[id_] = file
-
-        if monitor:
-            monitor.storing_finished()
-
+        monitor.log_task_finished()
         return id_
 
     def delete_file(self, id_: int) -> None:
@@ -275,7 +274,10 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
         del self.files[id_]
 
-    def save_as(self, dir_, name):
+    def get_all_parquets(self):
+        """ Get all paths"""
+
+    def save_as(self, dir_: Path, name: str):
         """ Save parquet storage into given location. """
         self.path = Path(dir_, f"{name}{self.EXT}")
 
@@ -297,30 +299,30 @@ class ParquetStorage(DFStorage):
         name = self.path.with_suffix("").name
         self.save_as(dir_, name)
 
-    def merge_with(self, storage_path: Union[str, List[str]]) -> None:
+    def update_merged_file_attributes(self, file: ParquetFile, new_id: int):
+        """ Update merged storage attributes to avoid id conflict. """
+        new_name = f"file-{new_id}"
+        new_workdir = Path(self.workdir, new_name)
+
+        # clone all the parquet data
+        shutil.copytree(file.workdir, new_workdir)
+
+        # update parquet frame root
+        for table in file.tables.values():
+            table_name = table.name
+            table.workdir = Path(new_workdir, table_name)
+
+        # assign updated attributes
+        file.workdir = new_workdir
+        file.id_ = new_id
+
+    def merge_with(self, storage_path: Union[str, Path]) -> None:
         """ Merge this storage with arbitrary number of other ones. """
-        paths = storage_path if isinstance(storage_path, list) else [storage_path]
         id_gen = incremental_id_gen(start=0, checklist=list(self.files.keys()))
-        for path in paths:
-            pqs = ParquetStorage.load_storage(path)
-            for id_, file in pqs.files.items():
-                # create new identifiers in case that id already exists
-                new_id = next(id_gen) if id_ in self.files.keys() else id_
-                new_name = f"file-{new_id}"
-                new_workdir = Path(self.workdir, new_name)
-
-                # clone all the parquet data
-                shutil.copytree(file.workdir, new_workdir)
-
-                # update parquet frame root
-                for table in file.tables.values():
-                    table_name = table.name
-                    table.workdir = Path(new_workdir, table_name)
-
-                # assign updated attributes
-                file.workdir = new_workdir
-                file.id_ = new_id
-
-                self.files[new_id] = file
-
-            del pqs
+        pqs = ParquetStorage.load_storage(storage_path)
+        for id_, file in pqs.files.items():
+            # create new identifiers in case that id already exists
+            new_id = next(id_gen) if id_ in self.files.keys() else id_
+            self.update_merged_file_attributes(file, new_id)
+            self.files[new_id] = file
+        del pqs
