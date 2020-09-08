@@ -106,6 +106,10 @@ class DFTables(BaseTables):
     def items(self):
         return self._tables.items()
 
+    def extend(self, tables: Dict[str, pd.DataFrame]):
+        for k, v in tables.items():
+            self[k] = v
+
     def is_simple(self, table: str) -> bool:
         return len(self.get_levels(table)) == 4
 

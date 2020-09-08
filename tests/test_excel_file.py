@@ -14,6 +14,7 @@ from tests import ROOT
 
 RESULTS_PATH = Path(ROOT).joinpath("./eso_files/test_excel_results.xlsx")
 EDGE_CASE_PATH = Path(ROOT).joinpath("./eso_files/test_excel_edge_cases.xlsx")
+CSV_PATH = Path(ROOT).joinpath("./eso_files/test_excel_results.csv")
 
 
 class TestExcelFile(unittest.TestCase):
@@ -287,3 +288,8 @@ class TestExcelFile(unittest.TestCase):
     def test_blank_sheet(self):
         with self.assertRaises(NoResults):
             ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-sheet"])
+
+    def test_csv_file(self):
+        rf = ResultsFile.from_csv(CSV_PATH)
+        self.assertListEqual(rf.table_names, ["monthly"])
+        self.assertTupleEqual(rf.tables["monthly"].shape, (12, 8))

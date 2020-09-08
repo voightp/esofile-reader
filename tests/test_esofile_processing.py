@@ -22,7 +22,7 @@ from esofile_reader.processing.esofile import (
     read_file,
     generate_outputs,
     generate_peak_outputs,
-    remove_duplicates
+    remove_duplicates,
 )
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.monitor import EsoFileMonitor
