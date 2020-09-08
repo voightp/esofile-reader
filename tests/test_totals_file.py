@@ -80,6 +80,9 @@ class TestTotalsFile(TestCase):
     def test_file_path(self):
         self.assertEqual(self.tf.file_path, "dummy/path")
 
+    def test_file_type(self):
+        self.assertEqual("totals", self.tf.file_type)
+
     def test_search_tree(self):
         ids = self.tf.find_id(
             [

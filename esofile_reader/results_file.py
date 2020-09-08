@@ -53,6 +53,12 @@ class ResultsFile(BaseFile):
 
 
     """
+    ESO = "eso"
+    TOTALS = "totals"
+    DIFF = "diff"
+    XLSX = "xlsx"
+    CSV = "csv"
+    NA = "na"
 
     def __init__(
         self,
@@ -87,7 +93,7 @@ class ResultsFile(BaseFile):
             header_limit=header_limit,
         )
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type="excel"
+            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.XLSX
         )
         monitor.log_task_finished()
         return results_file
@@ -109,7 +115,7 @@ class ResultsFile(BaseFile):
             file_path, monitor, force_index=force_index, header_limit=header_limit,
         )
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type="csv"
+            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.CSV
         )
         monitor.log_task_finished()
         return results_file
@@ -136,7 +142,7 @@ class ResultsFile(BaseFile):
             tree = Tree()
             tree.populate_tree(tables.get_all_variables_dct())
             results_file = ResultsFile(
-                file_path, file_name, file_created, tables, tree, file_type="totals"
+                file_path, file_name, file_created, tables, tree, file_type=ResultsFile.TOTALS
             )
             return results_file
 
@@ -153,6 +159,6 @@ class ResultsFile(BaseFile):
             tree = Tree()
             tree.populate_tree(tables.get_all_variables_dct())
             results_file = ResultsFile(
-                file_path, file_name, file_created, tables, tree, file_type="diff"
+                file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
             )
             return results_file

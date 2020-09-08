@@ -293,3 +293,7 @@ class TestExcelFile(unittest.TestCase):
         rf = ResultsFile.from_csv(CSV_PATH)
         self.assertListEqual(rf.table_names, ["monthly"])
         self.assertTupleEqual(rf.tables["monthly"].shape, (12, 8))
+
+    def test_excel_file(self):
+        ef = ResultsFile.from_excel(RESULTS_PATH, sheet_names=["full-template-monthly"])
+        self.assertEqual(ef.tables["monthly"].shape, (12, 8))
