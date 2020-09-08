@@ -53,6 +53,7 @@ class ResultsFile(BaseFile):
 
 
     """
+
     ESO = "eso"
     TOTALS = "totals"
     DIFF = "diff"
