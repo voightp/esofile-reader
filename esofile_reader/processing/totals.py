@@ -1,12 +1,12 @@
 import re
-from typing import Dict, Generator, List
+from typing import Dict, Generator, Optional
 
 import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.logger import logger
-from esofile_reader.mini_classes import Variable, ResultsFileType
+from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.tables.df_tables import DFTables
 
 VARIABLE_GROUPS = {
@@ -64,11 +64,6 @@ SUBGROUPS = {
     "_CEILING_": "Ceilings",
 }
 
-IGNORED_VARIABLES = {
-    "Performance Curve Input Variable",
-    "Performance Curve Output Value",
-}
-
 
 def _get_group_key(string: str, groups: set) -> str:
     """ """
@@ -85,62 +80,55 @@ def _get_keyword(string: str, keywords: Dict[str, str]) -> str:
         return next(v for k, v in keywords.items() if k in string)
 
 
-def _calculate_totals(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_totals(df: pd.DataFrame) -> pd.DataFrame:
     """ Handle totals generation."""
-    cnd = df.index.get_level_values(UNITS_LEVEL).isin(AVERAGED_UNITS)
-    mi_df = df.index.to_frame(index=False)
+    averaged_arr = df.columns.get_level_values(UNITS_LEVEL).isin(AVERAGED_UNITS)
+    mi_df = df.columns.to_frame(index=False)
     mi_df.drop_duplicates(inplace=True)
 
     # split df into averages and sums
-    avg_df = df.loc[cnd]
-    sum_df = df.loc[~cnd]
+    avg_df = df.loc[:, averaged_arr]
+    sum_df = df.loc[:, ~averaged_arr]
 
     # group variables and apply functions
-    avg_df = avg_df.groupby(by=GROUP_ID_LEVEL, sort=False).mean()
-    sum_df = sum_df.groupby(by=GROUP_ID_LEVEL, sort=False).sum()
+    avg_df = avg_df.groupby(axis=1, level=df.columns.names, sort=False).mean()
+    sum_df = sum_df.groupby(axis=1, level=df.columns.names, sort=False).sum()
 
-    # index gets lost in 'groupby'
-    df = pd.concat([avg_df, sum_df])
-    df.reset_index(inplace=True, drop=False)
-    df = pd.merge(mi_df, df, on=GROUP_ID_LEVEL)
-    df.set_index([GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]], inplace=True)
+    # # index gets lost in 'groupby'
+    df = pd.concat([avg_df, sum_df], axis=1)
+    df.sort_values(by=ID_LEVEL, axis=1, inplace=True)
 
-    df.index.set_names(ID_LEVEL, level=GROUP_ID_LEVEL, inplace=True)
-
-    return df.T
+    return df
 
 
-def _get_grouped_vars(
-    id_gen: Generator[int, None, None], variables: Dict[int, List[Variable]]
-) -> pd.DataFrame:
-    """ Group header variables. """
+def create_grouped_multiindex(
+    id_gen: Generator[int, None, None], columns: pd.MultiIndex
+) -> pd.MultiIndex:
+    """ Create new multiindex with grouped ids. """
     groups = {}
-    rows, index = [], []
-    for id_, var in variables.items():
-        table, key, type, units = var
+    muiltiindex_items = []
+    for id_, table, key, type_, units in columns:
 
         # variable can be grouped only if it's included as avg or sum
-        group = units in SUMMED_UNITS or units in AVERAGED_UNITS
-
-        # init group string to be the same as variable
-        gr_str = type
-        w = _get_keyword(key, SUBGROUPS)
-
+        group = (units in SUMMED_UNITS or units in AVERAGED_UNITS) and key != SPECIAL
         if group:
+            # initialize group string to be the same as type
+            gr_str = type_
+            w = _get_keyword(key, SUBGROUPS)
             if key == "Cumulative Meter" or key == "Meter":
-                if "#" in type:
+                if "#" in type_:
                     # use last substring as a key
-                    gr_str = type.split("#")[-1]
-                    type = gr_str
+                    gr_str = type_.split("#")[-1]
+                    type_ = gr_str
             elif w:
                 gr_str = w + " " + gr_str
                 key = w  # assign a new key based on subgroup keyword
             else:
                 # assign key based on 'Variable' category
                 # the category is missing, use a first word in 'Variable' string
-                key = _get_group_key(type, VARIABLE_GROUPS)
+                key = _get_group_key(type_, VARIABLE_GROUPS)
                 if not key:
-                    key = type.split(maxsplit=1)[0]
+                    key = type_.split(sep=" ", maxsplit=1)[0]
 
             if gr_str in groups:
                 # variable group already exist, get id of the existing group
@@ -154,78 +142,47 @@ def _get_grouped_vars(
             # units cannot be grouped, create an independent variable
             group_id = next(id_gen)
 
-        index.append(id_)
-        rows.append((group_id, table, key, type, units))
+        muiltiindex_items.append((group_id, table, key, type_, units))
 
-    cols = [GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]]
+    return pd.MultiIndex.from_tuples(muiltiindex_items, names=COLUMN_LEVELS)
 
-    return pd.DataFrame(rows, columns=cols, index=index)
+
+def filter_invalid_variables(df: pd.DataFrame):
+    srs = []
+    types = df.columns.get_level_values(TYPE_LEVEL)
+
+    # ignored type may be a substring to catch types such as
+    # 'Performance Curve Input Variable 1', 'Performance Curve Input Variable 2'
+    for ignored_type in IGNORED_TYPES:
+        srs.append(types.str.contains(ignored_type))
+
+    cond1 = ~pd.DataFrame(srs).apply(lambda x: x.any()).to_numpy()
+    cond2 = ~df.columns.get_level_values(UNITS_LEVEL).isin(IGNORED_UNITS)
+
+    return df.loc[:, cond1 & cond2]
+
+
+def process_totals_table(
+    numeric_table: pd.DataFrame, id_gen: Generator[int, None, None]
+) -> Optional[pd.DataFrame]:
+    table = filter_invalid_variables(numeric_table)
+    if not table.empty:
+        table.columns = create_grouped_multiindex(id_gen, table.columns)
+        totals_table = calculate_totals(table)
+        return totals_table
 
 
 def process_totals(file: ResultsFileType) -> DFTables:
     """ Generate 'totals' outputs. """
-
-    def ignored_ids(df):
-        srs = []
-        sr = df.columns.get_level_values(TYPE_LEVEL)
-
-        for w in IGNORED_VARIABLES:
-            srs.append(sr.str.contains(w))
-
-        cond1 = pd.DataFrame(srs).apply(lambda x: x.any()).tolist()
-        cond2 = df.columns.get_level_values(UNITS_LEVEL).isin(IGNORED_UNITS)
-
-        return df.loc[:, cond1 | cond2].columns.get_level_values(ID_LEVEL)
-
     tables = DFTables()
     id_gen = incremental_id_gen(start=1)
-
-    for table in file.table_names:
-        if file.tables.is_simple(table):
+    for table_name in file.table_names:
+        if not file.tables.is_simple(table_name):
             # simple table cannot generate totals
-            continue
+            special_table = file.tables.get_special_table(table_name)
+            numeric_table = file.tables.get_numeric_table(table_name)
+            totals_table = process_totals_table(numeric_table, id_gen)
+            if totals_table is not None:
+                tables[table_name] = pd.concat([special_table, totals_table], axis=1)
 
-        out = file.tables.get_numeric_table(table)
-
-        # find invalid ids
-        ids = ignored_ids(out)
-
-        # filter variables based on ignored units and variables
-        out = out.loc[:, ~out.columns.get_level_values(ID_LEVEL).isin(ids)]
-
-        if out.empty:
-            # ignore empty tables
-            continue
-
-        # leave only 'id' column as header data will be added
-        out.columns = out.columns.droplevel(COLUMN_LEVELS[1:])
-
-        # get header variables and filter them
-        variable_dct = file.tables.get_variables_dct(table)
-        variable_dct = {k: v for k, v in variable_dct.items() if k not in ids}
-
-        header_df = _get_grouped_vars(id_gen, variable_dct)
-
-        # join header data and numeric outputs
-        df = pd.merge(
-            how="inner", left=header_df, right=out.T, left_index=True, right_index=True,
-        )
-
-        # create new totals DataFrame
-        df.reset_index(drop=True, inplace=True)
-        df.set_index([GROUP_ID_LEVEL, *COLUMN_LEVELS[1:]], inplace=True)
-        df = _calculate_totals(df)
-
-        # restore index
-        df.index = out.index
-        tables[table] = df
-
-        for c in [N_DAYS_COLUMN, DAY_COLUMN]:
-            try:
-                c1 = file.tables.get_special_column(table, c)
-                c2 = file.tables.get_special_column(table, c)
-                if c1.equals(c2):
-                    tables.insert_special_column(table, c, c1)
-            except KeyError:
-                pass
     return tables

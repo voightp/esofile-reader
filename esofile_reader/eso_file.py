@@ -15,7 +15,7 @@ except ImportError:
 import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.base_file import BaseFile
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable
 
@@ -69,11 +69,15 @@ class ResultsEsoFile(BaseFile):
     def from_multi_env_eso_file(
         cls,
         file_path: str,
-        monitor: DefaultMonitor = None,
+        monitor: EsoFileMonitor = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
+        if monitor is None:
+            monitor = EsoFileMonitor(file_path)
+        monitor.log_task_started()
+
         eso_files = []
         file_path = Path(file_path)
         file_name = file_path.stem
@@ -89,6 +93,7 @@ class ResultsEsoFile(BaseFile):
                 file_path, name, file_created, data, tree, peak_outputs=peak_outputs
             )
             eso_files.append(ef)
+        monitor.log_task_finished()
         return eso_files
 
     def _get_peak_results(
@@ -213,7 +218,7 @@ class EsoFile(ResultsEsoFile):
     ----------
     file_path : str, or Path
         A full path of the result file.
-    monitor : DefaultMonitor
+    monitor : EsoFileMonitor
         A watcher to report processing progress.
     ignore_peaks : bool
         Allow skipping .eso file peak data.
@@ -232,10 +237,13 @@ class EsoFile(ResultsEsoFile):
     def __init__(
         self,
         file_path: Union[str, Path],
-        monitor: DefaultMonitor = None,
+        monitor: EsoFileMonitor = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ):
+        if monitor is None:
+            monitor = EsoFileMonitor(file_path)
+        monitor.log_task_started()
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
@@ -248,6 +256,7 @@ class EsoFile(ResultsEsoFile):
             super().__init__(
                 file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
             )
+            monitor.log_task_finished()
         else:
             raise MultiEnvFileRequired(
                 f"Cannot populate file {file_path}. "

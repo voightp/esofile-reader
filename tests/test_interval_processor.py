@@ -3,7 +3,10 @@ from datetime import datetime
 
 from esofile_reader.mini_classes import IntervalTuple
 from esofile_reader.processing.esofile_intervals import *
-from esofile_reader.processing.esofile_intervals import _to_timestamp, _gen_dt
+from esofile_reader.processing.esofile_intervals import (
+    convert_to_timestamp,
+    generate_timestamp_dates,
+)
 
 
 class TestIntervalProcessing(unittest.TestCase):
@@ -129,45 +132,45 @@ class TestIntervalProcessing(unittest.TestCase):
 
     def test_incr_year_env_monthly(self):
         self.assertTrue(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(1, 1, 0, 0), IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0)
             )
         )
         self.assertTrue(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(2, 1, 0, 0), IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0)
             )
         )
         self.assertFalse(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0), IntervalTuple(3, 1, 0, 0)
             )
         )
 
     def test_incr_year_env_daily(self):
         self.assertTrue(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(1, 1, 1, 0),
                 IntervalTuple(12, 31, 24, 60),
                 IntervalTuple(1, 1, 1, 0),
             )
         )
         self.assertTrue(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 2, 0)
             )
         )
         self.assertFalse(
-            incr_year_env(
+            check_year_increment(
                 IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 2, 0), IntervalTuple(1, 1, 3, 0)
             )
         )
 
     def test__to_timestamp(self):
-        ts = _to_timestamp(2002, IntervalTuple(1, 1, 0, 0))
+        ts = convert_to_timestamp(2002, IntervalTuple(1, 1, 0, 0))
         self.assertEqual(ts, datetime(2002, 1, 1, 0, 0))
 
-        ts = _to_timestamp(2002, IntervalTuple(1, 1, 1, 30))
+        ts = convert_to_timestamp(2002, IntervalTuple(1, 1, 1, 30))
         self.assertEqual(ts, datetime(2002, 1, 1, 0, 30))
 
     def test__gen_dt(self):
@@ -176,7 +179,7 @@ class TestIntervalProcessing(unittest.TestCase):
             IntervalTuple(2, 1, 0, 0),
             IntervalTuple(3, 1, 0, 0),
         ]
-        dt_envs = _gen_dt(envs, 2002)
+        dt_envs = generate_timestamp_dates(envs, 2002)
         self.assertEqual(
             dt_envs,
             [
@@ -192,7 +195,7 @@ class TestIntervalProcessing(unittest.TestCase):
             IntervalTuple(12, 31, 24, 60),
             IntervalTuple(1, 1, 1, 60),
         ]
-        dt_envs = _gen_dt(envs, 2002)
+        dt_envs = generate_timestamp_dates(envs, 2002)
         self.assertEqual(
             dt_envs,
             [
@@ -215,7 +218,7 @@ class TestIntervalProcessing(unittest.TestCase):
                 IntervalTuple(3, 1, 0, 0),
             ],
         }
-        dates = convert_to_dt_index(env_dct, 2002)
+        dates = convert_to_timestamp_index(env_dct, 2002)
         self.assertEqual(
             dates,
             {

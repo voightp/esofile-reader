@@ -1,6 +1,6 @@
 import logging
 import os
-
+from pathlib import Path
 from esofile_reader import EsoFile, logger
 
 logger.setLevel(logging.ERROR)

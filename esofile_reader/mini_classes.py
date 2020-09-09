@@ -17,7 +17,7 @@ IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
 ResultsFileType = Union[
     ForwardRef("EsoFile"),  # noqa: F821
     ForwardRef("ResultsFile"),  # noqa: F821
-    ForwardRef("TotalsFile"),  # noqa: F821
+    ForwardRef("ParquetFile"),  # noqa: F821
     ForwardRef("DatabaseFile"),  # noqa: F821
 ]
 

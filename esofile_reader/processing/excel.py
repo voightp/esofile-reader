@@ -1,17 +1,18 @@
+import csv
 import io
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.logger import logger
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -215,45 +216,29 @@ def build_df_table(
     return df, end_id
 
 
-def process_excel(
-    file_path: Union[str, Path],
-    monitor: DefaultMonitor,
-    sheet_names: List[str] = None,
-    force_index: bool = False,
-    header_limit: int = 10,
-):
-    """ Create results file data based on given excel workbook."""
-    with open(file_path, "rb") as f:
-        in_memory_file = io.BytesIO(f.read())
-    wb = load_workbook(filename=in_memory_file, read_only=True)
-    if not sheet_names:
-        sheet_names = wb.sheetnames
-
-    # each table represents a single step + add one for tree generation
-    n_steps = len(sheet_names) + 1
-    monitor.reset_progress(0, new_max=n_steps)
-
-    start_id = 1
-    df_tables = DFTables()
-    for name in sheet_names:
-        ws = wb[name]
-        df = pd.DataFrame(ws.values)
-
-        # ignore empty rows and columns
-        df.dropna(axis=0, how="all", inplace=True)
-        df.dropna(axis=1, how="all", inplace=True)
-
-        if df.empty:
-            continue
-
+def process_sheet(
+    df: pd.DataFrame,
+    name: str,
+    names: List[str],
+    monitor,
+    start_id: int,
+    header_limit: int,
+    force_index: bool,
+) -> Tuple[Dict[str, pd.DataFrame], int]:
+    # ignore empty rows and columns
+    df.dropna(axis=0, how="all", inplace=True)
+    df.dropna(axis=1, how="all", inplace=True)
+    frames = {}
+    end_id = start_id
+    if not df.empty:
         # process header data
-        monitor.header_started()
+        monitor.log_section_started("processing data dictionary!")
         header_mi, skiprows, index_column = parse_header(
             df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
-        monitor.values_started()
+        monitor.log_section_started("processing data!")
         df = df.iloc[skiprows:, :]
         if index_column:
             df.set_index(keys=df.columns[0], inplace=True)
@@ -262,33 +247,117 @@ def process_excel(
 
         df.columns = header_mi
 
-        monitor.tables_started()
+        monitor.log_section_started("processing tables!")
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
-                table_name = get_str_identifier(key, df_tables.keys(), start_i=1)
+                table_name = get_str_identifier(key, names, start_i=1)
                 dfi, end_id = build_df_table(
                     df.loc[:, table_level == key], table_name=table_name, start_id=start_id,
                 )
                 start_id = end_id
                 # ignore empty frames
                 if not dfi.loc[:, dfi.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
-                    df_tables[table_name] = dfi
+                    frames[table_name] = dfi
         else:
-            table_name = get_str_identifier(name, df_tables.keys(), start_i=1)
+            table_name = get_str_identifier(name, names, start_i=1)
             df, end_id = build_df_table(df, table_name=table_name, start_id=start_id)
             if not df.loc[:, df.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
-                df_tables[table_name] = df
-            start_id = end_id
+                frames[table_name] = df
+    return frames, end_id
 
-        # increment progress
-        monitor.update_progress()
+
+def process_workbook(
+    wb: Workbook,
+    monitor: EsoFileMonitor,
+    sheet_names: List[str] = None,
+    force_index: bool = False,
+    header_limit: int = 10,
+) -> Tuple[DFTables, Tree]:
+    if not sheet_names:
+        sheet_names = wb.sheetnames
+
+        # each table represents a single step + add one for tree generation
+    n_steps = len(sheet_names) + 1
+    monitor.log_section_started("processing sheets!")
+    monitor.reset_progress(maximum=n_steps)
+
+    start_id = 1
+    df_tables = DFTables()
+    for name in sheet_names:
+        ws = wb[name]
+        frames, end_id = process_sheet(
+            df=pd.DataFrame(ws.values),
+            name=name,
+            names=list(df_tables.keys()),
+            monitor=monitor,
+            start_id=start_id,
+            header_limit=header_limit,
+            force_index=force_index,
+        )
+        start_id = end_id
+        df_tables.extend(frames)
 
     if len(df_tables.keys()) > 0:
-        monitor.search_tree_started()
+        monitor.log_section_started("generating search tree!")
         tree = Tree()
         tree.populate_tree(df_tables.get_all_variables_dct())
     else:
-        raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
+        raise NoResults(f"There aren't any numeric outputs in file {wb.path}.")
 
     return df_tables, tree
+
+
+def process_excel(
+    file_path: Path,
+    monitor: EsoFileMonitor,
+    sheet_names: List[str] = None,
+    force_index: bool = False,
+    header_limit: int = 10,
+) -> Tuple[DFTables, Tree]:
+    """ Create results file data based on given excel workbook."""
+    with open(file_path, "rb") as f:
+        in_memory_file = io.BytesIO(f.read())
+    wb = load_workbook(filename=in_memory_file, read_only=True)
+    return process_workbook(wb, monitor, sheet_names, force_index, header_limit)
+
+
+def process_csv_table(
+    df: pd.DataFrame,
+    name: str,
+    monitor: EsoFileMonitor,
+    force_index: bool = False,
+    header_limit: int = 10,
+) -> Tuple[DFTables, Tree]:
+    """ Process csv sheet. """
+    monitor.log_section_started("processing csv!")
+
+    df_tables = DFTables()
+    frames, _ = process_sheet(
+        df=df,
+        name=name,
+        names=list(df_tables.keys()),
+        monitor=monitor,
+        start_id=1,
+        header_limit=header_limit,
+        force_index=force_index,
+    )
+    df_tables.extend(frames)
+
+    if len(df_tables.keys()) > 0:
+        monitor.log_section_started("generating search tree!")
+        tree = Tree()
+        tree.populate_tree(df_tables.get_all_variables_dct())
+    else:
+        raise NoResults(f"There aren't any numeric outputs in file {monitor.path}.")
+
+    return df_tables, tree
+
+
+def process_csv(
+    file_path: Path, monitor: EsoFileMonitor, force_index: bool = False, header_limit: int = 10,
+) -> Tuple[DFTables, Tree]:
+    """ Create results file data based on given csv file."""
+    csv_df = pd.read_csv(file_path, sep=None)
+    name = file_path.stem
+    return process_csv_table(csv_df, name, monitor, force_index, header_limit)

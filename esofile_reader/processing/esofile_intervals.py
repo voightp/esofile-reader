@@ -1,10 +1,12 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
 
 
-def update_dt_format(df, timestamp_format):
+def update_dt_format(df: pd.DataFrame, timestamp_format: str) -> pd.DataFrame:
     """ Set specified 'datetime' str format. """
     if TIMESTAMP_COLUMN in df.index.names:
         ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
@@ -22,7 +24,7 @@ def update_dt_format(df, timestamp_format):
     return df
 
 
-def datetime_helper(month, day, hour, end_minute):
+def datetime_helper(month: int, day: int, hour: int, end_minute: int) -> Tuple[int, ...]:
     """
     Convert E+ time format to format acceptable by datetime module.
 
@@ -158,7 +160,7 @@ def month_end_date(date):
     return end_date
 
 
-def incr_year_env(first_step_data, current_step_data, previous_step_data):
+def check_year_increment(first_step_data, current_step_data, previous_step_data):
     """ Check if year value should be incremented inside environment table. """
     # Only 'Monthly+' tables can have hour == 0
     if current_step_data.hour == 0:
@@ -178,7 +180,7 @@ def incr_year_env(first_step_data, current_step_data, previous_step_data):
             return False
 
 
-def _to_timestamp(year, table_tuple):
+def convert_to_timestamp(year, table_tuple):
     """ Convert a raw E+ date to pandas.Timestamp format. """
     if table_tuple.hour == 0:
         # Monthly+ table
@@ -189,28 +191,25 @@ def _to_timestamp(year, table_tuple):
     return pd.Timestamp(year, month, day, hour, end_minute)
 
 
-def _gen_dt(raw_dates, year):
+def generate_timestamp_dates(raw_dates, year: int):
     """ Generate timestamp index for a given period. """
-    dates = [_to_timestamp(year, raw_dates[0])]
+    dates = [convert_to_timestamp(year, raw_dates[0])]
 
     for i in range(1, len(raw_dates)):
         # based on the first, current and previous
         # steps decide if the year should be incremented
-        if incr_year_env(raw_dates[0], raw_dates[i], raw_dates[-1]):
+        if check_year_increment(raw_dates[0], raw_dates[i], raw_dates[-1]):
             year += 1
-
-        date = _to_timestamp(year, raw_dates[i])
+        date = convert_to_timestamp(year, raw_dates[i])
         dates.append(date)
-
     return dates
 
 
-def convert_to_dt_index(raw_dates, year):
+def convert_to_timestamp_index(raw_dates, year):
     """ Replace raw date information with datetime like object. """
     dates = {}
-    for table, value in raw_dates.items():
-        dates[table] = _gen_dt(value, year)
-
+    for interval, value in raw_dates.items():
+        dates[interval] = generate_timestamp_dates(value, year)
     return dates
 
 
@@ -234,7 +233,7 @@ def update_start_dates(dates):
             dates[RP] = _set_start_date(dates[RP], ts_to_m_envs)
 
 
-def interval_processor(dates, cumulative_days, year):
+def process_raw_date_data(dates, cumulative_days, year):
     """
     Process E+ raw date and time line.
 
@@ -251,14 +250,14 @@ def interval_processor(dates, cumulative_days, year):
     """
 
     num_of_days = {}
-    m_to_rp = {k: v for k, v in dates.items() if k in (M, A, RP)}
+    m_to_rp_intervals = {k: v for k, v in dates.items() if k in (M, A, RP)}
 
-    if m_to_rp:
+    if m_to_rp_intervals:
         # Separate number of days data if any M to RP table is available
         num_of_days = get_num_of_days(cumulative_days)
 
     # transform raw int data into datetime like index
-    dates = convert_to_dt_index(dates, year)
+    dates = convert_to_timestamp_index(dates, year)
 
     # update first day of monthly+ table based on TS, H or D data
     update_start_dates(dates)

@@ -60,7 +60,7 @@ class TestTotalsFile(TestCase):
         range_columns = pd.MultiIndex.from_tuples(range_variables, names=names)
         range_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         range_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=range_columns, index=range_index
+            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=range_columns, index=range_index
         )
 
         tables = DFTables()
@@ -79,6 +79,9 @@ class TestTotalsFile(TestCase):
 
     def test_file_path(self):
         self.assertEqual(self.tf.file_path, "dummy/path")
+
+    def test_file_type(self):
+        self.assertEqual("totals", self.tf.file_type)
 
     def test_search_tree(self):
         ids = self.tf.find_id(
@@ -107,13 +110,12 @@ class TestTotalsFile(TestCase):
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
         )
         test_results = pd.DataFrame(
-            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], ],
+            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23],],
             columns=test_columns,
             index=test_index,
-            dtype="float64",
         )
 
-        pd.testing.assert_frame_equal(self.tf.tables["daily"], test_results)
+        pd.testing.assert_frame_equal(self.tf.tables["daily"], test_results, check_dtype=False)
 
     def test_non_grouped_variables(self):
         test_columns = pd.MultiIndex.from_tuples(
@@ -128,7 +130,7 @@ class TestTotalsFile(TestCase):
 
         test_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         test_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=test_columns, index=test_index
+            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=test_columns, index=test_index
         )
 
         pd.testing.assert_frame_equal(self.tf.tables["range"], test_results)

@@ -157,7 +157,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         test_index = pd.MultiIndex.from_product(
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
-        test_df = pd.DataFrame({"dummy": [24.3208488, 25.47972495, ]}, index=test_index, )
+        test_df = pd.DataFrame({"dummy": [24.3208488, 25.47972495,]}, index=test_index,)
         test_df.columns = test_columns
 
         assert_frame_equal(df, test_df)
@@ -183,7 +183,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         test_index = pd.MultiIndex.from_product(
             [["test_excel_results"], dates], names=["file", "timestamp"]
         )
-        test_df = pd.DataFrame({"dummy": [24.3208488, 25.47972495, ]}, index=test_index, )
+        test_df = pd.DataFrame({"dummy": [24.3208488, 25.47972495,]}, index=test_index,)
         test_df.columns = test_columns
 
         assert_frame_equal(df, test_df)
@@ -239,7 +239,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         ]
         df = get_results(file, v, units_system="IP", rate_to_energy=False)
         test_columns = pd.MultiIndex.from_tuples(
-            [("BLOCK3:ZONE1", ""), ("Environment", "W/sqf"), ("BLOCK1:ZONE1", "F"), ],
+            [("BLOCK3:ZONE1", ""), ("Environment", "W/sqf"), ("BLOCK1:ZONE1", "F"),],
             names=["key", "units"],
         )
         dates = pd.date_range(start="2002/01/01", freq="MS", periods=12)
@@ -272,7 +272,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         v = [SimpleVariable("monthly-simple", "Environment", "W/m2")]
         df = get_results(file, v, rate_to_energy=True)
         test_columns = pd.MultiIndex.from_tuples(
-            [("Environment", "J/m2"), ], names=["key", "units"],
+            [("Environment", "J/m2"),], names=["key", "units"],
         )
         dates = pd.date_range(start="2002/01/01", freq="MS", periods=12)
         test_index = pd.MultiIndex.from_product(

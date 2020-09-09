@@ -7,7 +7,7 @@ from pathlib import Path
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, logger, ResultsFile
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import EF1, EF_ALL_INTERVALS, ROOT
@@ -157,7 +157,7 @@ class TestParquetStorage(unittest.TestCase):
             pqs.save()
 
     def test_13_storage_monitor(self):
-        monitor = DefaultMonitor("foo")
+        monitor = EsoFileMonitor("foo")
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
         )
@@ -165,7 +165,7 @@ class TestParquetStorage(unittest.TestCase):
         id_ = pqs.store_file(ef, monitor=monitor)
         self.assertEqual(0, id_)
 
-        monitor = DefaultMonitor("bar")
+        monitor = EsoFileMonitor("bar")
         tf = ResultsFile.from_totals(ef)
         id_ = pqs.store_file(tf, monitor=monitor)
         self.assertEqual(1, id_)
@@ -180,7 +180,8 @@ class TestParquetStorage(unittest.TestCase):
         p1 = Path("pqs1" + ParquetStorage.EXT)
         p2 = Path("pqs2" + ParquetStorage.EXT)
 
-        self.storage.merge_with([p1, p2])
+        self.storage.merge_with(p1)
+        self.storage.merge_with(p2)
         ef1_files = [
             f for f in self.storage.files.values() if f.file_name == EF_ALL_INTERVALS.file_name
         ]
@@ -232,7 +233,7 @@ class TestParquetStorage(unittest.TestCase):
     def test_store_file_logging(self):
         try:
             logger.setLevel(logging.INFO)
-            self.storage.store_file(EF_ALL_INTERVALS, monitor=DefaultMonitor("dummy"))
+            self.storage.store_file(EF_ALL_INTERVALS, monitor=EsoFileMonitor("dummy"))
             self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
             self.assertEqual("eso", self.storage.files[0].file_type)
         finally:

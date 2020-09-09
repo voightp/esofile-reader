@@ -1,14 +1,14 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
-from esofile_reader.processing.excel import process_excel
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processing.excel import process_excel, process_csv
+from esofile_reader.processing.monitor import EsoFileMonitor
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -20,6 +20,13 @@ except ModuleNotFoundError:
 
     pyximport.install(pyximport=True, language_level=3)
     from esofile_reader.processing.esofile import read_file
+
+
+def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
+    path = Path(file_path)
+    file_name = path.stem
+    file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+    return path, file_name, file_created
 
 
 class ResultsFile(BaseFile):
@@ -47,6 +54,13 @@ class ResultsFile(BaseFile):
 
     """
 
+    ESO = "eso"
+    TOTALS = "totals"
+    DIFF = "diff"
+    XLSX = "xlsx"
+    CSV = "csv"
+    NA = "na"
+
     def __init__(
         self,
         file_path: Union[str, Path],
@@ -64,16 +78,14 @@ class ResultsFile(BaseFile):
         file_path: Union[str, Path],
         sheet_names: List[str] = None,
         force_index: bool = False,
-        monitor: DefaultMonitor = None,
+        monitor: EsoFileMonitor = None,
         header_limit=10,
     ) -> "ResultsFile":
-        """ Generate 'ResultsFileType' from excel spreadsheet. """
-        file_path = Path(file_path)
-        file_name = file_path.stem
-        file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+        """ Generate 'ResultsFile' from excel spreadsheet. """
+        file_path, file_name, file_created = get_file_information(file_path)
         if not monitor:
-            monitor = DefaultMonitor(file_path)
-        monitor.processing_started()
+            monitor = EsoFileMonitor(file_path)
+        monitor.log_task_started()
         tables, search_tree = process_excel(
             file_path,
             monitor,
@@ -82,14 +94,36 @@ class ResultsFile(BaseFile):
             header_limit=header_limit,
         )
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type="excel"
+            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.XLSX
         )
-        monitor.processing_finished()
+        monitor.log_task_finished()
+        return results_file
+
+    @classmethod
+    def from_csv(
+        cls,
+        file_path: Union[str, Path],
+        force_index: bool = False,
+        monitor: EsoFileMonitor = None,
+        header_limit=10,
+    ) -> "ResultsFile":
+        """ Generate 'ResultsFile' from csv file. """
+        file_path, file_name, file_created = get_file_information(file_path)
+        if not monitor:
+            monitor = EsoFileMonitor(file_path)
+        monitor.log_task_started()
+        tables, search_tree = process_csv(
+            file_path, monitor, force_index=force_index, header_limit=header_limit,
+        )
+        results_file = ResultsFile(
+            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.CSV
+        )
+        monitor.log_task_finished()
         return results_file
 
     @classmethod
     def from_eso_file(
-        cls, file_path: str, monitor: DefaultMonitor = None, year: int = 2002,
+        cls, file_path: str, monitor: EsoFileMonitor = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
@@ -109,7 +143,7 @@ class ResultsFile(BaseFile):
             tree = Tree()
             tree.populate_tree(tables.get_all_variables_dct())
             results_file = ResultsFile(
-                file_path, file_name, file_created, tables, tree, file_type="totals"
+                file_path, file_name, file_created, tables, tree, file_type=ResultsFile.TOTALS
             )
             return results_file
 
@@ -126,6 +160,6 @@ class ResultsFile(BaseFile):
             tree = Tree()
             tree.populate_tree(tables.get_all_variables_dct())
             results_file = ResultsFile(
-                file_path, file_name, file_created, tables, tree, file_type="totals"
+                file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
             )
             return results_file

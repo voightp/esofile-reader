@@ -493,7 +493,7 @@ class TestResultFetching(unittest.TestCase):
 
         test_df = pd.DataFrame(
             [
-                [72.6657414, 26409744634.6392, 9873040320, 42.1419698525608, ],
+                [72.6657414, 26409744634.6392, 9873040320, 42.1419698525608,],
                 [75.49473256, None, None, None],
                 [77.73210562, None, None, None],
                 [79.11894354, None, None, None],
