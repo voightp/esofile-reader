@@ -258,6 +258,11 @@ class DFTables(BaseTables):
             col = col.iloc[:, 0]
         return col
 
+    def get_special_table(self, table: str):
+        mi = self.tables[table].columns
+        cond = mi.get_level_values(ID_LEVEL) == SPECIAL
+        return self.tables[table].loc[:, cond].copy()
+
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         mi = self.tables[table].columns
         cond = mi.get_level_values(ID_LEVEL) != SPECIAL

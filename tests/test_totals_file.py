@@ -113,10 +113,9 @@ class TestTotalsFile(TestCase):
             [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23],],
             columns=test_columns,
             index=test_index,
-            dtype="float64",
         )
 
-        pd.testing.assert_frame_equal(self.tf.tables["daily"], test_results)
+        pd.testing.assert_frame_equal(self.tf.tables["daily"], test_results, check_dtype=False)
 
     def test_non_grouped_variables(self):
         test_columns = pd.MultiIndex.from_tuples(
