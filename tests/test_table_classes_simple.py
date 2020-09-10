@@ -3,14 +3,13 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
-from parameterized import parameterized
-
 from esofile_reader.constants import N_DAYS_COLUMN
 from esofile_reader.mini_classes import SimpleVariable
 from esofile_reader.results_file import ResultsFile
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage
+from pandas.testing import assert_frame_equal, assert_index_equal, assert_series_equal
+from parameterized import parameterized
 from tests import ROOT
 
 
@@ -164,19 +163,16 @@ class TestDataClassesSimple(unittest.TestCase):
             SimpleVariable("monthly-simple", "FOO", "C"), list(range(12))
         )
         tables.delete_variables("monthly-simple", [id_])
-        if key != "sqld":
-            with self.assertRaises(KeyError):
-                _ = tables["monthly-simple"][id_]
 
     @parameterized.expand(["dfd", "pqd"])
-    def test_insert_special_column(self, key="sqld"):
+    def test_insert_special_column(self, key):
         tables = self.tables[key]
         values = list("abcdefghijkl")
         tables.insert_special_column("monthly-simple", "TEST", values)
         sr = tables.get_special_column("monthly-simple", "TEST")
         index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
         test_sr = pd.Series(values, name=("special", "monthly-simple", "TEST", ""), index=index)
-        assert_series_equal(sr, test_sr)
+        assert_series_equal(sr, test_sr, check_freq=False)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_remove_variable_invalid(self, key):
@@ -272,7 +268,7 @@ class TestDataClassesSimple(unittest.TestCase):
         )
         test_index = pd.Index([datetime(2002, i, 1) for i in range(4, 7)], name="timestamp")
         test_df = pd.DataFrame(
-            [[4.394446155, 22.78142137], [4.44599391, 24.3208488], [3.99495105, 25.47972495],],
+            [[4.394446155, 22.78142137], [4.44599391, 24.3208488], [3.99495105, 25.47972495], ],
             columns=test_columns,
             index=test_index,
         )

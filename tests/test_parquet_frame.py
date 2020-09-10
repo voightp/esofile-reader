@@ -35,6 +35,8 @@ class TestParquetFrame(TestCase):
         test_index = pd.DatetimeIndex(
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
         )
+        # hack to avoid setting chech_freq for each pandas assert
+        test_index.freq = None
         self.test_df = pd.DataFrame(
             [
                 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],

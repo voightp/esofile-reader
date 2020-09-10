@@ -239,7 +239,7 @@ class TestDataClasses(unittest.TestCase):
         sr = tables.get_special_column("monthly", "TEST")
         index = pd.date_range(start="2002-01-01", freq="MS", periods=12, name="timestamp")
         test_sr = pd.Series(values, name=("special", "monthly", "TEST", "", ""), index=index)
-        assert_series_equal(sr, test_sr)
+        assert_series_equal(sr, test_sr, check_freq=False)
 
     @parameterized.expand(["dfd", "pqd"])
     def test_insert_special_column_invalid(self, key):
