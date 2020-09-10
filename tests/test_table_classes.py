@@ -10,7 +10,6 @@ from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage
-from esofile_reader.storages.sql_storage import SQLStorage
 from esofile_reader.tables.df_functions import sr_dt_slicer, df_dt_slicer, sort_by_ids
 from tests import EF_ALL_INTERVALS
 
@@ -26,27 +25,22 @@ class TestDataClasses(unittest.TestCase):
         id_ = cls.pqs.store_file(EF_ALL_INTERVALS)
         pqf = cls.pqs.files[id_]
 
-        cls.sqls = SQLStorage()
-        id_ = cls.sqls.store_file(EF_ALL_INTERVALS)
-        sqlf = cls.sqls.files[id_]
-
-        cls.files = {"dff": dff, "pqf": pqf, "sqlf": sqlf}
-
-        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables, "sqld": sqlf.tables}
+        cls.files = {"dff": dff, "pqf": pqf}
+        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables}
 
     @classmethod
     def tearDownClass(cls):
         cls.files["pqf"].clean_up()
         cls.files["pqf"] = None
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_is_simple(self, key):
         tables = self.tables[key]
         table_names = tables.get_table_names()
         for table in table_names:
             self.assertFalse(tables.is_simple(table))
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_levels(self, key):
         tables = self.tables[key]
         table_names = tables.get_table_names()
@@ -55,7 +49,7 @@ class TestDataClasses(unittest.TestCase):
                 ["id", "table", "key", "type", "units"], tables.get_levels(table)
             )
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_table_names(self, key):
         tables = self.tables[key]
         tables = tables.get_table_names()
@@ -63,7 +57,7 @@ class TestDataClasses(unittest.TestCase):
             tables, ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
         )
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_datetime_index(self, key):
         tables = self.tables[key]
         index = tables.get_datetime_index("monthly")
@@ -90,7 +84,7 @@ class TestDataClasses(unittest.TestCase):
             ),
         )
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_variables_dct(self, key):
         tables = self.tables[key]
         variables = tables.get_variables_dct("daily")
@@ -119,7 +113,7 @@ class TestDataClasses(unittest.TestCase):
             ],
         )
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_variable_ids(self, key):
         tables = self.tables[key]
         ids = tables.get_variable_ids("daily")
@@ -148,7 +142,7 @@ class TestDataClasses(unittest.TestCase):
             ],
         )
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_all_variable_ids(self, key):
         tables = self.tables[key]
         ids = tables.get_all_variable_ids()
@@ -167,46 +161,19 @@ class TestDataClasses(unittest.TestCase):
         )
         # fmt: on
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_variables_df(self, key):
         tables = self.tables[key]
         df = tables.get_variables_df("daily")
         self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (19, 5))
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_all_variables_df(self, key):
         tables = self.tables[key]
         df = tables.get_all_variables_df()
         self.assertListEqual(df.columns.tolist(), ["id", "table", "key", "type", "units"])
         self.assertTupleEqual(df.shape, (114, 5))
-
-    def test_rename_variable_sql(self):
-        sqld = self.tables["sqld"]
-        sqld.update_variable_name("timestep", 7, "FOO", "BAR")
-        with self.sqls.engine.connect() as conn:
-            table = sqld._get_results_table("timestep")
-            res = conn.execute(table.select().where(table.c.id == 7)).first()
-            var = (res[0], res[1], res[2], res[3], res[4])
-            self.assertTupleEqual(var, (7, "timestep", "FOO", "BAR", "W/m2"))
-
-        sqld.update_variable_name(
-            "timestep", 7, "Environment", "Site Diffuse Solar Radiation Rate per Area"
-        )
-        with self.sqls.engine.connect() as conn:
-            table = sqld._get_results_table("timestep")
-            res = conn.execute(table.select().where(table.c.id == 7)).first()
-            var = (res[0], res[1], res[2], res[3], res[4])
-            self.assertTupleEqual(
-                var,
-                (
-                    7,
-                    "timestep",
-                    "Environment",
-                    "Site Diffuse Solar Radiation Rate per Area",
-                    "W/m2",
-                ),
-            )
 
     @parameterized.expand(["dfd", "pqd"])
     def test_rename_variable(self, key):
@@ -231,7 +198,7 @@ class TestDataClasses(unittest.TestCase):
         ]
         self.assertEqual(col1.iloc[:, 0].array, col2.iloc[:, 0].array)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_add_remove_variable(self, key):
         tables = self.tables[key]
         id_ = tables.insert_column(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
@@ -246,7 +213,7 @@ class TestDataClasses(unittest.TestCase):
         with self.assertRaises(KeyError):
             tables.delete_variables("monthly", [100000])
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_update_variable(self, key):
         tables = self.tables[key]
         original_vals = tables.get_results("monthly", 983).iloc[:, 0]
@@ -255,7 +222,7 @@ class TestDataClasses(unittest.TestCase):
         self.assertListEqual(vals, list(range(12)))
         tables.update_variable_values("monthly", 983, original_vals)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_update_variable_invalid(self, key):
         tables = self.tables[key]
         original_vals = tables.get_results("monthly", 983).iloc[:, 0]
@@ -264,7 +231,7 @@ class TestDataClasses(unittest.TestCase):
         self.assertListEqual(vals, original_vals.to_list())
         tables.update_variable_values("monthly", 983, original_vals)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_insert_special_column(self, key):
         tables = self.tables[key]
         values = list("abcdefghijkl")
@@ -274,39 +241,39 @@ class TestDataClasses(unittest.TestCase):
         test_sr = pd.Series(values, name=("special", "monthly", "TEST", "", ""), index=index)
         assert_series_equal(sr, test_sr)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_insert_special_column_invalid(self, key):
         tables = self.tables[key]
         values = list("abcdefghij")
         self.assertFalse(tables.insert_special_column("monthly", "TEST", values))
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_special_column_invalid(self, key):
         tables = self.tables[key]
         with self.assertRaises(KeyError):
             tables.get_special_column("FOO", "timestep")
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_number_of_days(self, key):
         tables = self.tables[key]
         col = tables.get_special_column("monthly", N_DAYS_COLUMN)
         self.assertEqual(col.to_list(), [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
         self.assertEqual(col.size, 12)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_days_of_week(self, key):
         tables = self.tables[key]
         col = tables.get_special_column("daily", DAY_COLUMN)
         self.assertEqual(col[0], "Tuesday")
         self.assertEqual(col.size, 365)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_all_results(self, key):
         tables = self.tables[key]
         df = tables.get_numeric_table("daily")
         self.assertTupleEqual(df.shape, (365, 19))
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_results(self, key):
         tables = self.tables[key]
         df = tables.get_results("monthly", [324, 983])
@@ -344,7 +311,7 @@ class TestDataClasses(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_results_sliced(self, key):
         tables = self.tables[key]
         df = tables.get_results(
@@ -374,7 +341,7 @@ class TestDataClasses(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_results_include_day(self, key):
         tables = self.tables[key]
         df = tables.get_results(
@@ -406,7 +373,7 @@ class TestDataClasses(unittest.TestCase):
 
         assert_frame_equal(df, test_df, check_column_type=False)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_results_include_day_from_date(self, key):
         tables = self.tables[key]
         df = tables.get_results(
@@ -437,13 +404,13 @@ class TestDataClasses(unittest.TestCase):
 
         assert_frame_equal(df, test_df, check_column_type=False)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_results_invalid_ids(self, key):
         tables = self.tables[key]
         with self.assertRaises(KeyError):
             _ = tables.get_results("daily", [7])
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_global_max_results(self, key):
         tables = self.tables[key]
         df = tables.get_global_max_results("monthly", [324, 983])
@@ -470,7 +437,7 @@ class TestDataClasses(unittest.TestCase):
 
         assert_frame_equal(df, test_df, check_column_type=False)
 
-    @parameterized.expand(["dfd", "pqd", "sqld"])
+    @parameterized.expand(["dfd", "pqd"])
     def test_get_global_min_results(self, key):
         tables = self.tables[key]
         df = tables.get_global_min_results("monthly", [324, 983])

@@ -6,11 +6,9 @@ import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 
 from esofile_reader.base_file import BaseFile, CannotAggregateVariables
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.pqt_storage import ParquetStorage
-from esofile_reader.storages.sql_storage import SQLStorage
 from esofile_reader.tables.df_tables import DFTables
 
 
@@ -44,10 +42,6 @@ class TestRangeIntervalFile(unittest.TestCase):
         tree.populate_tree(tables.get_all_variables_dct())
         bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree)
         cls.bf = bf
-
-        storage = SQLStorage()
-        id_ = storage.store_file(bf)
-        cls.db_bf = storage.files[id_]
 
     def test_table_names(self):
         self.assertListEqual(self.bf.table_names, ["range"])
@@ -157,16 +151,6 @@ class TestRangeIntervalFile(unittest.TestCase):
         self.assertListEqual(df.columns.names, ["id", "table", "key", "type", "units"])
         self.assertEqual(df.index.name, "range")
 
-    def test_sql_results(self):
-        variables = [
-            Variable("range", "ZoneA", "Temperature", "C"),
-            Variable("range", "ZoneB", "Temperature", "C"),
-        ]
-        df1 = self.bf.get_results(variables)
-        df2 = self.db_bf.get_results(variables)
-
-        pd.testing.assert_frame_equal(df1, df2)
-
     def test_get_results_include_day(self):
         variables = [
             Variable("range", "ZoneA", "Temperature", "C"),
@@ -174,14 +158,6 @@ class TestRangeIntervalFile(unittest.TestCase):
         ]
         df = self.bf.get_results(variables, include_day=True, add_file_name="")
         assert_index_equal(pd.RangeIndex(start=0, stop=3, step=1, name="range"), df.index)
-
-    def test_sql_no_n_days_column(self):
-        with self.assertRaises(KeyError):
-            self.db_bf.tables.get_special_column("range", N_DAYS_COLUMN)
-
-    def test_sql_no_day_column(self):
-        with self.assertRaises(KeyError):
-            self.db_bf.tables.get_special_column("range", DAY_COLUMN)
 
     def test_parquet_file(self):
         path = Path("range_pqs" + ParquetStorage.EXT)

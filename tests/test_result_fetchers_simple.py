@@ -11,7 +11,6 @@ from esofile_reader.mini_classes import SimpleVariable
 from esofile_reader.results_file import ResultsFile
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage
-from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT
 
 
@@ -30,20 +29,16 @@ class TestResultFetchingSimple(unittest.TestCase):
         id_ = cls.pqs.store_file(ef)
         pqf = cls.pqs.files[id_]
 
-        cls.sqls = SQLStorage()
-        id_ = cls.sqls.store_file(ef)
-        sqlf = cls.sqls.files[id_]
+        cls.files = {"dff": dff, "pqf": pqf}
 
-        cls.files = {"dff": dff, "pqf": pqf, "sqlf": sqlf}
-
-        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables, "sqld": sqlf.tables}
+        cls.tables = {"dfd": dff.tables, "pqd": pqf.tables}
 
     @classmethod
     def tearDownClass(cls):
         cls.files["pqf"].clean_up()
         cls.files["pqf"] = None
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
@@ -78,7 +73,7 @@ class TestResultFetchingSimple(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results_start_date(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
@@ -109,7 +104,7 @@ class TestResultFetchingSimple(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results_end_date(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
@@ -140,7 +135,7 @@ class TestResultFetchingSimple(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results_output_type_start_end_date(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
@@ -162,7 +157,7 @@ class TestResultFetchingSimple(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results_include_table_name(self, key):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
@@ -188,7 +183,7 @@ class TestResultFetchingSimple(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_multiple_results_units_system_si(self, key):
         file = self.files[key]
         v = [
@@ -229,7 +224,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         )
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_multiple_results_units_system_ip(self, key):
         file = self.files[key]
         v = [
@@ -266,7 +261,7 @@ class TestResultFetchingSimple(unittest.TestCase):
         )
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["dff", "pqf", "sqlf"])
+    @parameterized.expand(["dff", "pqf"])
     def test_get_results_rate_to_energy(self, key):
         file = self.files[key]
         v = [SimpleVariable("monthly-simple", "Environment", "W/m2")]
