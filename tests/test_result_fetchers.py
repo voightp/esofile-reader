@@ -12,7 +12,6 @@ from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage
-from esofile_reader.storages.sql_storage import SQLStorage
 from tests import ROOT, EF1, EF2_PEAKS
 
 
@@ -27,18 +26,14 @@ class TestResultFetching(unittest.TestCase):
         id_ = cls.pqs.store_file(EF1)
         pqf = cls.pqs.files[id_]
 
-        cls.sqls = SQLStorage()
-        id_ = cls.sqls.store_file(EF1)
-        sqlf = cls.sqls.files[id_]
-
-        cls.files = {"ef": EF1, "dff": dff, "pqf": pqf, "sqlf": sqlf}
+        cls.files = {"ef": EF1, "dff": dff, "pqf": pqf}
 
     @classmethod
     def tearDownClass(cls):
         cls.files["pqf"].clean_up()
         cls.files["pqf"] = None
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -96,7 +91,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_start_date(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -125,7 +120,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_end_date(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -154,7 +149,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_output_type_global_max(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -176,7 +171,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_output_type_start_end_date(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -204,7 +199,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_output_type_global_min(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -309,14 +304,14 @@ class TestResultFetching(unittest.TestCase):
         with self.assertRaises(PeaksNotIncluded):
             _ = get_results(EF1, v, output_type="local_min")
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_output_type_invalid(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
         with self.assertRaises(InvalidOutputType):
             _ = get_results(file, v, output_type="foo")
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_add_file_name(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -344,7 +339,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_include_interval(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -372,7 +367,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_include_day(self, key):
         file = self.files[key]
         v = Variable("daily", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -408,7 +403,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_multiple_results_units_system_si(self, key):
         file = self.files[key]
         v = [
@@ -457,7 +452,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_multiple_results_units_system_ip(self, key):
         file = self.files[key]
         v = [
@@ -506,7 +501,7 @@ class TestResultFetching(unittest.TestCase):
 
         assert_frame_equal(df, test_df)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_units_system_invalid(self, key):
         file = self.files[key]
         v = [
@@ -518,7 +513,7 @@ class TestResultFetching(unittest.TestCase):
         with self.assertRaises(InvalidUnitsSystem):
             _ = get_results(file, v, units_system="FOO")
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_rate_to_energy(self, key):
         file = self.files[key]
         v = [
@@ -537,7 +532,7 @@ class TestResultFetching(unittest.TestCase):
         self.assertAlmostEqual(df.iloc[0, 6], 1600326000, 5)
         self.assertAlmostEqual(df.iloc[0, 7], 1415172751.05001, 5)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_rate(self, key):
         file = self.files[key]
         v = [
@@ -556,7 +551,7 @@ class TestResultFetching(unittest.TestCase):
         self.assertAlmostEqual(df.iloc[0, 6], 0.10121470856102, 5)
         self.assertAlmostEqual(df.iloc[0, 7], 0.0895044494440654, 5)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_energy(self, key):
         file = self.files[key]
         v = [
@@ -575,7 +570,7 @@ class TestResultFetching(unittest.TestCase):
         self.assertAlmostEqual(df.iloc[0, 6], 1600.3259999, 5)
         self.assertAlmostEqual(df.iloc[0, 7], 1415.172751, 5)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_timestamp_format(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
@@ -588,21 +583,21 @@ class TestResultFetching(unittest.TestCase):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
         self.assertIsNotNone(ef.peak_outputs)
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_multiple_files_invalid_variable(self, key):
         file = self.files[key]
         files = [file, EF2_PEAKS]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, v))
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_multiple_files_invalid_variables(self, key):
         file = self.files[key]
         files = [file, EF2_PEAKS]
         v = Variable(None, "foo", "bar", "baz")
         self.assertIsNone(get_results(files, [v, v]))
 
-    @parameterized.expand(["ef", "dff", "pqf", "sqlf"])
+    @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_multiple_files(self, key):
         file = self.files[key]
         files = [file, EF2_PEAKS]

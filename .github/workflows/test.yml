@@ -62,7 +62,7 @@ jobs:
         run: poetry config virtualenvs.in-project true
 
       - name: Install dependencies
-        run: poetry install && poetry install -E storage
+        run: poetry install
 
       - name: Test with unittest
         run: poetry run python -m unittest discover -s ./tests -t ./tests -p test_*.py
