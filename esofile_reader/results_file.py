@@ -78,17 +78,17 @@ class ResultsFile(BaseFile):
         file_path: Union[str, Path],
         sheet_names: List[str] = None,
         force_index: bool = False,
-        monitor: EsoFileProgressLogger = None,
+        progress_logger: EsoFileProgressLogger = None,
         header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
-        if not monitor:
-            monitor = EsoFileProgressLogger(file_path)
-        monitor.log_task_started("Processing xlsx file.")
+        if not progress_logger:
+            progress_logger = EsoFileProgressLogger(file_path)
+        progress_logger.log_task_started("Processing xlsx file.")
         tables, search_tree = process_excel(
             file_path,
-            monitor,
+            progress_logger,
             sheet_names=sheet_names,
             force_index=force_index,
             header_limit=header_limit,
@@ -96,7 +96,7 @@ class ResultsFile(BaseFile):
         results_file = ResultsFile(
             file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.XLSX
         )
-        monitor.log_task_finished()
+        progress_logger.log_task_finished()
         return results_file
 
     @classmethod
@@ -104,31 +104,31 @@ class ResultsFile(BaseFile):
         cls,
         file_path: Union[str, Path],
         force_index: bool = False,
-        monitor: EsoFileProgressLogger = None,
+        progress_logger: EsoFileProgressLogger = None,
         header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
-        if not monitor:
-            monitor = EsoFileProgressLogger(file_path)
-        monitor.log_task_started("Process csv file!")
+        if not progress_logger:
+            progress_logger = EsoFileProgressLogger(file_path)
+        progress_logger.log_task_started("Process csv file!")
         tables, search_tree = process_csv(
-            file_path, monitor, force_index=force_index, header_limit=header_limit,
+            file_path, progress_logger, force_index=force_index, header_limit=header_limit,
         )
         results_file = ResultsFile(
             file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.CSV
         )
-        monitor.log_task_finished()
+        progress_logger.log_task_finished()
         return results_file
 
     @classmethod
     def from_eso_file(
-        cls, file_path: str, monitor: EsoFileProgressLogger = None, year: int = 2002,
+        cls, file_path: str, progress_logger: EsoFileProgressLogger = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
         eso_files = ResultsEsoFile.from_multi_env_eso_file(
-            file_path, monitor, ignore_peaks=True, year=year
+            file_path, progress_logger, ignore_peaks=True, year=year
         )
         return eso_files[0] if len(eso_files) == 1 else eso_files
 

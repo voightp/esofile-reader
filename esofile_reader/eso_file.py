@@ -69,20 +69,20 @@ class ResultsEsoFile(BaseFile):
     def from_multi_env_eso_file(
         cls,
         file_path: str,
-        monitor: EsoFileProgressLogger = None,
+        progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
-        if monitor is None:
-            monitor = EsoFileProgressLogger(file_path)
-        monitor.log_task_started("Process eso file data!")
+        if progress_logger is None:
+            progress_logger = EsoFileProgressLogger(file_path)
+        progress_logger.log_task_started("Process eso file data!")
 
         eso_files = []
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-        content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
+        content = read_file(file_path, progress_logger, ignore_peaks=ignore_peaks, year=year)
         content = [c for c in list(zip(*content))[::-1]]  # reverse to get last processed first
         for i, (environment, data, peak_outputs, tree) in enumerate(content):
             # last processed environment uses a plain name
@@ -93,7 +93,7 @@ class ResultsEsoFile(BaseFile):
                 file_path, name, file_created, data, tree, peak_outputs=peak_outputs
             )
             eso_files.append(ef)
-        monitor.log_task_finished()
+        progress_logger.log_task_finished()
         return eso_files
 
     def _get_peak_results(
@@ -218,7 +218,7 @@ class EsoFile(ResultsEsoFile):
     ----------
     file_path : str, or Path
         A full path of the result file.
-    monitor : EsoFileProgressLogger
+    progress_logger : EsoFileProgressLogger
         A watcher to report processing progress.
     ignore_peaks : bool
         Allow skipping .eso file peak data.
@@ -237,17 +237,17 @@ class EsoFile(ResultsEsoFile):
     def __init__(
         self,
         file_path: Union[str, Path],
-        monitor: EsoFileProgressLogger = None,
+        progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ):
-        if monitor is None:
-            monitor = EsoFileProgressLogger(Path(file_path).name)
-        monitor.log_task_started("Process eso file data!")
+        if progress_logger is None:
+            progress_logger = EsoFileProgressLogger(Path(file_path).name)
+        progress_logger.log_task_started("Process eso file data!")
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-        content = read_file(file_path, monitor=monitor, ignore_peaks=ignore_peaks, year=year)
+        content = read_file(file_path, progress_logger, ignore_peaks=ignore_peaks, year=year)
         environment_names = content[0]
         if len(environment_names) == 1:
             tables = content[1][0]
@@ -256,7 +256,7 @@ class EsoFile(ResultsEsoFile):
             super().__init__(
                 file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
             )
-            monitor.log_task_finished()
+            progress_logger.log_task_finished()
         else:
             raise MultiEnvFileRequired(
                 f"Cannot populate file {file_path}. "

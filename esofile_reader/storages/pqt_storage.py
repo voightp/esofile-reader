@@ -71,15 +71,15 @@ class ParquetFile(BaseFile):
         pardir: str = "",
         search_tree: Tree = None,
         name: str = None,
-        monitor: GenericProgressLogger = None,
+        progress_logger: GenericProgressLogger = None,
     ):
         self.id_ = id_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
         self.workdir.mkdir(exist_ok=True)
         tables = (
-            ParquetTables.from_dftables(tables, self.workdir, monitor=monitor)
+            ParquetTables.from_dftables(tables, self.workdir, progress_logger=progress_logger)
             if isinstance(tables, DFTables)
-            else ParquetTables.from_fs(tables, self.workdir, monitor=monitor)
+            else ParquetTables.from_fs(tables, self.workdir, progress_logger=progress_logger)
         )
 
         if search_tree is None:
@@ -105,7 +105,7 @@ class ParquetFile(BaseFile):
         results_file: ResultsFileType,
         pardir: str = "",
         name: str = None,
-        monitor: GenericProgressLogger = None,
+        progress_logger: GenericProgressLogger = None,
     ):
         pqs = ParquetFile(
             id_=id_,
@@ -117,7 +117,7 @@ class ParquetFile(BaseFile):
             file_type=results_file.file_type,
             pardir=pardir,
             name=name,
-            monitor=monitor,
+            progress_logger=progress_logger,
         )
 
         return pqs
@@ -247,28 +247,32 @@ class ParquetStorage(DFStorage):
         return pqs
 
     def store_file(
-        self, results_file: ResultsFileType, monitor: GenericProgressLogger = None
+        self, results_file: ResultsFileType, progress_logger: GenericProgressLogger = None
     ) -> int:
         """ Store results file as 'ParquetFile'. """
-        if not monitor:
-            monitor = GenericProgressLogger(results_file.file_path)
-        monitor.log_task_started("Store file!")
+        if not progress_logger:
+            progress_logger = GenericProgressLogger(results_file.file_path)
+        progress_logger.log_task_started("Store file!")
         # number of steps is equal to number of parquet files
         n_steps = 0
         for tbl in results_file.tables.values():
             n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
             n_steps += n
 
-        monitor.log_section_started("writing parquets!")
-        monitor.reset_progress(n_steps)
+        progress_logger.log_section_started("writing parquets!")
+        progress_logger.reset_progress(n_steps)
 
         id_gen = incremental_id_gen(checklist=list(self.files.keys()))
         id_ = next(id_gen)
         file = ParquetFile.from_results_file(
-            id_=id_, results_file=results_file, pardir=self.workdir, name="", monitor=monitor
+            id_=id_,
+            results_file=results_file,
+            pardir=self.workdir,
+            name="",
+            progress_logger=progress_logger,
         )
         self.files[id_] = file
-        monitor.log_task_finished()
+        progress_logger.log_task_finished()
         return id_
 
     def delete_file(self, id_: int) -> None:

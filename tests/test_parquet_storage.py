@@ -155,18 +155,19 @@ class TestParquetStorage(unittest.TestCase):
             pqs = ParquetStorage()
             pqs.save()
 
-    def test_13_storage_monitor(self):
-        monitor = EsoFileProgressLogger("foo")
+    def test_13_storage_progress_logger(self):
+        progress_logger = EsoFileProgressLogger("foo")
         ef = EsoFile(
-            os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
+            os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"),
+            progress_logger=progress_logger,
         )
         pqs = ParquetStorage()
-        id_ = pqs.store_file(ef, monitor=monitor)
+        id_ = pqs.store_file(ef, progress_logger=progress_logger)
         self.assertEqual(0, id_)
 
-        monitor = EsoFileProgressLogger("bar")
+        progress_logger = EsoFileProgressLogger("bar")
         tf = ResultsFile.from_totals(ef)
-        id_ = pqs.store_file(tf, monitor=monitor)
+        id_ = pqs.store_file(tf, progress_logger=progress_logger)
         self.assertEqual(1, id_)
 
     def test_14_merge_storages(self):
@@ -212,7 +213,7 @@ class TestParquetStorage(unittest.TestCase):
             file_type=EF_ALL_INTERVALS.file_type,
             pardir="",
             name="foo",
-            monitor=None,
+            progress_logger=None,
         ) as pqf:
             workdir = pqf.workdir
             self.assertTrue(workdir.exists())
@@ -231,7 +232,7 @@ class TestParquetStorage(unittest.TestCase):
 
     def test_store_file_logging(self):
         self.storage.store_file(
-            EF_ALL_INTERVALS, monitor=EsoFileProgressLogger("dummy", level=20)
+            EF_ALL_INTERVALS, progress_logger=EsoFileProgressLogger("dummy", level=20)
         )
         self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
         self.assertEqual("eso", self.storage.files[0].file_type)

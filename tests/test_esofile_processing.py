@@ -274,17 +274,17 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
-        monitor = EsoFileProgressLogger("foo")
+        progress_logger = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, monitor)
+            header = read_header(f, progress_logger)
 
         with open(self.body_pth, "r") as f:
-            content = read_body(f, 6, header, False, monitor)
+            content = read_body(f, 6, header, False, progress_logger)
             env_names, _, raw_peak_outputs, dates, cumulative_days, day_of_week = content
 
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
         outputs = generate_peak_outputs(
-            raw_peak_outputs[0], header, dates, monitor, 1
+            raw_peak_outputs[0], header, dates, progress_logger, 1
         )
 
         min_outputs = outputs["local_min"]
@@ -303,9 +303,9 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
-        monitor = EsoFileProgressLogger("foo")
+        progress_logger = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, monitor)
+            header = read_header(f, progress_logger)
 
         with open(self.body_pth, "r") as f:
             (
@@ -320,7 +320,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
-        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, monitor, 1)
+        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, progress_logger, 1)
 
         for interval, df in outputs.tables.items():
             key_level = df.columns.get_level_values("key")
@@ -405,7 +405,7 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_logging_level_info(self):
         EsoFile(
             os.path.join(ROOT, "eso_files/eplusout1.eso"),
-            monitor=EsoFileProgressLogger("foo", level=20)
+            progress_logger=EsoFileProgressLogger("foo", level=20)
         )
 
 # fmt: on
