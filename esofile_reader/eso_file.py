@@ -242,7 +242,7 @@ class EsoFile(ResultsEsoFile):
         year: int = 2002,
     ):
         if monitor is None:
-            monitor = EsoFileProgressLogger(file_path)
+            monitor = EsoFileProgressLogger(Path(file_path).name)
         monitor.log_task_started("Process eso file data!")
         file_path = Path(file_path)
         file_name = file_path.stem

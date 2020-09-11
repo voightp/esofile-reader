@@ -12,7 +12,6 @@ from esofile_reader.processing.esofile import (
     process_sub_monthly_interval_lines,
     process_monthly_plus_interval_lines,
     read_body,
-    read_file,
     generate_outputs,
     generate_peak_outputs,
     remove_duplicates,
@@ -394,22 +393,19 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_file_blank_line(self):
         with self.assertRaises(IncompleteFile):
-            EsoFile(self.incomplete, EsoFileProgressLogger("some/path"))
+            EsoFile(self.incomplete, EsoFileProgressLogger("foo"))
 
     def test_non_numeric_line(self):
         with self.assertRaises(InvalidLineSyntax):
             EsoFile(
                 os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"),
-                EsoFileProgressLogger("some/path")
+                EsoFileProgressLogger("foo")
             )
 
     def test_logging_level_info(self):
-        import logging
-        logger = logging.getLogger()
-        try:
-            logger.setLevel(logging.INFO)
-            EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-        finally:
-            logger.setLevel(logging.ERROR)
+        EsoFile(
+            os.path.join(ROOT, "eso_files/eplusout1.eso"),
+            monitor=EsoFileProgressLogger("foo", level=20)
+        )
 
 # fmt: on
