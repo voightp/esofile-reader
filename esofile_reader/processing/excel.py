@@ -1,5 +1,5 @@
-import csv
 import io
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Dict
@@ -11,8 +11,7 @@ from openpyxl import load_workbook, Workbook
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
-from esofile_reader.logger import logger
-from esofile_reader.processing.monitor import EsoFileMonitor
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -123,7 +122,7 @@ def parse_header(
                     else:
                         levels[ix] = row
                 else:
-                    logger.info(
+                    logging.info(
                         f"Unexpected column identifier: {ix}"
                         f"Only {', '.join(COLUMN_LEVELS)} are allowed."
                     )
@@ -269,7 +268,7 @@ def process_sheet(
 
 def process_workbook(
     wb: Workbook,
-    monitor: EsoFileMonitor,
+    monitor: EsoFileProgressLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -310,7 +309,7 @@ def process_workbook(
 
 def process_excel(
     file_path: Path,
-    monitor: EsoFileMonitor,
+    monitor: EsoFileProgressLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -325,7 +324,7 @@ def process_excel(
 def process_csv_table(
     df: pd.DataFrame,
     name: str,
-    monitor: EsoFileMonitor,
+    monitor: EsoFileProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
 ) -> Tuple[DFTables, Tree]:
@@ -355,7 +354,8 @@ def process_csv_table(
 
 
 def process_csv(
-    file_path: Path, monitor: EsoFileMonitor, force_index: bool = False, header_limit: int = 10,
+    file_path: Path, monitor: EsoFileProgressLogger, force_index: bool = False,
+    header_limit: int = 10,
 ) -> Tuple[DFTables, Tree]:
     """ Create results file data based on given csv file."""
     csv_df = pd.read_csv(file_path, sep=None)

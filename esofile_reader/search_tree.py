@@ -1,9 +1,9 @@
 import contextlib
+import logging
 from copy import copy
 from typing import Union, Optional, Dict, List, Iterator
 
 from esofile_reader.constants import *
-from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, SimpleVariable
 
 
@@ -206,7 +206,7 @@ class Tree:
             node = self.root.children[variable_type]
             self.loop(node, ids, tree_variable, part_match=part_match)
         if not ids and check_only:
-            logger.warning(f"'{variable}' not found in tree!")
+            logging.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
 
     def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:

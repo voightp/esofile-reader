@@ -1,9 +1,9 @@
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Union, List
 
-from esofile_reader.logger import logger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -15,7 +15,7 @@ except ImportError:
 import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.base_file import BaseFile
-from esofile_reader.processing.monitor import EsoFileMonitor
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable
 
@@ -69,14 +69,14 @@ class ResultsEsoFile(BaseFile):
     def from_multi_env_eso_file(
         cls,
         file_path: str,
-        monitor: EsoFileMonitor = None,
+        monitor: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
         if monitor is None:
-            monitor = EsoFileMonitor(file_path)
-        monitor.log_task_started()
+            monitor = EsoFileProgressLogger(file_path)
+        monitor.log_task_started("Process eso file data!")
 
         eso_files = []
         file_path = Path(file_path)
@@ -118,7 +118,7 @@ class ResultsEsoFile(BaseFile):
                     table, ids, start_date, end_date
                 )
             except KeyError:
-                logger.warning(f"There are no peak outputs stored for table: '{table}'.")
+                logging.warning(f"There are no peak outputs stored for table: '{table}'.")
                 continue
 
             if not include_id:
@@ -218,7 +218,7 @@ class EsoFile(ResultsEsoFile):
     ----------
     file_path : str, or Path
         A full path of the result file.
-    monitor : EsoFileMonitor
+    monitor : EsoFileProgressLogger
         A watcher to report processing progress.
     ignore_peaks : bool
         Allow skipping .eso file peak data.
@@ -237,13 +237,13 @@ class EsoFile(ResultsEsoFile):
     def __init__(
         self,
         file_path: Union[str, Path],
-        monitor: EsoFileMonitor = None,
+        monitor: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
     ):
         if monitor is None:
-            monitor = EsoFileMonitor(file_path)
-        monitor.log_task_started()
+            monitor = EsoFileProgressLogger(file_path)
+        monitor.log_task_started("Process eso file data!")
         file_path = Path(file_path)
         file_name = file_path.stem
         file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))

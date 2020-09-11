@@ -1,9 +1,6 @@
-import logging
 import os
-from pathlib import Path
-from esofile_reader import EsoFile, logger
 
-logger.setLevel(logging.ERROR)
+from esofile_reader import EsoFile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 EF1 = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))

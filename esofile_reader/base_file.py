@@ -1,3 +1,4 @@
+import logging
 import traceback
 from collections import defaultdict
 from datetime import datetime
@@ -16,7 +17,6 @@ from esofile_reader.convertor import (
     is_timestep,
 )
 from esofile_reader.exceptions import *
-from esofile_reader.logger import logger
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.processing.esofile_intervals import update_dt_format
 from esofile_reader.search_tree import Tree
@@ -114,7 +114,7 @@ class BaseFile:
         pos = ["row", "column", "None"]  # 'None' is here only to inform
         if name_position not in pos:
             name_position = "row"
-            logger.warning(
+            logging.warning(
                 f"Invalid name position!\n'add_file_name' kwarg must "
                 f"be one of: '{', '.join(pos)}'.\nSetting 'row'."
             )
@@ -142,7 +142,7 @@ class BaseFile:
 
             return df
         else:
-            logger.warning(
+            logging.warning(
                 f"Any of requested variables is not "
                 f"included in the results file '{self.file_name}'."
             )
@@ -385,7 +385,7 @@ class BaseFile:
     ) -> Tuple[int, Union[Variable, SimpleVariable]]:
         """ Rename the given 'Variable' using given names. """
         if new_key is None and new_type is None:
-            logger.warning("Cannot rename variable! Type and key are not specified.")
+            logging.warning("Cannot rename variable! Type and key are not specified.")
         else:
             # assign original values if one of new ones is not specified
             table, key, units = variable.table, variable.key, variable.units
@@ -414,7 +414,7 @@ class BaseFile:
                     self.tables.update_variable_name(table, id_, new_variable.key)
                 return id_, new_variable
             else:
-                logger.warning(f"Cannot rename variable! {variable} not found.")
+                logging.warning(f"Cannot rename variable! {variable} not found.")
 
     def insert_variable(
         self, table: str, key: str, units: str, array: Sequence, type_: str = None

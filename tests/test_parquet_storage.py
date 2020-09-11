@@ -1,13 +1,12 @@
 import contextlib
-import logging
 import os
 import unittest
 from pathlib import Path
 
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, logger, ResultsFile
-from esofile_reader.processing.monitor import EsoFileMonitor
+from esofile_reader import EsoFile, ResultsFile
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import EF1, EF_ALL_INTERVALS, ROOT
@@ -157,7 +156,7 @@ class TestParquetStorage(unittest.TestCase):
             pqs.save()
 
     def test_13_storage_monitor(self):
-        monitor = EsoFileMonitor("foo")
+        monitor = EsoFileProgressLogger("foo")
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), monitor=monitor
         )
@@ -165,7 +164,7 @@ class TestParquetStorage(unittest.TestCase):
         id_ = pqs.store_file(ef, monitor=monitor)
         self.assertEqual(0, id_)
 
-        monitor = EsoFileMonitor("bar")
+        monitor = EsoFileProgressLogger("bar")
         tf = ResultsFile.from_totals(ef)
         id_ = pqs.store_file(tf, monitor=monitor)
         self.assertEqual(1, id_)
@@ -231,10 +230,7 @@ class TestParquetStorage(unittest.TestCase):
         self.assertIsInstance(out, io.BytesIO)
 
     def test_store_file_logging(self):
-        try:
-            logger.setLevel(logging.INFO)
-            self.storage.store_file(EF_ALL_INTERVALS, monitor=EsoFileMonitor("dummy"))
-            self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
-            self.assertEqual("eso", self.storage.files[0].file_type)
-        finally:
-            logger.setLevel(logging.ERROR)
+        self.storage.store_file(EF_ALL_INTERVALS,
+                                monitor=EsoFileProgressLogger("dummy", level=20))
+        self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
+        self.assertEqual("eso", self.storage.files[0].file_type)

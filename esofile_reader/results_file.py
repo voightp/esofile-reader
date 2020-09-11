@@ -8,7 +8,7 @@ from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
-from esofile_reader.processing.monitor import EsoFileMonitor
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -78,14 +78,14 @@ class ResultsFile(BaseFile):
         file_path: Union[str, Path],
         sheet_names: List[str] = None,
         force_index: bool = False,
-        monitor: EsoFileMonitor = None,
+        monitor: EsoFileProgressLogger = None,
         header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not monitor:
-            monitor = EsoFileMonitor(file_path)
-        monitor.log_task_started()
+            monitor = EsoFileProgressLogger(file_path)
+        monitor.log_task_started("Processing xlsx file.")
         tables, search_tree = process_excel(
             file_path,
             monitor,
@@ -104,14 +104,14 @@ class ResultsFile(BaseFile):
         cls,
         file_path: Union[str, Path],
         force_index: bool = False,
-        monitor: EsoFileMonitor = None,
+        monitor: EsoFileProgressLogger = None,
         header_limit=10,
     ) -> "ResultsFile":
         """ Generate 'ResultsFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not monitor:
-            monitor = EsoFileMonitor(file_path)
-        monitor.log_task_started()
+            monitor = EsoFileProgressLogger(file_path)
+        monitor.log_task_started("Process csv file!")
         tables, search_tree = process_csv(
             file_path, monitor, force_index=force_index, header_limit=header_limit,
         )
@@ -123,7 +123,7 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_eso_file(
-        cls, file_path: str, monitor: EsoFileMonitor = None, year: int = 2002,
+        cls, file_path: str, monitor: EsoFileProgressLogger = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFIle
