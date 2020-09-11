@@ -17,7 +17,6 @@ IGNORE = 100
 
 
 class GenericProgressLogger:
-
     def __init__(self, path: Union[str, Path], level=ERROR):
         self.path = path
         self.section_timestamps = []

@@ -354,7 +354,9 @@ def process_csv_table(
 
 
 def process_csv(
-    file_path: Path, monitor: EsoFileProgressLogger, force_index: bool = False,
+    file_path: Path,
+    monitor: EsoFileProgressLogger,
+    force_index: bool = False,
     header_limit: int = 10,
 ) -> Tuple[DFTables, Tree]:
     """ Create results file data based on given csv file."""

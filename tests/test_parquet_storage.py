@@ -230,7 +230,8 @@ class TestParquetStorage(unittest.TestCase):
         self.assertIsInstance(out, io.BytesIO)
 
     def test_store_file_logging(self):
-        self.storage.store_file(EF_ALL_INTERVALS,
-                                monitor=EsoFileProgressLogger("dummy", level=20))
+        self.storage.store_file(
+            EF_ALL_INTERVALS, monitor=EsoFileProgressLogger("dummy", level=20)
+        )
         self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
         self.assertEqual("eso", self.storage.files[0].file_type)

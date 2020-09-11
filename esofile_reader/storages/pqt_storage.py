@@ -246,8 +246,9 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFileType,
-        monitor: GenericProgressLogger = None) -> int:
+    def store_file(
+        self, results_file: ResultsFileType, monitor: GenericProgressLogger = None
+    ) -> int:
         """ Store results file as 'ParquetFile'. """
         if not monitor:
             monitor = GenericProgressLogger(results_file.file_path)
