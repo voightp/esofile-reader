@@ -363,10 +363,6 @@ class TestFileFunctions(unittest.TestCase):
                 test_df = test_ef.tables[table_name]
                 df.columns = df.columns.droplevel(ID_LEVEL)
                 test_df.columns = test_df.columns.droplevel(ID_LEVEL)
-
-                print(df)
-                print(test_df)
-
                 assert_frame_equal(df, test_df, check_dtype=False)
 
         finally:

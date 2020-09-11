@@ -1,17 +1,10 @@
 import datetime
-import logging
 import os
 import unittest
 from collections import defaultdict
 from functools import partial
 
 import numpy as np
-
-from esofile_reader import EsoFile, logger, ResultsFile
-from esofile_reader.base_file import IncompleteFile
-from esofile_reader.constants import *
-from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
-from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile import (
     process_statement_line,
     process_header_line,
@@ -19,13 +12,18 @@ from esofile_reader.processing.esofile import (
     process_sub_monthly_interval_lines,
     process_monthly_plus_interval_lines,
     read_body,
-    read_file,
     generate_outputs,
     generate_peak_outputs,
     remove_duplicates,
 )
+
+from esofile_reader import EsoFile
+from esofile_reader.base_file import IncompleteFile
+from esofile_reader.constants import *
+from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
+from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
-from esofile_reader.processing.monitor import EsoFileMonitor
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from tests import ROOT
 
@@ -80,7 +78,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         ]
         g = (l for l in f)
 
-        header_dct = read_header(g, EsoFileMonitor("foo"))
+        header_dct = read_header(g, EsoFileProgressLogger("foo"))
 
         test_header = defaultdict(partial(defaultdict))
         test_header["hourly"][7] = Variable(
@@ -98,11 +96,11 @@ class TestEsoFileProcessing(unittest.TestCase):
         ]
         g = (l for l in f)
         with self.assertRaises(BlankLineError):
-            read_header(g, EsoFileMonitor("foo"))
+            read_header(g, EsoFileProgressLogger("foo"))
 
     def test_read_header3(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, EsoFileMonitor("foo"))
+            header = read_header(f, EsoFileProgressLogger("foo"))
             self.assertEqual(header.keys(), header.keys())
 
             for interval, variables in header.items():
@@ -162,7 +160,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_read_body(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, EsoFileMonitor("foo"))
+            header = read_header(f, EsoFileProgressLogger("foo"))
 
         with open(self.body_pth, "r") as f:
             (
@@ -172,7 +170,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
-            ) = read_body(f, 6, header, False, EsoFileMonitor("dummy"))
+            ) = read_body(f, 6, header, False, EsoFileProgressLogger("dummy"))
             # fmt: off
             self.assertEqual(
                 raw_outputs[0]["timestep"][7],
@@ -276,7 +274,7 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
     def test_generate_peak_outputs(self):
-        monitor = EsoFileMonitor("foo")
+        monitor = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
             header = read_header(f, monitor)
 
@@ -305,7 +303,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
     def test_generate_outputs(self):
-        monitor = EsoFileMonitor("foo")
+        monitor = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
             header = read_header(f, monitor)
 
@@ -317,7 +315,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
-            ) = read_body(f, 6, header, False, EsoFileMonitor("dummy"))
+            ) = read_body(f, 6, header, False, EsoFileProgressLogger("dummy"))
 
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
 
@@ -341,7 +339,7 @@ class TestEsoFileProcessing(unittest.TestCase):
 
     def test_create_tree(self):
         with open(self.header_pth, "r") as f:
-            header = read_header(f, EsoFileMonitor("foo"))
+            header = read_header(f, EsoFileProgressLogger("foo"))
             tree = Tree()
             dup_ids = tree.populate_tree(header)
 
@@ -381,35 +379,33 @@ class TestEsoFileProcessing(unittest.TestCase):
     def test_header_invalid_line(self):
         f = (line for line in ["this is wrong!"])
         with self.assertRaises(AttributeError):
-            read_header(f, EsoFileMonitor("foo"))
+            read_header(f, EsoFileProgressLogger("foo"))
 
     def test_body_invalid_line(self):
         f = (line for line in ["this is wrong!"])
         with self.assertRaises(InvalidLineSyntax):
-            read_body(f, 6, {"a": []}, False, EsoFileMonitor("foo"))
+            read_body(f, 6, {"a": []}, False, EsoFileProgressLogger("foo"))
 
     def test_body_blank_line(self):
         f = (line for line in [""])
         with self.assertRaises(BlankLineError):
-            read_body(f, 6, {"a": []}, False, EsoFileMonitor("foo"))
+            read_body(f, 6, {"a": []}, False, EsoFileProgressLogger("foo"))
 
     def test_file_blank_line(self):
         with self.assertRaises(IncompleteFile):
-            read_file(self.incomplete, EsoFileMonitor("some/path"))
+            EsoFile(self.incomplete, EsoFileProgressLogger("foo"))
 
     def test_non_numeric_line(self):
         with self.assertRaises(InvalidLineSyntax):
-            read_file(
+            EsoFile(
                 os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"),
-                EsoFileMonitor("some/path")
+                EsoFileProgressLogger("foo")
             )
 
     def test_logging_level_info(self):
-        try:
-            logger.setLevel(logging.INFO)
-            EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"))
-
-        finally:
-            logger.setLevel(logging.ERROR)
+        EsoFile(
+            os.path.join(ROOT, "eso_files/eplusout1.eso"),
+            monitor=EsoFileProgressLogger("foo", level=20)
+        )
 
 # fmt: on

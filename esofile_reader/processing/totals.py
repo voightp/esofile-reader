@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Dict, Generator, Optional
 
@@ -5,7 +6,6 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.logger import logger
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.tables.df_tables import DFTables
 
@@ -71,7 +71,7 @@ def _get_group_key(string: str, groups: set) -> str:
         if re.match(f"^{g}.*", string):
             return g
     else:
-        logger.info(f"{string} not found!")
+        logging.info(f"{string} not found!")
 
 
 def _get_keyword(string: str, keywords: Dict[str, str]) -> str:

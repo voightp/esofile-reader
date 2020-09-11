@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import logging
 import math
 import shutil
 import tempfile
@@ -11,9 +12,8 @@ from zipfile import ZipFile
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.logger import logger
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.processing.monitor import StorageMonitor, GenericMonitor
+from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.tables.df_tables import DFTables
@@ -71,7 +71,7 @@ class ParquetFile(BaseFile):
         pardir: str = "",
         search_tree: Tree = None,
         name: str = None,
-        monitor: GenericMonitor = None,
+        monitor: GenericProgressLogger = None,
     ):
         self.id_ = id_
         self.workdir = Path(pardir, name) if name else Path(pardir, f"file-{id_}")
@@ -105,7 +105,7 @@ class ParquetFile(BaseFile):
         results_file: ResultsFileType,
         pardir: str = "",
         name: str = None,
-        monitor: GenericMonitor = None,
+        monitor: GenericProgressLogger = None,
     ):
         pqs = ParquetFile(
             id_=id_,
@@ -202,7 +202,7 @@ class ParquetFile(BaseFile):
 
         # use memory buffer if name or dir is not specified
         if name is None or dir_ is None:
-            logger.info("Name or dir not specified. Saving zip into IO Buffer.")
+            logging.info("Name or dir not specified. Saving zip into IO Buffer.")
             device = io.BytesIO()
         else:
             device = Path(dir_, f"{name}{self.EXT}")
@@ -246,11 +246,13 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(self, results_file: ResultsFileType, monitor: GenericMonitor = None) -> int:
+    def store_file(
+        self, results_file: ResultsFileType, monitor: GenericProgressLogger = None
+    ) -> int:
         """ Store results file as 'ParquetFile'. """
         if not monitor:
-            monitor = StorageMonitor(results_file.file_path)
-        monitor.log_task_started()
+            monitor = GenericProgressLogger(results_file.file_path)
+        monitor.log_task_started("Store file!")
         # number of steps is equal to number of parquet files
         n_steps = 0
         for tbl in results_file.tables.values():

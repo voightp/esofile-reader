@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Sequence, List, Dict, Optional, Union
 
@@ -5,7 +6,6 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.logger import logger
 from esofile_reader.mini_classes import SimpleVariable, Variable
 from esofile_reader.tables.base_tables import BaseTables
 from esofile_reader.tables.df_functions import merge_peak_outputs, slicer, sr_dt_slicer
@@ -187,7 +187,7 @@ class DFTables(BaseTables):
         df_length = len(self.tables[table].index)
         valid = len(array) == df_length
         if not valid:
-            logger.warning(
+            logging.warning(
                 f"New variable contains {len(array)} values, "
                 f"df length is {df_length}! Variable '{variable}' cannot be added."
             )
@@ -221,7 +221,7 @@ class DFTables(BaseTables):
         df_length = len(self.tables[table].index)
         valid = len(array) == df_length
         if not valid:
-            logger.warning(
+            logging.warning(
                 f"Variable contains {len(array)} values, "
                 f"df length is {df_length}! Variable cannot be updated."
             )

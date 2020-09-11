@@ -248,7 +248,9 @@ class TestOutputsConversion(unittest.TestCase):
             _ = convert_rate_to_energy(df, M)
 
     def test_energy_units_invalid(self):
-        self.assertIsNone(energy_table("FOO"))
+        with self.assertRaises(KeyError):
+            _ = energy_table("FOO")
 
     def test_rate_units_invalid(self):
-        self.assertIsNone(rate_table("FOO"))
+        with self.assertRaises(KeyError):
+            _ = rate_table("FOO")

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Union, List, Optional
 
@@ -5,7 +6,6 @@ import pandas as pd
 
 from esofile_reader.base_file import BaseFile, VariableType
 from esofile_reader.eso_file import EsoFile
-from esofile_reader.logger import logger
 
 
 def get_results(
@@ -127,7 +127,7 @@ def _get_results_multiple_files(file_list, variables, **kwargs):
         else:
             rstr = variables
 
-        logger.warning(
+        logging.warning(
             f"Any of requested variables was not found!\nRequested variables: [{rstr}]"
         )
         return

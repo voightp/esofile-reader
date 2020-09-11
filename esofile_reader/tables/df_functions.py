@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Sequence, Optional, List
 
@@ -5,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.logger import logger
 from esofile_reader.processing.esofile_intervals import parse_result_dt
 
 
@@ -96,7 +96,7 @@ def sort_by_ids(df: pd.DataFrame, ids: List[int]):
         if not ix.empty:
             indexes.extend(ix)
         else:
-            logger.warning(f"Id {id_} is not included in given DataFrame.")
+            logging.warning(f"Id {id_} is not included in given DataFrame.")
     return df.iloc[:, indexes]
 
 

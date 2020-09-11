@@ -1,6 +1,5 @@
+import logging
 from typing import Tuple, Union, Callable
-
-from esofile_reader.logger import logger
 
 
 def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
@@ -58,11 +57,8 @@ def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Unio
         "mbtu": ("J/m2", "MBtu/ft2", 1055056000 * 10.76391),
     }
 
-    try:
-        tbl = table_pa if per_area else table
-        return tbl[new_units.lower()]
-    except KeyError:
-        logger.info(f"Specified energy units '{new_units}' cannot be converted!")
+    tbl = table_pa if per_area else table
+    return tbl[new_units.lower()]
 
 
 def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
@@ -108,11 +104,8 @@ def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[
         "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 * 10.76391),
     }
 
-    try:
-        tbl = table_pa if per_area else table
-        return tbl[new_units.lower()]
-    except KeyError:
-        logger.info(f"Specified rate units '{new_units}'cannot be converted!")
+    tbl = table_pa if per_area else table
+    return tbl[new_units.lower()]
 
 
 def si_to_ip(orig_units: str) -> Tuple[str, str, Union[int, float, Callable]]:
@@ -203,7 +196,7 @@ def si_to_ip(orig_units: str) -> Tuple[str, str, Union[int, float, Callable]]:
     try:
         return (orig_units, *table[orig_units])
     except KeyError:
-        logger.info(f"Cannot convert to IP, original units '{orig_units}' left!")
+        logging.info(f"Cannot convert to IP, original units '{orig_units}' left!")
 
 
 # duplicates = {
