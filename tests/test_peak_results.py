@@ -360,12 +360,14 @@ class TestPeakResults(unittest.TestCase):
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), ignore_peaks=True
         )
         with self.assertRaises(PeaksNotIncluded):
-            ef.get_results([], output_type="local_min")
+            ef.get_results(
+                [Variable("runperiod", "BLOCK1:ZONE1", "Zone People Occupant Count", "")],
+                output_type="local_min",
+            )
 
     def test_local_peaks_incorrect_interval(self):
         variables = [
             Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
         ]
-        self.assertIsNone(
-            EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
-        )
+        with self.assertRaises(PeaksNotIncluded):
+            _ = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")

@@ -38,8 +38,8 @@ class TestResultFetchingSimple(unittest.TestCase):
         cls.files["pqf"].clean_up()
         cls.files["pqf"] = None
 
-    @parameterized.expand(["dff", "pqf"])
-    def test_get_results(self, key):
+    # @parameterized.expand(["dff", "pqf"])
+    def test_get_results(self, key="dff"):
         file = self.files[key]
         v = SimpleVariable("monthly-simple", "BLOCK1:ZONE1", "C")
         df = get_results(file, v)

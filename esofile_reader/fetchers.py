@@ -1,11 +1,13 @@
 import logging
 from datetime import datetime
-from typing import Union, List, Optional
+from typing import Optional, Union, List
 
 import pandas as pd
 
-from esofile_reader.base_file import BaseFile, VariableType
 from esofile_reader.eso_file import EsoFile
+from esofile_reader import base_file
+from esofile_reader.mini_classes import VariableType, ResultsFileType
+from esofile_reader.results_processing.process_results import process_results
 
 
 def get_results(
@@ -98,37 +100,31 @@ def get_results(
         "ignore_peaks": ignore_peaks,
     }
     if isinstance(files, list):
-        return _get_results_multiple_files(files, variables, **kwargs)
-    return _get_results(files, variables, **kwargs)
+        return get_results_from_multiple_files(files, variables, **kwargs)
+    return get_results_from_single_file(files, variables, **kwargs)
 
 
-def _get_results(file, variables, **kwargs):
+def get_results_from_single_file(file, variables, **kwargs):
     """ Load eso file and return requested results. """
     ignore_peaks = kwargs.pop("ignore_peaks")
-    if issubclass(file.__class__, BaseFile):
-        eso_file = file
+    if issubclass(type(file), base_file.BaseFile):
+        results_file = file
     else:
-        eso_file = EsoFile(file, ignore_peaks=ignore_peaks)
-    return eso_file.get_results(variables, **kwargs)
+        results_file = EsoFile(file, ignore_peaks=ignore_peaks)
+    return process_results(results_file, variables, **kwargs)
 
 
-def _get_results_multiple_files(file_list, variables, **kwargs):
+def get_results_from_multiple_files(file_list, variables, **kwargs):
     """ Extract results from multiple files. """
     frames = []
     for file in file_list:
-        df = _get_results(file, variables, **kwargs)
+        df = get_results_from_single_file(file, variables, **kwargs)
         if df is not None:
             frames.append(df)
     try:
         res = pd.concat(frames, axis=1, sort=False)
     except ValueError:
-        if isinstance(variables, list):
-            rstr = ", ".join(["'{} {} {} {}'".format(*tup) for tup in variables])
-        else:
-            rstr = variables
-
-        logging.warning(
-            f"Any of requested variables was not found!\nRequested variables: [{rstr}]"
-        )
+        # joined_variables = ", ".join(variables) if isinstance(variables, list) else variables
+        logging.warning(f"Any of requested variables: '[{variables}]' was not found!")
         return
     return res

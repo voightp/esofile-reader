@@ -6,11 +6,10 @@ import pandas as pd
 from esofile_reader.constants import *
 
 
-def update_dt_format(df: pd.DataFrame, timestamp_format: str) -> pd.DataFrame:
+def update_datetime_format(df: pd.DataFrame, timestamp_format: str) -> pd.DataFrame:
     """ Set specified 'datetime' str format. """
     if TIMESTAMP_COLUMN in df.index.names:
         ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
-
         if isinstance(ts_index, pd.DatetimeIndex):
             new_index = ts_index.strftime(timestamp_format)
             if isinstance(df.index, pd.DatetimeIndex):

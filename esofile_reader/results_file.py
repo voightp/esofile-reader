@@ -1,9 +1,8 @@
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Optional, Tuple
+from typing import Union, List, Optional
 
-from esofile_reader.base_file import BaseFile
+from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
@@ -20,13 +19,6 @@ except ModuleNotFoundError:
 
     pyximport.install(pyximport=True, language_level=3)
     from esofile_reader.processing.esofile import read_file
-
-
-def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
-    path = Path(file_path)
-    file_name = path.stem
-    file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-    return path, file_name, file_created
 
 
 class ResultsFile(BaseFile):
@@ -84,7 +76,7 @@ class ResultsFile(BaseFile):
         """ Generate 'ResultsFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
-            progress_logger = EsoFileProgressLogger(file_path)
+            progress_logger = EsoFileProgressLogger(file_path.name)
         progress_logger.log_task_started("Processing xlsx file.")
         tables, search_tree = process_excel(
             file_path,

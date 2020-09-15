@@ -76,12 +76,12 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test__find_pairs(self):
         v = Variable(table="range", key="ZoneC", type="Temperature", units="C")
-        out = self.bf._find_pairs(v, part_match=False)
+        out = self.bf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
         v = Variable(table="range", key="BLOCK1", type="Zone People Occupant Count", units="")
-        out = self.bf._find_pairs(v, part_match=False)
+        out = self.bf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):
