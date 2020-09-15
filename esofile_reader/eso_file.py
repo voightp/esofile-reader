@@ -70,12 +70,12 @@ class ResultsEsoFile(BaseFile):
         year: int = 2002,
     ) -> List[ForwardRef("EsoFile")]:
         """ Generate independent 'EsoFile' for each environment. """
+        file_path, file_name, file_created = get_file_information(file_path)
         if progress_logger is None:
-            progress_logger = EsoFileProgressLogger(file_path)
+            progress_logger = EsoFileProgressLogger(file_path.name)
         progress_logger.log_task_started("Process eso file data!")
 
         eso_files = []
-        file_path, file_name, file_created = get_file_information(file_path)
         content = read_file(file_path, progress_logger, ignore_peaks=ignore_peaks, year=year)
         content = [c for c in list(zip(*content))[::-1]]  # reverse to get last processed first
         for i, (environment, data, peak_outputs, tree) in enumerate(content):

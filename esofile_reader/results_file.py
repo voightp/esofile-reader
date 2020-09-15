@@ -102,7 +102,7 @@ class ResultsFile(BaseFile):
         """ Generate 'ResultsFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
-            progress_logger = EsoFileProgressLogger(file_path)
+            progress_logger = EsoFileProgressLogger(file_path.name)
         progress_logger.log_task_started("Process csv file!")
         tables, search_tree = process_csv(
             file_path, progress_logger, force_index=force_index, header_limit=header_limit,
