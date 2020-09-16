@@ -150,16 +150,16 @@ class TestOutputsConversion(unittest.TestCase):
         self.assertListEqual(df.columns.tolist(), [(1, "ft"), (2, "W/m2")])
 
     def test_rate_and_energy_units(self):
-        self.assertTrue(is_rate_or_energy(["W", "J", "J"]))
+        self.assertTrue(all_rate_or_energy(["W", "J", "J"]))
 
     def test_rate_and_energy_units_per_area(self):
-        self.assertTrue(is_rate_or_energy(["W/m2", "J/m2", "J/m2"]))
+        self.assertTrue(all_rate_or_energy(["W/m2", "J/m2", "J/m2"]))
 
     def test_rate_and_energy_units_invalid(self):
-        self.assertFalse(is_rate_or_energy(["W", "J", "J/m2"]))
+        self.assertFalse(all_rate_or_energy(["W", "J", "J/m2"]))
 
     def test_rate_and_energy_units_per_area_invalid(self):
-        self.assertFalse(is_rate_or_energy(["W/m2", "JW/m2", "J"]))
+        self.assertFalse(all_rate_or_energy(["W/m2", "JW/m2", "J"]))
 
     def test_get_n_steps(self):
         dt_index = pd.date_range("01/01/2002 01:00", freq="h", periods=5)

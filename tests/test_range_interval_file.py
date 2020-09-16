@@ -5,7 +5,8 @@ from pathlib import Path
 import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 
-from esofile_reader.base_file import BaseFile, CannotAggregateVariables
+from esofile_reader.base_file import BaseFile
+from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.pqt_storage import ParquetStorage

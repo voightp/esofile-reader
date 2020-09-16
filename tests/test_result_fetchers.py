@@ -7,8 +7,8 @@ from pandas.testing import assert_frame_equal
 from parameterized import parameterized
 
 from esofile_reader import EsoFile, get_results
-from esofile_reader.base_file import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.eso_file import PeaksNotIncluded
+from esofile_reader.exceptions import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage

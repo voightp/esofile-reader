@@ -106,7 +106,7 @@ def update_multiindex(
         df.index = new_mi
 
 
-def is_rate_or_energy(units: List[str]) -> bool:
+def all_rate_or_energy(units: List[str]) -> bool:
     """ Check if all units are rate and energy. """
     return all(map(lambda x: x in ("J", "W"), units)) or all(
         map(lambda x: x in ("J/m2", "W/m2"), units)

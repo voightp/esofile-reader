@@ -18,9 +18,8 @@ from esofile_reader.processing.esofile import (
 )
 
 from esofile_reader import EsoFile
-from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
+from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger

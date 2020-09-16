@@ -4,21 +4,21 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Sequence, Callable, Optional, Union, List, Tuple
+from typing import Dict, Sequence, Optional, Union, List, Tuple
 
 import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.convertor import (
-    is_rate_or_energy,
-    convert_rate_to_energy,
     is_daily,
     is_hourly,
     is_timestep,
 )
-from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
-from esofile_reader.results_processing.process_results import process_results
+from esofile_reader.results_processing.process_results import (
+    process_results,
+    aggregate_variables,
+)
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -275,101 +275,8 @@ class BaseFile:
     def get_results(self, *args, **kwargs):
         return process_results(self, *args, **kwargs)
 
-    def aggregate_variables(
-        self,
-        variables: Union[VariableType, List[VariableType]],
-        func: Union[str, Callable],
-        new_key: str = "Custom Key",
-        new_type: str = "Custom Variable",
-        part_match: bool = False,
-    ) -> Optional[Tuple[int, VariableType]]:
-        """
-        Aggregate given variables using given function.
-
-        A new 'Variable' with specified key and variable names
-        will be added into the file.
-
-        Parameters
-        ----------
-        variables : list of Variable
-            A list of 'Variable' named tuples.
-        func: func, func name
-            Function to use for aggregating the data.
-            It can be specified as np.mean, 'mean', 'sum', etc.
-        new_key: str, default 'Custom Key'
-            Specific key for a new variable. If this would not be
-            unique, unique number is added automatically.
-        new_type: str, default 'Custom Variable'
-            Specific variable name for a new variable. If all the
-            input 'Variables' share the same variable name, this
-            will be used if nto specified otherwise.
-        part_match : bool
-            Only substring of the part of variable is enough
-        to match when searching for variables if this is True.
-
-        Returns
-        -------
-        int, Variable or None
-            A numeric id of the new added variable. If the variable
-            could not be added, None is returned.
-
-        """
-        groups = self.find_table_id_map(variables, part_match=part_match)
-        if not groups:
-            raise CannotAggregateVariables("Cannot find variables!")
-
-        if len(groups.keys()) > 1:
-            raise CannotAggregateVariables("Cannot aggregate variables from different tables!")
-
-        table, ids = list(groups.items())[0]
-        if len(ids) < 2:
-            raise CannotAggregateVariables("Cannot aggregate less than 2 variables.!")
-
-        df = self.tables.get_results(table, ids)
-        units = df.columns.get_level_values(UNITS_LEVEL).tolist()
-
-        if len(set(units)) == 1:
-            # no processing required
-            units = units[0]
-        elif is_rate_or_energy(units):
-            # it's needed to assign multi index to convert energy
-            if self.can_convert_rate_to_energy(table):
-                try:
-                    n_days = self.tables.get_special_column(table, N_DAYS_COLUMN)
-                except KeyError:
-                    # n_days is not required for daily, hourly and timestep intervals
-                    n_days = None
-                df = convert_rate_to_energy(df, n_days)
-                units = next(u for u in units if u in ("J", "J/m2"))
-            else:
-                raise CannotAggregateVariables(
-                    "Cannot aggregate variables. Variables use different units!"
-                )
-        else:
-            raise CannotAggregateVariables(
-                "Cannot aggregate variables. Variables use different units!"
-            )
-
-        sr = df.aggregate(func, axis=1)
-
-        # use original names if defaults are kept
-        if TYPE_LEVEL in df.columns.names:
-            variable_types = df.columns.get_level_values(TYPE_LEVEL).tolist()
-            if new_type == "Custom Variable":
-                if all(map(lambda x: x == variable_types[0], variable_types)):
-                    new_type = variable_types[0]
-        else:
-            # new_type is not valid for SimpleVariable
-            new_type = None
-
-        if new_key == "Custom Key":
-            func_name = func.__name__ if callable(func) else func
-            new_key = f"{new_key} - {func_name}"
-
-        # return value can be either tuple (id, Variable) or None
-        out = self.insert_variable(table, new_key, units, sr, type_=new_type)
-
-        return out
+    def aggregate_variables(*args, **kwargs):
+        return aggregate_variables(*args, **kwargs)
 
     def remove_variables(
         self, variables: Union[VariableType, List[VariableType]]

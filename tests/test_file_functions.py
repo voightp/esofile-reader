@@ -8,8 +8,8 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, Variable, ResultsFile
-from esofile_reader.base_file import CannotAggregateVariables
 from esofile_reader.constants import *
+from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.results_processing.process_results import (
     finalize_table_format,
     add_file_name_level,
