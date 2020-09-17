@@ -275,8 +275,8 @@ class BaseFile:
     def get_results(self, *args, **kwargs):
         return process_results(self, *args, **kwargs)
 
-    def aggregate_variables(*args, **kwargs):
-        return aggregate_variables(*args, **kwargs)
+    def aggregate_variables(self, *args, **kwargs):
+        return aggregate_variables(self, *args, **kwargs)
 
     def remove_variables(
         self, variables: Union[VariableType, List[VariableType]]
