@@ -7,7 +7,7 @@ import pandas as pd
 from esofile_reader.eso_file import EsoFile
 from esofile_reader import base_file
 from esofile_reader.mini_classes import VariableType, ResultsFileType
-from esofile_reader.results_processing.process_results import process_results
+from esofile_reader.results_processing.process_results import get_processed_results
 
 
 def get_results(
@@ -111,7 +111,7 @@ def get_results_from_single_file(file, variables, **kwargs):
         results_file = file
     else:
         results_file = EsoFile(file, ignore_peaks=ignore_peaks)
-    return process_results(results_file, variables, **kwargs)
+    return get_processed_results(results_file, variables, **kwargs)
 
 
 def get_results_from_multiple_files(file_list, variables, **kwargs):

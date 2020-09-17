@@ -65,7 +65,7 @@ def finalize_table_format(
     return df
 
 
-def process_results(
+def get_processed_results(
     results_file: ResultsFileType,
     variables: Union[VariableType, List[VariableType], int, List[int]],
     start_date: Optional[datetime] = None,
@@ -223,12 +223,27 @@ def get_table_for_aggregation(
     return df
 
 
+def process_default_name(
+    df: pd.DataFrame, func_name: str, new_key: str, new_type: str,
+) -> Tuple[str, Optional[str]]:
+    """ Modify type and key if passed as default. """
+    if TYPE_LEVEL in df.columns.names:
+        all_types = df.columns.get_level_values(TYPE_LEVEL).tolist()
+        if new_type == "Custom Type" and all(map(lambda x: x == all_types[0], all_types)):
+            new_type = all_types[0]
+    else:
+        new_type = None
+    if new_key == "Custom Key":
+        new_key += f" - {func_name}"
+    return new_key, new_type
+
+
 def aggregate_variables(
     results_file: ResultsFileType,
     variables: Union[VariableType, List[VariableType]],
     func: Union[str, Callable],
     new_key: str = "Custom Key",
-    new_type: str = "Custom Variable",
+    new_type: str = "Custom Type",
     part_match: bool = False,
 ) -> Optional[Tuple[int, VariableType]]:
     """
@@ -255,7 +270,7 @@ def aggregate_variables(
         will be used if nto specified otherwise.
     part_match : bool
         Only substring of the part of variable is enough
-    to match when searching for variables if this is True.
+        to match when searching for variables if this is True.
 
     Returns
     -------
@@ -282,20 +297,8 @@ def aggregate_variables(
 
     sr = df.aggregate(func, axis=1)
 
-    # use original names if defaults are kept
-    if TYPE_LEVEL in df.columns.names:
-        variable_types = df.columns.get_level_values(TYPE_LEVEL).tolist()
-        if new_type == "Custom Variable":
-            if all(map(lambda x: x == variable_types[0], variable_types)):
-                new_type = variable_types[0]
-    else:
-        # new_type is not valid for SimpleVariable
-        new_type = None
-
-    if new_key == "Custom Key":
-        func_name = func.__name__ if callable(func) else func
-        new_key = f"{new_key} - {func_name}"
-
+    func_name = func.__name__ if callable(func) else func
+    new_key, new_type = process_default_name(df, func_name, new_key, new_type)
     new_units = units[0]
 
     # return value can be either tuple (id, Variable) or None

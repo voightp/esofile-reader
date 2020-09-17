@@ -268,7 +268,7 @@ class TestFileFunctions(unittest.TestCase):
         df = EF_ALL_INTERVALS.get_results(var)
 
         test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
+            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
         )
         test_index = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], [datetime(2002, i, 1) for i in range(1, 13)]],
@@ -301,7 +301,7 @@ class TestFileFunctions(unittest.TestCase):
         test_sr = EF_ALL_INTERVALS.get_results([v1, v2], rate_to_energy=True).sum(axis=1)
         test_df = pd.DataFrame(test_sr)
         test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
+            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
         )
         test_df.columns = test_mi
 

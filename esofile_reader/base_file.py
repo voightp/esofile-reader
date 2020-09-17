@@ -16,7 +16,7 @@ from esofile_reader.convertor import (
 )
 from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
 from esofile_reader.results_processing.process_results import (
-    process_results,
+    get_processed_results,
     aggregate_variables,
 )
 from esofile_reader.search_tree import Tree
@@ -273,7 +273,7 @@ class BaseFile:
             return id_, new_variable
 
     def get_results(self, *args, **kwargs):
-        return process_results(self, *args, **kwargs)
+        return get_processed_results(self, *args, **kwargs)
 
     def aggregate_variables(self, *args, **kwargs):
         return aggregate_variables(self, *args, **kwargs)
