@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "esofile-reader"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["voightp <vojtechpanek@seznam.cz>"]
 license = "Proprietary"
