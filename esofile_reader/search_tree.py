@@ -105,7 +105,7 @@ class Tree:
 
     @classmethod
     def from_header_dict(cls, header_dct: Dict[str, Dict[int, Variable]]) -> "Tree":
-        """ Create a search tree. """
+        """ Create a search tree instance from header dictionary. """
         tree = Tree()
         duplicates = {}
         for table, data in header_dct.items():
