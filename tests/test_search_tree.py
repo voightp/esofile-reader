@@ -1,5 +1,7 @@
 import unittest
+from copy import deepcopy
 
+from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.search_tree import Tree, Node
 
@@ -22,12 +24,9 @@ class TestSimpleSearchTree(unittest.TestCase):
                 12: SimpleVariable("monthly", "Meter BLOCK1:ZONE2#LIGHTS", "J"),
                 13: SimpleVariable("monthly", "Some Flow 1 Mass Flow", "kg/s"),
                 14: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
-                15: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
-                16: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
             },
         }
-        self.tree = Tree()
-        self.tree.populate_tree(self.header)
+        self.tree = Tree.from_header_dict(self.header)
 
     def test_node_init(self):
         node = Node(None, "FOO")
@@ -36,8 +35,7 @@ class TestSimpleSearchTree(unittest.TestCase):
         self.assertDictEqual(dict(), node.children)
 
     def test_tree_structure(self):
-        tree = Tree()
-        tree.populate_tree(
+        tree = Tree.from_header_dict(
             {
                 "daily": {
                     1: SimpleVariable("daily", "c", "b"),
@@ -75,16 +73,17 @@ class TestSimpleSearchTree(unittest.TestCase):
         self.assertEqual(18, id_)
         self.assertEqual([11], self.tree.find_ids(v))
 
-    def test_populate_tree(self):
-        tree = Tree()
-        duplicates = tree.populate_tree(self.header)
-        self.assertDictEqual(
-            {
-                15: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
-                16: SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s"),
-            },
-            duplicates,
-        )
+    def test_tree_from_dict_duplicates(self):
+        duplicate_header = deepcopy(self.header)
+        v = SimpleVariable("monthly", "Some Curve Performance Curve 1", "kg/s")
+        duplicate_header["monthly"][15] = v
+        duplicate_header["monthly"][16] = v
+        try:
+            _ = Tree.from_header_dict(duplicate_header)
+        except DuplicateVariable as e:
+            self.assertDictEqual({15: v, 16: v}, e.duplicates)
+        else:
+            self.fail("DuplicateVariable exception not raised!")
 
     def test_variable_exists(self):
         self.assertTrue(
@@ -171,12 +170,9 @@ class TestSearchTree(unittest.TestCase):
                 12: Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
                 13: Variable("monthly", "Some Flow 1", "Mass Flow", "kg/s"),
                 14: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-                15: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-                16: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
             },
         }
-        self.tree = Tree()
-        self.tree.populate_tree(self.header)
+        self.tree = Tree.from_header_dict(self.header)
 
     def test_node_init(self):
         node = Node(None, "FOO")
@@ -185,8 +181,7 @@ class TestSearchTree(unittest.TestCase):
         self.assertDictEqual(dict(), node.children)
 
     def test_tree_structure(self):
-        tree = Tree()
-        tree.populate_tree(
+        tree = Tree.from_header_dict(
             {
                 "daily": {
                     1: Variable("daily", "b", "c", "d"),
@@ -224,17 +219,6 @@ class TestSearchTree(unittest.TestCase):
         id_ = self.tree._add_branch(18, v)
         self.assertEqual(18, id_)
         self.assertEqual([11], self.tree.find_ids(v))
-
-    def test_populate_tree(self):
-        tree = Tree()
-        duplicates = tree.populate_tree(self.header)
-        self.assertDictEqual(
-            {
-                15: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-                16: Variable("monthly", "Some Curve", "Performance Curve 1", "kg/s"),
-            },
-            duplicates,
-        )
 
     def test_variable_exists(self):
         self.assertTrue(
@@ -318,12 +302,10 @@ class TestMixedSearchTree(unittest.TestCase):
                 9: Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
             },
         }
-        self.tree = Tree()
-        self.tree.populate_tree(self.header)
+        self.tree = Tree.from_header_dict(self.header)
 
     def test_tree_structure(self):
-        tree = Tree()
-        tree.populate_tree(
+        tree = Tree.from_header_dict(
             {
                 "daily": {
                     1: SimpleVariable("daily", "c", "b"),

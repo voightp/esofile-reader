@@ -68,8 +68,7 @@ class TestTotalsFile(TestCase):
         tables["monthly"] = monthly_results
         tables["range"] = range_results
 
-        tree = Tree()
-        tree.populate_tree(tables.get_all_variables_dct())
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
 
         bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree)
         cls.tf = ResultsFile.from_totals(bf)

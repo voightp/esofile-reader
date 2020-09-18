@@ -132,8 +132,7 @@ class ResultsFile(BaseFile):
         file_created = results_file.file_created  # use base file timestamp
         tables = process_totals(results_file)
         if not tables.empty:
-            tree = Tree()
-            tree.populate_tree(tables.get_all_variables_dct())
+            tree = Tree.from_header_dict(tables.get_all_variables_dct())
             results_file = ResultsFile(
                 file_path, file_name, file_created, tables, tree, file_type=ResultsFile.TOTALS
             )
@@ -149,8 +148,7 @@ class ResultsFile(BaseFile):
         file_created = datetime.utcnow()
         tables = process_diff(file, other_file)
         if not tables.empty:
-            tree = Tree()
-            tree.populate_tree(tables.get_all_variables_dct())
+            tree = Tree.from_header_dict(tables.get_all_variables_dct())
             results_file = ResultsFile(
                 file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
             )

@@ -299,8 +299,7 @@ def process_workbook(
 
     if len(df_tables.keys()) > 0:
         progress_logger.log_section_started("generating search tree!")
-        tree = Tree()
-        tree.populate_tree(df_tables.get_all_variables_dct())
+        tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
     else:
         raise NoResults(f"There aren't any numeric outputs in file {wb.path}.")
 
@@ -345,10 +344,9 @@ def process_csv_table(
 
     if len(df_tables.keys()) > 0:
         progress_logger.log_section_started("generating search tree!")
-        tree = Tree()
-        tree.populate_tree(df_tables.get_all_variables_dct())
+        tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
     else:
-        raise NoResults(f"There aren't any numeric outputs in file {progress_logger.path}.")
+        raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
 
     return df_tables, tree
 

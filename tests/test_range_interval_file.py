@@ -39,8 +39,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         tables = DFTables()
         tables["range"] = results
 
-        tree = Tree()
-        tree.populate_tree(tables.get_all_variables_dct())
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
         bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree)
         cls.bf = bf
 

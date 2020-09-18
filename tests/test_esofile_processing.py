@@ -23,7 +23,6 @@ from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, Incompl
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.search_tree import Tree
 from tests import ROOT
 
 
@@ -319,7 +318,8 @@ class TestEsoFileProcessing(unittest.TestCase):
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
-        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, progress_logger, 1)
+        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, progress_logger,
+                                   1)
 
         for interval, df in outputs.tables.items():
             key_level = df.columns.get_level_values("key")
@@ -335,32 +335,6 @@ class TestEsoFileProcessing(unittest.TestCase):
                 self.assertTrue(("special", interval, "day", "", "") == df.columns[0])
             else:
                 self.assertTrue(("special", interval, "n days", "", "") == df.columns[0])
-
-    def test_create_tree(self):
-        with open(self.header_pth, "r") as f:
-            header = read_header(f, EsoFileProgressLogger("foo"))
-            tree = Tree()
-            dup_ids = tree.populate_tree(header)
-
-            self.assertEqual(dup_ids, {})
-
-            dup1 = Variable(
-                "runperiod",
-                "BLOCK1:ZONE1",
-                "Zone Mechanical Ventilation Air Changes per Hour",
-                "ach",
-            )
-            dup2 = Variable(
-                "daily", "Environment", "Site Outdoor Air Drybulb Temperature", "C"
-            )
-
-            header["runperiod"][625] = dup1
-            header["daily"][626] = dup2
-            header["daily"][627] = dup2
-
-            tree = Tree()
-            dup_ids = tree.populate_tree(header)
-            self.assertDictEqual(dup_ids, {626: dup2, 627: dup2, 625: dup1})
 
     def test_remove_duplicates(self):
         v1 = Variable("hourly", "a", "b", "c")

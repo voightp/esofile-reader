@@ -15,7 +15,7 @@ from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger, GenericProgressLogger
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_functions import create_peak_outputs
 from esofile_reader.tables.df_tables import DFTables
@@ -74,7 +74,8 @@ def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
     return int(line_id), key, type_, units, interval.lower()
 
 
-def read_header(eso_file: TextIO, monitor: EsoFileProgressLogger) -> Dict[str, Dict[int, Variable]]:
+def read_header(eso_file: TextIO, monitor: EsoFileProgressLogger) -> Dict[
+    str, Dict[int, Variable]]:
     """
     Read header dictionary of the eso file.
 
@@ -368,7 +369,8 @@ def read_body(
             else:
                 try:
                     if line_id > 3:
-                        interval, date, n_days = process_monthly_plus_interval_lines(line_id, line)
+                        interval, date, n_days = process_monthly_plus_interval_lines(line_id,
+                                                                                     line)
                         cumulative_days[interval].append(n_days)
                     else:
                         interval, date, day = process_sub_monthly_interval_lines(line_id, line)
@@ -506,16 +508,13 @@ def generate_outputs(
 
 
 def remove_duplicates(
-    duplicate_ids: Dict[int, Variable],
+    duplicates: Dict[int, Variable],
     header: Dict[str, Dict[int, Variable]],
     outputs: Dict[str, Dict[int, List[float]]]
 ) -> None:
     """ Remove duplicate outputs from results set. """
-    for id_, v in duplicate_ids.items():
-        logging.info(
-            f"Duplicate variable found, removing variable id: '{id_}' - "
-            f"{v.table} | {v.key} | {v.type} | {v.units}."
-        )
+    for id_, v in duplicates.items():
+        logging.info(f"Duplicate variable found, removing variable: '{id_} - {v}'.")
         for dct in [header, outputs]:
             try:
                 del dct[v.table][id_]
@@ -569,14 +568,14 @@ def process_file(
         monitor.log_section_started("generating search tree!")
         header = deepcopy(orig_header)
 
-        tree = Tree()
-        dup_ids = tree.populate_tree(header)
+        try:
+            tree = Tree.from_header_dict(header)
+        except DuplicateVariable as e:
+            tree = e.clean_tree
+            remove_duplicates(e.duplicates, header, out)
+
         trees.append(tree)
         monitor.increment_progress(step)
-
-        if dup_ids:
-            # remove duplicates from header and outputs
-            remove_duplicates(dup_ids, header, out)
 
         if not ignore_peaks:
             monitor.log_section_started("generating peak tables!")

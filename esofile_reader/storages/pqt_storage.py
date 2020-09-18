@@ -83,8 +83,7 @@ class ParquetFile(BaseFile):
         )
 
         if search_tree is None:
-            search_tree = Tree()
-            search_tree.populate_tree(tables.get_all_variables_dct())
+            search_tree = Tree.from_header_dict(tables.get_all_variables_dct())
 
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
