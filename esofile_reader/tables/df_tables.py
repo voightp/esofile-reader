@@ -127,7 +127,7 @@ class DFTables(BaseTables):
     def get_variables_dct(self, table: str) -> Dict[int, Union[Variable, SimpleVariable]]:
         cls = SimpleVariable if self.is_simple(table) else Variable
         header_dct = {}
-        for row in self.get_all_variables_df().to_numpy():
+        for row in self.get_variables_df(table).to_numpy():
             header_dct[row[0]] = cls(*row[1:])
         return header_dct
 
