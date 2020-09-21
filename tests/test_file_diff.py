@@ -5,6 +5,7 @@ from pandas.testing import assert_series_equal
 
 from esofile_reader import EsoFile, ResultsFile
 from esofile_reader.constants import *
+from esofile_reader.exceptions import NoResults
 from tests import EF1, EF2, EF_ALL_INTERVALS, ROOT
 
 
@@ -51,4 +52,5 @@ class TestDiffFIle(TestCase):
         del ef2.tables["monthly"]
         del ef2.tables["runperiod"]
 
-        self.assertIsNone(ResultsFile.from_diff(ef1, ef2))
+        with self.assertRaises(NoResults):
+            _ = ResultsFile.from_diff(ef1, ef2)

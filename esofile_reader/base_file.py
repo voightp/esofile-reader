@@ -102,6 +102,14 @@ class BaseFile:
         """ Get all variables for given table. """
         return self.tables.get_variables_df(table)
 
+    def get_special_table(self, table: str) -> pd.DataFrame:
+        """ Return the file as a single DataFrame (without special columns). """
+        try:
+            df = self.tables.get_special_table(table)
+        except KeyError:
+            raise KeyError(f"Cannot find special table: '{table}'.\n{traceback.format_exc()}")
+        return df
+
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
         try:

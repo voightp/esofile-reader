@@ -1,52 +1,68 @@
+from typing import Tuple
+
 import pandas as pd
 
-from esofile_reader.constants import N_DAYS_COLUMN, DAY_COLUMN, ID_LEVEL
+from esofile_reader.constants import ID_LEVEL
+from esofile_reader.exceptions import NoResults
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 
-def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
+def can_subtract_table(table: str, file: ResultsFileType, other_file: ResultsFileType) -> bool:
+    """ Check if tables can be subtracted. """
+    try:
+        # avoid different column indexes
+        if file.tables.is_simple(table) != other_file.tables.is_simple(table):
+            return False
+    except KeyError:
+        # table is not available on the other file
+        return False
+    return True
+
+
+def subtract_tables(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """ Get 'difference' DataFrame for matching index and columns. """
+    index_cond = df1.index.intersection(df2.index).tolist()
+    columns_cond = df1.columns.intersection(df2.columns).tolist()
+    df = df1.loc[index_cond, columns_cond] - df2.loc[index_cond, columns_cond]
+    df.dropna(how="all", inplace=True, axis=1)
+    return df
+
+
+def get_shared_special_table(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """ Get shared special columns for matching index. """
+    index_cond = df1.index.intersection(df2.index).tolist()
+    columns_cond = df1.columns.intersection(df2.columns).tolist()
+    return df1.loc[index_cond, columns_cond]
+
+
+def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> Tuple[DFTables, Tree]:
     """ Create diff outputs. """
     tables = DFTables()
     id_gen = incremental_id_gen()
-
     for table in file.table_names:
-        try:
-            # avoid different column indexes
-            if file.tables.is_simple(table) != other_file.tables.is_simple(table):
-                continue
-        except KeyError:
-            # table is not available on the other file
-            continue
+        if can_subtract_table(table, file, other_file):
+            df1 = file.get_numeric_table(table)
+            df2 = other_file.get_numeric_table(table)
+            df1.columns = df1.columns.droplevel(ID_LEVEL)
+            df2.columns = df2.columns.droplevel(ID_LEVEL)
+            df = subtract_tables(df1, df2)
+            if not df.empty:
+                # create new id for each record
+                ids = [next(id_gen) for _ in range(len(df.columns))]
+                header_df = df.columns.to_frame(index=False)
+                header_df.insert(0, ID_LEVEL, ids)
+                df.columns = pd.MultiIndex.from_frame(header_df)
 
-        df1 = file.get_numeric_table(table)
-        df2 = other_file.get_numeric_table(table)
+                special_df1 = file.get_special_table(table)
+                special_df2 = file.get_special_table(table)
+                special_df = get_shared_special_table(special_df1, special_df2)
 
-        df1.columns = df1.columns.droplevel(ID_LEVEL)
-        df2.columns = df2.columns.droplevel(ID_LEVEL)
-
-        index_cond = df1.index.intersection(df2.index).tolist()
-        columns_cond = df1.columns.intersection(df2.columns).tolist()
-
-        df = df1.loc[index_cond, columns_cond] - df2.loc[index_cond, columns_cond]
-        df.dropna(how="all", inplace=True, axis=1)
-
-        if not df.empty:
-            # create new id for each record
-            ids = [next(id_gen) for _ in range(len(df.columns))]
-            header_df = df.columns.to_frame(index=False)
-            header_df.insert(0, ID_LEVEL, ids)
-
-            df.columns = pd.MultiIndex.from_frame(header_df)
-            tables[table] = df
-
-            for c in [N_DAYS_COLUMN, DAY_COLUMN]:
-                try:
-                    c1 = file.tables.get_special_column(table, c).loc[index_cond]
-                    c2 = file.tables.get_special_column(table, c).loc[index_cond]
-                    if c1.equals(c2):
-                        tables.insert_special_column(table, c, c1)
-                except KeyError:
-                    pass
-    return tables
+                tables[table] = pd.concat([special_df, df], axis=1, sort=False)
+    if tables.empty:
+        raise NoResults("Cannot generate 'difference' file, there aren't any shared variables!")
+    else:
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
+    return tables, tree

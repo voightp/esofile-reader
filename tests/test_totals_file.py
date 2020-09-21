@@ -5,6 +5,7 @@ from unittest import TestCase
 import pandas as pd
 
 from esofile_reader import ResultsFile, Variable
+from esofile_reader.exceptions import NoResults
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 from tests import ROOT
@@ -60,7 +61,7 @@ class TestTotalsFile(TestCase):
         range_columns = pd.MultiIndex.from_tuples(range_variables, names=names)
         range_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         range_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=range_columns, index=range_index
+            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=range_columns, index=range_index
         )
 
         tables = DFTables()
@@ -109,7 +110,7 @@ class TestTotalsFile(TestCase):
             pd.date_range("2002-1-1", freq="d", periods=3), name="timestamp"
         )
         test_results = pd.DataFrame(
-            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23],],
+            [[2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], [2, 4, 6, 8, 9.5, 23], ],
             columns=test_columns,
             index=test_index,
         )
@@ -129,7 +130,7 @@ class TestTotalsFile(TestCase):
 
         test_index = pd.RangeIndex(start=0, step=1, stop=2, name="range")
         test_results = pd.DataFrame(
-            [[1, 2, 3, 4], [1, 2, 3, 4],], columns=test_columns, index=test_index
+            [[1, 2, 3, 4], [1, 2, 3, 4], ], columns=test_columns, index=test_index
         )
 
         pd.testing.assert_frame_equal(self.tf.tables["range"], test_results)
@@ -147,4 +148,5 @@ class TestTotalsFile(TestCase):
             Path(ROOT, "eso_files/test_excel_results.xlsx"),
             sheet_names=["simple-template-monthly", "simple-template-daily"],
         )
-        self.assertIsNone(ResultsFile.from_totals(rf))
+        with self.assertRaises(NoResults):
+            _ = ResultsFile.from_totals(rf)

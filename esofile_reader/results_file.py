@@ -144,13 +144,11 @@ class ResultsFile(BaseFile):
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        tables = process_diff(file, other_file)
-        if not tables.empty:
-            tree = Tree.from_header_dict(tables.get_all_variables_dct())
-            results_file = ResultsFile(
-                file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
-            )
-            return results_file
+        tables, tree = process_diff(file, other_file)
+        results_file = ResultsFile(
+            file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
+        )
+        return results_file
 
     @classmethod
     def from_path(cls, path: str):
