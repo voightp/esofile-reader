@@ -1,12 +1,14 @@
 import logging
 import re
-from typing import Dict, Generator, Optional
+from typing import Dict, Generator, Optional, Tuple
 
 import pandas as pd
 
 from esofile_reader.constants import *
+from esofile_reader.exceptions import NoResults
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 VARIABLE_GROUPS = {
@@ -172,9 +174,9 @@ def process_totals_table(
         return totals_table
 
 
-def process_totals(file: ResultsFileType) -> DFTables:
+def process_totals(file: ResultsFileType) -> Tuple[DFTables, Tree]:
     """ Generate 'totals' outputs. """
-    tables = DFTables()
+    df_tables = DFTables()
     id_gen = incremental_id_gen(start=1)
     for table_name in file.table_names:
         if not file.tables.is_simple(table_name):
@@ -183,6 +185,10 @@ def process_totals(file: ResultsFileType) -> DFTables:
             numeric_table = file.tables.get_numeric_table(table_name)
             totals_table = process_totals_table(numeric_table, id_gen)
             if totals_table is not None:
-                tables[table_name] = pd.concat([special_table, totals_table], axis=1)
+                df_tables[table_name] = pd.concat([special_table, totals_table], axis=1)
 
-    return tables
+    if df_tables.empty:
+        raise NoResults(f"Cannot generate totals for file '{file.file_path}'.")
+    else:
+        tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
+    return df_tables, tree

@@ -6,7 +6,7 @@ from pathlib import Path
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, ResultsFile
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import GenericProgressLogger, EsoFileProgressLogger
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import EF1, EF_ALL_INTERVALS, ROOT
@@ -165,7 +165,7 @@ class TestParquetStorage(unittest.TestCase):
         id_ = pqs.store_file(ef, progress_logger=progress_logger)
         self.assertEqual(0, id_)
 
-        progress_logger = EsoFileProgressLogger("bar")
+        progress_logger = GenericProgressLogger("bar")
         tf = ResultsFile.from_totals(ef)
         id_ = pqs.store_file(tf, progress_logger=progress_logger)
         self.assertEqual(1, id_)

@@ -11,7 +11,7 @@ from openpyxl import load_workbook, Workbook
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
@@ -268,7 +268,7 @@ def process_sheet(
 
 def process_workbook(
     wb: Workbook,
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: GenericProgressLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -297,18 +297,17 @@ def process_workbook(
         start_id = end_id
         df_tables.extend(frames)
 
-    if len(df_tables.keys()) > 0:
+    if df_tables.empty:
+        raise NoResults(f"There aren't any numeric outputs in file {wb.path}.")
+    else:
         progress_logger.log_section_started("generating search tree!")
         tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
-    else:
-        raise NoResults(f"There aren't any numeric outputs in file {wb.path}.")
-
     return df_tables, tree
 
 
 def process_excel(
     file_path: Path,
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: GenericProgressLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -323,7 +322,7 @@ def process_excel(
 def process_csv_table(
     df: pd.DataFrame,
     name: str,
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: GenericProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
 ) -> Tuple[DFTables, Tree]:
@@ -342,18 +341,17 @@ def process_csv_table(
     )
     df_tables.extend(frames)
 
-    if len(df_tables.keys()) > 0:
+    if df_tables.empty:
+        raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
+    else:
         progress_logger.log_section_started("generating search tree!")
         tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
-    else:
-        raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
-
     return df_tables, tree
 
 
 def process_csv(
     file_path: Path,
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: GenericProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
 ) -> Tuple[DFTables, Tree]:
