@@ -6,7 +6,10 @@ from pathlib import Path
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, ResultsFile
-from esofile_reader.processing.progress_logger import GenericProgressLogger, EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import (
+    GenericProgressLogger,
+    EsoFileProgressLogger,
+)
 from esofile_reader.storages.pqt_storage import ParquetStorage, ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
 from tests import EF1, EF_ALL_INTERVALS, ROOT

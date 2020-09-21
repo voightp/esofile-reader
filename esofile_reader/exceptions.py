@@ -71,3 +71,9 @@ class DuplicateVariable(Exception):
         super().__init__(text)
         self.clean_tree = clean_tree
         self.duplicates = duplicates
+
+
+class FormatNotSupported(Exception):
+    """ Exception raised when processing from unsupported format is requested. """
+
+    pass

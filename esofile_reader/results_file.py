@@ -1,13 +1,17 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List
 
 from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.eso_file import ResultsEsoFile
+from esofile_reader.exceptions import FormatNotSupported
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger, GenericProgressLogger
+from esofile_reader.processing.progress_logger import (
+    EsoFileProgressLogger,
+    GenericProgressLogger,
+)
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -118,14 +122,14 @@ class ResultsFile(BaseFile):
         cls, file_path: str, progress_logger: EsoFileProgressLogger = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
-        # peaks are only allowed on explicit ResultsEsoFIle
+        # peaks are only allowed on explicit ResultsEsoFile
         eso_files = ResultsEsoFile.from_multi_env_eso_file(
             file_path, progress_logger, ignore_peaks=True, year=year
         )
         return eso_files[0] if len(eso_files) == 1 else eso_files
 
     @classmethod
-    def from_totals(cls, results_file: ResultsFileType) -> Optional["ResultsFile"]:
+    def from_totals(cls, results_file: ResultsFileType) -> "ResultsFile":
         """ Generate totals 'ResultsFileType' from another file. """
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
@@ -137,9 +141,7 @@ class ResultsFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_diff(
-        cls, file: ResultsFileType, other_file: ResultsFileType
-    ) -> Optional["ResultsFile"]:
+    def from_diff(cls, file: ResultsFileType, other_file: ResultsFileType) -> "ResultsFile":
         """ Generate 'Results' file as a difference between two files. """
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
@@ -151,5 +153,14 @@ class ResultsFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_path(cls, path: str):
-        pass
+    def from_path(cls, path: str, *args, **kwargs) -> "ResultsFile":
+        """ Try to generate 'Results' file from generic path. """
+        switch = {cls.ESO: cls.from_eso_file, cls.XLSX: cls.from_excel, cls.CSV: cls.from_csv}
+        file_type = Path(path).suffix
+        try:
+            results_file = switch[file_type](path, *args, **kwargs)
+        except KeyError:
+            raise FormatNotSupported(
+                f"Cannot process file '{path}'. '{file_type}' is not supported."
+            )
+        return results_file
