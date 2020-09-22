@@ -54,6 +54,12 @@ class BaseFile:
 
     """
 
+    ESO = ".eso"
+    TOTALS = "totals"
+    DIFF = "diff"
+    XLSX = ".xlsx"
+    CSV = ".csv"
+
     def __init__(
         self,
         file_path: Union[str, Path],
@@ -61,7 +67,7 @@ class BaseFile:
         file_created: datetime,
         tables: DFTables,
         search_tree: Tree,
-        file_type: str = "na",
+        file_type: str,
     ):
         self.file_path = file_path
         self.file_name = file_name

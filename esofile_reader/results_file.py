@@ -50,13 +50,6 @@ class ResultsFile(BaseFile):
 
     """
 
-    ESO = "eso"
-    TOTALS = "totals"
-    DIFF = "diff"
-    XLSX = "xlsx"
-    CSV = "csv"
-    NA = "na"
-
     def __init__(
         self,
         file_path: Union[str, Path],

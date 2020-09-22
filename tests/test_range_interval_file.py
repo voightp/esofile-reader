@@ -40,7 +40,7 @@ class TestRangeIntervalFile(unittest.TestCase):
         tables["range"] = results
 
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree)
+        bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree, "test")
         cls.bf = bf
 
     def test_table_names(self):

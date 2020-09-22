@@ -28,7 +28,7 @@ class TestDFDB(unittest.TestCase):
                 EF_ALL_INTERVALS.tables[table], self.storage.files[0].tables[table],
             )
 
-        self.assertEqual(self.storage.files[0].file_type, "eso")
+        self.assertEqual(self.storage.files[0].file_type, ".eso")
         self.assertEqual(self.storage.files[1].file_type, "totals")
 
     def test_02_delete_file(self):

@@ -41,7 +41,7 @@ class TestParquetStorage(unittest.TestCase):
     def test_02_store_file(self):
         self.storage.store_file(EF_ALL_INTERVALS)
         self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
-        self.assertEqual("eso", self.storage.files[0].file_type)
+        self.assertEqual(".eso", self.storage.files[0].file_type)
 
     def test_03_store_totals_file(self):
         tf = ResultsFile.from_totals(EF_ALL_INTERVALS)
@@ -81,7 +81,7 @@ class TestParquetStorage(unittest.TestCase):
         self.assertEqual(str(EF_ALL_INTERVALS.file_path), str(pqf.file_path))
         self.assertEqual(EF_ALL_INTERVALS.file_name, pqf.file_name)
         self.assertEqual(EF_ALL_INTERVALS.file_created, pqf.file_created)
-        self.assertEqual("eso", pqf.file_type)
+        self.assertEqual(".eso", pqf.file_type)
         self.assertEqual(str(EF_ALL_INTERVALS.file_path), str(pqf.file_path))
 
         for interval in EF_ALL_INTERVALS.table_names:
@@ -238,4 +238,4 @@ class TestParquetStorage(unittest.TestCase):
             EF_ALL_INTERVALS, progress_logger=EsoFileProgressLogger("dummy", level=20)
         )
         self.assertEqual("eplusout_all_intervals", self.storage.files[0].file_name)
-        self.assertEqual("eso", self.storage.files[0].file_type)
+        self.assertEqual(".eso", self.storage.files[0].file_type)
