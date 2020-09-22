@@ -4,7 +4,7 @@ from typing import Union, List
 
 from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.eso_file import ResultsEsoFile
-from esofile_reader.exceptions import FormatNotSupported
+from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
@@ -42,8 +42,6 @@ class ResultsFile(BaseFile):
         Time and date when of the file generation.
     tables : DFTables
         TableType storage instance.
-    search_tree : Tree
-        N array tree for efficient id searching.
     file_type : str, default "na"
         Identifier to store original file type.
 
@@ -57,7 +55,7 @@ class ResultsFile(BaseFile):
         file_created: datetime,
         tables: DFTables,
         search_tree: Tree,
-        file_type: str = "na",
+        file_type: str,
     ):
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
@@ -75,15 +73,20 @@ class ResultsFile(BaseFile):
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
         progress_logger.log_task_started("Processing xlsx file.")
-        tables, search_tree = process_excel(
+        tables = process_excel(
             file_path,
             progress_logger,
             sheet_names=sheet_names,
             force_index=force_index,
             header_limit=header_limit,
         )
+        if tables.empty:
+            raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
+        else:
+            progress_logger.log_section_started("generating search tree!")
+            tree = Tree.from_header_dict(tables.get_all_variables_dct())
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.XLSX
+            file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
         )
         progress_logger.log_task_finished()
         return results_file
@@ -101,11 +104,15 @@ class ResultsFile(BaseFile):
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
         progress_logger.log_task_started("Process csv file!")
-        tables, search_tree = process_csv(
+        tables = process_csv(
             file_path, progress_logger, force_index=force_index, header_limit=header_limit,
         )
+        if tables.empty:
+            raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
+        progress_logger.log_section_started("generating search tree!")
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, search_tree, file_type=ResultsFile.CSV
+            file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
         )
         progress_logger.log_task_finished()
         return results_file
@@ -127,9 +134,12 @@ class ResultsFile(BaseFile):
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
-        tables, tree = process_totals(results_file)
+        tables = process_totals(results_file)
+        if tables.empty:
+            raise NoResults(f"Cannot generate totals for file '{file_path}'.")
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, tree, file_type=ResultsFile.TOTALS
+            file_path, file_name, file_created, tables, tree, file_type=BaseFile.TOTALS
         )
         return results_file
 
@@ -139,7 +149,12 @@ class ResultsFile(BaseFile):
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        tables, tree = process_diff(file, other_file)
+        tables = process_diff(file, other_file)
+        if tables.empty:
+            raise NoResults(
+                "Cannot generate 'difference' file, there aren't any shared variables!"
+            )
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
         results_file = ResultsFile(
             file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
         )
@@ -148,7 +163,11 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_path(cls, path: str, *args, **kwargs) -> "ResultsFile":
         """ Try to generate 'Results' file from generic path. """
-        switch = {cls.ESO: cls.from_eso_file, cls.XLSX: cls.from_excel, cls.CSV: cls.from_csv}
+        switch = {
+            BaseFile.ESO: cls.from_eso_file,
+            BaseFile.XLSX: cls.from_excel,
+            BaseFile.CSV: cls.from_csv,
+        }
         file_type = Path(path).suffix
         try:
             results_file = switch[file_type](path, *args, **kwargs)

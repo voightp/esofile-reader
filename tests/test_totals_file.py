@@ -71,7 +71,7 @@ class TestTotalsFile(TestCase):
 
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
 
-        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree)
+        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree, "test")
         cls.tf = ResultsFile.from_totals(bf)
 
     def test_file_name(self):

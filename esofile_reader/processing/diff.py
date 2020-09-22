@@ -1,12 +1,8 @@
-from typing import Tuple
-
 import pandas as pd
 
 from esofile_reader.constants import ID_LEVEL
-from esofile_reader.exceptions import NoResults
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 
@@ -38,7 +34,7 @@ def get_shared_special_table(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFra
     return df1.loc[index_cond, columns_cond]
 
 
-def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> Tuple[DFTables, Tree]:
+def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
     """ Create diff outputs. """
     tables = DFTables()
     id_gen = incremental_id_gen()
@@ -61,8 +57,4 @@ def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> Tuple[DF
                 special_df = get_shared_special_table(special_df1, special_df2)
 
                 tables[table] = pd.concat([special_df, df], axis=1, sort=False)
-    if tables.empty:
-        raise NoResults("Cannot generate 'difference' file, there aren't any shared variables!")
-    else:
-        tree = Tree.from_header_dict(tables.get_all_variables_dct())
-    return tables, tree
+    return tables

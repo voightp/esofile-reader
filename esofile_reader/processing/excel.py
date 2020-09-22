@@ -9,10 +9,9 @@ import pandas as pd
 from openpyxl import load_workbook, Workbook
 
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
+from esofile_reader.exceptions import InsuficientHeaderInfo
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.processing.progress_logger import GenericProgressLogger
-from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 
@@ -31,7 +30,7 @@ def is_data_row(sr: pd.Series):
     # columns, excluding nan
     numeric_count = num_count["num"] if "num" in num_count else 0
     non_numeric_count = num_count["not_num"] if "not_num" in num_count else 0
-    nat_count = num_count[pd.NaT] if pd.NaT in num_count else 0
+    # nat_count = num_count[pd.NaT] if pd.NaT in num_count else 0
 
     return numeric_count >= non_numeric_count
 
@@ -272,7 +271,7 @@ def process_workbook(
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
-) -> Tuple[DFTables, Tree]:
+) -> DFTables:
     if not sheet_names:
         sheet_names = wb.sheetnames
 
@@ -296,13 +295,7 @@ def process_workbook(
         )
         start_id = end_id
         df_tables.extend(frames)
-
-    if df_tables.empty:
-        raise NoResults(f"There aren't any numeric outputs in file {wb.path}.")
-    else:
-        progress_logger.log_section_started("generating search tree!")
-        tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
-    return df_tables, tree
+    return df_tables
 
 
 def process_excel(
@@ -311,7 +304,7 @@ def process_excel(
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
-) -> Tuple[DFTables, Tree]:
+) -> DFTables:
     """ Create results file data based on given excel workbook."""
     with open(file_path, "rb") as f:
         in_memory_file = io.BytesIO(f.read())
@@ -325,10 +318,9 @@ def process_csv_table(
     progress_logger: GenericProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
-) -> Tuple[DFTables, Tree]:
+) -> DFTables:
     """ Process csv sheet. """
     progress_logger.log_section_started("processing csv!")
-
     df_tables = DFTables()
     frames, _ = process_sheet(
         df=df,
@@ -340,13 +332,7 @@ def process_csv_table(
         force_index=force_index,
     )
     df_tables.extend(frames)
-
-    if df_tables.empty:
-        raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
-    else:
-        progress_logger.log_section_started("generating search tree!")
-        tree = Tree.from_header_dict(df_tables.get_all_variables_dct())
-    return df_tables, tree
+    return df_tables
 
 
 def process_csv(
@@ -354,7 +340,7 @@ def process_csv(
     progress_logger: GenericProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
-) -> Tuple[DFTables, Tree]:
+) -> DFTables:
     """ Create results file data based on given csv file."""
     csv_df = pd.read_csv(file_path, sep=None)
     name = file_path.stem
