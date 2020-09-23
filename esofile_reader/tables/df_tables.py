@@ -124,6 +124,12 @@ class DFTables(BaseTables):
         if isinstance(index, pd.DatetimeIndex):
             return index
 
+    def get_variables_count(self, table: str) -> int:
+        return len(self[table].index)
+
+    def get_all_variables_count(self) -> int:
+        return sum([self.get_variables_count(table) for table in self.get_table_names()])
+
     def get_variables_dct(self, table: str) -> Dict[int, Union[Variable, SimpleVariable]]:
         cls = SimpleVariable if self.is_simple(table) else Variable
         header_dct = {}
