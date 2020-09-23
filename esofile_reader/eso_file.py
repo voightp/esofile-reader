@@ -73,21 +73,23 @@ class ResultsEsoFile(BaseFile):
         file_path, file_name, file_created = get_file_information(file_path)
         if progress_logger is None:
             progress_logger = EsoFileProgressLogger(file_path.name)
-        progress_logger.log_task_started("Process eso file data!")
-
-        eso_files = []
-        content = read_file(file_path, progress_logger, ignore_peaks=ignore_peaks, year=year)
-        content = [c for c in list(zip(*content))[::-1]]  # reverse to get last processed first
-        for i, (environment, data, peak_outputs, tree) in enumerate(content):
-            # last processed environment uses a plain name
-            # this is in place to only assign distinct names for
-            # 'sizing' results which are reported first
-            name = f"{file_name} - {environment}" if i > 0 else file_name
-            ef = ResultsEsoFile(
-                file_path, name, file_created, data, tree, peak_outputs=peak_outputs
+        with progress_logger.log_task("Process eso file data!"):
+            eso_files = []
+            content = read_file(
+                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
-            eso_files.append(ef)
-        progress_logger.log_task_finished()
+            content = [
+                c for c in list(zip(*content))[::-1]
+            ]  # reverse to get last processed first
+            for i, (environment, data, peak_outputs, tree) in enumerate(content):
+                # last processed environment uses a plain name
+                # this is in place to only assign distinct names for
+                # 'sizing' results which are reported first
+                name = f"{file_name} - {environment}" if i > 0 else file_name
+                ef = ResultsEsoFile(
+                    file_path, name, file_created, data, tree, peak_outputs=peak_outputs
+                )
+                eso_files.append(ef)
         return eso_files
 
 
@@ -125,24 +127,25 @@ class EsoFile(ResultsEsoFile):
     ):
         if progress_logger is None:
             progress_logger = EsoFileProgressLogger(Path(file_path).name)
-        progress_logger.log_task_started("Process eso file data!")
-        file_path = Path(file_path)
-        file_name = file_path.stem
-        file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-        content = read_file(file_path, progress_logger, ignore_peaks=ignore_peaks, year=year)
-        environment_names = content[0]
-        if len(environment_names) == 1:
-            tables = content[1][0]
-            peak_outputs = content[2][0]
-            tree = content[3][0]
-            super().__init__(
-                file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
+        with progress_logger.log_task("Process eso file data!"):
+            file_path = Path(file_path)
+            file_name = file_path.stem
+            file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+            content = read_file(
+                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
-            progress_logger.log_task_finished()
-        else:
-            raise MultiEnvFileRequired(
-                f"Cannot populate file {file_path}. "
-                f"as there are multiple environments included.\n"
-                f"Use '{super().__class__.__name__}.process_multi_env_file' "
-                f"to generate multiple files."
-            )
+            environment_names = content[0]
+            if len(environment_names) == 1:
+                tables = content[1][0]
+                peak_outputs = content[2][0]
+                tree = content[3][0]
+                super().__init__(
+                    file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
+                )
+            else:
+                raise MultiEnvFileRequired(
+                    f"Cannot populate file {file_path}. "
+                    f"as there are multiple environments included.\n"
+                    f"Use '{super().__class__.__name__}.process_multi_env_file' "
+                    f"to generate multiple files."
+                )

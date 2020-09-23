@@ -230,13 +230,13 @@ def process_sheet(
     end_id = start_id
     if not df.empty:
         # process header data
-        progress_logger.log_section_started("processing data dictionary!")
+        progress_logger.log_section("processing data dictionary!")
         header_mi, skiprows, index_column = parse_header(
             df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
-        progress_logger.log_section_started("processing data!")
+        progress_logger.log_section("processing data!")
         df = df.iloc[skiprows:, :]
         if index_column:
             df.set_index(keys=df.columns[0], inplace=True)
@@ -245,7 +245,7 @@ def process_sheet(
 
         df.columns = header_mi
 
-        progress_logger.log_section_started("processing tables!")
+        progress_logger.log_section("processing tables!")
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
@@ -277,7 +277,7 @@ def process_workbook(
 
         # each table represents a single step + add one for tree generation
     n_steps = len(sheet_names) + 1
-    progress_logger.log_section_started("processing sheets!")
+    progress_logger.log_section("processing sheets!")
     progress_logger.reset_progress(maximum=n_steps)
 
     start_id = 1
@@ -320,7 +320,7 @@ def process_csv_table(
     header_limit: int = 10,
 ) -> DFTables:
     """ Process csv sheet. """
-    progress_logger.log_section_started("processing csv!")
+    progress_logger.log_section("processing csv!")
     df_tables = DFTables()
     frames, _ = process_sheet(
         df=df,

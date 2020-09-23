@@ -72,23 +72,22 @@ class ResultsFile(BaseFile):
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
-        progress_logger.log_task_started("Processing xlsx file.")
-        tables = process_excel(
-            file_path,
-            progress_logger,
-            sheet_names=sheet_names,
-            force_index=force_index,
-            header_limit=header_limit,
-        )
-        if tables.empty:
-            raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
-        else:
-            progress_logger.log_section_started("generating search tree!")
-            tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = ResultsFile(
-            file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
-        )
-        progress_logger.log_task_finished()
+        with progress_logger.log_task("Processing xlsx file."):
+            tables = process_excel(
+                file_path,
+                progress_logger,
+                sheet_names=sheet_names,
+                force_index=force_index,
+                header_limit=header_limit,
+            )
+            if tables.empty:
+                raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
+            else:
+                progress_logger.log_section("generating search tree!")
+                tree = Tree.from_header_dict(tables.get_all_variables_dct())
+            results_file = ResultsFile(
+                file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
+            )
         return results_file
 
     @classmethod
@@ -103,18 +102,19 @@ class ResultsFile(BaseFile):
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
-        progress_logger.log_task_started("Process csv file!")
-        tables = process_csv(
-            file_path, progress_logger, force_index=force_index, header_limit=header_limit,
-        )
-        if tables.empty:
-            raise NoResults(f"There aren't any numeric outputs in file {progress_logger.name}.")
-        progress_logger.log_section_started("generating search tree!")
-        tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = ResultsFile(
-            file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
-        )
-        progress_logger.log_task_finished()
+        with progress_logger.log_task("Process csv file!"):
+            tables = process_csv(
+                file_path, progress_logger, force_index=force_index, header_limit=header_limit,
+            )
+            if tables.empty:
+                raise NoResults(
+                    f"There aren't any numeric outputs in file {progress_logger.name}."
+                )
+            progress_logger.log_section("generating search tree!")
+            tree = Tree.from_header_dict(tables.get_all_variables_dct())
+            results_file = ResultsFile(
+                file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
+            )
         return results_file
 
     @classmethod
@@ -156,7 +156,7 @@ class ResultsFile(BaseFile):
             )
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
         results_file = ResultsFile(
-            file_path, file_name, file_created, tables, tree, file_type=ResultsFile.DIFF
+            file_path, file_name, file_created, tables, tree, file_type=BaseFile.DIFF
         )
         return results_file
 

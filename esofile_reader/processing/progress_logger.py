@@ -1,5 +1,6 @@
 import logging
 import time
+from contextlib import contextmanager
 from typing import Union
 
 formatter = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
@@ -39,7 +40,7 @@ class GenericProgressLogger:
         new_message = f"{message: <30} {elapsed:10.5f}s | {delta:.5f}s"
         return new_message
 
-    def log_section_started(self, message: str) -> None:
+    def log_section(self, message: str) -> None:
         self.section_timestamps.append(time.perf_counter())
         new_message = self.add_section_time_to_message(message)
         self.log_message(new_message, INFO)
@@ -51,11 +52,6 @@ class GenericProgressLogger:
         self.max_progress = maximum
         self.progress = current
 
-    def log_task_started(self, task_name: str) -> None:
-        self.section_timestamps.append(time.perf_counter())
-        message = f"Task: '{task_name}' started!"
-        self.log_message(message, INFO)
-
     def get_total_task_time(self) -> float:
         return self.section_timestamps[-1] - self.section_timestamps[0]
 
@@ -66,6 +62,19 @@ class GenericProgressLogger:
 
     def log_task_failed(self, message: str) -> None:
         self.log_message(message, ERROR)
+
+    @contextmanager
+    def log_task(self, task_name: str) -> None:
+        self.section_timestamps.append(time.perf_counter())
+        self.log_message(f"Task: '{task_name}' started!", INFO)
+        try:
+            yield
+            self.log_task_finished()
+        except Exception as e:
+            self.log_task_failed(e.args[0])
+            raise e
+        finally:
+            pass
 
 
 class EsoFileProgressLogger(GenericProgressLogger):

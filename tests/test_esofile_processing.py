@@ -372,7 +372,7 @@ class TestEsoFileProcessing(unittest.TestCase):
         with self.assertRaises(InvalidLineSyntax):
             EsoFile(
                 os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"),
-                EsoFileProgressLogger("foo")
+                EsoFileProgressLogger("foo", level=20)
             )
 
     def test_logging_level_info(self):

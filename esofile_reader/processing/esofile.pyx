@@ -122,12 +122,9 @@ def read_header(eso_file: TextIO, monitor: EsoFileProgressLogger) -> Dict[
             if "End of Data Dictionary" in raw_line:
                 break
             elif raw_line == "":
-                monitor.log_task_failed("Empty line!")
-                raise BlankLineError
+                raise BlankLineError("Empty line!")
             else:
-                msg = f"Unexpected line syntax: '{raw_line}'!"
-                monitor.log_task_failed(msg)
-                raise InvalidLineSyntax(msg)
+                raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
 
         header[interval][id_] = Variable(interval, key, type_, units)
 
@@ -322,13 +319,9 @@ def read_body(
             if "End of Data" in raw_line:
                 break
             elif raw_line == "":
-                msg = "Empty line!"
-                monitor.log_task_failed(msg)
-                raise BlankLineError
+                raise BlankLineError("Empty line!")
             else:
-                msg = f"Unexpected line syntax: '{raw_line}'!"
-                monitor.log_task_failed(msg)
-                raise InvalidLineSyntax(msg)
+                raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
 
         if line_id <= highest_interval_id:
             if line_id == 1:
@@ -376,9 +369,7 @@ def read_body(
                         interval, date, day = process_sub_monthly_interval_lines(line_id, line)
                         days_of_week[interval].append(day)
                 except ValueError:
-                    msg = f"Unexpected value in line '{raw_line}'."
-                    monitor.log_task_failed(msg)
-                    raise InvalidLineSyntax(msg)
+                    raise InvalidLineSyntax(f"Unexpected value in line '{raw_line}'.")
 
                 # Populate last environment list with interval line
                 dates[interval].append(date)
@@ -402,9 +393,7 @@ def read_body(
                     res = float(line[0])
                     peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
             except ValueError:
-                msg = f"Unexpected value in line '{raw_line}'."
-                monitor.log_task_failed(msg)
-                raise InvalidLineSyntax(msg)
+                raise InvalidLineSyntax(f"Unexpected value in line '{raw_line}'.")
 
             outputs[interval][line_id][-1] = res
             if peak_res:
@@ -545,11 +534,11 @@ def process_file(
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    monitor.log_section_started("processing data dictionary!")
+    monitor.log_section("processing data dictionary!")
     orig_header = read_header(file, monitor)
 
     # Read body to obtain outputs and environment dictionaries
-    monitor.log_section_started("processing data!")
+    monitor.log_section("processing data!")
     monitor.reset_progress(maximum=50)
     content = read_body(file, last_standard_item_id, orig_header, ignore_peaks, monitor)
 
@@ -561,11 +550,11 @@ def process_file(
 
     for out, peak, dates, cumulative_days, days_of_week in zip(*content[1:]):
         # Generate datetime data
-        monitor.log_section_started("processing dates!")
+        monitor.log_section("processing dates!")
         dates, n_days = process_raw_date_data(dates, cumulative_days, year)
 
         # Create a 'search tree' to allow searching for variables
-        monitor.log_section_started("generating search tree!")
+        monitor.log_section("generating search tree!")
         header = deepcopy(orig_header)
 
         try:
@@ -578,14 +567,14 @@ def process_file(
         monitor.increment_progress(step)
 
         if not ignore_peaks:
-            monitor.log_section_started("generating peak tables!")
+            monitor.log_section("generating peak tables!")
             peak_outputs = generate_peak_outputs(peak, header, dates, monitor, step)
         else:
             peak_outputs = None
         all_peak_outputs.append(peak_outputs)
 
         # transform standard dictionaries into DataFrame like Output classes
-        monitor.log_section_started("generating tables!")
+        monitor.log_section("generating tables!")
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
         outputs = generate_outputs(out, header, dates, other_data, monitor, step)
         all_outputs.append(outputs)
@@ -593,7 +582,7 @@ def process_file(
     # update progress to compensate for reminder
     if monitor.progress != monitor.max_progress:
         monitor.increment_progress()
-    monitor.log_section_started("creating class instance!")
+    monitor.log_section("creating class instance!")
 
     return environments, all_outputs, all_peak_outputs, trees
 
@@ -620,13 +609,11 @@ def read_file(
     year: int = 2002
 ) -> Tuple[List[str], List[DFTables], List[Optional[Dict[str, DFTables]]], List[Tree]]:
     """ Open the eso file and trigger file processing. """
-    monitor.log_section_started("pre-processing!")
+    monitor.log_section("pre-processing!")
     n_lines = count_lines(file_path)
     monitor.initialize_attributes(n_lines=n_lines)
     try:
         with open(file_path, "r") as file:
             return process_file(file, monitor, year, ignore_peaks=ignore_peaks)
     except StopIteration:
-        msg = f"File is not complete!"
-        monitor.log_task_failed(msg)
-        raise IncompleteFile(msg)
+        raise IncompleteFile(f"File is not complete!")
