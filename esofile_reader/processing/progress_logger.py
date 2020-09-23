@@ -23,6 +23,7 @@ class GenericProgressLogger:
         self.max_progress = 0
         self.progress = 0
         self.level = level
+        self.current_task_name = ""
 
     def print_message(self, message: str):
         print(f"{self.name} - {message}", flush=True)
@@ -57,16 +58,19 @@ class GenericProgressLogger:
 
     def log_task_finished(self) -> None:
         self.section_timestamps.append(time.perf_counter())
-        message = f"Task finished in: {self.get_total_task_time():.5f}s"
-        self.log_message(message, INFO)
+        self.log_message(
+            f"Task '{self.current_task_name}' finished in: {self.get_total_task_time():.5f}s",
+            level=INFO,
+        )
 
     def log_task_failed(self, message: str) -> None:
-        self.log_message(message, ERROR)
+        self.log_message(f"Task '{self.current_task_name}' failed. {message}", ERROR)
 
     @contextmanager
     def log_task(self, task_name: str) -> None:
+        self.current_task_name = task_name
         self.section_timestamps.append(time.perf_counter())
-        self.log_message(f"Task: '{task_name}' started!", INFO)
+        self.log_message(f"Task: '{task_name}' started!", level=INFO)
         try:
             yield
             self.log_task_finished()
