@@ -37,7 +37,3 @@ class TestMultipleEnvs(unittest.TestCase):
     def test_multienv_file_required(self):
         with self.assertRaises(MultiEnvFileRequired):
             EsoFile(os.path.join(ROOT, "eso_files/multiple_environments.eso"))
-
-
-if __name__ == "__main__":
-    unittest.main()

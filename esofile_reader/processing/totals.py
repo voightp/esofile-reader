@@ -174,7 +174,7 @@ def process_totals_table(
 
 def process_totals(file: ResultsFileType) -> DFTables:
     """ Generate 'totals' outputs. """
-    tables = DFTables()
+    df_tables = DFTables()
     id_gen = incremental_id_gen(start=1)
     for table_name in file.table_names:
         if not file.tables.is_simple(table_name):
@@ -183,6 +183,5 @@ def process_totals(file: ResultsFileType) -> DFTables:
             numeric_table = file.tables.get_numeric_table(table_name)
             totals_table = process_totals_table(numeric_table, id_gen)
             if totals_table is not None:
-                tables[table_name] = pd.concat([special_table, totals_table], axis=1)
-
-    return tables
+                df_tables[table_name] = pd.concat([special_table, totals_table], axis=1)
+    return df_tables

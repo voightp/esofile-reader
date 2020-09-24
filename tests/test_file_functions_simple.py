@@ -8,6 +8,10 @@ from pandas.testing import assert_frame_equal
 from esofile_reader import ResultsFile, SimpleVariable
 from esofile_reader.exceptions import CannotAggregateVariables
 from tests import ROOT
+from esofile_reader.results_processing.process_results import (
+    finalize_table_format,
+    add_file_name_level,
+)
 
 
 class TestSimpleFileFunctions(unittest.TestCase):
@@ -59,7 +63,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
     def test__add_file_name_row(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = self.rf._add_file_name(df, "row")
+        out = add_file_name_level("test_excel_results", df, "row")
         mi = pd.MultiIndex.from_product(
             [["test_excel_results"], index], names=["file", "timestamp"]
         )
@@ -68,7 +72,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
     def test__add_file_name_column(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = self.rf._add_file_name(df, "column")
+        out = add_file_name_level("test_excel_results", df, "column")
         mi = pd.MultiIndex.from_product(
             [["test_excel_results"], ["a", "c"]], names=["file", None]
         )
@@ -77,37 +81,11 @@ class TestSimpleFileFunctions(unittest.TestCase):
     def test__add_file_name_invalid(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = self.rf._add_file_name(df, "foo")
+        out = add_file_name_level("test_excel_results", df, "foo")
         mi = pd.MultiIndex.from_product(
             [["test_excel_results"], index], names=["file", "timestamp"]
         )
         assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
-
-    def test__merge_frame(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
-
-        mi = pd.MultiIndex.from_product(
-            [["test_excel_results"], index], names=["file", "timestamp"]
-        )
-        df = self.rf._merge_frame([df1, df2], add_file_name="row")
-        assert_frame_equal(
-            df, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6], "b": [1, 2, 3]}, index=mi)
-        )
-
-    def test__merge_frame_update_dt(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
-
-        mi = pd.MultiIndex.from_product(
-            [["test_excel_results"], ["01-01", "02-01", "03-01"]], names=["file", "timestamp"],
-        )
-        df = self.rf._merge_frame([df1, df2], add_file_name="row", timestamp_format="%d-%m")
-        assert_frame_equal(
-            df, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6], "b": [1, 2, 3]}, index=mi)
-        )
 
     def test_find_ids(self):
         v = SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units="")
@@ -124,19 +102,19 @@ class TestSimpleFileFunctions(unittest.TestCase):
         ids = self.rf.find_id(v, part_match=False)
         self.assertEqual(ids, [])
 
-    def test__find_pairs(self):
+    def test_find_table_id_map(self):
         v = SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units="")
-        out = self.rf._find_pairs(v, part_match=False)
+        out = self.rf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {"monthly-simple": [2]})
 
-    def test__find_pairs_part_match(self):
+    def test_find_table_id_map_part_match(self):
         v = SimpleVariable(table="monthly-simple", key="BLOCK1", units="")
-        out = self.rf._find_pairs(v, part_match=True)
+        out = self.rf.find_table_id_map(v, part_match=True)
         self.assertDictEqual(out, {"monthly-simple": [2, 6, 7]})
 
-    def test__find_pairs_invalid(self):
+    def test_find_table_id_map_invalid(self):
         v = SimpleVariable(table="timestep", key="BLOCK1", units="")
-        out = self.rf._find_pairs(v, part_match=False)
+        out = self.rf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):
@@ -227,7 +205,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
             _ = self.rf.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = self.rf._find_pairs([1, 2, 3, 10, 11])
+        pairs = self.rf.find_table_id_map([1, 2, 3, 10, 11])
         self.assertDictEqual(
             {"monthly-simple": [1, 2, 3], "simple-no-template-no-index": [10, 11]}, pairs
         )

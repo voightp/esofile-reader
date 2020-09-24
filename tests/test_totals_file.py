@@ -5,6 +5,7 @@ from unittest import TestCase
 import pandas as pd
 
 from esofile_reader import ResultsFile, Variable
+from esofile_reader.exceptions import NoResults
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 from tests import ROOT
@@ -68,10 +69,9 @@ class TestTotalsFile(TestCase):
         tables["monthly"] = monthly_results
         tables["range"] = range_results
 
-        tree = Tree()
-        tree.populate_tree(tables.get_all_variables_dct())
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
 
-        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree)
+        bf = ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree, "test")
         cls.tf = ResultsFile.from_totals(bf)
 
     def test_file_name(self):
@@ -148,4 +148,5 @@ class TestTotalsFile(TestCase):
             Path(ROOT, "eso_files/test_excel_results.xlsx"),
             sheet_names=["simple-template-monthly", "simple-template-daily"],
         )
-        self.assertIsNone(ResultsFile.from_totals(rf))
+        with self.assertRaises(NoResults):
+            _ = ResultsFile.from_totals(rf)

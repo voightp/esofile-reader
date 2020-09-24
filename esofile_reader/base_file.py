@@ -1,28 +1,33 @@
 import logging
+import os
 import traceback
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Sequence, Callable, Optional, Union, List, Tuple
+from typing import Dict, Sequence, Optional, Union, List, Tuple
 
 import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.convertor import (
-    is_rate_or_energy,
-    convert_rate_to_energy,
-    convert_units,
     is_daily,
     is_hourly,
     is_timestep,
 )
-from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.processing.esofile_intervals import update_dt_format
+from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
+from esofile_reader.results_processing.process_results import (
+    get_processed_results,
+    aggregate_variables,
+)
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
-VariableType = Union[SimpleVariable, Variable]
+
+def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
+    path = Path(file_path)
+    file_name = path.stem
+    file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+    return path, file_name, file_created
 
 
 class BaseFile:
@@ -49,6 +54,12 @@ class BaseFile:
 
     """
 
+    ESO = ".eso"
+    TOTALS = "totals"
+    DIFF = "diff"
+    XLSX = ".xlsx"
+    CSV = ".csv"
+
     def __init__(
         self,
         file_path: Union[str, Path],
@@ -56,7 +67,7 @@ class BaseFile:
         file_created: datetime,
         tables: DFTables,
         search_tree: Tree,
-        file_type: str = "na",
+        file_type: str,
     ):
         self.file_path = file_path
         self.file_name = file_name
@@ -97,6 +108,14 @@ class BaseFile:
         """ Get all variables for given table. """
         return self.tables.get_variables_df(table)
 
+    def get_special_table(self, table: str) -> pd.DataFrame:
+        """ Return the file as a single DataFrame (without special columns). """
+        try:
+            df = self.tables.get_special_table(table)
+        except KeyError:
+            raise KeyError(f"Cannot find special table: '{table}'.\n{traceback.format_exc()}")
+        return df
+
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
         try:
@@ -109,45 +128,7 @@ class BaseFile:
         """ Set a new file name. """
         self.file_name = name
 
-    def _add_file_name(self, df: pd.DataFrame, name_position: str) -> pd.DataFrame:
-        """ Add file name to index. """
-        pos = ["row", "column", "None"]  # 'None' is here only to inform
-        if name_position not in pos:
-            name_position = "row"
-            logging.warning(
-                f"Invalid name position!\n'add_file_name' kwarg must "
-                f"be one of: '{', '.join(pos)}'.\nSetting 'row'."
-            )
-
-        axis = 0 if name_position == "row" else 1
-
-        return pd.concat([df], axis=axis, keys=[self.file_name], names=["file"])
-
-    def _merge_frame(
-        self,
-        frames: List[pd.DataFrame],
-        timestamp_format: str = "default",
-        add_file_name: str = "row",
-    ) -> pd.DataFrame:
-        """ Merge result DataFrames into a single one. """
-        if frames:
-            # Catch empty frames exception
-            df = pd.concat(frames, axis=1, sort=False)
-
-            if add_file_name:
-                df = self._add_file_name(df, add_file_name)
-
-            if timestamp_format != "default":
-                df = update_dt_format(df, timestamp_format)
-
-            return df
-        else:
-            logging.warning(
-                f"Any of requested variables is not "
-                f"included in the results file '{self.file_name}'."
-            )
-
-    def _find_pairs(
+    def find_table_id_map(
         self,
         variables: Union[VariableType, List[VariableType], List[int]],
         part_match: bool = False,
@@ -219,127 +200,6 @@ class BaseFile:
             if index is not None:
                 return is_daily(index) or is_hourly(index) or is_timestep(index)
         return False
-
-    def get_results(
-        self,
-        variables: Union[VariableType, List[VariableType], int, List[int]],
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        output_type: str = "standard",
-        add_file_name: str = "row",
-        include_table_name: bool = False,
-        include_day: bool = False,
-        include_id: bool = False,
-        part_match: bool = False,
-        units_system: str = "SI",
-        rate_units: str = "W",
-        energy_units: str = "J",
-        timestamp_format: str = "default",
-        rate_to_energy: bool = False,
-    ) -> pd.DataFrame:
-        """
-        Return a pandas.DataFrame object with results for given variables.
-
-        This function extracts requested set of outputs from the file
-        and converts to specified units if requested.
-
-        Parameters
-        ----------
-        variables : Variable or list of (Variable)
-            Requested variables.
-        start_date : datetime like object, default None
-            A start date for requested results.
-        end_date : datetime like object, default None
-            An end date for requested results.
-        output_type : {'standard', global_max','global_min'}
-            Requested type_ of results.
-        add_file_name : ('row','column',None)
-            Specify if file name should be added into results df.
-        include_table_name : bool
-            Decide if 'table' information should be included on
-            the results df.
-        include_day : bool
-            Add day of week into index, this is applicable only for 'timestep',
-            'hourly' and 'daily' outputs.
-        include_id : bool
-            Decide if variable 'id' should be included on the results df.
-        part_match : bool
-            Only substring of the part of variable is enough
-            to match when searching for variables if this is True.
-        units_system : {'SI', 'IP'}
-            Selected units type_ for requested outputs.
-        rate_to_energy : bool
-            Defines if 'rate' will be converted to energy.
-        rate_units : {'W', 'kW', 'MW', 'Btu/h', 'kBtu/h'}
-            Convert default 'Rate' outputs to requested units.
-        energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
-            Convert default 'Energy' outputs to requested units
-        timestamp_format : str
-            Specified str format of a datetime timestamp.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Results for requested variables.
-
-        """
-
-        def standard():
-            return self.tables.get_results(table, ids, start_date, end_date, include_day)
-
-        def global_max():
-            return self.tables.get_global_max_results(table, ids, start_date, end_date)
-
-        def global_min():
-            return self.tables.get_global_min_results(table, ids, start_date, end_date)
-
-        switch = {
-            "standard": standard,
-            "global_max": global_max,
-            "global_min": global_min,
-        }
-
-        if output_type not in switch:
-            raise InvalidOutputType(
-                f"Invalid output type_ '{output_type}' "
-                f"requested.\n'output_type' kwarg must be"
-                f" one of '{', '.join(switch.keys())}'."
-            )
-
-        if units_system not in ["SI", "IP"]:
-            raise InvalidUnitsSystem(
-                f"Invalid units system '{units_system}' "
-                f"requested.\n'output_type' kwarg must be"
-                f" one of '[SI, IP]'."
-            )
-
-        frames = []
-        pairs = self._find_pairs(variables, part_match=part_match)
-        for table, ids in pairs.items():
-            df = switch[output_type]()
-            if output_type == "standard" and rate_to_energy:
-                if self.can_convert_rate_to_energy(table):
-                    # convert 'rate' or 'energy' when standard results are requested
-                    try:
-                        n_days = self.tables.get_special_column(
-                            table, N_DAYS_COLUMN, start_date, end_date
-                        )
-                    except KeyError:
-                        n_days = None
-                    df = convert_rate_to_energy(df, n_days)
-
-            if units_system != "SI" or rate_units != "W" or energy_units != "J":
-                df = convert_units(df, units_system, rate_units, energy_units)
-
-            if not include_id:
-                df.columns = df.columns.droplevel(ID_LEVEL)
-
-            if not include_table_name:
-                df.columns = df.columns.droplevel(TABLE_LEVEL)
-
-            frames.append(df)
-
-        return self._merge_frame(frames, timestamp_format, add_file_name)
 
     def _validate_variable_type(
         self, table: str, key: str, units: str, type_: Optional[str] = None
@@ -426,107 +286,19 @@ class BaseFile:
             self.search_tree.add_variable(id_, new_variable)
             return id_, new_variable
 
-    def aggregate_variables(
-        self,
-        variables: Union[VariableType, List[VariableType]],
-        func: Union[str, Callable],
-        new_key: str = "Custom Key",
-        new_type: str = "Custom Variable",
-        part_match: bool = False,
-    ) -> Optional[Tuple[int, VariableType]]:
-        """
-        Aggregate given variables using given function.
+    def get_results(self, *args, **kwargs):
+        return get_processed_results(self, *args, **kwargs)
 
-        A new 'Variable' with specified key and variable names
-        will be added into the file.
-
-        Parameters
-        ----------
-        variables : list of Variable
-            A list of 'Variable' named tuples.
-        func: func, func name
-            Function to use for aggregating the data.
-            It can be specified as np.mean, 'mean', 'sum', etc.
-        new_key: str, default 'Custom Key'
-            Specific key for a new variable. If this would not be
-            unique, unique number is added automatically.
-        new_type: str, default 'Custom Variable'
-            Specific variable name for a new variable. If all the
-            input 'Variables' share the same variable name, this
-            will be used if nto specified otherwise.
-        part_match : bool
-            Only substring of the part of variable is enough
-        to match when searching for variables if this is True.
-
-        Returns
-        -------
-        int, Variable or None
-            A numeric id of the new added variable. If the variable
-            could not be added, None is returned.
-
-        """
-        groups = self._find_pairs(variables, part_match=part_match)
-        if not groups:
-            raise CannotAggregateVariables("Cannot find variables!")
-
-        if len(groups.keys()) > 1:
-            raise CannotAggregateVariables("Cannot aggregate variables from different tables!")
-
-        table, ids = list(groups.items())[0]
-        if len(ids) < 2:
-            raise CannotAggregateVariables("Cannot aggregate less than 2 variables.!")
-
-        df = self.tables.get_results(table, ids)
-        units = df.columns.get_level_values(UNITS_LEVEL).tolist()
-
-        if len(set(units)) == 1:
-            # no processing required
-            units = units[0]
-        elif is_rate_or_energy(units):
-            # it's needed to assign multi index to convert energy
-            if self.can_convert_rate_to_energy(table):
-                try:
-                    n_days = self.tables.get_special_column(table, N_DAYS_COLUMN)
-                except KeyError:
-                    # n_days is not required for daily, hourly and timestep intervals
-                    n_days = None
-                df = convert_rate_to_energy(df, n_days)
-                units = next(u for u in units if u in ("J", "J/m2"))
-            else:
-                raise CannotAggregateVariables(
-                    "Cannot aggregate variables. Variables use different units!"
-                )
-        else:
-            raise CannotAggregateVariables(
-                "Cannot aggregate variables. Variables use different units!"
-            )
-
-        sr = df.aggregate(func, axis=1)
-
-        # use original names if defaults are kept
-        if TYPE_LEVEL in df.columns.names:
-            variable_types = df.columns.get_level_values(TYPE_LEVEL).tolist()
-            if new_type == "Custom Variable":
-                if all(map(lambda x: x == variable_types[0], variable_types)):
-                    new_type = variable_types[0]
-        else:
-            # new_type is not valid for SimpleVariable
-            new_type = None
-
-        if new_key == "Custom Key":
-            func_name = func.__name__ if callable(func) else func
-            new_key = f"{new_key} - {func_name}"
-
-        # return value can be either tuple (id, Variable) or None
-        out = self.insert_variable(table, new_key, units, sr, type_=new_type)
-
-        return out
+    def aggregate_variables(self, *args, **kwargs):
+        return aggregate_variables(self, *args, **kwargs)
 
     def remove_variables(
         self, variables: Union[VariableType, List[VariableType]]
     ) -> Dict[str, List[int]]:
         """ Remove given variables from the file. """
-        groups = self._find_pairs(variables if isinstance(variables, list) else [variables])
+        groups = self.find_table_id_map(
+            variables if isinstance(variables, list) else [variables]
+        )
         for table, ids in groups.items():
             self.tables.delete_variables(table, ids)
         self.search_tree.remove_variables(variables)

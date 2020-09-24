@@ -3,12 +3,17 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from esofile_reader import EsoFile, Variable, ResultsFile
-from esofile_reader.base_file import CannotAggregateVariables
-from esofile_reader.constants import SPECIAL, ID_LEVEL
+from esofile_reader.constants import *
+from esofile_reader.exceptions import CannotAggregateVariables
+from esofile_reader.results_processing.process_results import (
+    finalize_table_format,
+    add_file_name_level,
+)
 from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS, EF1
 
 
@@ -67,7 +72,7 @@ class TestFileFunctions(unittest.TestCase):
     def test__add_file_name_row(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = EF_ALL_INTERVALS._add_file_name(df, "row")
+        out = add_file_name_level("eplusout_all_intervals", df, "row")
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], index], names=["file", "timestamp"]
         )
@@ -76,7 +81,7 @@ class TestFileFunctions(unittest.TestCase):
     def test__add_file_name_column(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = EF_ALL_INTERVALS._add_file_name(df, "column")
+        out = add_file_name_level("eplusout_all_intervals", df, "column")
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
         )
@@ -85,40 +90,42 @@ class TestFileFunctions(unittest.TestCase):
     def test__add_file_name_invalid(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
         df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = EF_ALL_INTERVALS._add_file_name(df, "foo")
+        out = add_file_name_level("eplusout_all_intervals", df, "foo")
         mi = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], index], names=["file", "timestamp"]
         )
         assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
 
-    def test__merge_frame(self):
+    def test_finalize_table_format(self):
         index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
+        columns = pd.MultiIndex.from_tuples(
+            [("a", "b", "c", "d", "e"), ("a", "d", "e", "f", "g"), ("f", "g", "h", "i", "j")],
+            names=[ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
+        )
+        df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        mi = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], index], names=["file", "timestamp"]
+        test_index = pd.Index(["01-01", "02-01", "03-01"], name="timestamp")
+        test_columns = pd.MultiIndex.from_tuples(
+            [
+                ("eplusout_all_intervals", "c", "d", "e"),
+                ("eplusout_all_intervals", "e", "f", "g"),
+                ("eplusout_all_intervals", "h", "i", "j"),
+            ],
+            names=["file", KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
         )
-        df = EF_ALL_INTERVALS._merge_frame([df1, df2], add_file_name="row")
-        assert_frame_equal(
-            df, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6], "b": [1, 2, 3]}, index=mi)
-        )
+        test_df = df.copy()
+        test_df.index = test_index
+        test_df.columns = test_columns
 
-    def test__merge_frame_update_dt(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df1 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        df2 = pd.DataFrame({"b": [1, 2, 3]}, index=index)
-
-        mi = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], ["01-01", "02-01", "03-01"]],
-            names=["file", "timestamp"],
+        df = finalize_table_format(
+            df=df,
+            include_id=False,
+            include_table_name=False,
+            file_name="eplusout_all_intervals",
+            file_name_position="column",
+            timestamp_format="%d-%m",
         )
-        df = EF_ALL_INTERVALS._merge_frame(
-            [df1, df2], add_file_name="row", timestamp_format="%d-%m"
-        )
-        assert_frame_equal(
-            df, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6], "b": [1, 2, 3]}, index=mi)
-        )
+        assert_frame_equal(df, test_df)
 
     def test_find_ids(self):
         v = Variable(
@@ -141,25 +148,25 @@ class TestFileFunctions(unittest.TestCase):
         ids = EF_ALL_INTERVALS.find_id(v, part_match=False)
         self.assertEqual(ids, [])
 
-    def test__find_pairs(self):
+    def test_find_table_id_map(self):
         v = Variable(
             table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
         )
-        out = EF_ALL_INTERVALS._find_pairs(v, part_match=False)
+        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {"timestep": [13]})
 
-    def test__find_pairs_part_match(self):
+    def test_find_table_id_map_part_match(self):
         v = Variable(
             table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
-        out = EF_ALL_INTERVALS._find_pairs(v, part_match=True)
+        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=True)
         self.assertDictEqual(out, {"timestep": [13]})
 
-    def test__find_pairs_invalid(self):
+    def test_find_table_id_map_invalid(self):
         v = Variable(
             table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
         )
-        out = EF_ALL_INTERVALS._find_pairs(v, part_match=False)
+        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):
@@ -261,7 +268,7 @@ class TestFileFunctions(unittest.TestCase):
         df = EF_ALL_INTERVALS.get_results(var)
 
         test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
+            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
         )
         test_index = pd.MultiIndex.from_product(
             [["eplusout_all_intervals"], [datetime(2002, i, 1) for i in range(1, 13)]],
@@ -294,7 +301,7 @@ class TestFileFunctions(unittest.TestCase):
         test_sr = EF_ALL_INTERVALS.get_results([v1, v2], rate_to_energy=True).sum(axis=1)
         test_df = pd.DataFrame(test_sr)
         test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Variable", "J")], names=["key", "type", "units"]
+            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
         )
         test_df.columns = test_mi
 
@@ -343,12 +350,12 @@ class TestFileFunctions(unittest.TestCase):
             _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
-        pairs = EF_ALL_INTERVALS._find_pairs([31, 32, 297, 298,])
+        pairs = EF_ALL_INTERVALS.find_table_id_map([31, 32, 297, 298,])
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_unexpected_type(self):
         with self.assertRaises(TypeError):
-            _ = EF_ALL_INTERVALS._find_pairs(
+            _ = EF_ALL_INTERVALS.find_table_id_map(
                 [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
             )
 

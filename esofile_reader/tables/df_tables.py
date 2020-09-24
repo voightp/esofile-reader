@@ -124,25 +124,18 @@ class DFTables(BaseTables):
         if isinstance(index, pd.DatetimeIndex):
             return index
 
+    def get_variables_count(self, table: str) -> int:
+        return len(self[table].index)
+
+    def get_all_variables_count(self) -> int:
+        return sum([self.get_variables_count(table) for table in self.get_table_names()])
+
     def get_variables_dct(self, table: str) -> Dict[int, Union[Variable, SimpleVariable]]:
-        def create_variable(sr):
-            return (
-                sr[ID_LEVEL],
-                Variable(sr[TABLE_LEVEL], sr[KEY_LEVEL], sr[TYPE_LEVEL], sr[UNITS_LEVEL]),
-            )
-
-        def create_simple_variable(sr):
-            return (
-                sr[ID_LEVEL],
-                SimpleVariable(sr[TABLE_LEVEL], sr[KEY_LEVEL], sr[UNITS_LEVEL]),
-            )
-
-        header_df = self.get_variables_df(table)
-        func = create_simple_variable if self.is_simple(table) else create_variable
-        var_df = header_df.apply(func, axis=1, result_type="expand")
-        var_df.set_index(0, inplace=True)
-
-        return var_df.to_dict(orient="dict")[1]
+        cls = SimpleVariable if self.is_simple(table) else Variable
+        header_dct = {}
+        for row in self.get_variables_df(table).to_numpy():
+            header_dct[row[0]] = cls(*row[1:])
+        return header_dct
 
     def get_all_variables_dct(self) -> Dict[str, Dict[int, Union[Variable, SimpleVariable]]]:
         all_variables = {}

@@ -5,7 +5,8 @@ from pathlib import Path
 import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal
 
-from esofile_reader.base_file import BaseFile, CannotAggregateVariables
+from esofile_reader.base_file import BaseFile
+from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.mini_classes import Variable
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.pqt_storage import ParquetStorage
@@ -38,9 +39,8 @@ class TestRangeIntervalFile(unittest.TestCase):
         tables = DFTables()
         tables["range"] = results
 
-        tree = Tree()
-        tree.populate_tree(tables.get_all_variables_dct())
-        bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree)
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
+        bf = BaseFile("", "no-dates", datetime.utcnow(), tables, tree, "test")
         cls.bf = bf
 
     def test_table_names(self):
@@ -76,12 +76,12 @@ class TestRangeIntervalFile(unittest.TestCase):
 
     def test__find_pairs(self):
         v = Variable(table="range", key="ZoneC", type="Temperature", units="C")
-        out = self.bf._find_pairs(v, part_match=False)
+        out = self.bf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {"range": [3]})
 
     def test__find_pairs_invalid(self):
         v = Variable(table="range", key="BLOCK1", type="Zone People Occupant Count", units="")
-        out = self.bf._find_pairs(v, part_match=False)
+        out = self.bf.find_table_id_map(v, part_match=False)
         self.assertDictEqual(out, {})
 
     def test_create_new_header_variable(self):

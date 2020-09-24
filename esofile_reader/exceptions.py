@@ -62,3 +62,18 @@ class InsuficientHeaderInfo(Exception):
     """ Exception raised when excel header does not contain enough identifiers. """
 
     pass
+
+
+class DuplicateVariable(Exception):
+    """ Exception raised header contains duplicate variable. """
+
+    def __init__(self, text, clean_tree, duplicates):
+        super().__init__(text)
+        self.clean_tree = clean_tree
+        self.duplicates = duplicates
+
+
+class FormatNotSupported(Exception):
+    """ Exception raised when processing from unsupported format is requested. """
+
+    pass

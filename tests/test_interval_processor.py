@@ -14,7 +14,7 @@ class TestIntervalProcessing(unittest.TestCase):
         index = pd.date_range(start="1/1/2018", freq="d", periods=3, name=TIMESTAMP_COLUMN)
 
         df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}, index=index)
-        df = update_dt_format(df, "%Y-%m---%d")
+        df = update_datetime_format(df, "%Y-%m---%d")
 
         self.assertListEqual(
             df.index.to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]
@@ -25,7 +25,7 @@ class TestIntervalProcessing(unittest.TestCase):
         dates = [datetime(2018, 1, 1), datetime(2018, 1, 2), datetime(2018, 1, 3)]
 
         df = pd.DataFrame({"a": [1, 2, 3], "b": dates})
-        df = update_dt_format(df, "%Y-%m---%d")
+        df = update_datetime_format(df, "%Y-%m---%d")
 
         self.assertListEqual(
             df["b"].to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]

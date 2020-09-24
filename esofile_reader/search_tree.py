@@ -4,6 +4,7 @@ from copy import copy
 from typing import Union, Optional, Dict, List, Iterator
 
 from esofile_reader.constants import *
+from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable, SimpleVariable
 
 
@@ -55,10 +56,6 @@ class LeafNode:
     key : int
         A node identifier.
 
-    Notes
-    -----
-    Children are not ordered!
-
     """
 
     def __init__(self, parent: Node, key: Union[str, int]):
@@ -83,6 +80,9 @@ class Tree:
 
     """
 
+    SIMPLE_BRANCH_ORDER = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+    BRANCH_ORDER = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL, TYPE_LEVEL]
+
     def __init__(self):
         self.root = Node(None, "groot")
 
@@ -103,8 +103,23 @@ class Tree:
         create_string_items(self.root, string_items)
         return str.join("", string_items)
 
-    @staticmethod
-    def create_variable_iterator(variable: Union[Variable, SimpleVariable]) -> Iterator:
+    @classmethod
+    def from_header_dict(cls, header_dct: Dict[str, Dict[int, Variable]]) -> "Tree":
+        """ Create a search tree instance from header dictionary. """
+        tree = Tree()
+        duplicates = {}
+        for table, data in header_dct.items():
+            for id_, variable in data.items():
+                duplicate_id = tree._add_branch(id_, variable)
+                if duplicate_id:
+                    duplicates[duplicate_id] = variable
+        if duplicates:
+            raise DuplicateVariable(
+                f"Header contains duplicates: {duplicates}", tree, duplicates
+            )
+        return tree
+
+    def create_variable_iterator(self, variable: Union[Variable, SimpleVariable]) -> Iterator:
         """ Pass reordered variable. """
 
         def low_string(s):
@@ -113,10 +128,10 @@ class Tree:
 
         lower = map(low_string, variable)
         if isinstance(variable, SimpleVariable):
-            order = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL]
+            order = self.SIMPLE_BRANCH_ORDER
             v = SimpleVariable(*lower)
         else:
-            order = [TABLE_LEVEL, KEY_LEVEL, UNITS_LEVEL, TYPE_LEVEL]
+            order = self.BRANCH_ORDER
             v = Variable(*lower)
         # each class has its own sub branch
         tree_variable = [v.__getattribute__(level) for level in order]

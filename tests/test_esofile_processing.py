@@ -12,19 +12,17 @@ from esofile_reader.processing.esofile import (
     process_sub_monthly_interval_lines,
     process_monthly_plus_interval_lines,
     read_body,
-    generate_outputs,
-    generate_peak_outputs,
+    generate_df_tables,
+    generate_peak_tables,
     remove_duplicates,
 )
 
 from esofile_reader import EsoFile
-from esofile_reader.base_file import IncompleteFile
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError
+from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.search_tree import Tree
 from tests import ROOT
 
 
@@ -170,6 +168,7 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
+                header
             ) = read_body(f, 6, header, False, EsoFileProgressLogger("dummy"))
             # fmt: off
             self.assertEqual(
@@ -273,19 +272,25 @@ class TestEsoFileProcessing(unittest.TestCase):
             self.assertListEqual(day_of_week[0]["hourly"], ["Sunday"] * 24 + ["Monday"] * 24)
             self.assertListEqual(day_of_week[0]["daily"], ["Sunday", "Monday"])
 
-    def test_generate_peak_outputs(self):
-        monitor = EsoFileProgressLogger("foo")
+    def test_generate_peak_tables(self):
+        progress_logger = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, monitor)
+            header = read_header(f, progress_logger)
 
         with open(self.body_pth, "r") as f:
-            content = read_body(f, 6, header, False, monitor)
-            env_names, _, raw_peak_outputs, dates, cumulative_days, day_of_week = content
+            content = read_body(f, 6, header, False, progress_logger)
+            (
+                env_names,
+                _,
+                raw_peak_outputs,
+                dates,
+                cumulative_days,
+                day_of_week,
+                header
+            ) = content
 
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
-        outputs = generate_peak_outputs(
-            raw_peak_outputs[0], header, dates, monitor, 1
-        )
+        outputs = generate_peak_tables(raw_peak_outputs[0], header, dates, progress_logger)
 
         min_outputs = outputs["local_min"]
         max_outputs = outputs["local_max"]
@@ -302,10 +307,10 @@ class TestEsoFileProcessing(unittest.TestCase):
         self.assertEqual(min_outputs.tables["runperiod"].shape, (1, 42))
         self.assertEqual(max_outputs.tables["runperiod"].shape, (1, 42))
 
-    def test_generate_outputs(self):
-        monitor = EsoFileProgressLogger("foo")
+    def test_generate_df_tables(self):
+        progress_logger = EsoFileProgressLogger("foo")
         with open(self.header_pth, "r") as f:
-            header = read_header(f, monitor)
+            header = read_header(f, progress_logger)
 
         with open(self.body_pth, "r") as f:
             (
@@ -315,12 +320,13 @@ class TestEsoFileProcessing(unittest.TestCase):
                 dates,
                 cumulative_days,
                 day_of_week,
+                header
             ) = read_body(f, 6, header, False, EsoFileProgressLogger("dummy"))
 
         dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
 
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
-        outputs = generate_outputs(raw_outputs[0], header, dates, other_data, monitor, 1)
+        outputs = generate_df_tables(raw_outputs[0], header, dates, other_data, progress_logger)
 
         for interval, df in outputs.tables.items():
             key_level = df.columns.get_level_values("key")
@@ -336,32 +342,6 @@ class TestEsoFileProcessing(unittest.TestCase):
                 self.assertTrue(("special", interval, "day", "", "") == df.columns[0])
             else:
                 self.assertTrue(("special", interval, "n days", "", "") == df.columns[0])
-
-    def test_create_tree(self):
-        with open(self.header_pth, "r") as f:
-            header = read_header(f, EsoFileProgressLogger("foo"))
-            tree = Tree()
-            dup_ids = tree.populate_tree(header)
-
-            self.assertEqual(dup_ids, {})
-
-            dup1 = Variable(
-                "runperiod",
-                "BLOCK1:ZONE1",
-                "Zone Mechanical Ventilation Air Changes per Hour",
-                "ach",
-            )
-            dup2 = Variable(
-                "daily", "Environment", "Site Outdoor Air Drybulb Temperature", "C"
-            )
-
-            header["runperiod"][625] = dup1
-            header["daily"][626] = dup2
-            header["daily"][627] = dup2
-
-            tree = Tree()
-            dup_ids = tree.populate_tree(header)
-            self.assertDictEqual(dup_ids, {626: dup2, 627: dup2, 625: dup1})
 
     def test_remove_duplicates(self):
         v1 = Variable("hourly", "a", "b", "c")
@@ -399,13 +379,13 @@ class TestEsoFileProcessing(unittest.TestCase):
         with self.assertRaises(InvalidLineSyntax):
             EsoFile(
                 os.path.join(ROOT, "eso_files/eplusout_invalid_line.eso"),
-                EsoFileProgressLogger("foo")
+                EsoFileProgressLogger("foo", level=20)
             )
 
     def test_logging_level_info(self):
         EsoFile(
             os.path.join(ROOT, "eso_files/eplusout1.eso"),
-            monitor=EsoFileProgressLogger("foo", level=20)
+            progress_logger=EsoFileProgressLogger("foo", level=20)
         )
 
 # fmt: on

@@ -132,9 +132,9 @@ class ParquetFrame:
         self._indexer[:, key] = value
 
     @classmethod
-    def from_df(cls, df, name, pardir="", monitor: GenericProgressLogger = None):
+    def from_df(cls, df, name, pardir="", progress_logger: GenericProgressLogger = None):
         pqf = ParquetFrame(name, pardir)
-        pqf.store_df(df, monitor=monitor)
+        pqf.store_df(df, progress_logger=progress_logger)
         return pqf
 
     @classmethod
@@ -376,7 +376,7 @@ class ParquetFrame:
 
         return df.loc[:, items]
 
-    def store_df(self, df: pd.DataFrame, monitor: GenericProgressLogger = None) -> None:
+    def store_df(self, df: pd.DataFrame, progress_logger: GenericProgressLogger = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
         df = df.copy()
@@ -393,8 +393,8 @@ class ParquetFrame:
             self.save_df_to_parquet(chunk_name, dfi)
             start += self.CHUNK_SIZE
 
-            if monitor:
-                monitor.increment_progress()
+            if progress_logger:
+                progress_logger.increment_progress()
 
         self._chunks_table = pd.concat(frames)
         self._columns = df.columns
@@ -503,15 +503,15 @@ class ParquetTables(DFTables):
         super().__init__()
 
     @classmethod
-    def from_dftables(cls, dftables, pardir, monitor: GenericProgressLogger = None):
+    def from_dftables(cls, dftables, pardir, progress_logger: GenericProgressLogger = None):
         """ Create parquet data from DataFrame like class. """
         pqd = ParquetTables()
         for k, v in dftables.tables.items():
-            pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, monitor=monitor)
+            pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, progress_logger=progress_logger)
         return pqd
 
     @classmethod
-    def from_fs(cls, path, pardir, monitor: GenericProgressLogger = None):
+    def from_fs(cls, path, pardir, progress_logger: GenericProgressLogger = None):
         """ Create parquet data from filesystem directory. """
         pqd = ParquetTables()
         for p in [p for p in Path(path).iterdir() if p.is_dir()]:

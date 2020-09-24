@@ -25,12 +25,22 @@ class BaseTables(ABC):
 
     @abstractmethod
     def get_table_names(self) -> List[str]:
-        """ Store table in database. """
+        """ Get all table names. """
         pass
 
     @abstractmethod
     def get_datetime_index(self, table: str) -> List[datetime]:
-        """ Store table in database. """
+        """ Get datetime index of the given variable. """
+        pass
+
+    @abstractmethod
+    def get_variables_count(self, table: str) -> int:
+        """ Get number of variables in given table. """
+        pass
+
+    @abstractmethod
+    def get_all_variables_count(self) -> int:
+        """ Get total number of variables. """
         pass
 
     @abstractmethod
@@ -99,6 +109,11 @@ class BaseTables(ABC):
         end_date: Optional[datetime] = None,
     ) -> pd.Series:
         """ Get a special column. """
+        pass
+
+    @abstractmethod
+    def get_special_table(self, table: str) -> pd.DataFrame:
+        """ Get table with only 'special' columns. """
         pass
 
     @abstractmethod
