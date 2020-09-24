@@ -275,10 +275,10 @@ def process_workbook(
     if not sheet_names:
         sheet_names = wb.sheetnames
 
-        # each table represents a single step + add one for tree generation
+    # each table represents a single step + add one for tree generation
     n_steps = len(sheet_names) + 1
     progress_logger.log_section("processing sheets!")
-    progress_logger.reset_progress(maximum=n_steps)
+    progress_logger.set_new_maximum_progress(n_steps)
 
     start_id = 1
     df_tables = DFTables()

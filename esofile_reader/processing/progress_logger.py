@@ -49,9 +49,9 @@ class GenericProgressLogger:
     def increment_progress(self, i: Union[int, float] = 1) -> None:
         self.progress += i
 
-    def reset_progress(self, maximum: int, current: int = 0):
-        self.max_progress = maximum
-        self.progress = current
+    def set_new_maximum_progress(self, max_progress: int, progress: int = 0):
+        self.max_progress = max_progress
+        self.progress = progress
 
     def get_total_task_time(self) -> float:
         return self.section_timestamps[-1] - self.section_timestamps[0]
@@ -82,24 +82,17 @@ class GenericProgressLogger:
 
 
 class EsoFileProgressLogger(GenericProgressLogger):
-    # processing raw file takes approximately 70% of total time
-    PROGRESS_FRACTION = 0.7
+    # chunk size defines after how many lines it takes to increment progress
+    CHUNK_SIZE = 20000
 
     def __init__(self, name: str, level=ERROR):
         super().__init__(name, level=level)
         self.n_lines = -1
         self.chunk_size = -1
-        self.counter = 0
+        self.line_counter = 0
 
     def log_task_finished(self) -> None:
         super().log_task_finished()
         relative_time = self.n_lines / self.get_total_task_time()
         message = f"Processing speed: {relative_time:.0f} lines per s"
         self.log_message(message, INFO)
-
-    def initialize_attributes(self, n_lines: int) -> None:
-        max_progress = 50
-        n_steps = int(self.PROGRESS_FRACTION * max_progress)
-        self.max_progress = max_progress
-        self.n_lines = n_lines
-        self.chunk_size = n_lines // n_steps

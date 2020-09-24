@@ -259,7 +259,7 @@ class ParquetStorage(DFStorage):
                 n_steps += n
 
             progress_logger.log_section("writing parquets!")
-            progress_logger.reset_progress(n_steps)
+            progress_logger.set_new_maximum_progress(n_steps)
 
             id_gen = incremental_id_gen(checklist=list(self.files.keys()))
             id_ = next(id_gen)

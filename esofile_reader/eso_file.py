@@ -16,12 +16,12 @@ from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.exceptions import *
 
 try:
-    from esofile_reader.processing.esofile import read_file
+    from esofile_reader.processing.esofile import process_eso_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.esofile import read_file
+    from esofile_reader.processing.esofile import process_eso_file
 
 
 class ResultsEsoFile(BaseFile):
@@ -75,7 +75,7 @@ class ResultsEsoFile(BaseFile):
             progress_logger = EsoFileProgressLogger(file_path.name)
         with progress_logger.log_task("Process eso file data!"):
             eso_files = []
-            content = read_file(
+            content = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
             content = [
@@ -131,7 +131,7 @@ class EsoFile(ResultsEsoFile):
             file_path = Path(file_path)
             file_name = file_path.stem
             file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-            content = read_file(
+            content = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
             environment_names = content[0]
