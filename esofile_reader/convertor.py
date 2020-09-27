@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.conversion_tables import energy_table, rate_table, si_to_ip
+from esofile_reader.conversion_tables import (
+    energy_table,
+    rate_table,
+    si_to_ip,
+    energy_table_per_area,
+    rate_table_per_area,
+)
 
 
 def apply_conversion(
@@ -34,7 +40,10 @@ def apply_conversion(
 
 
 def create_conversion_tuples(
-    source_units: pd.Series, units_system: str, rate_units: str, energy_units
+    source_units: Union[pd.Series, pd.Index],
+    units_system: str,
+    rate_units: str,
+    energy_units: str,
 ) -> List[Tuple[str, str, Any]]:
     """ Get relevant converted units and conversion ratios. """
     conversion_tuples = []
@@ -42,11 +51,11 @@ def create_conversion_tuples(
         if units == "J" and energy_units != "J":
             inp = energy_table(energy_units)
         elif units == "J/m2" and energy_units != "J":
-            inp = energy_table(energy_units, per_area=True)
+            inp = energy_table_per_area(energy_units)
         elif units == "W" and rate_units != "W":
             inp = rate_table(rate_units)
         elif units == "W/m2" and rate_units != "W":
-            inp = rate_table(rate_units, per_area=True)
+            inp = rate_table_per_area(rate_units)
         elif units_system == "IP":
             inp = si_to_ip(units)
         else:
