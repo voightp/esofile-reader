@@ -2,6 +2,7 @@ import collections.abc
 import contextlib
 import math
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
 from typing import List, Dict, Tuple, Sequence, Union, Optional
 from uuid import uuid1
@@ -14,6 +15,20 @@ import pyarrow.parquet as pq
 from esofile_reader.constants import *
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.tables.df_tables import DFTables
+
+
+@contextlib.contextmanager
+def parquet_frame_factory(
+    df: pd.DataFrame,
+    name: str,
+    pardir: Union[str, Path] = "",
+    progress_logger: GenericProgressLogger = None,
+):
+    pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
+    try:
+        yield pqf
+    finally:
+        pqf.clean_up()
 
 
 class _ParquetIndexer:
@@ -36,7 +51,9 @@ class _ParquetIndexer:
         """ Get column multiindex items as a list of tuples. """
 
         def is_boolean():
-            return all(map(lambda x: isinstance(x, (bool, np.bool_)), col))
+            return isinstance(col, Iterable) and all(
+                map(lambda x: isinstance(x, (bool, np.bool_)), col)
+            )
 
         def is_primitive():
             return all(map(lambda x: isinstance(x, (str, int)), col))
@@ -47,25 +64,26 @@ class _ParquetIndexer:
             if all(map(lambda x: isinstance(x, tuple), col)) and all(n == len(t) for t in col):
                 return [isinstance(ch, (int, str)) for t in col for ch in t]
 
-        # transform for compatibility with further checks
-        col = [col] if isinstance(col, (int, str, tuple)) else col
         missing = None
-        if is_primitive() or is_tuple():
+        if isinstance(col, slice) or (is_boolean() and self.frame.columns.size == len(col)):
+            items = self.frame.columns[col].tolist()
+        else:
+            # transform for compatibility with further checks
+            col = [col] if isinstance(col, (int, str, tuple)) else col
             if is_primitive():
                 vals = set(self.frame.columns.get_level_values(0))
-            else:
+            elif is_tuple():
                 vals = set(self.frame.columns)
+            else:
+                raise IndexError(
+                    "Cannot slice ParquetFrame. Column slice only "
+                    "accepts list of {int, str}, boolean arrays, slice or"
+                    "multiindex tuples of primitive types."
+                )
             items = [item for item in col if item in vals]
             if len(items) != len(col):
                 missing = [c for c in col if c not in items]
-        elif is_boolean() and self.frame.columns.size == len(col):
-            items = self.frame.columns[col].tolist()
-        else:
-            raise IndexError(
-                "Cannot slice ParquetFrame. Column slice only "
-                "accepts list of {int, str}, boolean arrays or"
-                "multiindex tuples of primitive types."
-            )
+
         # return requested items as a list of tuples
         return items, missing
 
@@ -109,21 +127,12 @@ class ParquetFrame:
     COLUMNS_PARQUET = "columns.parquet"
     CHUNKS_PARQUET = "chunks.parquet"
 
-    def __init__(self, name, pardir="", df: pd.DataFrame = None):
-        self.workdir = Path(pardir, f"table-{name}").absolute()
-        self.workdir.mkdir(exist_ok=True)
+    def __init__(self, workdir: Path):
+        self.workdir = workdir
         self._chunks_table = None
         self._indexer = _ParquetIndexer(self)
         self._index = None
         self._columns = None
-        if df is not None:
-            self.store_df(df)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.clean_up()
 
     def __getitem__(self, item):
         return self._indexer[:, item]
@@ -132,16 +141,28 @@ class ParquetFrame:
         self._indexer[:, key] = value
 
     @classmethod
-    def from_df(cls, df, name, pardir="", progress_logger: GenericProgressLogger = None):
-        pqf = ParquetFrame(name, pardir)
+    def from_df(
+        cls,
+        df: pd.DataFrame,
+        name: str,
+        pardir: Union[str, Path] = "",
+        progress_logger: GenericProgressLogger = None,
+    ) -> "ParquetFrame":
+        workdir = Path(pardir, f"table-{name}").absolute()
+        workdir.mkdir()
+        pqf = ParquetFrame(workdir)
         pqf.store_df(df, progress_logger=progress_logger)
         return pqf
 
     @classmethod
-    def from_fs(cls, name, pardir=""):
-        pqf = ParquetFrame(name, pardir)
-        pqf.load_info_parquets()
+    def from_fs(cls, workdir: Path) -> "ParquetFrame":
+        pqf = ParquetFrame(workdir)
+        pqf.load_index_parquets()
         return pqf
+
+    @classmethod
+    def get_n_chunks(cls, df: pd.DataFrame) -> int:
+        return math.ceil(df.shape[1] / cls.CHUNK_SIZE)
 
     def clean_up(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
@@ -277,7 +298,7 @@ class ParquetFrame:
             items[pos] = new
         return pd.MultiIndex.from_tuples(items, names=mi.names)
 
-    def save_info_parquets(self):
+    def save_index_parquets(self):
         """ Save columns, index and chunk data as parquets. """
         paths = [
             Path(self.workdir, self.INDEX_PARQUET),
@@ -299,14 +320,13 @@ class ParquetFrame:
         chunks.index = self.stringify_mi_level(chunks.index, ID_LEVEL)
         pq.write_table(pa.Table.from_pandas(chunks), paths[2])
 
-    def load_info_parquets(self):
+    def load_index_parquets(self):
         """ Load index, columns and chunk parquets from fs. """
         paths = [
             Path(self.workdir, self.INDEX_PARQUET),
             Path(self.workdir, self.COLUMNS_PARQUET),
             Path(self.workdir, self.CHUNKS_PARQUET),
         ]
-
         for path in paths:
             if not path.exists():
                 raise FileNotFoundError(
@@ -380,7 +400,7 @@ class ParquetFrame:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
         df = df.copy()
-        n = math.ceil(df.shape[1] / self.CHUNK_SIZE)
+        n = self.get_n_chunks(df)
         start = 0
         frames = []
         for i in range(n):
@@ -503,19 +523,21 @@ class ParquetTables(DFTables):
         super().__init__()
 
     @classmethod
-    def from_dftables(cls, dftables, pardir, progress_logger: GenericProgressLogger = None):
+    def from_dftables(
+        cls, dftables: DFTables, pardir: Path, progress_logger: GenericProgressLogger = None
+    ) -> "ParquetTables":
         """ Create parquet data from DataFrame like class. """
-        pqd = ParquetTables()
+        pqt = ParquetTables()
         for k, v in dftables.tables.items():
-            pqd.tables[k] = ParquetFrame.from_df(v, k, pardir, progress_logger=progress_logger)
-        return pqd
+            pqt.tables[k] = ParquetFrame.from_df(v, k, pardir, progress_logger=progress_logger)
+        return pqt
 
     @classmethod
-    def from_fs(cls, path, pardir, progress_logger: GenericProgressLogger = None):
+    def from_fs(cls, pardir: Path, progress_logger: GenericProgressLogger = None):
         """ Create parquet data from filesystem directory. """
-        pqd = ParquetTables()
-        for p in [p for p in Path(path).iterdir() if p.is_dir()]:
-            table = str(p.name).split("-")[1]
-            pqf = ParquetFrame.from_fs(table, pardir)
-            pqd.tables[table] = pqf
-        return pqd
+        pqt = ParquetTables()
+        for p in [p for p in Path(pardir).iterdir() if p.is_dir()]:
+            table = str(p.name).split("-", maxsplit=1)[1]
+            pqf = ParquetFrame.from_fs(p)
+            pqt.tables[table] = pqf
+        return pqt
