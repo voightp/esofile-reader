@@ -97,6 +97,20 @@ class DFTables(BaseTables):
     def __delitem__(self, key: str):
         del self._tables[key]
 
+    def __eq__(self, other):
+        def tables_match():
+            for table_name in self.get_table_names():
+                try:
+                    pd.testing.assert_frame_equal(
+                        self.get_table(table_name), other.get_table(table_name)
+                    )
+                except AssertionError:
+                    return False
+            return True
+
+        table_names_match = self.tables.keys() == other.tables.keys()
+        return table_names_match and tables_match()
+
     def keys(self):
         return self._tables.keys()
 
@@ -250,6 +264,9 @@ class DFTables(BaseTables):
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col
+
+    def get_table(self, table: str):
+        return self.tables[table].loc[:, :].copy()
 
     def get_special_table(self, table: str):
         mi = self.tables[table].columns
