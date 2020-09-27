@@ -112,6 +112,11 @@ class BaseTables(ABC):
         pass
 
     @abstractmethod
+    def get_table(self, table: str) -> pd.DataFrame:
+        """ Get full table. """
+        pass
+
+    @abstractmethod
     def get_special_table(self, table: str) -> pd.DataFrame:
         """ Get table with only 'special' columns. """
         pass
