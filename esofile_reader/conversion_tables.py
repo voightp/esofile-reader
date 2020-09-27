@@ -2,7 +2,7 @@ import logging
 from typing import Tuple, Union, Callable
 
 
-def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
+def energy_table(new_units: str) -> Tuple[str, str, Union[int, float]]:
     """
     Find conversion rate for given energy units.
 
@@ -45,6 +45,38 @@ def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Unio
         "mbtu": ("J", "MBtu", 1055056000),
     }
 
+    return table[new_units.lower()]
+
+
+def energy_table_per_area(new_units: str) -> Tuple[str, str, Union[int, float]]:
+    """
+    Find conversion rate for given energy units.
+
+    EnergyPlus standard units for power are 'Joules'.
+
+    Conversion table:
+        J       ->      Wh          /       3600
+        J       ->      kWh         /       3 600 000
+        J       ->      MWh         /       3 600 000 000
+        J       ->      kJ          /       1 000
+        J       ->      MJ          /       1000 000
+        J       ->      GJ          /       1000 000 000
+        J       ->      Btu         /       1055.056
+        J       ->      kBtu        /       1 055 056
+        J       ->      MBtu        /       1 055 056 000
+
+    Arguments
+    ---------
+    new_units : str
+        Requested energy units.
+
+    Returns
+    -------
+    Tuple of str, str, int or float
+        original units, new units, conversion factor
+
+    """
+
     table_pa = {
         "wh": ("J/m2", "Wh/m2", 3600),
         "kwh": ("J/m2", "kWh/m2", 3600000),
@@ -57,11 +89,10 @@ def energy_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Unio
         "mbtu": ("J/m2", "MBtu/ft2", 1055056000 * 10.76391),
     }
 
-    tbl = table_pa if per_area else table
-    return tbl[new_units.lower()]
+    return table_pa[new_units.lower()]
 
 
-def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[int, float]]:
+def rate_table(new_units: str) -> Tuple[str, str, Union[int, float]]:
     """
     Find conversion rate for given rate units.
 
@@ -96,6 +127,36 @@ def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[
         "mbtu/h": ("W", "MBtu/h", 293071.1),
     }
 
+    return table[new_units.lower()]
+
+
+def rate_table_per_area(new_units: str) -> Tuple[str, str, Union[int, float]]:
+    """
+    Find conversion rate for given rate units.
+
+    EnergyPlus standard units for power are 'Watts'.
+
+    Conversion table:
+        W       ->      Btu/h       /       0.2930711
+        W       ->      kBtu/h      /       293.0711
+        W       ->      MBtu/h      /       293 071.1
+        W       ->      kW          /       1000
+        W       ->      MW          /       1000 000
+
+        Arguments
+    ---------
+    new_units : str
+        Requested energy units.
+    per_area : bool
+        Define if new units should be normalized.
+
+    Returns
+    -------
+    Tuple of str, str, int or float
+        original units, new units, conversion factor
+
+    """
+
     table_pa = {
         "kw": ("W/m2", "kW/m2", 1000),
         "mw": ("W/m2", "MW/m2", 1000000),
@@ -104,8 +165,7 @@ def rate_table(new_units: str, per_area: bool = False) -> Tuple[str, str, Union[
         "mbtu/h": ("W/m2", "MBtu/h-ft2", 293071.1 * 10.76391),
     }
 
-    tbl = table_pa if per_area else table
-    return tbl[new_units.lower()]
+    return table_pa[new_units.lower()]
 
 
 def si_to_ip(orig_units: str) -> Tuple[str, str, Union[int, float, Callable]]:
