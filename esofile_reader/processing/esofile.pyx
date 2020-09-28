@@ -74,8 +74,9 @@ def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
     return int(line_id), key, type_, units, interval.lower()
 
 
-def read_header(eso_file: TextIO, progress_logger: EsoFileProgressLogger) -> Dict[
-    str, Dict[int, Variable]]:
+def read_header(
+    eso_file: TextIO, progress_logger: EsoFileProgressLogger
+) -> Dict[str, Dict[int, Variable]]:
     """
     Read header dictionary of the eso file.
 
@@ -121,7 +122,7 @@ def read_header(eso_file: TextIO, progress_logger: EsoFileProgressLogger) -> Dic
             if "End of Data Dictionary" in raw_line:
                 progress_logger.line_counter += counter
                 break
-            elif raw_line == "":
+            elif raw_line == "\n":
                 raise BlankLineError("Empty line!")
             else:
                 raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
@@ -320,7 +321,7 @@ def read_body(
             if "End of Data" in raw_line:
                 progress_logger.line_counter += counter
                 break
-            elif raw_line == "":
+            elif raw_line == "\n":
                 raise BlankLineError("Empty line!")
             else:
                 raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
@@ -487,10 +488,8 @@ def generate_df_tables(
         df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
         df = df.T
         df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-
         # store the data in  DFTables class
         tables[interval] = df
-
         progress_logger.increment_progress()
 
     # add other special columns, structure is {KEY: {INTERVAL: ARRAY}}
