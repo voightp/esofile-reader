@@ -28,10 +28,13 @@ def subtract_tables(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_shared_special_table(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-    """ Get shared special columns for matching index. """
+    """ Get shared special columns for matching indexes and data. """
     index_cond = df1.index.intersection(df2.index).tolist()
     columns_cond = df1.columns.intersection(df2.columns).tolist()
-    return df1.loc[index_cond, columns_cond]
+    df1 = df1.loc[index_cond, columns_cond]
+    df2 = df2.loc[index_cond, columns_cond]
+    same_columns = [df1.loc[:, c].equals(df2.loc[:, c]) for c in df1.columns]
+    return df1.loc[:, same_columns]
 
 
 def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
