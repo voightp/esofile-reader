@@ -1,4 +1,5 @@
 import logging
+from copy import copy
 from datetime import datetime
 from typing import Sequence, List, Dict, Optional, Union
 
@@ -110,6 +111,12 @@ class DFTables(BaseTables):
 
         table_names_match = self.tables.keys() == other.tables.keys()
         return table_names_match and tables_match()
+
+    def __copy__(self):
+        new_tables = self.__class__()
+        for table, df in self.tables.items():
+            new_tables[table] = copy(df)
+        return new_tables
 
     def keys(self):
         return self._tables.keys()

@@ -38,6 +38,15 @@ class Node:
         self.key = key
         self.children = {}
 
+    def __copy__(self):
+        new_node = Node(parent=self.parent, key=self.key)
+        if isinstance(self.children, LeafNode):
+            new_node.children = self.children
+        else:
+            for node_key, node in self.children.items():
+                new_node.children[node_key] = copy(node)
+        return new_node
+
 
 class LeafNode:
     """ A bottom node of a tree.
@@ -61,6 +70,9 @@ class LeafNode:
     def __init__(self, parent: Node, key: Union[str, int]):
         self.parent = parent
         self.key = key
+
+    def __copy__(self):
+        return LeafNode(parent=self.parent, key=self.key)
 
 
 class Tree:
@@ -102,6 +114,11 @@ class Tree:
         string_items = []
         create_string_items(self.root, string_items)
         return str.join("", string_items)
+
+    def __copy__(self):
+        new_tree = Tree()
+        new_tree.root = copy(self.root)
+        return new_tree
 
     @classmethod
     def from_header_dict(cls, header_dct: Dict[str, Dict[int, Variable]]) -> "Tree":

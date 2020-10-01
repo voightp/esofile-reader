@@ -14,6 +14,7 @@ except ImportError:
 from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.exceptions import *
+from copy import copy
 
 try:
     from esofile_reader.processing.esofile import process_eso_file
@@ -60,6 +61,16 @@ class ResultsEsoFile(BaseFile):
             file_path, file_name, file_created, tables, search_tree, file_type=BaseFile.ESO
         )
         self.peak_outputs = peak_outputs
+
+    def __copy__(self):
+        type(self)(
+            file_path=self.file_path,
+            file_name=self.file_name,
+            file_created=self.file_created,
+            tables=copy(self.tables),
+            search_tree=copy(self.search_tree),
+            peak_outputs=copy(self.peak_outputs),
+        )
 
     @classmethod
     def from_multi_env_eso_file(
@@ -149,3 +160,13 @@ class EsoFile(ResultsEsoFile):
                     f"Use '{super().__class__.__name__}.process_multi_env_file' "
                     f"to generate multiple files."
                 )
+
+    def __copy__(self):
+        ResultsEsoFile(
+            file_path=self.file_path,
+            file_name=self.file_name,
+            file_created=self.file_created,
+            tables=copy(self.tables),
+            search_tree=copy(self.search_tree),
+            peak_outputs=copy(self.peak_outputs),
+        )

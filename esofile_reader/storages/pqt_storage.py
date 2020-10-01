@@ -3,6 +3,7 @@ import io
 import json
 import shutil
 import tempfile
+from copy import copy
 from datetime import datetime
 from pathlib import Path
 from typing import Union, Tuple, Dict, Any
@@ -14,7 +15,7 @@ from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.df_storage import DFStorage
-from esofile_reader.tables.pqt_tables import ParquetFrame, ParquetTables
+from esofile_reader.tables.pqt_tables import ParquetFrame, ParquetTables, get_unique_workdir
 
 
 class ParquetFile(BaseFile):
@@ -80,8 +81,33 @@ class ParquetFile(BaseFile):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.clean_up()
 
+    def __copy__(self):
+        new_workdir = get_unique_workdir(self.workdir)
+        self._copy(new_workdir)
+
+    def _copy(self, new_workdir: Path, new_id: int = None) -> "ParquetFile":
+        new_tables = self.tables.copy_to(new_workdir)
+        new_file = ParquetFile(
+            id_=new_id if new_id else self.id_,
+            file_path=self.file_path,
+            file_name=self.file_name,
+            tables=new_tables,
+            file_created=self.file_created,
+            file_type=self.file_type,
+            workdir=new_workdir,
+            search_tree=copy(self.search_tree),
+        )
+        return new_file
+
+    def copy_to(self, new_pardir: Path, new_id: int = None):
+        """ Copy all data to another directory. """
+        new_name = f"file-{new_id}" if new_id else self.name
+        new_workdir = Path(new_pardir, new_name)
+        new_workdir.mkdir()
+        return self._copy(new_workdir, new_id=new_id)
+
     @property
-    def name(self):
+    def name(self) -> str:
         return self.workdir.name
 
     @classmethod
@@ -121,7 +147,7 @@ class ParquetFile(BaseFile):
             shutil.rmtree(tempdir, ignore_errors=True)
 
             # extract all the content
-            file_dir = Path(dest_dir, f"file-{info['id']}")
+            file_dir = Path(dest_dir, f"{info['name']}")
             file_dir.mkdir()
             zf.extractall(file_dir)
         return file_dir, info
@@ -193,6 +219,7 @@ class ParquetFile(BaseFile):
                     "file_name": self.file_name,
                     "file_created": self.file_created.timestamp(),
                     "file_type": self.file_type,
+                    "name": self.name,
                 },
                 f,
                 indent=4,
@@ -220,23 +247,6 @@ class ParquetFile(BaseFile):
         device = io.BytesIO()
         self.write_zip(device)
         return device
-
-    def copy_to_new_parent(self, new_id: int, new_pardir: Path):
-        """ Copy all data to another directory. """
-        new_name = f"file-{new_id}"
-        new_workdir = Path(new_pardir, new_name)
-
-        # clone all the parquet data
-        shutil.copytree(self.workdir, new_workdir)
-
-        # update parquet frame root
-        for table in self.tables.values():
-            table_name = table.name
-            table.workdir = Path(new_workdir, table_name)
-
-        # assign updated attributes
-        self.workdir = new_workdir
-        self.id_ = new_id
 
 
 class ParquetStorage(DFStorage):
@@ -327,6 +337,6 @@ class ParquetStorage(DFStorage):
             new_id = next(id_gen) if id_ in self.files.keys() else id_
             new_name = get_str_identifier(file.file_name, self.get_all_file_names())
             file.rename(new_name)
-            file.copy_to_new_parent(new_id, self.workdir)
-            self.files[new_id] = file
+            new_file = file.copy_to(self.workdir, new_id=new_id)
+            self.files[new_id] = new_file
         del pqs

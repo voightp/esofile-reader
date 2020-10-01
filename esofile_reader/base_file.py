@@ -2,6 +2,7 @@ import logging
 import os
 import traceback
 from collections import defaultdict
+from copy import copy
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Sequence, Optional, Union, List, Tuple
@@ -84,6 +85,16 @@ class BaseFile:
             f"\n\tName: {self.file_name}"
             f"\n\tCreated: {self.file_created}"
             f"\n\tAvailable tables: [{', '.join(self.table_names)}]"
+        )
+
+    def __copy__(self):
+        return type(self)(
+            self.file_path,
+            self.file_name,
+            self.file_created,
+            copy(self.tables),
+            copy(self.search_tree),
+            self.file_type,
         )
 
     @property
