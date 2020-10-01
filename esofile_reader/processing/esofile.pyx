@@ -636,6 +636,7 @@ def preprocess_file(
     progress_logger.log_section("pre-processing!")
     n_lines = count_lines(file_path)
     maximum = n_lines // progress_logger.CHUNK_SIZE
+    progress_logger.n_lines = n_lines
     progress_logger.set_new_maximum_progress(maximum)
 
 
