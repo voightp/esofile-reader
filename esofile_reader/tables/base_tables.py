@@ -14,6 +14,10 @@ class BaseTables(ABC):
     """
 
     @abstractmethod
+    def __copy__(self):
+        pass
+
+    @abstractmethod
     def is_simple(self, table: str) -> bool:
         """ Check whether data uses full or simple variable. """
         pass

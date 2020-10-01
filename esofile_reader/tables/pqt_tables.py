@@ -13,6 +13,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
+from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.tables.df_tables import DFTables
 
@@ -29,6 +30,14 @@ def parquet_frame_factory(
         yield pqf
     finally:
         pqf.clean_up()
+
+
+def get_unique_workdir(workdir: Path) -> Path:
+    old_name = workdir.name
+    pardir = workdir.parent
+    all_names = [p.name for p in pardir.iterdir()]
+    new_name = get_str_identifier(old_name, all_names)
+    return Path(pardir, new_name)
 
 
 class _ParquetIndexer:
@@ -139,6 +148,23 @@ class ParquetFrame:
 
     def __setitem__(self, key, value):
         self._indexer[:, key] = value
+
+    def __copy__(self):
+        new_workdir = get_unique_workdir(self.workdir)
+        return self._copy(new_workdir)
+
+    def _copy(self, new_workdir: Path):
+        shutil.copytree(self.workdir, new_workdir)
+        parquet_frame = ParquetFrame(new_workdir)
+        parquet_frame.workdir = new_workdir
+        parquet_frame._chunks_table = self._chunks_table.copy()
+        parquet_frame._index = self._index.copy()
+        parquet_frame._columns = self._columns.copy()
+        return parquet_frame
+
+    def copy_to(self, new_pardir: Path):
+        new_workdir = Path(new_pardir, self.name)
+        return self._copy(new_workdir)
 
     @classmethod
     def from_df(
@@ -541,3 +567,9 @@ class ParquetTables(DFTables):
             pqf = ParquetFrame.from_fs(p)
             pqt.tables[table] = pqf
         return pqt
+
+    def copy_to(self, new_pardir: Path) -> "ParquetTables":
+        new_tables = ParquetTables()
+        for table, pqf in self.tables.items():
+            new_tables[table] = pqf.copy_to(new_pardir)
+        return new_tables
