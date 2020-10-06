@@ -1,9 +1,11 @@
-from typing import Tuple
+from datetime import datetime
+from typing import Tuple, List, Dict, Optional
 
 import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
+from esofile_reader.mini_classes import IntervalTuple
 
 
 def update_datetime_format(df: pd.DataFrame, timestamp_format: str) -> pd.DataFrame:
@@ -52,31 +54,28 @@ def datetime_helper(month: int, day: int, hour: int, end_minute: int) -> Tuple[i
         return month, day, hour - 1, end_minute
 
 
-def parse_result_dt(date, month, day, hour, end_min):
+def parse_result_datetime(
+    date: datetime, month: int, day: int, hour: int, end_min: int
+) -> datetime:
     """ Combine index date and peak occurrence date to return an appropriate peak timestamp. """
-
     if month is not None:
         # Runperiod results, all the timestamp information is
         # available in the output tuple
         m, d, h, min = datetime_helper(month, day, hour, end_min)
-
     elif day is not None:
         # Monthly results, month needs to be extracted from the datetime
         # index of the output, other line is available in the output tuple
         m, d, h, min = datetime_helper(date.month, day, hour, end_min)
-
     else:
         # Daily outputs, month and day is extracted from the datetime
         # index, hour and end minute is is taken from the output tuple
         m, d, h, min = datetime_helper(date.month, date.day, hour, end_min)
-
     # table peak value might overlap to next year
     year = date.year + 1 if (m, d, h, min) == (1, 1, 0, 0) else date.year
-
     return date.replace(year=year, month=m, day=d, hour=h, minute=min)
 
 
-def is_end_day(month, day):
+def is_end_day(month: int, day: int) -> bool:
     """ Check if day us the month end day. """
     months = {
         1: 31,
@@ -95,7 +94,7 @@ def is_end_day(month, day):
     return day == months[month]
 
 
-def month_act_days(monthly_cumulative_days):
+def get_month_n_days_from_cumulative(monthly_cumulative_days: List[int]):
     """
     Transform consecutive number of days in monthly data to actual number of days.
 
@@ -105,41 +104,36 @@ def month_act_days(monthly_cumulative_days):
     """
     old_num = monthly_cumulative_days.pop(0)
     m_actual_days = [old_num]
-
     for num in monthly_cumulative_days:
         new_num = num - old_num
         m_actual_days.append(new_num)
         old_num += new_num
-
     return m_actual_days
 
 
-def find_num_of_days_annual(ann_num_of_days, rp_num_of_days):
+def find_num_of_days_annual(ann_num_of_days: List[int], rp_num_of_days: List[int]) -> List[int]:
     """ Use runperiod data to calculate number of days for each annual period. """
     days = rp_num_of_days[0] // len(ann_num_of_days)
     return [days for _ in ann_num_of_days]
 
 
-def get_num_of_days(cumulative_days):
+def get_num_of_days(cumulative_days: Dict[str, List[int]]) -> Dict[str, List[int]]:
     """ Split num of days and date. """
     num_of_days = {}
-
     for table, values in cumulative_days.items():
         if table == M:
             # calculate actual number of days for monthly table
-            num_of_days[M] = month_act_days(values)
+            num_of_days[M] = get_month_n_days_from_cumulative(values)
         else:
             num_of_days[table] = values
-
     # calculate number of days for annual table for
     # an incomplete year run or multi year analysis
     if A in cumulative_days.keys() and RP in cumulative_days.keys():
         num_of_days[A] = find_num_of_days_annual(num_of_days[A], num_of_days[RP])
-
     return num_of_days
 
 
-def month_end_date(date):
+def get_month_end_date(date: datetime) -> datetime:
     """ Return month end date of a given date. """
     months = {
         1: 31,
@@ -159,7 +153,11 @@ def month_end_date(date):
     return end_date
 
 
-def check_year_increment(first_step_data, current_step_data, previous_step_data):
+def check_year_increment(
+    first_step_data: IntervalTuple,
+    current_step_data: IntervalTuple,
+    previous_step_data: IntervalTuple,
+) -> bool:
     """ Check if year value should be incremented inside environment table. """
     # Only 'Monthly+' tables can have hour == 0
     if current_step_data.hour == 0:
@@ -169,7 +167,6 @@ def check_year_increment(first_step_data, current_step_data, previous_step_data)
             return True  # current numeric month is lower than first -> increment year
         else:
             return False
-
     else:
         if current_step_data == (12, 31, 24, 60):
             return True
@@ -179,40 +176,41 @@ def check_year_increment(first_step_data, current_step_data, previous_step_data)
             return False
 
 
-def convert_to_timestamp(year, table_tuple):
-    """ Convert a raw E+ date to pandas.Timestamp format. """
-    if table_tuple.hour == 0:
+def convert_to_datetime(year: int, interval_tuple: IntervalTuple) -> datetime:
+    """ Convert a raw E+ date to datetime format. """
+    if interval_tuple.hour == 0:
         # Monthly+ table
-        month, day, hour, end_minute = table_tuple
+        month, day, hour, end_minute = interval_tuple
     else:
         # Process raw EnergyPlus tiem and date information
-        month, day, hour, end_minute = datetime_helper(*table_tuple)
-    return pd.Timestamp(year, month, day, hour, end_minute)
+        month, day, hour, end_minute = datetime_helper(*interval_tuple)
+    return datetime(year, month, day, hour, end_minute)
 
 
-def generate_timestamp_dates(raw_dates, year: int):
-    """ Generate timestamp index for a given period. """
-    dates = [convert_to_timestamp(year, raw_dates[0])]
-
+def generate_datetime_dates(raw_dates: List[IntervalTuple], year: int) -> List[datetime]:
+    """ Generate datetime index for a given period. """
+    dates = [convert_to_datetime(year, raw_dates[0])]
     for i in range(1, len(raw_dates)):
         # based on the first, current and previous
         # steps decide if the year should be incremented
         if check_year_increment(raw_dates[0], raw_dates[i], raw_dates[-1]):
             year += 1
-        date = convert_to_timestamp(year, raw_dates[i])
+        date = convert_to_datetime(year, raw_dates[i])
         dates.append(date)
     return dates
 
 
-def convert_to_timestamp_index(raw_dates, year):
+def convert_to_datetime_index(
+    raw_dates: Dict[str, List[IntervalTuple]], year: int
+) -> Dict[str, List[datetime]]:
     """ Replace raw date information with datetime like object. """
     dates = {}
     for interval, value in raw_dates.items():
-        dates[interval] = generate_timestamp_dates(value, year)
+        dates[interval] = generate_datetime_dates(value, year)
     return dates
 
 
-def update_start_dates(dates):
+def update_start_dates(dates: Dict[str, List[datetime]]) -> None:
     """ Set accurate first date for monthly+ tables. """
 
     def _set_start_date(orig, refs):
@@ -220,19 +218,19 @@ def update_start_dates(dates):
             orig[0] = ref[0].replace(hour=0, minute=0)
             return orig
 
-    ts_to_m_envs = {k: dates[k] for k in dates if k in [TS, H, D, M]}
-    if ts_to_m_envs:
+    timestep_to_monthly_dates = {k: dates[k] for k in dates if k in [TS, H, D, M]}
+    if timestep_to_monthly_dates:
         if M in dates:
-            dates[M] = _set_start_date(dates[M], ts_to_m_envs)
-
+            dates[M] = _set_start_date(dates[M], timestep_to_monthly_dates)
         if A in dates:
-            dates[A] = _set_start_date(dates[A], ts_to_m_envs)
-
+            dates[A] = _set_start_date(dates[A], timestep_to_monthly_dates)
         if RP in dates:
-            dates[RP] = _set_start_date(dates[RP], ts_to_m_envs)
+            dates[RP] = _set_start_date(dates[RP], timestep_to_monthly_dates)
 
 
-def process_raw_date_data(dates, cumulative_days, year):
+def process_raw_date_data(
+    raw_dates: Dict[str, List[IntervalTuple]], cumulative_days: Dict[str, List[int]], year: int
+) -> Tuple[Dict[str, List[datetime]], Optional[Dict[str, List[int]]]]:
     """
     Process E+ raw date and time line.
 
@@ -247,18 +245,14 @@ def process_raw_date_data(dates, cumulative_days, year):
     and stored.
 
     """
-
-    num_of_days = {}
-    m_to_rp_intervals = {k: v for k, v in dates.items() if k in (M, A, RP)}
-
-    if m_to_rp_intervals:
+    monthly_to_runperiod_dates = {k: v for k, v in raw_dates.items() if k in (M, A, RP)}
+    if monthly_to_runperiod_dates:
         # Separate number of days data if any M to RP table is available
         num_of_days = get_num_of_days(cumulative_days)
-
+    else:
+        num_of_days = None
     # transform raw int data into datetime like index
-    dates = convert_to_timestamp_index(dates, year)
-
+    dates = convert_to_datetime_index(raw_dates, year)
     # update first day of monthly+ table based on TS, H or D data
     update_start_dates(dates)
-
     return dates, num_of_days
