@@ -13,7 +13,7 @@ from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
-
+from esofile_reader.processing.raw_outputs import RawOutputs, RawDFOutputs
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
 DAILY_LINE = 3
