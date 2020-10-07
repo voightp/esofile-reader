@@ -142,7 +142,7 @@ def get_processed_results(
 
     def local_peak():
         try:
-            return results_file.peak_outputs[output_type].get_results(
+            return results_file.peak_tables[output_type].get_results(
                 table, ids, start_date, end_date
             )
         except TypeError:

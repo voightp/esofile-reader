@@ -1,24 +1,25 @@
-import logging
 import re
 from collections import defaultdict
-from copy import deepcopy
 from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import Dict, List, Tuple, TextIO, Optional, Union
 
 import cython
-import numpy as np
-import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.tables.df_functions import create_peak_min_outputs, create_peak_max_outputs
 from esofile_reader.tables.df_tables import DFTables
+
+ENVIRONMENT_LINE = 1
+TIMESTEP_OR_HOURLY_LINE = 2
+DAILY_LINE = 3
+MONTHLY_LINE = 4
+RUNPERIOD_LINE = 5
+ANNUAL_LINE = 6
 
 
 def get_eso_file_version(raw_version: str) -> int:
@@ -74,6 +75,9 @@ def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
     return int(line_id), key, type_, units, interval.lower()
 
 
+@cython.boundscheck(False)
+@cython.wraparound(True)
+@cython.binding(True)
 def read_header(
     eso_file: TextIO, progress_logger: EsoFileProgressLogger
 ) -> Dict[str, Dict[int, Variable]]:
@@ -132,7 +136,7 @@ def read_header(
     return header
 
 
-def process_sub_monthly_interval_lines(
+def process_sub_monthly_interval_line(
     line_id: int, data: List[str]
 ) -> Tuple[str, IntervalTuple, str]:
     """
@@ -158,7 +162,7 @@ def process_sub_monthly_interval_lines(
 
     """
 
-    def hourly_interval():
+    def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
         # omit day of week in conversion
         i = [int(float(item)) for item in data[:-1]]
@@ -170,21 +174,21 @@ def process_sub_monthly_interval_lines(
         else:
             return TS, interval, data[-1].strip()
 
-    def daily_interval():
+    def parse_daily_interval():
         """ Populate D list and return identifier. """
         # omit day of week in in conversion
         i = [int(item) for item in data[:-1]]
         return D, IntervalTuple(i[1], i[2], 0, 0), data[-1].strip()
 
     categories = {
-        2: hourly_interval,
-        3: daily_interval,
+        TIMESTEP_OR_HOURLY_LINE: parse_timestep_or_hourly_interval,
+        DAILY_LINE: parse_daily_interval,
     }
 
     return categories[line_id]()
 
 
-def process_monthly_plus_interval_lines(
+def process_monthly_plus_interval_line(
     line_id: int, data: List[str]
 ) -> Tuple[str, IntervalTuple, Optional[int]]:
     """
@@ -210,25 +214,23 @@ def process_monthly_plus_interval_lines(
 
     """
 
-    def monthly_interval():
+    def parse_monthly_interval():
         """ Populate M list and return identifier. """
         return M, IntervalTuple(int(data[1]), 1, 0, 0), int(data[0])
 
-    def runperiod_interval():
+    def parse_runperiod_interval():
         """ Populate RP list and return identifier. """
         return RP, IntervalTuple(1, 1, 0, 0), int(data[0])
 
-    def annual_interval():
+    def parse_annual_interval():
         """ Populate A list and return identifier. """
         return A, IntervalTuple(1, 1, 0, 0), None
 
-    # switcher to return line for a specific interval
     categories = {
-        4: monthly_interval,
-        5: runperiod_interval,
-        6: annual_interval,
+        MONTHLY_LINE: parse_monthly_interval,
+        RUNPERIOD_LINE: parse_runperiod_interval,
+        ANNUAL_LINE: parse_annual_interval,
     }
-
     return categories[line_id]()
 
 
@@ -241,15 +243,7 @@ def read_body(
     header: Dict[str, Dict[int, Variable]],
     ignore_peaks: bool,
     progress_logger: EsoFileProgressLogger
-) -> Tuple[
-    List[str],
-    List[Dict[str, dict]],
-    List[Optional[Dict[str, dict]]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    Dict[str, Dict[int, Variable]]
-]:
+) -> List[RawOutputs]:
     """
     Read body of the eso file.
 
@@ -286,33 +280,20 @@ def read_body(
     cdef double res
     cdef list peak_res
     cdef str raw_line, interval
-
-    # initialize bins for all outputs
-    cdef list all_outputs = []
-    cdef list all_peak_outputs = []
-    cdef list all_environments = []
-    cdef list all_dates = []
-    cdef list all_cumulative_days = []
-    cdef list all_days_of_week = []
-
-    cdef dict outputs = {}
-    cdef dict peak_outputs = {}
-    cdef dict dates = {}
-    cdef dict cumulative_days = {}
-    cdef dict days_of_week = {}
+    cdef list all_raw_outputs = []
     # //@formatter:on
 
     counter = progress_logger.line_counter % progress_logger.CHUNK_SIZE
     chunk_size = progress_logger.CHUNK_SIZE
     while True:
         raw_line = next(eso_file)
-
         counter += 1
         if counter == chunk_size:
             progress_logger.increment_progress()
             progress_logger.line_counter += counter
             counter = 0
 
+        # process raw line, leave this in while loop to avoid function call overhead
         try:
             split_line = raw_line.split(",")
             line_id = int(split_line[0])
@@ -326,268 +307,74 @@ def read_body(
             else:
                 raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
 
+        # distribute outputs into relevant bins
         if line_id <= highest_interval_id:
-            if line_id == 1:
+            if line_id == ENVIRONMENT_LINE:
                 # initialize variables for current environment
-                outputs = {}
-                peak_outputs = {}
-                dates = {}
-                cumulative_days = {}
-                days_of_week = {}
-
-                # initialize bins for the current environment
-                for interval, dct in header.items():
-                    if interval in (M, A, RP):
-                        cumulative_days[interval] = []
-                    else:
-                        days_of_week[interval] = []
-                    dates[interval] = []
-
-                    outputs[interval] = {}
-                    for k in dct.keys():
-                        outputs[interval][k] = []
-                    if not ignore_peaks:
-                        if interval in (D, M, A, RP):
-                            peak_outputs[interval] = {}
-                            for k, v in dct.items():
-                                peak_outputs[interval][k] = []
-                    else:
-                        peak_outputs = None
-
-                # store current environment data
-                all_environments.append(line[0].strip())
-                all_outputs.append(outputs)
-                all_peak_outputs.append(peak_outputs)
-                all_dates.append(dates)
-                all_days_of_week.append(days_of_week)
-                all_cumulative_days.append(cumulative_days)
-
+                environment_name = line[0].strip()
+                raw_outputs = RawOutputs(environment_name, header, ignore_peaks)
+                all_raw_outputs.append(raw_outputs)
             else:
                 try:
-                    if line_id > 3:
-                        interval, date, n_days = process_monthly_plus_interval_lines(line_id,
-                                                                                     line)
-                        cumulative_days[interval].append(n_days)
+                    if line_id > DAILY_LINE:
+                        interval, date, n_days = process_monthly_plus_interval_line(line_id,
+                                                                                    line)
+                        raw_outputs.cumulative_days[interval].append(n_days)
                     else:
-                        interval, date, day = process_sub_monthly_interval_lines(line_id, line)
-                        days_of_week[interval].append(day)
+                        interval, date, day = process_sub_monthly_interval_line(line_id, line)
+                        raw_outputs.days_of_week[interval].append(day)
                 except ValueError:
                     raise InvalidLineSyntax(f"Unexpected value in line '{raw_line}'.")
 
                 # Populate last environment list with interval line
-                dates[interval].append(date)
+                raw_outputs.dates[interval].append(date)
 
                 # Populate current step for all result ids with nan values.
                 # This is in place to avoid issues for variables which are not
                 # reported during current interval
-                for v in outputs[interval].values():
-                    v.append(np.nan)
-
-                if line_id >= 3 and not ignore_peaks:
-                    for v in peak_outputs[interval].values():
-                        v.append(np.nan)
+                raw_outputs.initialize_next_outputs_step(interval)
+                if not ignore_peaks and line_id >= DAILY_LINE:
+                    raw_outputs.initialize_next_peak_outputs_step(interval)
         else:
             # current line represents a result, replace nan values from the last step
-            peak_res = None
             try:
-                if ignore_peaks:
-                    res = float(line[0])
-                else:
-                    res = float(line[0])
+                res = float(line[0])
+                raw_outputs.outputs[interval][line_id][-1] = res
+                if not ignore_peaks and interval in {D, M, A, RP}:
                     peak_res = [float(i) if "." in i else int(i) for i in line[1:]]
+                    raw_outputs.peak_outputs[interval][line_id][-1] = peak_res
             except ValueError:
                 raise InvalidLineSyntax(f"Unexpected value in line '{raw_line}'.")
-
-            outputs[interval][line_id][-1] = res
-            if peak_res:
-                peak_outputs[interval][line_id][-1] = peak_res
 
     # update progress to compensate for reminder
     if progress_logger.progress != progress_logger.max_progress:
         progress_logger.increment_progress()
 
-    return (
-        all_environments,
-        all_outputs,
-        all_peak_outputs,
-        all_dates,
-        all_cumulative_days,
-        all_days_of_week,
-        header,
-    )
+    return all_raw_outputs
 
 
-def create_values_df(outputs_dct: Dict[int, List[float]], index_name: str) -> pd.DataFrame:
-    """ Create a raw values pd.DataFrame for given interval. """
-    df = pd.DataFrame(outputs_dct)
-    df = df.T
-    df.index.set_names(index_name, inplace=True)
-    return df
+def count_tables(all_raw_outputs: List[RawOutputs]) -> int:
+    return sum(raw_outputs.get_n_tables() for raw_outputs in all_raw_outputs)
 
 
-def create_header_df(
-    header: Dict[int, Variable], interval: str, index_name: str, columns: List[str]
-) -> pd.DataFrame:
-    """ Create a raw header pd.DataFrame for given interval. """
-    rows, index = [], []
-    for id_, var in header.items():
-        rows.append([interval, var.key, var.type, var.units])
-        index.append(id_)
-
-    return pd.DataFrame(rows, columns=columns, index=pd.Index(index, name=index_name))
-
-
-def generate_peak_tables(
-    raw_peak_outputs: Dict[str, Dict[int, List[float]]],
-    header: Dict[str, Dict[int, Variable]],
-    dates: Dict[str,],
-    progress_logger: EsoFileProgressLogger,
-) -> Dict[str, DFTables]:
-    """ Transform processed peak output data into DataFrame like classes. """
-    min_peaks = DFTables()
-    max_peaks = DFTables()
-    for interval, values in raw_peak_outputs.items():
-        df_values = create_values_df(values, ID_LEVEL)
-        df_header = create_header_df(
-            header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
-        )
-        df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
-        df = df.T
-        df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-
-        min_df = create_peak_min_outputs(interval, df)
-        min_peaks[interval] = min_df
-
-        max_df = create_peak_max_outputs(interval, df)
-        max_peaks[interval] = max_df
-
-        progress_logger.increment_progress()
-
-    # Peak outputs are stored in dictionary to distinguish min and max
-    peak_outputs = {"local_min": min_peaks, "local_max": max_peaks}
-
-    return peak_outputs
-
-
-def generate_df_tables(
-    raw_outputs: Dict[str, Dict[int, List[float]]],
-    header: Dict[str, Dict[int, Variable]],
-    dates: Dict[str,],
-    other_data: Dict[str, Dict[str, list]],
-    progress_logger: EsoFileProgressLogger,
-) -> DFTables:
-    """ Transform processed output data into DataFrame like classes. """
-    tables = DFTables()
-    for interval, values in raw_outputs.items():
-        df_values = create_values_df(values, ID_LEVEL)
-        df_header = create_header_df(
-            header[interval], interval, ID_LEVEL, COLUMN_LEVELS[1:]
-        )
-        df = pd.merge(df_header, df_values, sort=False, left_index=True, right_index=True)
-        df.set_index(keys=list(COLUMN_LEVELS[1:]), append=True, inplace=True)
-        df = df.T
-        df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
-        # store the data in  DFTables class
-        tables[interval] = df
-        progress_logger.increment_progress()
-
-    # add other special columns, structure is {KEY: {INTERVAL: ARRAY}}
-    for key, dict in other_data.items():
-        for interval, arr in dict.items():
-            tables.insert_special_column(interval, key, arr)
-
-    return tables
-
-
-def remove_duplicates(
-    duplicates: Dict[int, Variable],
-    header: Dict[str, Dict[int, Variable]],
-    outputs: Dict[str, Dict[int, List[float]]]
-) -> None:
-    """ Remove duplicate outputs from results set. """
-    for id_, v in duplicates.items():
-        logging.info(f"Duplicate variable found, removing variable: '{id_} - {v}'.")
-        for dct in [header, outputs]:
-            try:
-                del dct[v.table][id_]
-            except KeyError:
-                pass
-
-
-def count_tables(outputs: List[Optional[Dict[str, dict]]]) -> int:
-    return sum([sum([len(dct.keys()) for dct in outputs if dct is not None])])
-
-
-def process_file_content(
-    all_outputs: List[Dict[str, dict]],
-    all_peak_outputs: List[Optional[Dict[str, dict]]],
-    all_dates: List[Dict[str, list]],
-    all_cumulative_days: List[Dict[str, list]],
-    all_days_of_week: List[Dict[str, list]],
-    original_header: Dict[str, Dict[int, Variable]],
+def process_raw_file_content(
+    all_raw_outputs: List[RawOutputs],
     year: int,
     progress_logger: EsoFileProgressLogger
-) -> Tuple[List[DFTables], List[Optional[Dict[str, DFTables]]], List[Tree]]:
-    # //@formatter:off
-    cdef list all_df_tables = []
-    cdef list all_peak_df_tables = []
-    cdef list all_trees = []
-    # //@formatter:on
-    zipped_args = zip(
-        all_outputs, all_peak_outputs, all_dates, all_cumulative_days, all_days_of_week
-    )
-    n_tables = count_tables(all_outputs) + count_tables(all_peak_outputs)
-    n_trees = len(all_outputs)
+) -> List[RawDFOutputs]:
+    all_raw_df_outputs = []
+    n_tables = count_tables(all_raw_outputs)
+    n_trees = len(all_raw_outputs)
     progress_logger.set_new_maximum_progress(n_tables + n_trees)
-    for outputs, peak_outputs, dates, cumulative_days, days_of_week in zipped_args:
-        # Generate datetime data
-        progress_logger.log_section("processing dates!")
-        dates, n_days = process_raw_date_data(dates, cumulative_days, year)
-
-        # Create a 'search tree' to allow searching for variables
-        progress_logger.log_section("generating search tree!")
-        header = deepcopy(original_header)
-
-        try:
-            tree = Tree.from_header_dict(header)
-        except DuplicateVariable as e:
-            tree = e.clean_tree
-            remove_duplicates(e.duplicates, header, outputs)
-
-        all_trees.append(tree)
-        progress_logger.increment_progress()
-
-        if peak_outputs is None:
-            peak_df_tables = None
-        else:
-            progress_logger.log_section("generating peak tables!")
-            peak_df_tables = generate_peak_tables(peak_outputs, header, dates, progress_logger)
-
-        all_peak_df_tables.append(peak_df_tables)
-
-        # transform standard dictionaries into DataFrame like Output classes
-        progress_logger.log_section("generating tables!")
-        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: days_of_week}
-        df_tables = generate_df_tables(outputs, header, dates, other_data, progress_logger)
-        all_df_tables.append(df_tables)
-
-    progress_logger.log_section("creating class instance!")
-
-    return all_df_tables, all_peak_df_tables, all_trees
+    for raw_outputs in all_raw_outputs:
+        raw_df_outputs = RawDFOutputs.from_raw_outputs(raw_outputs, progress_logger, year)
+        all_raw_df_outputs.append(raw_df_outputs)
+    return all_raw_df_outputs
 
 
 def read_file(
     file: TextIO, progress_logger: EsoFileProgressLogger, ignore_peaks: bool = True
-) -> Tuple[
-    List[str],
-    List[Dict[str, dict]],
-    List[Optional[Dict[str, dict]]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    Dict[str, Dict[int, Variable]]
-]:
+) -> List[RawOutputs]:
     """ Read raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -610,7 +397,6 @@ def read_file(
 
     # Read body to obtain outputs and environment dictionaries
     progress_logger.log_section("processing data!")
-
     return read_body(file, last_standard_item_id, header, ignore_peaks, progress_logger)
 
 
@@ -650,13 +436,7 @@ def process_eso_file(
     preprocess_file(file_path, progress_logger)
     try:
         with open(file_path, "r") as file:
-            content = read_file(file, progress_logger, ignore_peaks=ignore_peaks)
+            all_raw_outputs = read_file(file, progress_logger, ignore_peaks=ignore_peaks)
     except StopIteration:
         raise IncompleteFile(f"File is not complete!")
-    (
-        all_outputs,
-        all_peak_outputs,
-        all_trees
-    ) = process_file_content(*content[1:], year, progress_logger)
-    all_environments = content[0]
-    return all_environments, all_outputs, all_peak_outputs, all_trees
+    return process_raw_file_content(all_raw_outputs, year, progress_logger)

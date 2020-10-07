@@ -1,20 +1,14 @@
 import os
+from copy import copy
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Union, List, Optional
 
+from esofile_reader.base_file import BaseFile, get_file_information
+from esofile_reader.exceptions import *
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
-
-try:
-    from typing import ForwardRef
-except ImportError:
-    from typing import _ForwardRef as ForwardRef
-
-from esofile_reader.base_file import BaseFile, get_file_information
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.exceptions import *
-from copy import copy
 
 try:
     from esofile_reader.processing.esofile import process_eso_file
@@ -55,12 +49,12 @@ class ResultsEsoFile(BaseFile):
         file_created: datetime,
         tables: DFTables,
         search_tree: Tree,
-        peak_outputs: Optional[Dict[str, DFTables]] = None,
+        peak_tables: Optional[Dict[str, DFTables]] = None,
     ):
         super().__init__(
             file_path, file_name, file_created, tables, search_tree, file_type=BaseFile.ESO
         )
-        self.peak_outputs = peak_outputs
+        self.peak_tables = peak_tables
 
     def __copy__(self):
         type(self)(
@@ -69,7 +63,7 @@ class ResultsEsoFile(BaseFile):
             file_created=self.file_created,
             tables=copy(self.tables),
             search_tree=copy(self.search_tree),
-            peak_outputs=copy(self.peak_outputs),
+            peak_tables=copy(self.peak_tables),
         )
 
     @classmethod
@@ -79,26 +73,30 @@ class ResultsEsoFile(BaseFile):
         progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
-    ) -> List[ForwardRef("EsoFile")]:
+    ) -> List["ResultsEsoFile"]:
         """ Generate independent 'EsoFile' for each environment. """
         file_path, file_name, file_created = get_file_information(file_path)
         if progress_logger is None:
             progress_logger = EsoFileProgressLogger(file_path.name)
         with progress_logger.log_task("Process eso file data!"):
-            eso_files = []
-            content = process_eso_file(
+            all_raw_df_outputs = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
-            content = [
-                c for c in list(zip(*content))[::-1]
-            ]  # reverse to get last processed first
-            for i, (environment, data, peak_outputs, tree) in enumerate(content):
-                # last processed environment uses a plain name
-                # this is in place to only assign distinct names for
-                # 'sizing' results which are reported first
-                name = f"{file_name} - {environment}" if i > 0 else file_name
+            progress_logger.log_section("creating class instance!")
+            eso_files = []
+            for i, raw_df_outputs in enumerate(reversed(all_raw_df_outputs)):
+                # last processed environment uses a plain name, this is in place to only
+                # assign distinct names for 'sizing' results which are reported first
+                name = (
+                    f"{file_name} - {raw_df_outputs.environment_name}" if i > 0 else file_name
+                )
                 ef = ResultsEsoFile(
-                    file_path, name, file_created, data, tree, peak_outputs=peak_outputs
+                    file_path=file_path,
+                    file_name=name,
+                    file_created=file_created,
+                    tables=raw_df_outputs.tables,
+                    search_tree=raw_df_outputs.tree,
+                    peak_tables=raw_df_outputs.peak_tables,
                 )
                 eso_files.append(ef)
         return eso_files
@@ -142,16 +140,17 @@ class EsoFile(ResultsEsoFile):
             file_path = Path(file_path)
             file_name = file_path.stem
             file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
-            content = process_eso_file(
+            all_raw_df_outputs = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
-            environment_names = content[0]
-            if len(environment_names) == 1:
-                tables = content[1][0]
-                peak_outputs = content[2][0]
-                tree = content[3][0]
+            if len(all_raw_df_outputs) == 1:
+                progress_logger.log_section("creating class instance!")
+                raw_df_outputs = all_raw_df_outputs[0]
+                tables = raw_df_outputs.tables
+                peak_tables = raw_df_outputs.peak_tables
+                tree = raw_df_outputs.tree
                 super().__init__(
-                    file_path, file_name, file_created, tables, tree, peak_outputs=peak_outputs
+                    file_path, file_name, file_created, tables, tree, peak_tables=peak_tables
                 )
             else:
                 raise MultiEnvFileRequired(
@@ -168,5 +167,5 @@ class EsoFile(ResultsEsoFile):
             file_created=self.file_created,
             tables=copy(self.tables),
             search_tree=copy(self.search_tree),
-            peak_outputs=copy(self.peak_outputs),
+            peak_tables=copy(self.peak_tables),
         )
