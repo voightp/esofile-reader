@@ -4,16 +4,16 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import Dict, List, Tuple, TextIO, Optional, Union
-
 import cython
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.raw_outputs import RawOutputs, RawDFOutputs
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
-from esofile_reader.processing.raw_outputs import RawOutputs, RawDFOutputs
+
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
 DAILY_LINE = 3
@@ -22,20 +22,20 @@ RUNPERIOD_LINE = 5
 ANNUAL_LINE = 6
 
 
-def get_eso_file_version(raw_version: str) -> int:
+cpdef int get_eso_file_version(str raw_version):
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
     return int(version[(start + 1): (start + 6)].replace(".", ""))
 
 
-def get_eso_file_timestamp(timestamp: str) -> datetime:
+cpdef object get_eso_file_timestamp(str timestamp):
     """ Return date and time of the eso file generation as a Datetime. """
     timestamp = timestamp.split("=")[1].strip()
     return datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
-def process_statement_line(line: str) -> Tuple[int, datetime]:
+cpdef tuple process_statement_line(str line):
     """ Extract the version and time of the file generation. """
     _, _, raw_version, timestamp = line.split(",")
     version = get_eso_file_version(raw_version)
@@ -43,7 +43,7 @@ def process_statement_line(line: str) -> Tuple[int, datetime]:
     return version, timestamp
 
 
-def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
+cpdef tuple process_header_line(str line):
     """
     Process E+ dictionary line and populate period header dictionaries.
 
@@ -61,26 +61,29 @@ def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
         Processed line tuple (ID, key name, variable name, units, interval)
 
     """
+    # //@formatter:off
+    cdef str raw_line_id, _, key, type_, units, interval
+    cdef int line_id
+    # //@formatter:on
 
     pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
 
     # this raises attribute error when there's some unexpected line syntax
-    line_id, _, key, type_, units, interval = pattern.search(line).groups()
+    raw_line_id, _, key, type_, units, interval = pattern.search(line).groups()
+    line_id = int(raw_line_id)
 
     # 'type' variable is 'None' for 'Meter' variable
     if type_ is None:
         type_ = key
         key = "Cumulative Meter" if "Cumulative" in key else "Meter"
 
-    return int(line_id), key, type_, units, interval.lower()
+    return line_id, key, type_, units, interval.lower()
 
 
 @cython.boundscheck(False)
 @cython.wraparound(True)
 @cython.binding(True)
-def read_header(
-    eso_file: TextIO, progress_logger: EsoFileProgressLogger
-) -> Dict[str, Dict[int, Variable]]:
+cpdef object read_header(object eso_file, object progress_logger):
     """
     Read header dictionary of the eso file.
 
@@ -104,7 +107,7 @@ def read_header(
 
     """
     # //@formatter:off
-    cdef int chunk_size, counter, id_
+    cdef int chunk_size, counter, line_id
     cdef str raw_line, key, type_, units, interval
     # //@formatter:on
 
@@ -121,7 +124,7 @@ def read_header(
             counter = 0
 
         try:
-            id_, key, type_, units, interval = process_header_line(raw_line)
+            line_id, key, type_, units, interval = process_header_line(raw_line)
         except AttributeError:
             if "End of Data Dictionary" in raw_line:
                 progress_logger.line_counter += counter
@@ -131,7 +134,7 @@ def read_header(
             else:
                 raise InvalidLineSyntax(f"Unexpected line syntax: '{raw_line}'!")
 
-        header[interval][id_] = Variable(interval, key, type_, units)
+        header[interval][line_id] = Variable(interval, key, type_, units)
 
     return header
 
@@ -161,15 +164,16 @@ def process_sub_monthly_interval_line(
         Interval identifier and numeric date time information and day of week..
 
     """
+    cdef list items
 
     def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
         # omit day of week in conversion
-        i = [int(float(item)) for item in data[:-1]]
-        interval = IntervalTuple(i[1], i[2], i[4], i[6])
+        items = [int(float(item)) for item in data[:-1]]
+        interval = IntervalTuple(items[1], items[2], items[4], items[6])
 
         # check if interval is timestep or hourly interval
-        if i[5] == 0 and i[6] == 60:
+        if items[5] == 0 and items[6] == 60:
             return H, interval, data[-1].strip()
         else:
             return TS, interval, data[-1].strip()
@@ -237,13 +241,13 @@ def process_monthly_plus_interval_line(
 @cython.boundscheck(False)
 @cython.wraparound(True)
 @cython.binding(True)
-def read_body(
-    eso_file: TextIO,
-    highest_interval_id: int,
-    header: Dict[str, Dict[int, Variable]],
-    ignore_peaks: bool,
-    progress_logger: EsoFileProgressLogger
-) -> List[RawOutputs]:
+cpdef list read_body(
+    object eso_file,
+    int highest_interval_id,
+    object header,
+    object ignore_peaks,
+    object progress_logger
+):
     """
     Read body of the eso file.
 
@@ -372,9 +376,9 @@ def process_raw_file_content(
     return all_raw_df_outputs
 
 
-def read_file(
-    file: TextIO, progress_logger: EsoFileProgressLogger, ignore_peaks: bool = True
-) -> List[RawOutputs]:
+cpdef read_file(
+    object file,object progress_logger,object ignore_peaks = True
+):
     """ Read raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -403,7 +407,7 @@ def read_file(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.binding(True)
-def count_lines(file_path: Union[str, Path]):
+cpdef count_lines(object file_path):
     # //@formatter:off
     cdef int i
     # //@formatter:on
@@ -426,12 +430,12 @@ def preprocess_file(
     progress_logger.set_new_maximum_progress(maximum)
 
 
-def process_eso_file(
-    file_path: Union[str, Path],
-    progress_logger: EsoFileProgressLogger,
-    ignore_peaks: bool = True,
-    year: int = 2002
-) -> Tuple[List[str], List[DFTables], List[Optional[Dict[str, DFTables]]], List[Tree]]:
+cpdef process_eso_file(
+    object file_path,
+    object progress_logger,
+    object ignore_peaks,
+    int year = 2002
+):
     """ Open the eso file and trigger file processing. """
     preprocess_file(file_path, progress_logger)
     try:
