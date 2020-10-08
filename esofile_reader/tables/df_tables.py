@@ -102,10 +102,14 @@ class DFTables(BaseTables):
         def tables_match():
             for table_name in self.get_table_names():
                 try:
+                    df = self.get_table(table_name)
+                    df.columns = df.columns.droplevel(ID_LEVEL)
+                    other_df = other.get_table(table_name)
+                    other_df.columns = other_df.columns.droplevel(ID_LEVEL)
                     pd.testing.assert_frame_equal(
-                        self.get_table(table_name), other.get_table(table_name)
+                        df, other_df, check_freq=False, check_dtype=False
                     )
-                except AssertionError:
+                except KeyError:
                     return False
             return True
 
