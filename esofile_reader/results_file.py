@@ -17,12 +17,12 @@ from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
 
 try:
-    from esofile_reader.processing.esofile import process_eso_file
+    from esofile_reader.processing.extensions.esofile import process_eso_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.esofile import process_eso_file
+    from esofile_reader.processing.extensions.esofile import process_eso_file
 
 
 class ResultsFile(BaseFile):

@@ -78,7 +78,7 @@ class GenericProgressLogger:
             self.log_task_failed(e.args[0])
             raise e
         finally:
-            pass
+            self.section_timestamps.clear()
 
 
 class EsoFileProgressLogger(GenericProgressLogger):

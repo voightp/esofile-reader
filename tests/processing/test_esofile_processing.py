@@ -1,12 +1,14 @@
 import datetime
 from io import StringIO
+from math import nan
 
 import numpy as np
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile import (
+from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.extensions.esofile import (
     process_statement_line,
     process_header_line,
     read_header,
@@ -14,13 +16,12 @@ from esofile_reader.processing.esofile import (
     process_monthly_plus_interval_line,
     read_body,
 )
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.processing.raw_outputs import (
+from esofile_reader.processing.extensions.raw_tables import (
     generate_df_tables,
     generate_peak_tables,
     remove_duplicates,
 )
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from tests.session_fixtures import *
 
 HEADER_PATH = Path(ROOT_PATH, "eso_files", "header.txt")
@@ -37,6 +38,11 @@ def header_content():
 def all_raw_outputs(header_content):
     with open(BODY_PATH, "r") as f:
         return read_body(f, 6, header_content, False, EsoFileProgressLogger("dummy"))
+
+
+@pytest.fixture(scope="function")
+def raw_outputs(all_raw_outputs):
+    return all_raw_outputs[0]
 
 
 def test_esofile_statement():
@@ -152,8 +158,8 @@ def test_process_monthly_plus_interval_line(line_id, line, processed_line):
     assert process_monthly_plus_interval_line(line_id, line) == processed_line
 
 
-def test_read_body_env_names(all_raw_outputs):
-    assert all_raw_outputs[0].environment_name == "UNTITLED (3O-O6:O1-O7)"
+def test_read_body_env_names(raw_outputs):
+    assert raw_outputs.environment_name == "UNTITLED (3O-O6:O1-O7)"
 
 
 # fmt: off
@@ -180,21 +186,21 @@ def test_read_body_env_names(all_raw_outputs):
             17.075000000000004, 17.0, 16.35, 15.15, 16.0, 16.25, 15.45, 14.075,
             12.725000000000002, 11.65, 10.575000000000001, 10.149999999999999, ]),
         ("hourly", 163, [
-            np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-            np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-            np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-            np.NaN, np.NaN, np.NaN, 31.939895115385128, 31.703936337515786,
+            nan, nan, nan, nan, nan, nan, nan, nan, nan,
+            nan, nan, nan, nan, nan, nan, nan, nan, nan,
+            nan, nan, nan, nan, nan, nan, nan, nan, nan,
+            nan, nan, nan, 31.939895115385128, 31.703936337515786,
             32.280660803461618, 32.62177706428757, 32.88418951192571,
             33.009496155093547, 33.03911553829569, 32.92907267649866,
             32.65682359572439, 32.31898695867979, 32.197143544621329,
-            31.872368037056775, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, ]),
+            31.872368037056775, nan, nan, nan, nan, nan, nan, ]),
         ("daily", 14, [12.883333333333335, 10.19895789513146]),
         ("monthly", 15, [12.883333333333335, 10.19895789513146]),
         ("runperiod", 16, [11.541145614232397])
     ]
 )
-def test_read_body_raw_outputs(all_raw_outputs, interval, id_, values):
-    assert all_raw_outputs[1][0][interval][id_] == values
+def test_read_body_raw_outputs(raw_outputs, interval, id_, values):
+    assert raw_outputs.outputs[interval][id_] == values
 
 
 # fmt: on
@@ -213,8 +219,8 @@ def test_read_body_raw_outputs(all_raw_outputs, interval, id_, values):
         ("runperiod", 11, [[10.1, 7, 1, 24, 60, 31.3, 6, 30, 15, 60]]),
     ],
 )
-def test_read_body_raw_peak_outputs(all_raw_outputs, interval, id_, values):
-    assert all_raw_outputs[2][0][interval][id_] == values
+def test_read_body_raw_peak_outputs(raw_outputs, interval, id_, values):
+    assert raw_outputs.peak_outputs[interval][id_] == values
 
 
 @pytest.mark.parametrize(
@@ -231,13 +237,13 @@ def test_read_body_raw_peak_outputs(all_raw_outputs, interval, id_, values):
         ("runperiod", -1, IntervalTuple(month=1, day=1, hour=0, end_minute=0)),
     ],
 )
-def test_read_body_raw_dates(all_raw_outputs, interval, index, values):
-    assert all_raw_outputs[3][0][interval][index] == values
+def test_read_body_raw_dates(raw_outputs, interval, index, values):
+    assert raw_outputs.dates[interval][index] == values
 
 
 @pytest.mark.parametrize("interval,values", [("monthly", [1, 2]), ("runperiod", [2]),])
-def test_read_body_cumulative_days(all_raw_outputs, interval, values):
-    assert all_raw_outputs[4][0][interval] == values
+def test_read_body_cumulative_days(raw_outputs, interval, values):
+    assert raw_outputs.cumulative_days[interval] == values
 
 
 @pytest.mark.parametrize(
@@ -248,9 +254,8 @@ def test_read_body_cumulative_days(all_raw_outputs, interval, values):
         ("daily", ["Sunday", "Monday"]),
     ],
 )
-def test_read_body_day_of_week(all_raw_outputs, interval, values):
-    print(all_raw_outputs[4])
-    assert all_raw_outputs[5][0][interval] == values
+def test_read_body_day_of_week(raw_outputs, interval, values):
+    assert raw_outputs.days_of_week[interval] == values
 
 
 @pytest.mark.parametrize(
@@ -264,48 +269,36 @@ def test_read_body_day_of_week(all_raw_outputs, interval, values):
         ("local_max", "runperiod", (1, 42)),
     ],
 )
-def test_generate_peak_tables(all_raw_outputs, peak, interval, shape):
-    (
-        env_names,
-        raw_outputs,
-        raw_peak_outputs,
-        dates,
-        cumulative_days,
-        day_of_week,
-        header,
-    ) = all_raw_outputs
+def test_generate_peak_tables(raw_outputs, peak, interval, shape):
+    dates = raw_outputs.dates
+    cumulative_days = raw_outputs.cumulative_days
+    header = raw_outputs.header
+    raw_peak_outputs = raw_outputs.peak_outputs
     logger = EsoFileProgressLogger("foo")
-
-    dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
-    outputs = generate_peak_tables(raw_peak_outputs[0], header, dates, logger)
+    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
+    outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
 
 @pytest.mark.parametrize(
     "interval,shape",
     [
-        ("daily", (2, 22)),
-        ("monthly", (2, 22)),
-        ("runperiod", (1, 22)),
-        ("daily", (2, 22)),
-        ("monthly", (2, 22)),
-        ("runperiod", (1, 22)),
+        ("daily", (2, 21)),
+        ("monthly", (2, 21)),
+        ("runperiod", (1, 21)),
+        ("daily", (2, 21)),
+        ("monthly", (2, 21)),
+        ("runperiod", (1, 21)),
     ],
 )
-def test_generate_df_tables(all_raw_outputs, interval, shape):
-    (
-        env_names,
-        raw_outputs,
-        raw_peak_outputs,
-        dates,
-        cumulative_days,
-        day_of_week,
-        header,
-    ) = all_raw_outputs
+def test_generate_df_tables(raw_outputs, interval, shape):
+    dates = raw_outputs.dates
+    cumulative_days = raw_outputs.cumulative_days
+    header = raw_outputs.header
+    outputs = raw_outputs.outputs
     logger = EsoFileProgressLogger("foo")
-    dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
-    other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}
-    outputs = generate_df_tables(raw_outputs[0], header, dates, other_data, logger)
+    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
+    outputs = generate_df_tables(outputs, header, dates, logger)
     assert outputs[interval].shape == shape
 
 
@@ -334,8 +327,9 @@ def test_remove_duplicates():
     ids = {1: v1, 2: v2}
     header_dct = {"hourly": {1: v1, 2: v2, 3: v3}}
     outputs_dct = {"hourly": {1: v1, 3: v3}}
+    peak_outpus = None
 
-    remove_duplicates(ids, header_dct, outputs_dct)
+    remove_duplicates(ids, header_dct, outputs_dct, peak_outpus)
 
     assert header_dct["hourly"] == {3: v3}
     assert outputs_dct["hourly"] == {3: v3}
