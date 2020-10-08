@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import Sequence, Optional, List
 
-import numpy as np
 import pandas as pd
 
 from esofile_reader.constants import *
@@ -47,7 +46,7 @@ def _local_peaks(
 
     def get_timestamps(sr):
         def parse_vals(val):
-            if val is not np.NaN:
+            if isinstance(val, list):
                 month = val[month_ix] if month_ix else None
                 day = val[day_ix] if day_ix else None
                 hour = val[hour_ix]
@@ -55,13 +54,13 @@ def _local_peaks(
                 ts = parse_result_datetime(date, month, day, hour, end_min)
                 return ts
             else:
-                return np.NaN
+                return val
 
         date = sr.name
         sr = sr.apply(parse_vals)
         return sr
 
-    vals = df.applymap(lambda x: x[val_ix] if x is not np.nan else np.nan)
+    vals = df.applymap(lambda x: x[val_ix] if isinstance(x, list) else x)
     ixs = df.apply(get_timestamps, axis=1)
     df = merge_peak_outputs(ixs, vals)
     return df
