@@ -10,16 +10,18 @@ from esofile_reader.processing.esofile import (
     process_statement_line,
     process_header_line,
     read_header,
-    process_sub_monthly_interval_lines,
-    process_monthly_plus_interval_lines,
+    process_sub_monthly_interval_line,
+    process_monthly_plus_interval_line,
     read_body,
+)
+from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.raw_outputs import (
     generate_df_tables,
     generate_peak_tables,
     remove_duplicates,
 )
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from tests.session_scope_fixtures import *
+from tests.session_fixtures import *
 
 HEADER_PATH = Path(ROOT_PATH, "eso_files", "header.txt")
 BODY_PATH = Path(ROOT_PATH, "eso_files", "body.txt")
@@ -32,7 +34,7 @@ def header_content():
 
 
 @pytest.fixture(scope="function")
-def body_content(header_content):
+def all_raw_outputs(header_content):
     with open(BODY_PATH, "r") as f:
         return read_body(f, 6, header_content, False, EsoFileProgressLogger("dummy"))
 
@@ -135,7 +137,7 @@ def test_read_header_from_file(header_content, interval, id_, variable):
     ],
 )
 def test_process_sub_monthly_interval_line(line_id, line, processed_line):
-    assert process_sub_monthly_interval_lines(line_id, line) == processed_line
+    assert process_sub_monthly_interval_line(line_id, line) == processed_line
 
 
 @pytest.mark.parametrize(
@@ -147,11 +149,11 @@ def test_process_sub_monthly_interval_line(line_id, line, processed_line):
     ],
 )
 def test_process_monthly_plus_interval_line(line_id, line, processed_line):
-    assert process_monthly_plus_interval_lines(line_id, line) == processed_line
+    assert process_monthly_plus_interval_line(line_id, line) == processed_line
 
 
-def test_read_body_env_names(body_content):
-    assert body_content[0][0] == "UNTITLED (3O-O6:O1-O7)"
+def test_read_body_env_names(all_raw_outputs):
+    assert all_raw_outputs[0].environment_name == "UNTITLED (3O-O6:O1-O7)"
 
 
 # fmt: off
@@ -191,8 +193,8 @@ def test_read_body_env_names(body_content):
         ("runperiod", 16, [11.541145614232397])
     ]
 )
-def test_read_body_raw_outputs(body_content, interval, id_, values):
-    assert body_content[1][0][interval][id_] == values
+def test_read_body_raw_outputs(all_raw_outputs, interval, id_, values):
+    assert all_raw_outputs[1][0][interval][id_] == values
 
 
 # fmt: on
@@ -211,8 +213,8 @@ def test_read_body_raw_outputs(body_content, interval, id_, values):
         ("runperiod", 11, [[10.1, 7, 1, 24, 60, 31.3, 6, 30, 15, 60]]),
     ],
 )
-def test_read_body_raw_peak_outputs(body_content, interval, id_, values):
-    assert body_content[2][0][interval][id_] == values
+def test_read_body_raw_peak_outputs(all_raw_outputs, interval, id_, values):
+    assert all_raw_outputs[2][0][interval][id_] == values
 
 
 @pytest.mark.parametrize(
@@ -229,13 +231,13 @@ def test_read_body_raw_peak_outputs(body_content, interval, id_, values):
         ("runperiod", -1, IntervalTuple(month=1, day=1, hour=0, end_minute=0)),
     ],
 )
-def test_read_body_raw_dates(body_content, interval, index, values):
-    assert body_content[3][0][interval][index] == values
+def test_read_body_raw_dates(all_raw_outputs, interval, index, values):
+    assert all_raw_outputs[3][0][interval][index] == values
 
 
 @pytest.mark.parametrize("interval,values", [("monthly", [1, 2]), ("runperiod", [2]),])
-def test_read_body_cumulative_days(body_content, interval, values):
-    assert body_content[4][0][interval] == values
+def test_read_body_cumulative_days(all_raw_outputs, interval, values):
+    assert all_raw_outputs[4][0][interval] == values
 
 
 @pytest.mark.parametrize(
@@ -246,9 +248,9 @@ def test_read_body_cumulative_days(body_content, interval, values):
         ("daily", ["Sunday", "Monday"]),
     ],
 )
-def test_read_body_day_of_week(body_content, interval, values):
-    print(body_content[4])
-    assert body_content[5][0][interval] == values
+def test_read_body_day_of_week(all_raw_outputs, interval, values):
+    print(all_raw_outputs[4])
+    assert all_raw_outputs[5][0][interval] == values
 
 
 @pytest.mark.parametrize(
@@ -262,7 +264,7 @@ def test_read_body_day_of_week(body_content, interval, values):
         ("local_max", "runperiod", (1, 42)),
     ],
 )
-def test_generate_peak_tables(body_content, peak, interval, shape):
+def test_generate_peak_tables(all_raw_outputs, peak, interval, shape):
     (
         env_names,
         raw_outputs,
@@ -271,7 +273,7 @@ def test_generate_peak_tables(body_content, peak, interval, shape):
         cumulative_days,
         day_of_week,
         header,
-    ) = body_content
+    ) = all_raw_outputs
     logger = EsoFileProgressLogger("foo")
 
     dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
@@ -290,7 +292,7 @@ def test_generate_peak_tables(body_content, peak, interval, shape):
         ("runperiod", (1, 22)),
     ],
 )
-def test_generate_df_tables(body_content, interval, shape):
+def test_generate_df_tables(all_raw_outputs, interval, shape):
     (
         env_names,
         raw_outputs,
@@ -299,7 +301,7 @@ def test_generate_df_tables(body_content, interval, shape):
         cumulative_days,
         day_of_week,
         header,
-    ) = body_content
+    ) = all_raw_outputs
     logger = EsoFileProgressLogger("foo")
     dates, n_days = process_raw_date_data(dates[0], cumulative_days[0], 2002)
     other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: day_of_week[0]}

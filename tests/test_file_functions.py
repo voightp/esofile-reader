@@ -44,11 +44,11 @@ class TestFileFunctions(unittest.TestCase):
 
     def test_complete(self):
         self.assertTrue(EF_ALL_INTERVALS.complete)
-        self.assertIsNone(EF_ALL_INTERVALS.peak_outputs)
+        self.assertIsNone(EF_ALL_INTERVALS.peak_tables)
 
     def test_peak_complete(self):
         self.assertTrue(EF_ALL_INTERVALS_PEAKS.complete)
-        self.assertIsNotNone(EF_ALL_INTERVALS_PEAKS.peak_outputs)
+        self.assertIsNotNone(EF_ALL_INTERVALS_PEAKS.peak_tables)
 
     def test_header_df(self):
         names = ["id", "table", "key", "type", "units"]
@@ -176,7 +176,7 @@ class TestFileFunctions(unittest.TestCase):
         )
 
     def test_create_new_header_variable_wrong_type(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "foo")
 
     def test_rename_variable(self):
@@ -240,7 +240,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertIsNone(out)
 
     def test_add_output_invalid_table(self):
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = EF_ALL_INTERVALS.insert_variable("foo", "new", "type", "C", [1])
 
     def test_aggregate_variables(self):
@@ -316,7 +316,7 @@ class TestFileFunctions(unittest.TestCase):
             Variable("hourly", "invalid", "variable1", "units"),
             Variable("hourly", "invalid", "type", "units"),
         ]
-        with self.assertRaises(CannotAggregateVariables):
+        with pytest.raises(CannotAggregateVariables):
             EF_ALL_INTERVALS.aggregate_variables(vars, "sum")
 
     def test_aggregate_energy_rate_invalid(self):
@@ -326,17 +326,17 @@ class TestFileFunctions(unittest.TestCase):
         v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
         v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
-        with self.assertRaises(CannotAggregateVariables):
+        with pytest.raises(CannotAggregateVariables):
             _ = ef.aggregate_variables([v1, v2], "sum")
 
     def test_aggregate_variables_too_much_vars(self):
         v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
-        with self.assertRaises(CannotAggregateVariables):
+        with pytest.raises(CannotAggregateVariables):
             _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
     def test_aggregate_variables_invalid_too_many_tables(self):
         v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
-        with self.assertRaises(CannotAggregateVariables):
+        with pytest.raises(CannotAggregateVariables):
             _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
     def test_as_df(self):
@@ -346,7 +346,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_table(self):
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = EF_ALL_INTERVALS.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):
@@ -354,7 +354,7 @@ class TestFileFunctions(unittest.TestCase):
         self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
     def test__find_pairs_unexpected_type(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = EF_ALL_INTERVALS.find_table_id_map(
                 [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
             )

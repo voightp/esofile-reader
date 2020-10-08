@@ -359,7 +359,7 @@ class TestPeakResults(unittest.TestCase):
         ef = EsoFile(
             os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"), ignore_peaks=True
         )
-        with self.assertRaises(PeaksNotIncluded):
+        with pytest.raises(PeaksNotIncluded):
             ef.get_results(
                 [Variable("runperiod", "BLOCK1:ZONE1", "Zone People Occupant Count", "")],
                 output_type="local_min",
@@ -369,5 +369,5 @@ class TestPeakResults(unittest.TestCase):
         variables = [
             Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
         ]
-        with self.assertRaises(PeaksNotIncluded):
+        with pytest.raises(PeaksNotIncluded):
             _ = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")

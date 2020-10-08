@@ -204,13 +204,13 @@ class TestDataClasses(unittest.TestCase):
         id_ = tables.insert_column(Variable("monthly", "FOO", "BAR", "C"), list(range(12)))
         tables.delete_variables("monthly", [id_])
         if key != "sqld":
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 _ = tables["monthly"][id_]
 
     @parameterized.expand(["dfd", "pqd"])
     def test_remove_variable_invalid(self, key):
         tables = self.tables[key]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             tables.delete_variables("monthly", [100000])
 
     @parameterized.expand(["dfd", "pqd"])
@@ -250,7 +250,7 @@ class TestDataClasses(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd"])
     def test_get_special_column_invalid(self, key):
         tables = self.tables[key]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             tables.get_special_column("FOO", "timestep")
 
     @parameterized.expand(["dfd", "pqd"])
@@ -407,7 +407,7 @@ class TestDataClasses(unittest.TestCase):
     @parameterized.expand(["dfd", "pqd"])
     def test_get_results_invalid_ids(self, key):
         tables = self.tables[key]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = tables.get_results("daily", [7])
 
     @parameterized.expand(["dfd", "pqd"])

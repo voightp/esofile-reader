@@ -176,7 +176,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
         self.assertIsNone(out)
 
     def test_add_output_invalid_table(self):
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = self.rf.insert_variable("foo", "new", "C", [1])
 
     def test_aggregate_variables(self):
@@ -191,7 +191,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
     def test_aggregate_variables_too_few_variables(self):
         v1 = SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units="")
         v2 = SimpleVariable(table="monthly-simple", key="INVALID", units="")
-        with self.assertRaises(CannotAggregateVariables):
+        with pytest.raises(CannotAggregateVariables):
             _ = self.rf.aggregate_variables([v1, v2], "sum")
 
     def test_as_df(self):
@@ -201,7 +201,7 @@ class TestSimpleFileFunctions(unittest.TestCase):
         self.assertEqual(df.index.name, "timestamp")
 
     def test_as_df_invalid_table(self):
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = self.rf.get_numeric_table("foo")
 
     def test__find_pairs_by_id(self):

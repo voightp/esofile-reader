@@ -1,8 +1,10 @@
+import shutil
 import tempfile
+from copy import copy
 
 from esofile_reader.storages.pqt_storage import ParquetFile
 from esofile_reader.tables.pqt_tables import ParquetFrame
-from tests.session_scope_fixtures import *
+from tests.session_fixtures import *
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +77,41 @@ def test_parquet_file_attributes(file, eplusout_all_intervals):
 
 def test_parquet_file_tables(file, eplusout_all_intervals):
     assert file.tables == eplusout_all_intervals.tables
+
+
+def test_parquet_tables_copy_to(parquet_file, eplusout_all_intervals):
+    with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
+        copied_tables = parquet_file.tables.copy_to(temp_dir)
+        assert copied_tables == eplusout_all_intervals.tables
+
+
+def test_parquet_tables_copy(parquet_file, eplusout_all_intervals):
+    copied_tables = copy(parquet_file.tables)
+    assert copied_tables == eplusout_all_intervals.tables
+
+
+def test_parquet_file_copy_to(parquet_file, eplusout_all_intervals):
+    with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
+        copied_file = parquet_file.copy_to(temp_dir)
+        assert copied_file.tables == eplusout_all_intervals.tables
+
+
+def test_parquet_file_copy_to_same_dir(parquet_file, eplusout_all_intervals):
+    with pytest.raises(FileExistsError):
+        _ = parquet_file.copy_to(parquet_file.workdir.parent)
+
+
+def test_parquet_file_copy_to_same_dir_different_id(parquet_file, eplusout_all_intervals):
+    try:
+        copied_file = parquet_file.copy_to(parquet_file.workdir.parent, new_id=1)
+        assert copied_file.tables == eplusout_all_intervals.tables
+    finally:
+        shutil.rmtree(Path(parquet_file.workdir.parent, "file-1"))
+
+
+def test_parquet_file_copy(parquet_file, eplusout_all_intervals):
+    copied_tables = copy(parquet_file.tables)
+    assert copied_tables == eplusout_all_intervals.tables
 
 
 def test_load_invalid_parquet_file():
