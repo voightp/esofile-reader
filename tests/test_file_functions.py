@@ -1,376 +1,624 @@
-import os
-import unittest
+from copy import deepcopy
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import EsoFile, Variable, ResultsFile
+from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
 from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.results_processing.process_results import (
     finalize_table_format,
     add_file_name_level,
 )
-from tests import ROOT, EF_ALL_INTERVALS, EF_ALL_INTERVALS_PEAKS, EF1
+from tests.session_fixtures import *
 
 
-class TestFileFunctions(unittest.TestCase):
-    def test_table_names(self):
-        self.assertListEqual(
-            EF_ALL_INTERVALS.table_names,
+@pytest.fixture(scope="session")
+def simple_file():
+    return ResultsFile.from_excel(
+        Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx"),
+        sheet_names=["simple-template-monthly", "simple-no-template-no-index"],
+    )
+
+
+@pytest.fixture(scope="function")
+def copied_simple_file(simple_file):
+    return deepcopy(simple_file)
+
+
+@pytest.fixture(scope="function")
+def copied_eplusout_all_intervals(eplusout_all_intervals):
+    return deepcopy(eplusout_all_intervals)
+
+
+@pytest.mark.parametrize(
+    "file,table_names",
+    [
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
             ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"],
-        )
+        ),
+        (pytest.lazy_fixture("simple_file"), ["monthly-simple", "simple-no-template-no-index"]),
+    ],
+)
+def test_table_names(file, table_names):
+    assert file.table_names == table_names
 
-    def test_can_convert_rate_to_energy(self):
-        pairs = [
-            ("timestep", True),
-            ("hourly", True),
-            ("daily", True),
-            ("monthly", True),
-            ("runperiod", True),
-            ("annual", True),
-        ]
-        for table, can_convert in pairs:
-            self.assertEqual(can_convert, EF_ALL_INTERVALS.can_convert_rate_to_energy(table))
 
-    def test_all_ids(self):
-        self.assertEqual(len(EF_ALL_INTERVALS.tables.get_all_variable_ids()), 114)
+@pytest.mark.parametrize(
+    "file,table,can_convert",
+    [
+        (pytest.lazy_fixture("eplusout_all_intervals"), "timestep", True),
+        (pytest.lazy_fixture("eplusout_all_intervals"), "hourly", True),
+        (pytest.lazy_fixture("eplusout_all_intervals"), "daily", True),
+        (pytest.lazy_fixture("eplusout_all_intervals"), "monthly", True),
+        (pytest.lazy_fixture("eplusout_all_intervals"), "runperiod", True),
+        (pytest.lazy_fixture("eplusout_all_intervals"), "annual", True),
+        (pytest.lazy_fixture("simple_file"), "monthly-simple", True),
+        (pytest.lazy_fixture("simple_file"), "simple-no-template-no-index", False),
+    ],
+)
+def test_can_convert_rate_to_energy(file, table, can_convert):
+    assert can_convert == file.can_convert_rate_to_energy(table)
 
-    def test_created(self):
-        self.assertTrue(isinstance(EF_ALL_INTERVALS.file_created, datetime))
 
-    def test_complete(self):
-        self.assertTrue(EF_ALL_INTERVALS.complete)
-        self.assertIsNone(EF_ALL_INTERVALS.peak_tables)
+@pytest.mark.parametrize(
+    "file,n_ids",
+    [
+        (pytest.lazy_fixture("eplusout_all_intervals"), 114),
+        (pytest.lazy_fixture("simple_file"), 14),
+    ],
+)
+def test_all_ids(file, n_ids):
+    assert len(file.tables.get_all_variable_ids()) == n_ids
 
-    def test_peak_complete(self):
-        self.assertTrue(EF_ALL_INTERVALS_PEAKS.complete)
-        self.assertIsNotNone(EF_ALL_INTERVALS_PEAKS.peak_tables)
 
-    def test_header_df(self):
-        names = ["id", "table", "key", "type", "units"]
-        self.assertEqual(
-            EF_ALL_INTERVALS.tables.get_all_variables_df().columns.to_list(), names
-        )
-        self.assertEqual(len(EF_ALL_INTERVALS.tables.get_all_variables_df().index), 114)
+@pytest.mark.parametrize(
+    "file",
+    [(pytest.lazy_fixture("eplusout_all_intervals")), (pytest.lazy_fixture("simple_file")),],
+)
+def test_created(file):
+    assert isinstance(file.file_created, datetime)
 
-        frames = []
-        for table in EF_ALL_INTERVALS.table_names:
-            frames.append(EF_ALL_INTERVALS.get_header_df(table))
-        df = pd.concat(frames, axis=0)
-        assert_frame_equal(df, EF_ALL_INTERVALS.tables.get_all_variables_df())
 
-    def test_rename(self):
-        original = EF_ALL_INTERVALS.file_name
-        EF_ALL_INTERVALS.rename("foo")
-        self.assertEqual(EF_ALL_INTERVALS.file_name, "foo")
-        EF_ALL_INTERVALS.rename(original)
+@pytest.mark.parametrize(
+    "file",
+    [(pytest.lazy_fixture("eplusout_all_intervals")), (pytest.lazy_fixture("simple_file")),],
+)
+def test_complete(file):
+    assert file.complete
 
-    def test__add_file_name_row(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = add_file_name_level("eplusout_all_intervals", df, "row")
-        mi = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], index], names=["file", "timestamp"]
-        )
-        assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
 
-    def test__add_file_name_column(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = add_file_name_level("eplusout_all_intervals", df, "column")
-        mi = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
-        )
-        assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
+@pytest.mark.parametrize(
+    "file,column_names,n_columns",
+    [
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            ["id", "table", "key", "type", "units"],
+            114,
+        ),
+        (pytest.lazy_fixture("simple_file"), ["id", "table", "key", "units"], 14),
+    ],
+)
+def test_header_df(file, column_names, n_columns):
+    assert file.tables.get_all_variables_df().columns.to_list() == column_names
+    assert len(file.tables.get_all_variables_df().index) == n_columns
 
-    def test__add_file_name_invalid(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-        out = add_file_name_level("eplusout_all_intervals", df, "foo")
-        mi = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], index], names=["file", "timestamp"]
-        )
-        assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
 
-    def test_finalize_table_format(self):
-        index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-        columns = pd.MultiIndex.from_tuples(
-            [("a", "b", "c", "d", "e"), ("a", "d", "e", "f", "g"), ("f", "g", "h", "i", "j")],
-            names=[ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
-        )
-        df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+@pytest.mark.parametrize(
+    "file",
+    [
+        (pytest.lazy_fixture("copied_eplusout_all_intervals")),
+        (pytest.lazy_fixture("copied_simple_file")),
+    ],
+)
+def test_rename(file):
+    file.rename("foo")
+    assert file.file_name == "foo"
 
-        test_index = pd.Index(["01-01", "02-01", "03-01"], name="timestamp")
-        test_columns = pd.MultiIndex.from_tuples(
-            [
-                ("eplusout_all_intervals", "c", "d", "e"),
-                ("eplusout_all_intervals", "e", "f", "g"),
-                ("eplusout_all_intervals", "h", "i", "j"),
-            ],
-            names=["file", KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
-        )
-        test_df = df.copy()
-        test_df.index = test_index
-        test_df.columns = test_columns
 
-        df = finalize_table_format(
-            df=df,
-            include_id=False,
-            include_table_name=False,
-            file_name="eplusout_all_intervals",
-            file_name_position="column",
-            timestamp_format="%d-%m",
-        )
-        assert_frame_equal(df, test_df)
+def test__add_file_name_row():
+    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
+    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
+    out = add_file_name_level("eplusout_all_intervals", df, "row")
+    mi = pd.MultiIndex.from_product(
+        [["eplusout_all_intervals"], index], names=["file", "timestamp"]
+    )
+    assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
 
-    def test_find_ids(self):
-        v = Variable(
-            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
-        )
-        ids = EF_ALL_INTERVALS.find_id(v, part_match=False)
-        self.assertEqual(ids, [13])
 
-    def test_find_ids_part_match(self):
-        v = Variable(
-            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
-        )
-        ids = EF_ALL_INTERVALS.find_id(v, part_match=True)
-        self.assertEqual(ids, [13])
+def test__add_file_name_column():
+    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
+    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
+    out = add_file_name_level("eplusout_all_intervals", df, "column")
+    mi = pd.MultiIndex.from_product(
+        [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
+    )
+    assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
 
-    def test_find_ids_part_invalid(self):
-        v = Variable(
-            table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
-        )
-        ids = EF_ALL_INTERVALS.find_id(v, part_match=False)
-        self.assertEqual(ids, [])
 
-    def test_find_table_id_map(self):
-        v = Variable(
-            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
-        )
-        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=False)
-        self.assertDictEqual(out, {"timestep": [13]})
+def test__add_file_name_invalid():
+    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
+    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
+    out = add_file_name_level("eplusout_all_intervals", df, "foo")
+    mi = pd.MultiIndex.from_product(
+        [["eplusout_all_intervals"], index], names=["file", "timestamp"]
+    )
+    assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
 
-    def test_find_table_id_map_part_match(self):
-        v = Variable(
-            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
-        )
-        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=True)
-        self.assertDictEqual(out, {"timestep": [13]})
 
-    def test_find_table_id_map_invalid(self):
-        v = Variable(
-            table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
-        )
-        out = EF_ALL_INTERVALS.find_table_id_map(v, part_match=False)
-        self.assertDictEqual(out, {})
+def test_finalize_table_format():
+    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
+    columns = pd.MultiIndex.from_tuples(
+        [("a", "b", "c", "d", "e"), ("a", "d", "e", "f", "g"), ("f", "g", "h", "i", "j")],
+        names=[ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
+    )
+    df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-    def test_create_new_header_variable(self):
-        v1 = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "foo", type_="type")
-        self.assertTupleEqual(
-            v1, Variable(table="timestep", key="dummy", type="type", units="foo")
-        )
+    test_index = pd.Index(["01-01", "02-01", "03-01"], name="timestamp")
+    test_columns = pd.MultiIndex.from_tuples(
+        [
+            ("eplusout_all_intervals", "c", "d", "e"),
+            ("eplusout_all_intervals", "e", "f", "g"),
+            ("eplusout_all_intervals", "h", "i", "j"),
+        ],
+        names=["file", KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
+    )
+    test_df = df.copy()
+    test_df.index = test_index
+    test_df.columns = test_columns
 
-    def test_create_new_header_variable_wrong_type(self):
-        with pytest.raises(TypeError):
-            _ = EF_ALL_INTERVALS.create_header_variable("timestep", "dummy", "foo")
+    df = finalize_table_format(
+        df=df,
+        include_id=False,
+        include_table_name=False,
+        file_name="eplusout_all_intervals",
+        file_name_position="column",
+        timestamp_format="%d-%m",
+    )
+    assert_frame_equal(df, test_df)
 
-    def test_rename_variable(self):
-        v1 = Variable(
-            table="timestep", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
-        )
-        EF_ALL_INTERVALS.rename_variable(v1, new_key="NEW3", new_type="VARIABLE")
 
-        v2 = Variable(table="timestep", key="NEW3", type="VARIABLE", units="")
-        ids = EF_ALL_INTERVALS.find_id(v2)
-        self.assertListEqual(ids, [13])
-
-        # revert change
-        EF_ALL_INTERVALS.rename_variable(v2, new_key=v1.key, new_type=v1.type)
-        ids = EF_ALL_INTERVALS.find_id(v1)
-        self.assertListEqual(ids, [13])
-
-    def test_rename_variable_invalid(self):
-        v = Variable(table="timestep", key="foo", type="", units="")
-        out = EF_ALL_INTERVALS.rename_variable(v, new_key="NEW4", new_type="VARIABLE")
-        self.assertIsNone(out)
-
-    def test_rename_variable_invalid_names(self):
-        v = Variable(
-            table="timestep", key="BLOCK2:ZONE1", type="Zone People Occupant Count", units="",
-        )
-        out = EF_ALL_INTERVALS.rename_variable(v)
-        self.assertIsNone(out)
-
-        ids = EF_ALL_INTERVALS.find_id(v)
-        self.assertListEqual(ids, [19])
-
-    def test_add_output(self):
-        id_, var = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], type_="type")
-        self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
-        EF_ALL_INTERVALS.remove_variables(var)
-
-    def test_add_two_outputs(self):
-        id_, var1 = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], "type")
-        self.assertTupleEqual(var1, Variable("runperiod", "new", "type", "C"))
-
-        id_, var2 = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], "type")
-        self.assertTupleEqual(var2, Variable("runperiod", "new (1)", "type", "C"))
-        EF_ALL_INTERVALS.remove_variables(var1)
-        EF_ALL_INTERVALS.remove_variables(var2)
-
-    def test_add_output_test_tree(self):
-        id_, var = EF_ALL_INTERVALS.insert_variable("runperiod", "new", "C", [1], type_="type")
-        self.assertTupleEqual(var, Variable("runperiod", "new", "type", "C"))
-
-        ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
-        self.assertIsNot(ids, [])
-        self.assertEqual(len(ids), 1)
-
-        EF_ALL_INTERVALS.remove_variables(var)
-        ids = EF_ALL_INTERVALS.search_tree.find_ids(var)
-        self.assertEqual(ids, [])
-
-    def test_add_output_invalid(self):
-        out = EF_ALL_INTERVALS.insert_variable("timestep", "new", "type", "C", [1])
-        self.assertIsNone(out)
-
-    def test_add_output_invalid_table(self):
-        with pytest.raises(KeyError):
-            _ = EF_ALL_INTERVALS.insert_variable("foo", "new", "type", "C", [1])
-
-    def test_aggregate_variables(self):
-        v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
-        id_, var = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
-        self.assertEqual(
-            var,
+@pytest.mark.parametrize(
+    "file,variable,part_match,test_ids",
+    [
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
             Variable(
-                table="hourly",
-                key="Custom Key - sum",
+                table="timestep",
+                key="BLOCK1:ZONE1",
                 type="Zone People Occupant Count",
                 units="",
             ),
+            False,
+            [13],
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units=""),
+            False,
+            [2],
+        ),
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            Variable(
+                table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            ),
+            True,
+            [13],
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1", units=""),
+            True,
+            [2, 6, 7],
+        ),
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            Variable(
+                table="time", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units=""
+            ),
+            False,
+            [],
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="time", key="BLOCK1:ZONE1", units=""),
+            False,
+            [],
+        ),
+    ],
+)
+def test_find_ids(file, variable, part_match, test_ids):
+    ids = file.find_id(variable, part_match=part_match)
+    assert ids == test_ids
+
+
+@pytest.mark.parametrize(
+    "file,variable,part_match,test_ids",
+    [
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            Variable(
+                table="timestep",
+                key="BLOCK1:ZONE1",
+                type="Zone People Occupant Count",
+                units="",
+            ),
+            False,
+            {"timestep": [13]},
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units=""),
+            False,
+            {"monthly-simple": [2]},
+        ),
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            Variable(
+                table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            ),
+            True,
+            {"timestep": [13]},
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1", units=""),
+            True,
+            {"monthly-simple": [2, 6, 7]},
+        ),
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            Variable(
+                table="timestep", key="BLOCK1", type="Zone People Occupant Count", units=""
+            ),
+            False,
+            {},
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="time", key="BLOCK1:ZONE1", units=""),
+            False,
+            {},
+        ),
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            [31, 32, 297, 298,],
+            False,
+            {"timestep": [31, 297], "hourly": [32, 298]},
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            [1, 2, 3, 10, 11],
+            False,
+            {"monthly-simple": [1, 2, 3], "simple-no-template-no-index": [10, 11]},
+        ),
+    ],
+)
+def test_find_table_id_map(file, variable, part_match, test_ids):
+    ids = file.find_table_id_map(variable, part_match=part_match)
+    assert ids == test_ids
+
+
+def test_find_table_id_map_unexpected_type(eplusout_all_intervals):
+    with pytest.raises(TypeError):
+        _ = eplusout_all_intervals.find_table_id_map(
+            [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
         )
-        EF_ALL_INTERVALS.remove_variables(var)
-        id_, var = EF_ALL_INTERVALS.aggregate_variables(v, "sum", new_key="foo", new_type="bar")
-        self.assertEqual(var, Variable(table="hourly", key="foo", type="bar", units=""))
-        EF_ALL_INTERVALS.remove_variables(var)
 
-    def test_aggregate_energy_rate(self):
-        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
-        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
-        id_, var = EF_ALL_INTERVALS.aggregate_variables([v1, v2], "sum")
-        df = EF_ALL_INTERVALS.get_results(var)
+@pytest.mark.parametrize(
+    "file, table, new_key, new_type, new_units, created_variable",
+    [
+        (
+            pytest.lazy_fixture("eplusout_all_intervals"),
+            "timestep",
+            "dummy",
+            "type",
+            "foo",
+            Variable(table="timestep", key="dummy", type="type", units="foo"),
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            "monthly-simple",
+            "dummy",
+            None,
+            "foo",
+            SimpleVariable(table="monthly-simple", key="dummy", units="foo"),
+        ),
+    ],
+)
+def test_create_new_header_variable(
+    file, table, new_key, new_type, new_units, created_variable
+):
+    v = file.create_header_variable(table, new_key, new_units, type_=new_type)
+    assert v == created_variable
 
-        test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
-        )
-        test_index = pd.MultiIndex.from_product(
-            [["eplusout_all_intervals"], [datetime(2002, i, 1) for i in range(1, 13)]],
-            names=["file", "timestamp"],
-        )
-        test_df = pd.DataFrame(
-            [
-                [5.164679e08],
-                [1.318966e09],
-                [3.610323e09],
-                [5.146479e09],
-                [7.525772e09],
-                [7.119410e09],
-                [1.018732e10],
-                [8.958836e09],
-                [6.669166e09],
-                [5.231315e09],
-                [2.971484e09],
-                [3.891442e08],
-            ],
-            index=test_index,
-            columns=test_mi,
-        )
-        assert_frame_equal(df, test_df)
-        EF_ALL_INTERVALS.remove_variables(var)
 
-    def test_aggregate_energy_rate_hourly(self):
-        v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
-        v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
-        test_sr = EF_ALL_INTERVALS.get_results([v1, v2], rate_to_energy=True).sum(axis=1)
-        test_df = pd.DataFrame(test_sr)
-        test_mi = pd.MultiIndex.from_tuples(
-            [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
-        )
-        test_df.columns = test_mi
+@pytest.mark.parametrize(
+    "file, table, new_key, new_type, new_units",
+    [
+        (pytest.lazy_fixture("eplusout_all_intervals"), "timestep", "dummy", None, "foo",),
+        (pytest.lazy_fixture("simple_file"), "monthly-simple", "dummy", "Type", "foo",),
+    ],
+)
+def test_create_new_header_variable_invalid(file, table, new_key, new_type, new_units):
+    with pytest.raises(TypeError):
+        _ = file.create_header_variable(table, new_key, new_units, type_=new_type)
 
-        id_, var = EF_ALL_INTERVALS.aggregate_variables([v1, v2], "sum")
-        df = EF_ALL_INTERVALS.get_results(id_)
-        assert_frame_equal(test_df, df)
 
-        EF_ALL_INTERVALS.remove_variables(var)
+@pytest.mark.parametrize(
+    "file, variable, new_key, new_type, test_variable, test_id",
+    [
+        (
+            pytest.lazy_fixture("copied_eplusout_all_intervals"),
+            Variable(
+                table="timestep",
+                key="BLOCK1:ZONE1",
+                type="Zone People Occupant Count",
+                units="",
+            ),
+            "NEW3",
+            "VARIABLE",
+            Variable(table="timestep", key="NEW3", type="VARIABLE", units=""),
+            13,
+        ),
+        (
+            pytest.lazy_fixture("copied_simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units=""),
+            "NEW3",
+            None,
+            SimpleVariable(table="monthly-simple", key="NEW3", units=""),
+            2,
+        ),
+    ],
+)
+def test_rename_variable(file, variable, new_key, new_type, test_variable, test_id):
+    id_, new_variable = file.rename_variable(variable, new_key=new_key, new_type=new_type)
+    assert id_ == test_id
+    assert new_variable == test_variable
 
-    def test_aggregate_invalid_variables(self):
-        vars = [
-            Variable("hourly", "invalid", "variable1", "units"),
-            Variable("hourly", "invalid", "type", "units"),
-        ]
-        with pytest.raises(CannotAggregateVariables):
-            EF_ALL_INTERVALS.aggregate_variables(vars, "sum")
 
-    def test_aggregate_energy_rate_invalid(self):
-        ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout_all_intervals.eso"))
-        ef.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
+@pytest.mark.parametrize(
+    "file, variable, new_key, new_type",
+    [
+        (
+            pytest.lazy_fixture("copied_eplusout_all_intervals"),
+            Variable(table="timestep", key="foo", type="", units=""),
+            "NEW3",
+            "VARIABLE",
+        ),
+        (
+            pytest.lazy_fixture("copied_simple_file"),
+            SimpleVariable(table="monthly-simple", key="foo", units=""),
+            "dummy",
+            None,
+        ),
+    ],
+)
+def test_rename_variable_invalid(file, variable, new_key, new_type):
+    out = file.rename_variable(variable, new_key=new_key, new_type=new_type)
+    assert out is None
 
-        v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
-        v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
-        with pytest.raises(CannotAggregateVariables):
-            _ = ef.aggregate_variables([v1, v2], "sum")
+@pytest.mark.parametrize(
+    "file, table, new_key, new_type, new_units, array, test_variable, test_id",
+    [
+        (
+            pytest.lazy_fixture("copied_eplusout_all_intervals"),
+            "runperiod",
+            "dummy",
+            "type",
+            "foo",
+            [1.123],
+            Variable(table="runperiod", key="dummy", type="type", units="foo"),
+            100,
+        ),
+        (
+            pytest.lazy_fixture("copied_simple_file"),
+            "monthly-simple",
+            "new",
+            None,
+            "C",
+            list(range(12)),
+            SimpleVariable("monthly-simple", "new", "C"),
+            100,
+        ),
+    ],
+)
+def test_add_output(file, table, new_key, new_type, new_units, array, test_variable, test_id):
+    id_, var = file.insert_variable(table, new_key, new_units, array, type_=new_type)
+    assert id_ == test_id
+    assert var == test_variable
 
-    def test_aggregate_variables_too_much_vars(self):
-        v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
-        with pytest.raises(CannotAggregateVariables):
-            _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
 
-    def test_aggregate_variables_invalid_too_many_tables(self):
-        v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
-        with pytest.raises(CannotAggregateVariables):
-            _ = EF_ALL_INTERVALS.aggregate_variables(v, "sum")
+@pytest.mark.parametrize(
+    "file, table, new_key, new_type, new_units, array, variable1, variable2, id1, id2",
+    [
+        (
+            pytest.lazy_fixture("copied_eplusout_all_intervals"),
+            "runperiod",
+            "dummy",
+            "type",
+            "foo",
+            [1.123],
+            Variable(table="runperiod", key="dummy", type="type", units="foo"),
+            Variable(table="runperiod", key="dummy (1)", type="type", units="foo"),
+            100,
+            101,
+        ),
+        (
+            pytest.lazy_fixture("copied_simple_file"),
+            "monthly-simple",
+            "new",
+            None,
+            "C",
+            list(range(12)),
+            SimpleVariable("monthly-simple", "new", "C"),
+            SimpleVariable("monthly-simple", "new (1)", "C"),
+            100,
+            101,
+        ),
+    ],
+)
+def test_add_two_identical_outputs(
+    file, table, new_key, new_type, new_units, array, variable1, variable2, id1, id2
+):
+    id_, var = file.insert_variable(table, new_key, new_units, array, type_=new_type)
+    assert id_ == id1
+    assert var == variable1
+    id_, var = file.insert_variable(table, new_key, new_units, array, type_=new_type)
+    assert id_ == id2
+    assert var == variable2
 
-    def test_as_df(self):
-        df = EF_ALL_INTERVALS.get_numeric_table("hourly")
-        self.assertTupleEqual(df.shape, (8760, 19))
-        self.assertListEqual(df.columns.names, ["id", "table", "key", "type", "units"])
-        self.assertEqual(df.index.name, "timestamp")
 
-    def test_as_df_invalid_table(self):
-        with pytest.raises(KeyError):
-            _ = EF_ALL_INTERVALS.get_numeric_table("foo")
+@pytest.mark.parametrize(
+    "file, table, new_key, new_type, new_units, array",
+    [
+        (
+            pytest.lazy_fixture("copied_eplusout_all_intervals"),
+            "runperiod",
+            "dummy",
+            "type",
+            "foo",
+            [1.123],
+        ),
+        (
+            pytest.lazy_fixture("copied_simple_file"),
+            "monthly-simple",
+            "new",
+            None,
+            "C",
+            list(range(12)),
+        ),
+    ],
+)
+def test_add_output_test_tree(file, table, new_key, new_type, new_units, array):
+    id_, var = file.insert_variable(table, new_key, new_units, array, type_=new_type)
+    tree_id = file.find_id(var)
+    assert [id_] == tree_id
 
-    def test__find_pairs_by_id(self):
-        pairs = EF_ALL_INTERVALS.find_table_id_map([31, 32, 297, 298,])
-        self.assertDictEqual({"timestep": [31, 297], "hourly": [32, 298]}, pairs)
 
-    def test__find_pairs_unexpected_type(self):
-        with pytest.raises(TypeError):
-            _ = EF_ALL_INTERVALS.find_table_id_map(
-                [("timestep", 31), ("hourly", 32), ("timestep", 297), ("hourly", 298)]
-            )
+def test_add_output_invalid_array(eplusout_all_intervals):
+    out = eplusout_all_intervals.insert_variable("timestep", "new", "type", "C", [1])
+    assert out is None
 
-    def test_to_excel(self):
-        p = Path("test.xlsx")
-        try:
-            EF1.to_excel(p)
-            self.assertTrue(p.exists())
-            test_ef = ResultsFile.from_excel(p)
-            for table_name in EF1.table_names:
-                df = EF1.tables[table_name].copy()
-                test_df = test_ef.tables[table_name]
-                df.columns = df.columns.droplevel(ID_LEVEL)
-                test_df.columns = test_df.columns.droplevel(ID_LEVEL)
-                assert_frame_equal(df, test_df, check_dtype=False)
 
-        finally:
-            p.unlink()
+def test_add_output_invalid_table(eplusout_all_intervals):
+    with pytest.raises(KeyError):
+        _ = eplusout_all_intervals.insert_variable("foo", "new", "type", "C", [1])
+
+
+def test_aggregate_variables(copied_eplusout_all_intervals):
+    v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
+    id_, var = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
+    assert var == Variable(
+        table="hourly", key="Custom Key - sum", type="Zone People Occupant Count", units="",
+    )
+
+
+def test_aggregate_variables_simple(copied_simple_file):
+    v1 = SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units="")
+    v2 = SimpleVariable(table="monthly-simple", key="BLOCK2:ZONE1", units="")
+    v3 = SimpleVariable(table="monthly-simple", key="BLOCK3:ZONE1", units="")
+    id_, var = copied_simple_file.aggregate_variables([v1, v2, v3], "sum")
+    assert var == SimpleVariable(table="monthly-simple", key="Custom Key - sum", units="")
+
+
+def test_aggregate_energy_rate(copied_eplusout_all_intervals):
+    v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+    v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+
+    id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
+    df = copied_eplusout_all_intervals.get_results(var)
+
+    test_mi = pd.MultiIndex.from_tuples(
+        [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
+    )
+    test_index = pd.MultiIndex.from_product(
+        [["eplusout_all_intervals"], [datetime(2002, i, 1) for i in range(1, 13)]],
+        names=["file", "timestamp"],
+    )
+    test_df = pd.DataFrame(
+        [
+            [5.164679e08],
+            [1.318966e09],
+            [3.610323e09],
+            [5.146479e09],
+            [7.525772e09],
+            [7.119410e09],
+            [1.018732e10],
+            [8.958836e09],
+            [6.669166e09],
+            [5.231315e09],
+            [2.971484e09],
+            [3.891442e08],
+        ],
+        index=test_index,
+        columns=test_mi,
+    )
+    assert_frame_equal(df, test_df)
+
+
+def test_aggregate_energy_rate_hourly(copied_eplusout_all_intervals):
+    v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
+    v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
+    test_sr = copied_eplusout_all_intervals.get_results([v1, v2], rate_to_energy=True).sum(
+        axis=1
+    )
+    test_df = pd.DataFrame(test_sr)
+    test_mi = pd.MultiIndex.from_tuples(
+        [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
+    )
+    test_df.columns = test_mi
+    id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
+    df = copied_eplusout_all_intervals.get_results(id_)
+    assert_frame_equal(test_df, df)
+
+
+def test_aggregate_invalid_variables(copied_eplusout_all_intervals):
+    vars = [
+        Variable("hourly", "invalid", "variable1", "units"),
+        Variable("hourly", "invalid", "type", "units"),
+    ]
+    with pytest.raises(CannotAggregateVariables):
+        copied_eplusout_all_intervals.aggregate_variables(vars, "sum")
+
+
+def test_aggregate_energy_rate_invalid(copied_eplusout_all_intervals):
+    copied_eplusout_all_intervals.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
+    v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+    v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
+    with pytest.raises(CannotAggregateVariables):
+        _ = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
+
+
+def test_aggregate_variables_too_much_vars(copied_eplusout_all_intervals):
+    v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
+    with pytest.raises(CannotAggregateVariables):
+        _ = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
+
+
+def test_aggregate_variables_invalid_too_many_tables(copied_eplusout_all_intervals):
+    v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
+    with pytest.raises(CannotAggregateVariables):
+        _ = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
+
+
+def test_as_df_invalid_table(eplusout_all_intervals):
+    with pytest.raises(KeyError):
+        _ = eplusout_all_intervals.get_numeric_table("foo")
+
+
+def test_to_excel(eplusout1):
+    p = Path("test.xlsx")
+    try:
+        eplusout1.to_excel(p)
+        loaded_ef = ResultsFile.from_excel(p)
+        assert loaded_ef.tables == eplusout1.tables
+        assert p.exists()
+    finally:
+        p.unlink()
