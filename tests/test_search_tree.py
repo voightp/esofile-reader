@@ -1,5 +1,5 @@
 import unittest
-from copy import deepcopy
+from copy import deepcopy, copy
 
 from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable, SimpleVariable
@@ -463,3 +463,6 @@ class TestMixedSearchTree(unittest.TestCase):
         res = self.tree.add_variable(17, v)
         self.assertFalse(res)
         self.assertListEqual([1], self.tree.find_ids(v, check_only=True))
+
+    def test_copy(self):
+        self.assertEqual(self.tree.__repr__(), copy(self.tree.__repr__()))

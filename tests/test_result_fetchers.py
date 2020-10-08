@@ -301,14 +301,14 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_output_type_local_na(self):
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        with self.assertRaises(PeaksNotIncluded):
+        with pytest.raises(PeaksNotIncluded):
             _ = get_results(EF1, v, output_type="local_min")
 
     @parameterized.expand(["ef", "dff", "pqf"])
     def test_get_results_output_type_invalid(self, key):
         file = self.files[key]
         v = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-        with self.assertRaises(InvalidOutputType):
+        with pytest.raises(InvalidOutputType):
             _ = get_results(file, v, output_type="foo")
 
     @parameterized.expand(["ef", "dff", "pqf"])
@@ -510,7 +510,7 @@ class TestResultFetching(unittest.TestCase):
             Variable("runperiod", "Meter", "InteriorLights:Electricity", "J"),
             Variable("runperiod", "BLOCK1:ZONEB", "Zone Air Relative Humidity", "%"),
         ]
-        with self.assertRaises(InvalidUnitsSystem):
+        with pytest.raises(InvalidUnitsSystem):
             _ = get_results(file, v, units_system="FOO")
 
     @parameterized.expand(["ef", "dff", "pqf"])
@@ -581,7 +581,7 @@ class TestResultFetching(unittest.TestCase):
 
     def test_get_results_ignore_peaks(self):
         ef = EsoFile(os.path.join(ROOT, "eso_files/eplusout1.eso"), ignore_peaks=False)
-        self.assertIsNotNone(ef.peak_outputs)
+        self.assertIsNotNone(ef.peak_tables)
 
     @parameterized.expand(["ef", "dff", "pqf"])
     def test_multiple_files_invalid_variable(self, key):

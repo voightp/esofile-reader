@@ -1,4 +1,5 @@
 import tempfile
+from copy import copy
 from datetime import datetime
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import pytest
 from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader.tables.pqt_tables import ParquetFrame, parquet_frame_factory
-from tests.session_scope_fixtures import ROOT_PATH
+from tests.session_fixtures import ROOT_PATH
 
 
 @pytest.fixture
@@ -362,3 +363,14 @@ def test_parquet_frame_context_maneger(parquet_frame, test_df):
     with parquet_frame_factory(df=test_df, name="test") as pqf:
         assert_frame_equal(test_df, pqf.get_df())
     assert not pqf.workdir.exists()
+
+
+def test_copy_to(parquet_frame, test_df):
+    with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
+        copied_frame = parquet_frame.copy_to(temp_dir)
+        assert_frame_equal(test_df, copied_frame.get_df())
+
+
+def test_copy(parquet_frame, test_df):
+    copied_frame = copy(parquet_frame)
+    assert_frame_equal(test_df, copied_frame.get_df())

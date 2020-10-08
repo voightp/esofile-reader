@@ -140,7 +140,7 @@ class TestRangeIntervalFile(unittest.TestCase):
                 "range", "CHILLER", "J", [2, 2, 2], "Chiller Electric Power",
             )
 
-            with self.assertRaises(CannotAggregateVariables):
+            with pytest.raises(CannotAggregateVariables):
                 _ = self.bf.aggregate_variables([v1, v2], "sum")
         finally:
             self.bf.remove_variables([v1, v2])

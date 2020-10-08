@@ -1,7 +1,7 @@
 import pandas as pd
 
 from esofile_reader.storages.df_storage import DFStorage
-from tests.session_scope_fixtures import *
+from tests.session_fixtures import *
 
 
 @pytest.fixture(scope="module")

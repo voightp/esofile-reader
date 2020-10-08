@@ -35,5 +35,5 @@ class TestMultipleEnvs(unittest.TestCase):
         self.assertEqual(len(set(trees)), 1)
 
     def test_multienv_file_required(self):
-        with self.assertRaises(MultiEnvFileRequired):
+        with pytest.raises(MultiEnvFileRequired):
             EsoFile(os.path.join(ROOT, "eso_files/multiple_environments.eso"))

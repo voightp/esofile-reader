@@ -2,7 +2,7 @@ import contextlib
 
 from esofile_reader.storages.pqt_storage import ParquetStorage
 from esofile_reader.tables.pqt_tables import ParquetFrame
-from tests.session_scope_fixtures import *
+from tests.session_fixtures import *
 
 
 @pytest.fixture(scope="module")
