@@ -178,10 +178,11 @@ class Tree:
             # there's already a leaf, variable is a duplicate
             return id_
 
-    def add_variable(self, id_: int, variable: Union[SimpleVariable, Variable]) -> bool:
+    def add_variable(self, id_: int, variable: Union[SimpleVariable, Variable]) -> None:
         """ Add new variable into the tree. """
         duplicate_id = self._add_branch(id_, variable)
-        return not bool(duplicate_id)
+        if duplicate_id:
+            raise KeyError(f"Cannot add variable: '{variable}', it already exists!")
 
     def populate_tree(self, header_dct: Dict[str, Dict[int, Variable]]) -> Dict[int, Variable]:
         """ Create a search tree. """
@@ -224,26 +225,29 @@ class Tree:
             # reached bottom level, bottom node holds only leaf
             ids.append(node.children.key)
 
-    def find_ids(
-        self,
-        variable: Union[SimpleVariable, Variable],
-        part_match: bool = False,
-        check_only: bool = False,
+    def _search(
+        self, variable: Union[SimpleVariable, Variable], part_match: bool,
     ) -> List[int]:
-        """ Find variable ids for given arguments. """
         tree_variable = self.create_variable_iterator(variable)
         ids = []
         variable_type = next(tree_variable)
         with contextlib.suppress(KeyError):
             node = self.root.children[variable_type]
             self.loop(node, ids, tree_variable, part_match=part_match)
-        if not ids and check_only:
-            logging.warning(f"'{variable}' not found in tree!")
         return sorted(ids)
+
+    def find_ids(
+        self, variable: Union[SimpleVariable, Variable], part_match: bool = False,
+    ) -> List[int]:
+        """ Find variable ids for given arguments. """
+        ids = self._search(variable, part_match)
+        if not ids:
+            logging.warning(f"'{variable}' not found in tree!")
+        return ids
 
     def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Check if variable exists. """
-        return bool(self.find_ids(variable, part_match=False, check_only=True))
+        return bool(self._search(variable, part_match=False))
 
     def loop_remove(self, node: Node, tree_variable: Iterator[str]) -> None:
         def remove_recursively(n):
