@@ -9,7 +9,11 @@ from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import SimpleVariable, Variable
 from esofile_reader.tables.base_tables import BaseTables
-from esofile_reader.tables.df_functions import merge_peak_outputs, slicer, sr_dt_slicer
+from esofile_reader.tables.df_functions import (
+    merge_peak_outputs,
+    slicer,
+    slice_series_by_datetime_index,
+)
 
 
 class DFTables(BaseTables):
@@ -253,9 +257,8 @@ class DFTables(BaseTables):
             raise KeyError(
                 f"Cannot remove ids: '{', '.join([str(id_) for id_ in ids])}',"
                 f"\nids {[str(id_) for id_ in ids if id_ not in all_ids]}"
-                f"are not included."
+                f" are not included."
             )
-
         self.tables[table].drop(columns=ids, inplace=True, level=ID_LEVEL)
 
     def get_special_column(
@@ -271,7 +274,7 @@ class DFTables(BaseTables):
             v = (SPECIAL, table, name, "")
         else:
             v = (SPECIAL, table, name, "", "")
-        col = sr_dt_slicer(self.tables[table].loc[:, v], start_date, end_date)
+        col = slice_series_by_datetime_index(self.tables[table].loc[:, v], start_date, end_date)
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col
