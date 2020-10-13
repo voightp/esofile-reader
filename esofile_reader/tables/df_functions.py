@@ -130,10 +130,10 @@ def slicer(
     return sort_by_ids(df, ids)
 
 
-def df_dt_slicer(
+def slice_df_by_datetime_index(
     df: pd.DataFrame, start_date: Optional[datetime], end_date: Optional[datetime]
 ) -> pd.DataFrame:
-    """ Slice df 'vertically'. """
+    """ Slice df by index. """
     if start_date and end_date:
         df = df.loc[start_date:end_date, :]
     elif start_date:
@@ -143,8 +143,10 @@ def df_dt_slicer(
     return df
 
 
-def sr_dt_slicer(sr: pd.Series, start_date: Optional[datetime], end_date: Optional[datetime]):
-    """ Slice series. """
+def slice_series_by_datetime_index(
+    sr: pd.Series, start_date: Optional[datetime], end_date: Optional[datetime]
+) -> pd.Series:
+    """ Slice series by index. """
     if start_date and end_date:
         sr = sr.loc[start_date:end_date]
     elif start_date:

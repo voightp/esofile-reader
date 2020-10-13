@@ -15,7 +15,7 @@ from esofile_reader.results_processing.process_results import (
 from tests.session_fixtures import *
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def simple_file():
     return ResultsFile.from_excel(
         Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx"),
