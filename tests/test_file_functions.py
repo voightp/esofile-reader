@@ -533,7 +533,7 @@ def test_aggregate_energy_rate(copied_eplusout_all_intervals):
     v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
     id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
-    df = copied_eplusout_all_intervals.get_results(var)
+    df = copied_eplusout_all_intervals.get_results_df(var)
 
     test_mi = pd.MultiIndex.from_tuples(
         [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
@@ -566,7 +566,7 @@ def test_aggregate_energy_rate(copied_eplusout_all_intervals):
 def test_aggregate_energy_rate_hourly(copied_eplusout_all_intervals):
     v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
-    test_sr = copied_eplusout_all_intervals.get_results([v1, v2], rate_to_energy=True).sum(
+    test_sr = copied_eplusout_all_intervals.get_results_df([v1, v2], rate_to_energy=True).sum(
         axis=1
     )
     test_df = pd.DataFrame(test_sr)
@@ -575,7 +575,7 @@ def test_aggregate_energy_rate_hourly(copied_eplusout_all_intervals):
     )
     test_df.columns = test_mi
     id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
-    df = copied_eplusout_all_intervals.get_results(id_)
+    df = copied_eplusout_all_intervals.get_results_df(id_)
     assert_frame_equal(test_df, df)
 
 

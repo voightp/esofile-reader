@@ -1,28 +1,8 @@
 from datetime import datetime
 from typing import Tuple, List, Dict, Optional
 
-import numpy as np
-import pandas as pd
-
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import IntervalTuple
-
-
-def update_datetime_format(df: pd.DataFrame, timestamp_format: str) -> pd.DataFrame:
-    """ Set specified 'datetime' str format. """
-    if TIMESTAMP_COLUMN in df.index.names:
-        ts_index = df.index.get_level_values(TIMESTAMP_COLUMN)
-        if isinstance(ts_index, pd.DatetimeIndex):
-            new_index = ts_index.strftime(timestamp_format)
-            if isinstance(df.index, pd.DatetimeIndex):
-                df.index = pd.Index(new_index, name=TIMESTAMP_COLUMN)
-            else:
-                df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
-
-    cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
-    df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(timestamp_format))
-
-    return df
 
 
 def datetime_helper(month: int, day: int, hour: int, end_minute: int) -> Tuple[int, ...]:

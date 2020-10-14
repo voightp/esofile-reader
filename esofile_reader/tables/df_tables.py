@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from copy import copy
 from datetime import datetime
@@ -141,6 +142,9 @@ class DFTables(BaseTables):
 
     def is_simple(self, table: str) -> bool:
         return len(self.get_levels(table)) == 4
+
+    def is_index_datetime(self, table: str) -> bool:
+        return isinstance(self.tables[table].index, pd.DatetimeIndex)
 
     def get_levels(self, table: str) -> List[str]:
         return self.tables[table].columns.names
@@ -290,27 +294,33 @@ class DFTables(BaseTables):
         cond = mi.get_level_values(ID_LEVEL) != SPECIAL
         return self.tables[table].loc[:, cond].copy()
 
-    def get_results(
+    def add_day_to_index(
+        self,
+        df: pd.DataFrame,
+        table: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> None:
+        try:
+            days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
+            df[DAY_COLUMN] = days_sr
+            df.set_index(DAY_COLUMN, append=True, inplace=True)
+        except KeyError:
+            with contextlib.suppress(AttributeError):
+                df[DAY_COLUMN] = df.index.strftime("%A")
+                df.set_index(DAY_COLUMN, append=True, inplace=True)
+
+    def get_results_df(
         self,
         table: str,
         ids: Sequence[int],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
-        if include_day:
-            try:
-                days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
-                df[DAY_COLUMN] = days_sr
-                df.set_index(DAY_COLUMN, append=True, inplace=True)
-            except KeyError:
-                try:
-                    df[DAY_COLUMN] = df.index.strftime("%A")
-                    df.set_index(DAY_COLUMN, append=True, inplace=True)
-                except AttributeError:
-                    pass
+        if self.is_index_datetime(table):
+            self.add_day_to_index(df, table, start_date, end_date)
         return df
 
     def _global_peak(
@@ -322,7 +332,7 @@ class DFTables(BaseTables):
         max_: bool = True,
     ) -> pd.DataFrame:
         """ Return maximum or minimum value and datetime of occurrence. """
-        df = self.get_results(table, ids, start_date, end_date)
+        df = self.get_results_df(table, ids, start_date, end_date)
 
         vals = pd.DataFrame(df.max() if max_ else df.min()).T
         ixs = pd.DataFrame(df.idxmax() if max_ else df.idxmin()).T
@@ -332,7 +342,7 @@ class DFTables(BaseTables):
 
         return df
 
-    def get_global_max_results(
+    def get_global_max_results_df(
         self,
         table: str,
         ids: Sequence[int],
@@ -341,7 +351,7 @@ class DFTables(BaseTables):
     ) -> pd.DataFrame:
         return self._global_peak(table, ids, start_date, end_date)
 
-    def get_global_min_results(
+    def get_global_min_results_df(
         self,
         table: str,
         ids: Sequence[int],

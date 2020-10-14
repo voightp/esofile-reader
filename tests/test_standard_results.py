@@ -8,7 +8,7 @@ from tests import EF_ALL_INTERVALS
 class TestStandardResults(unittest.TestCase):
     def test_basic_standard_results(self):
         v = Variable(None, None, None, None)
-        r = EF_ALL_INTERVALS.get_results(v)
+        r = EF_ALL_INTERVALS.get_results_df(v)
         self.assertEqual(r.shape, (17521, 114))
         self.assertEqual(r.columns.names, ["key", "type", "units"])
         self.assertEqual(r.index.names, ["file", "timestamp"])
@@ -33,7 +33,7 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "CHILLER", "Chiller Electric Energy", "J"),
                 Variable(interval, "non", "existing", "type"),
             ]
-            r = EF_ALL_INTERVALS.get_results(variables)
+            r = EF_ALL_INTERVALS.get_results_df(variables)
             self.assertEqual(r.shape, shape)
 
     def test_standard_results_dates(self):
@@ -53,10 +53,10 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
                 Variable(interval, "non", "existing", "type"),
             ]
-            r1 = EF_ALL_INTERVALS.get_results(
+            r1 = EF_ALL_INTERVALS.get_results_df(
                 variables, start_date=start_date, end_date=end_date
             )
-            r2 = EF_ALL_INTERVALS.get_results(
+            r2 = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 start_date=start_date,
                 end_date=end_date,
@@ -83,15 +83,15 @@ class TestStandardResults(unittest.TestCase):
                 ),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="row")
+            r = EF_ALL_INTERVALS.get_results_df(variables, add_file_name="row")
             self.assertEqual(r.index.names, ["file", "timestamp"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="column")
+            r = EF_ALL_INTERVALS.get_results_df(variables, add_file_name="column")
             self.assertEqual(r.index.names, ["timestamp"])
             self.assertEqual(r.columns.names, ["file", "key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name=False)
+            r = EF_ALL_INTERVALS.get_results_df(variables, add_file_name=False)
             self.assertEqual(r.index.names, ["timestamp"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
@@ -107,11 +107,13 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="row", include_id=True)
+            r = EF_ALL_INTERVALS.get_results_df(variables, add_file_name="row", include_id=True)
             self.assertEqual(r.index.names, ["file", "timestamp"])
             self.assertEqual(r.columns.names, ["id", "key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="row", include_id=False)
+            r = EF_ALL_INTERVALS.get_results_df(
+                variables, add_file_name="row", include_id=False
+            )
             self.assertEqual(r.index.names, ["file", "timestamp"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
@@ -127,11 +129,15 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="row", include_day=True)
+            r = EF_ALL_INTERVALS.get_results_df(
+                variables, add_file_name="row", include_day=True
+            )
             self.assertEqual(r.index.names, ["file", "timestamp", "day"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
-            r = EF_ALL_INTERVALS.get_results(variables, add_file_name="row", include_day=False)
+            r = EF_ALL_INTERVALS.get_results_df(
+                variables, add_file_name="row", include_day=False
+            )
             self.assertEqual(r.index.names, ["file", "timestamp"])
             self.assertEqual(r.columns.names, ["key", "type", "units"])
 
@@ -147,13 +153,13 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            df = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results_df(
                 variables, add_file_name="row", include_table_name=True
             )
             self.assertEqual(df.index.names, ["file", "timestamp"])
             self.assertEqual(df.columns.names, ["table", "key", "type", "units"])
 
-            df = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results_df(
                 variables, add_file_name="row", include_table_name=False
             )
             self.assertEqual(df.index.names, ["file", "timestamp"])
@@ -170,7 +176,7 @@ class TestStandardResults(unittest.TestCase):
                 ),
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
-            df = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 add_file_name="row",
                 include_day=True,
@@ -180,7 +186,7 @@ class TestStandardResults(unittest.TestCase):
             self.assertEqual(df.index.names, ["file", "timestamp", "day"])
             self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units"])
 
-            df = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 add_file_name="column",
                 include_day=True,
@@ -190,7 +196,7 @@ class TestStandardResults(unittest.TestCase):
             self.assertEqual(df.index.names, ["timestamp", "day"])
             self.assertEqual(df.columns.names, ["file", "id", "table", "key", "type", "units"])
 
-            df = EF_ALL_INTERVALS.get_results(
+            df = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 add_file_name=False,
                 include_day=True,
@@ -206,10 +212,10 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "envir", "Site", None),
                 Variable(interval, "BLOCK", "Zone People Occupant Count", ""),
             ]
-            r = EF_ALL_INTERVALS.get_results(variables)
+            r = EF_ALL_INTERVALS.get_results_df(variables)
             self.assertIsNone(r)
 
-            r = EF_ALL_INTERVALS.get_results(variables, part_match=True)
+            r = EF_ALL_INTERVALS.get_results_df(variables, part_match=True)
             self.assertEqual(r.shape[1], 5)
 
     def test_timestamp_format(self):
@@ -232,12 +238,12 @@ class TestStandardResults(unittest.TestCase):
                 Variable(interval, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            r = EF_ALL_INTERVALS.get_results(
+            r = EF_ALL_INTERVALS.get_results_df(
                 variables, timestamp_format="%Y-%m-%d-%H-%M", include_table_name=True
             )
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)
 
-            r = EF_ALL_INTERVALS.get_results(
+            r = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 timestamp_format="%Y-%m-%d-%H-%M",
                 include_table_name=True,
@@ -245,7 +251,7 @@ class TestStandardResults(unittest.TestCase):
             )
             self.assertEqual(r.index.get_level_values("timestamp")[0], f)
 
-            r = EF_ALL_INTERVALS.get_results(
+            r = EF_ALL_INTERVALS.get_results_df(
                 variables,
                 timestamp_format="%Y-%m-%d-%H-%M",
                 include_table_name=True,

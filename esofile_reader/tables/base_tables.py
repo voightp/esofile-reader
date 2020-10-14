@@ -23,6 +23,11 @@ class BaseTables(ABC):
         pass
 
     @abstractmethod
+    def is_index_datetime(self, table: str) -> bool:
+        """ Check if given table uses Datetime index. """
+        pass
+
+    @abstractmethod
     def get_levels(self, table: str) -> List[str]:
         """ Get multiindex levels. """
         pass
@@ -131,19 +136,29 @@ class BaseTables(ABC):
         pass
 
     @abstractmethod
-    def get_results(
+    def add_day_to_index(
+        self,
+        df: pd.DataFrame,
+        table: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> None:
+        """ Try to add day of week into index. """
+        pass
+
+    @abstractmethod
+    def get_results_df(
         self,
         table: str,
         ids: Sequence[int],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        include_day: bool = False,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
         pass
 
     @abstractmethod
-    def get_global_max_results(
+    def get_global_max_results_df(
         self,
         table: str,
         ids: Sequence[int],
@@ -154,7 +169,7 @@ class BaseTables(ABC):
         pass
 
     @abstractmethod
-    def get_global_min_results(
+    def get_global_min_results_df(
         self,
         table: str,
         ids: Sequence[int],
