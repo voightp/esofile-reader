@@ -258,7 +258,7 @@ def test_rename_variable(copied_tables, id_, table, new_key, new_type, units):
 )
 def test_insert_variable(copied_tables, new_variable, new_id):
     id_ = copied_tables.insert_column(new_variable, list(range(12)))
-    df = copied_tables.get_results(new_variable.table, [new_id])
+    df = copied_tables.get_results_df(new_variable.table, [new_id])
     assert id_ == new_id
     assert df.squeeze().tolist() == list(range(12))
 
@@ -305,7 +305,7 @@ def test_delete_variables_invalid(copied_tables, table, ids):
 )
 def test_update_variable(copied_tables, table, id_):
     copied_tables.update_variable_values(table, id_, list(range(12)))
-    values = copied_tables.get_results(table, id_).iloc[:, 0].to_list()
+    values = copied_tables.get_results_df(table, id_).iloc[:, 0].to_list()
     assert values == list(range(12))
 
 
@@ -321,7 +321,7 @@ def test_update_variable(copied_tables, table, id_):
 )
 def test_update_variable_invalid(copied_tables, table, id_):
     copied_tables.update_variable_values(table, id_, list(range(11)))
-    values = copied_tables.get_results(table, id_).iloc[:, 0].to_list()
+    values = copied_tables.get_results_df(table, id_).iloc[:, 0].to_list()
     assert values != list(range(12))
 
 
@@ -484,7 +484,7 @@ TEST_SIMPLE_DF = pd.DataFrame(
     ],
 )
 def test_get_results(tables, table, ids, test_df):
-    df = tables.get_results(table, ids)
+    df = tables.get_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 
@@ -503,7 +503,7 @@ def test_get_results(tables, table, ids, test_df):
     ],
 )
 def test_get_results_sliced(tables, table, ids, test_df):
-    df = tables.get_results(
+    df = tables.get_results_df(
         table, ids, start_date=datetime(2002, 4, 1), end_date=datetime(2002, 6, 1),
     )
     test_df = test_df.iloc[3:6, :]
@@ -518,7 +518,7 @@ def test_get_results_sliced(tables, table, ids, test_df):
     ],
 )
 def test_get_results_include_day(tables, table, ids):
-    df = tables.get_results(
+    df = tables.get_results_df(
         table,
         ids,
         start_date=datetime(2002, 4, 1),
@@ -542,7 +542,7 @@ def test_get_results_include_day(tables, table, ids):
     ],
 )
 def test_get_results_include_day_from_date(tables, table, ids):
-    df = tables.get_results(
+    df = tables.get_results_df(
         table,
         ids,
         start_date=datetime(2002, 4, 1),
@@ -567,7 +567,7 @@ def test_get_results_include_day_from_date(tables, table, ids):
 )
 def test_get_results_invalid_ids(tables, table):
     with pytest.raises(KeyError):
-        _ = tables.get_results(table, [999999])
+        _ = tables.get_results_df(table, [999999])
 
 
 TEST_MAX_DF = pd.DataFrame(
@@ -612,7 +612,7 @@ TEST_MAX_SIMPLE_DF = pd.DataFrame(
     ],
 )
 def test_get_global_max_results(tables, table, ids, test_df):
-    df = tables.get_global_max_results(table, ids)
+    df = tables.get_global_max_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 
@@ -657,7 +657,7 @@ TEST_MIN_SIMPLE_DF = pd.DataFrame(
     ],
 )
 def test_get_global_min_results(tables, table, ids, test_df):
-    df = tables.get_global_min_results(table, ids)
+    df = tables.get_global_min_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 

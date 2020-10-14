@@ -2,6 +2,8 @@ import os
 import unittest
 from datetime import datetime
 
+import pytest
+
 from esofile_reader import EsoFile, Variable
 from esofile_reader.eso_file import PeaksNotIncluded
 from tests import ROOT, EF_ALL_INTERVALS_PEAKS
@@ -52,7 +54,7 @@ class TestPeakResults(unittest.TestCase):
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
                 Variable(table, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
             ]
-            r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="global_max")
+            r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="global_max")
             self.assertEqual(r.iloc[0, :].to_list(), res)
 
     def test_global_min_results(self):
@@ -93,7 +95,7 @@ class TestPeakResults(unittest.TestCase):
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
                 Variable(table, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
             ]
-            r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="global_min")
+            r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="global_min")
             self.assertEqual(r.iloc[0, :].to_list(), res)
             self.assertEqual(len(r.index), 1)
 
@@ -119,7 +121,7 @@ class TestPeakResults(unittest.TestCase):
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
                 Variable(table, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
             ]
-            r = EF_ALL_INTERVALS_PEAKS.get_results(
+            r = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables, output_type="global_max", start_date=start_date, end_date=end_date
             )
             self.assertEqual(r.iloc[0, :].to_list(), res)
@@ -147,7 +149,7 @@ class TestPeakResults(unittest.TestCase):
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
                 Variable(table, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
             ]
-            r = EF_ALL_INTERVALS_PEAKS.get_results(
+            r = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables, output_type="global_min", start_date=start_date, end_date=end_date
             )
             self.assertEqual(r.iloc[0, :].to_list(), res)
@@ -161,7 +163,7 @@ class TestPeakResults(unittest.TestCase):
                 ),
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
-            df = EF_ALL_INTERVALS_PEAKS.get_results(
+            df = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables,
                 add_file_name="row",
                 include_day=True,
@@ -172,7 +174,7 @@ class TestPeakResults(unittest.TestCase):
             self.assertEqual(df.index.names, ["file", None])
             self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units", "data"])
 
-            df = EF_ALL_INTERVALS_PEAKS.get_results(
+            df = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables,
                 add_file_name="column",
                 include_day=True,
@@ -185,7 +187,7 @@ class TestPeakResults(unittest.TestCase):
                 df.columns.names, ["file", "id", "table", "key", "type", "units", "data"]
             )
 
-            df = EF_ALL_INTERVALS_PEAKS.get_results(
+            df = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables,
                 add_file_name=False,
                 include_day=True,
@@ -213,7 +215,7 @@ class TestPeakResults(unittest.TestCase):
                 Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             ]
 
-            df = EF_ALL_INTERVALS_PEAKS.get_results(
+            df = EF_ALL_INTERVALS_PEAKS.get_results_df(
                 variables,
                 timestamp_format="%Y-%m-%d-%H-%M",
                 include_table_name=True,
@@ -238,7 +240,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("daily", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("daily", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_max")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_max")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 9)), :].to_list(), results
         )
@@ -254,7 +256,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("daily", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("daily", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_min")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 9)), :].to_list(), results
         )
@@ -270,7 +272,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("monthly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("monthly", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_max")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_max")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 2, 1)), :].to_list(), results
         )
@@ -286,7 +288,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("monthly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("monthly", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_min")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 2, 1)), :].to_list(), results
         )
@@ -302,7 +304,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("annual", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("annual", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_max")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_max")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 1)), :].to_list(), results
         )
@@ -318,7 +320,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("annual", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("annual", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_min")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 1)), :].to_list(), results
         )
@@ -334,7 +336,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("runperiod", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("runperiod", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_max")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_max")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 1)), :].to_list(), results
         )
@@ -350,7 +352,7 @@ class TestPeakResults(unittest.TestCase):
             Variable("runperiod", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
             Variable("runperiod", "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
         ]
-        r = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+        r = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_min")
         self.assertEqual(
             r.loc[("eplusout_all_intervals", datetime(2002, 1, 1)), :].to_list(), results
         )
@@ -370,4 +372,4 @@ class TestPeakResults(unittest.TestCase):
             Variable("hourly", "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
         ]
         with pytest.raises(PeaksNotIncluded):
-            _ = EF_ALL_INTERVALS_PEAKS.get_results(variables, output_type="local_min")
+            _ = EF_ALL_INTERVALS_PEAKS.get_results_df(variables, output_type="local_min")

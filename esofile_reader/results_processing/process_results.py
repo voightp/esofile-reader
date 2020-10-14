@@ -8,22 +8,7 @@ from esofile_reader.constants import *
 from esofile_reader.convertor import all_rate_or_energy, convert_units, convert_rate_to_energy
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import VariableType, ResultsFileType
-from esofile_reader.processing.esofile_intervals import update_datetime_format
-
-
-def add_file_name_level(name: str, df: pd.DataFrame, name_position: str) -> pd.DataFrame:
-    """ Add file name to index. """
-    pos = ["row", "column", "None"]  # 'None' is here only to inform
-    if name_position not in pos:
-        name_position = "row"
-        logging.warning(
-            f"Invalid name position!\n'add_file_name' kwarg must "
-            f"be one of: '{', '.join(pos)}'.\nSetting 'row'."
-        )
-
-    axis = 0 if name_position == "row" else 1
-
-    return pd.concat([df], axis=axis, keys=[name], names=["file"])
+from esofile_reader.results_processing.table_formatter import TableFormatter
 
 
 def get_n_days(
@@ -42,44 +27,17 @@ def get_n_days(
     return n_days
 
 
-def finalize_table_format(
-    df: pd.DataFrame,
-    include_id: bool,
-    include_table_name: bool,
-    file_name: str,
-    file_name_position: str,
-    timestamp_format: str,
-) -> pd.DataFrame:
-    """ Modify index and column levels. """
-    if not include_id:
-        df.columns = df.columns.droplevel(ID_LEVEL)
-
-    if not include_table_name:
-        df.columns = df.columns.droplevel(TABLE_LEVEL)
-
-    if file_name_position:
-        df = add_file_name_level(file_name, df, file_name_position)
-
-    if timestamp_format != "default":
-        df = update_datetime_format(df, timestamp_format)
-    return df
-
-
 def get_processed_results(
     results_file: ResultsFileType,
     variables: Union[VariableType, List[VariableType], int, List[int]],
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     output_type: str = "standard",
-    add_file_name: str = "row",
-    include_table_name: bool = False,
-    include_day: bool = False,
-    include_id: bool = False,
     part_match: bool = False,
+    table_formatter: TableFormatter = None,
     units_system: str = "SI",
     rate_units: str = "W",
     energy_units: str = "J",
-    timestamp_format: str = "default",
     rate_to_energy: bool = False,
 ) -> pd.DataFrame:
     """
@@ -100,19 +58,11 @@ def get_processed_results(
         An end date for requested results.
     output_type : {'standard', global_max','global_min', 'local_min', 'local_max'}
         Requested type of results (local peaks are only included on .eso files.
-    add_file_name : ('row','column',None)
-        Specify if file name should be added into results df.
-    include_table_name : bool
-        Decide if 'table' information should be included on
-        the results df.
-    include_day : bool
-        Add day of week into index, this is applicable only for 'timestep',
-        'hourly' and 'daily' outputs.
-    include_id : bool
-        Decide if variable 'id' should be included on the results df.
     part_match : bool
         Only substring of the part of variable is enough
         to match when searching for variables if this is True.
+    table_formatter : TableFormatter,
+        Define output table index and column items.
     units_system : {'SI', 'IP'}
         Selected units type_ for requested outputs.
     rate_to_energy : bool
@@ -121,8 +71,6 @@ def get_processed_results(
         Convert default 'Rate' outputs to requested units.
     energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
         Convert default 'Energy' outputs to requested units
-    timestamp_format : str
-        Specified str format of a datetime timestamp.
 
     Returns
     -------
@@ -132,17 +80,17 @@ def get_processed_results(
     """
 
     def standard():
-        return results_file.tables.get_results(table, ids, start_date, end_date, include_day)
+        return results_file.tables.get_results_df(table, ids, start_date, end_date)
 
     def global_max():
-        return results_file.tables.get_global_max_results(table, ids, start_date, end_date)
+        return results_file.tables.get_global_max_results_df(table, ids, start_date, end_date)
 
     def global_min():
-        return results_file.tables.get_global_min_results(table, ids, start_date, end_date)
+        return results_file.tables.get_global_min_results_df(table, ids, start_date, end_date)
 
     def local_peak():
         try:
-            return results_file.peak_tables[output_type].get_results(
+            return results_file.peak_tables[output_type].get_results_df(
                 table, ids, start_date, end_date
             )
         except TypeError:
@@ -177,6 +125,9 @@ def get_processed_results(
             f" one of '[SI, IP]'."
         )
 
+    if table_formatter is None:
+        table_formatter = TableFormatter()
+
     frames = []
     groups = results_file.find_table_id_map(variables, part_match=part_match)
     for table, ids in groups.items():
@@ -195,14 +146,8 @@ def get_processed_results(
         frames.append(df)
 
     if frames:
-        return finalize_table_format(
-            pd.concat(frames, axis=1, sort=False),
-            include_id,
-            include_table_name,
-            results_file.file_name,
-            add_file_name,
-            timestamp_format,
-        )
+        df = pd.concat(frames, axis=1, sort=False)
+        return table_formatter.format_table(df, results_file.file_name)
     else:
         logging.warning(
             f"Any of requested variables is not "
@@ -214,7 +159,7 @@ def get_table_for_aggregation(
     results_file: ResultsFileType, table: [str], ids: List[int]
 ) -> pd.DataFrame:
     """ Get results table with unified rate and energy units. """
-    df = results_file.tables.get_results(table, ids)
+    df = results_file.tables.get_results_df(table, ids)
     units = df.columns.get_level_values(UNITS_LEVEL)
     is_rate_and_energy = all_rate_or_energy(units) and len(units) > 1
     if is_rate_and_energy and results_file.can_convert_rate_to_energy(table):
@@ -223,7 +168,7 @@ def get_table_for_aggregation(
     return df
 
 
-def process_default_name(
+def create_default_name(
     df: pd.DataFrame, func_name: str, new_key: str, new_type: str,
 ) -> Tuple[str, Optional[str]]:
     """ Modify type and key if passed as default. """
@@ -298,7 +243,7 @@ def aggregate_variables(
     sr = df.aggregate(func, axis=1)
 
     func_name = func.__name__ if callable(func) else func
-    new_key, new_type = process_default_name(df, func_name, new_key, new_type)
+    new_key, new_type = create_default_name(df, func_name, new_key, new_type)
     new_units = units[0]
 
     # return value can be either tuple (id, Variable) or None
