@@ -5,7 +5,7 @@ from typing import Union, Optional, Dict, List, Iterator
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import DuplicateVariable
-from esofile_reader.mini_classes import Variable, SimpleVariable
+from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
 
 
 class Node:
@@ -121,7 +121,7 @@ class Tree:
         return new_tree
 
     @classmethod
-    def from_header_dict(cls, header_dct: Dict[str, Dict[int, Variable]]) -> "Tree":
+    def from_header_dict(cls, header_dct: Dict[str, Dict[int, VariableType]]) -> "Tree":
         """ Create a search tree instance from header dictionary. """
         tree = Tree()
         duplicates = {}
@@ -136,7 +136,7 @@ class Tree:
             )
         return tree
 
-    def create_variable_iterator(self, variable: Union[Variable, SimpleVariable]) -> Iterator:
+    def create_variable_iterator(self, variable: VariableType) -> Iterator:
         """ Pass reordered variable. """
 
         def low_string(s):
@@ -165,7 +165,7 @@ class Tree:
             parent.children[node_key] = node
         return node
 
-    def _add_branch(self, id_: int, variable: Union[Variable, SimpleVariable]) -> Optional[int]:
+    def _add_branch(self, id_: int, variable: VariableType) -> Optional[int]:
         """ Append a branch to the tree. """
         tree_variable = self.create_variable_iterator(variable)
         parent = self.root

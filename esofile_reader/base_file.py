@@ -253,7 +253,7 @@ class BaseFile:
         variable: VariableType,
         new_key: Optional[str] = None,
         new_type: Optional[str] = None,
-    ) -> Tuple[int, Union[Variable, SimpleVariable]]:
+    ) -> Tuple[int, VariableType]:
         """ Rename the given 'Variable' using given names. """
         if new_key is None and new_type is None:
             logging.warning("Cannot rename variable! Type and key are not specified.")

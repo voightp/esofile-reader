@@ -7,7 +7,7 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import SimpleVariable, Variable
+from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
 from esofile_reader.tables.base_tables import BaseTables
 from esofile_reader.tables.df_functions import (
     merge_peak_outputs,
@@ -159,14 +159,14 @@ class DFTables(BaseTables):
     def get_all_variables_count(self) -> int:
         return sum([self.get_variables_count(table) for table in self.get_table_names()])
 
-    def get_variables_dct(self, table: str) -> Dict[int, Union[Variable, SimpleVariable]]:
+    def get_variables_dct(self, table: str) -> Dict[int, VariableType]:
         cls = SimpleVariable if self.is_simple(table) else Variable
         header_dct = {}
         for row in self.get_variables_df(table).to_numpy():
             header_dct[row[0]] = cls(*row[1:])
         return header_dct
 
-    def get_all_variables_dct(self) -> Dict[str, Dict[int, Union[Variable, SimpleVariable]]]:
+    def get_all_variables_dct(self) -> Dict[str, Dict[int, VariableType]]:
         all_variables = {}
         for table in self.get_table_names():
             all_variables[table] = self.get_variables_dct(table)
@@ -203,9 +203,7 @@ class DFTables(BaseTables):
             mi_df.loc[mi_df.id == id_, [KEY_LEVEL, TYPE_LEVEL]] = [new_key, new_type]
         self.tables[table].columns = pd.MultiIndex.from_frame(mi_df)
 
-    def _validate(
-        self, table: str, variable: Union[Variable, SimpleVariable], array: Sequence
-    ) -> bool:
+    def _validate(self, table: str, variable: VariableType, array: Sequence) -> bool:
         df_length = len(self.tables[table].index)
         valid = len(array) == df_length
         if not valid:
