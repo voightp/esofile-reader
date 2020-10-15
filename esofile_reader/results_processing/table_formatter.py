@@ -53,7 +53,7 @@ class TableFormatter:
                     df.index.set_levels(new_index, level=TIMESTAMP_COLUMN, inplace=True)
                 else:
                     df.index = pd.Index(new_index, name=TIMESTAMP_COLUMN)
-        # update DataFrame columns
+        # update DataFrame columns for peak outputs
         cond = (df.dtypes == np.dtype("datetime64[ns]")).to_list()
         df.loc[:, cond] = df.loc[:, cond].applymap(lambda x: x.strftime(self.timestamp_format))
         return df

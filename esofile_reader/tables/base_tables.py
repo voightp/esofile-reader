@@ -153,6 +153,7 @@ class BaseTables(ABC):
         ids: Sequence[int],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         """ Get pd.DataFrame results for given variables. """
         pass

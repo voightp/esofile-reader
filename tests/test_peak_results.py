@@ -198,37 +198,6 @@ class TestPeakResults(unittest.TestCase):
             self.assertEqual(df.index.names, [None])
             self.assertEqual(df.columns.names, ["id", "table", "key", "type", "units", "data"])
 
-    def test_timestamp_format(self):
-        first = [
-            ["2002-01-01-00-30", "2002-01-01-00-30"],
-            ["2002-01-01-01-00", "2002-01-01-01-00"],
-            ["2002-12-24-00-00", "2002-01-05-00-00"],
-            ["2002-12-01-00-00", "2002-06-01-00-00"],
-            ["2002-01-01-00-00", "2002-01-01-00-00"],
-            ["2002-01-01-00-00", "2002-01-01-00-00"],
-        ]
-        for table, f in zip(EF_ALL_INTERVALS_PEAKS.table_names, first):
-            variables = [
-                Variable(
-                    table, "Environment", "Site Diffuse Solar Radiation Rate per Area", "W/m2",
-                ),
-                Variable(table, "BLOCK1:ZONE1", "Zone People Occupant Count", ""),
-            ]
-
-            df = EF_ALL_INTERVALS_PEAKS.get_results_df(
-                variables,
-                timestamp_format="%Y-%m-%d-%H-%M",
-                include_table_name=True,
-                output_type="global_min",
-            )
-            self.assertListEqual(
-                df.loc[
-                    ("eplusout_all_intervals", 0),
-                    df.columns.get_level_values("data") == "timestamp",
-                ].to_list(),
-                f,
-            )
-
     def test_local_daily_max_results(self):
         results = [
             15.9798042,

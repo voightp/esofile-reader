@@ -300,7 +300,7 @@ class DFTables(BaseTables):
         table: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-    ) -> None:
+    ) -> pd.DataFrame:
         try:
             days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
             df[DAY_COLUMN] = days_sr
@@ -309,6 +309,7 @@ class DFTables(BaseTables):
             with contextlib.suppress(AttributeError):
                 df[DAY_COLUMN] = df.index.strftime("%A")
                 df.set_index(DAY_COLUMN, append=True, inplace=True)
+        return df
 
     def get_results_df(
         self,
@@ -316,11 +317,12 @@ class DFTables(BaseTables):
         ids: Sequence[int],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
+        include_day: bool = False,
     ) -> pd.DataFrame:
         df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
-        if self.is_index_datetime(table):
-            self.add_day_to_index(df, table, start_date, end_date)
+        if include_day and self.is_index_datetime(table):
+            df = self.add_day_to_index(df, table, start_date, end_date)
         return df
 
     def _global_peak(
