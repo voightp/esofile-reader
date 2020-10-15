@@ -80,7 +80,9 @@ def get_processed_results(
     """
 
     def standard():
-        return results_file.tables.get_results_df(table, ids, start_date, end_date)
+        return results_file.tables.get_results_df(
+            table, ids, start_date, end_date, include_day=table_formatter.include_day
+        )
 
     def global_max():
         return results_file.tables.get_global_max_results_df(table, ids, start_date, end_date)
