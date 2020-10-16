@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_index_equal, assert_frame_equal, assert_series_equal
+from pytest import lazy_fixture
 
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import Variable, SimpleVariable
@@ -30,17 +31,24 @@ def simple_file():
 
 
 @pytest.fixture(scope="module")
-def simple_df_tables(simple_file):
-    return simple_file.tables
-
-
-@pytest.fixture(scope="module")
 def parquet_tables(eplusout_all_intervals):
     pqf = ParquetFile.from_results_file(0, eplusout_all_intervals)
     try:
         yield pqf.tables
     finally:
         pqf.clean_up()
+
+
+@pytest.fixture(
+    scope="module", params=[lazy_fixture("df_tables"), lazy_fixture("parquet_tables")]
+)
+def tables(request):
+    return request.param
+
+
+@pytest.fixture(scope="module")
+def simple_df_tables(simple_file):
+    return simple_file.tables
 
 
 @pytest.fixture(scope="module")
@@ -52,39 +60,40 @@ def simple_parquet_tables(simple_file):
         pqf.clean_up()
 
 
+@pytest.fixture(
+    scope="module",
+    params=[lazy_fixture("simple_df_tables"), lazy_fixture("simple_parquet_tables")],
+)
+def simple_tables(request):
+    return request.param
+
+
 @pytest.fixture(scope="function")
 def copied_tables(request):
     return copy(request.param)
 
 
 @pytest.mark.parametrize(
-    "tables, is_simple",
-    [
-        (pytest.lazy_fixture("df_tables"), False),
-        (pytest.lazy_fixture("parquet_tables"), False),
-        (pytest.lazy_fixture("simple_df_tables"), True),
-        (pytest.lazy_fixture("simple_parquet_tables"), True),
-    ],
+    "test_tables, is_simple",
+    [(lazy_fixture("tables"), False), (lazy_fixture("simple_tables"), True),],
 )
-def test_is_simple(tables, is_simple):
-    table_names = tables.get_table_names()
+def test_is_simple(test_tables, is_simple):
+    table_names = test_tables.get_table_names()
     for table in table_names:
-        assert tables.is_simple(table) is is_simple
+        assert test_tables.is_simple(table) is is_simple
 
 
 @pytest.mark.parametrize(
-    "tables, levels",
+    "test_tables, levels",
     [
-        (pytest.lazy_fixture("df_tables"), COLUMN_LEVELS),
-        (pytest.lazy_fixture("parquet_tables"), COLUMN_LEVELS),
-        (pytest.lazy_fixture("simple_df_tables"), SIMPLE_COLUMN_LEVELS),
-        (pytest.lazy_fixture("simple_parquet_tables"), SIMPLE_COLUMN_LEVELS),
+        (lazy_fixture("tables"), COLUMN_LEVELS),
+        (lazy_fixture("simple_tables"), SIMPLE_COLUMN_LEVELS),
     ],
 )
-def test_get_levels(tables, levels):
-    table_names = tables.get_table_names()
+def test_get_levels(test_tables, levels):
+    table_names = test_tables.get_table_names()
     for table in table_names:
-        assert tables.get_levels(table) == levels
+        assert test_tables.get_levels(table) == levels
 
 
 NAMES = ["timestep", "hourly", "daily", "monthly", "runperiod", "annual"]
@@ -92,16 +101,11 @@ SIMPLE_NAMES = ["monthly-simple", "simple-no-template-no-index"]
 
 
 @pytest.mark.parametrize(
-    "tables, names",
-    [
-        (pytest.lazy_fixture("df_tables"), NAMES),
-        (pytest.lazy_fixture("parquet_tables"), NAMES),
-        (pytest.lazy_fixture("simple_df_tables"), SIMPLE_NAMES),
-        (pytest.lazy_fixture("simple_parquet_tables"), SIMPLE_NAMES),
-    ],
+    "test_tables, names",
+    [(lazy_fixture("tables"), NAMES), (lazy_fixture("simple_tables"), SIMPLE_NAMES),],
 )
-def test_get_table_names(tables, names):
-    assert tables.get_table_names() == names
+def test_get_table_names(test_tables, names):
+    assert test_tables.get_table_names() == names
 
 
 INDEX = pd.DatetimeIndex(
@@ -126,16 +130,14 @@ INDEX = pd.DatetimeIndex(
 
 
 @pytest.mark.parametrize(
-    "tables, table, index",
+    "test_tables, table, index",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", INDEX),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", INDEX),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", INDEX),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", INDEX),
+        (lazy_fixture("tables"), "monthly", INDEX),
+        (lazy_fixture("simple_tables"), "monthly-simple", INDEX),
     ],
 )
-def test_get_datetime_index(tables, table, index):
-    assert_index_equal(tables.get_datetime_index(table), index)
+def test_get_datetime_index(test_tables, table, index):
+    assert_index_equal(test_tables.get_datetime_index(table), index)
 
 
 SIMPLE_IDS = [1, 2, 3, 4, 5, 6, 7]
@@ -143,16 +145,14 @@ IDS = [9, 15, 21, 27, 33, 299, 305, 311, 317, 323, 329, 335, 341, 433, 477, 521,
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids",
+    "test_tables, table, ids",
     [
-        (pytest.lazy_fixture("df_tables"), "daily", IDS),
-        (pytest.lazy_fixture("parquet_tables"), "daily", IDS),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", SIMPLE_IDS),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", SIMPLE_IDS),
+        (lazy_fixture("tables"), "daily", IDS),
+        (lazy_fixture("simple_tables"), "monthly-simple", SIMPLE_IDS),
     ],
 )
-def test_get_variables_dct(tables, table, ids):
-    assert list(tables.get_variables_dct(table).keys()) == ids
+def test_get_variables_dct(test_tables, table, ids):
+    assert list(test_tables.get_variables_dct(table).keys()) == ids
 
 
 # fmt: off
@@ -172,58 +172,37 @@ ALL_IDS = [
 
 
 @pytest.mark.parametrize(
-    "tables, ids",
-    [
-        (pytest.lazy_fixture("df_tables"), ALL_IDS),
-        (pytest.lazy_fixture("parquet_tables"), ALL_IDS),
-        (pytest.lazy_fixture("simple_df_tables"), ALL_SIMPLE_IDS),
-        (pytest.lazy_fixture("simple_parquet_tables"), ALL_SIMPLE_IDS),
-    ],
+    "test_tables, ids",
+    [(lazy_fixture("tables"), ALL_IDS), (lazy_fixture("simple_tables"), ALL_SIMPLE_IDS),],
 )
-def test_get_all_variable_ids(tables, ids):
-    assert tables.get_all_variable_ids() == ids
+def test_get_all_variable_ids(test_tables, ids):
+    assert test_tables.get_all_variable_ids() == ids
 
 
 @pytest.mark.parametrize(
-    "tables, table, shape",
+    "test_tables, table, shape",
     [
-        (pytest.lazy_fixture("df_tables"), "daily", (19, 5)),
-        (pytest.lazy_fixture("parquet_tables"), "daily", (19, 5)),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", (7, 4)),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", (7, 4)),
+        (lazy_fixture("tables"), "daily", (19, 5)),
+        (lazy_fixture("simple_tables"), "monthly-simple", (7, 4)),
     ],
 )
-def test_get_variables_df(tables, table, shape):
-    assert tables.get_variables_df(table).shape == shape
+def test_get_variables_df(test_tables, table, shape):
+    assert test_tables.get_variables_df(table).shape == shape
 
 
 @pytest.mark.parametrize(
-    "tables, shape",
-    [
-        (pytest.lazy_fixture("df_tables"), (114, 5)),
-        (pytest.lazy_fixture("parquet_tables"), (114, 5)),
-        (pytest.lazy_fixture("simple_df_tables"), (14, 4)),
-        (pytest.lazy_fixture("simple_parquet_tables"), (14, 4)),
-    ],
+    "test_tables, shape",
+    [(lazy_fixture("tables"), (114, 5)), (lazy_fixture("simple_tables"), (14, 4)),],
 )
-def test_get_all_variables_df(tables, shape):
-    assert tables.get_all_variables_df().shape == shape
+def test_get_all_variables_df(test_tables, shape):
+    assert test_tables.get_all_variables_df().shape == shape
 
 
 @pytest.mark.parametrize(
     "copied_tables, table, id_, new_key, new_type, units",
     [
-        (pytest.lazy_fixture("df_tables"), "timestep", 7, "FOO", "BAR", "W/m2"),
-        (pytest.lazy_fixture("parquet_tables"), "timestep", 7, "FOO", "BAR", "W/m2"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", 1, "FOO", None, "W/m2"),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            "monthly-simple",
-            1,
-            "FOO",
-            None,
-            "W/m2",
-        ),
+        (lazy_fixture("tables"), "timestep", 7, "FOO", "BAR", "W/m2"),
+        (lazy_fixture("simple_tables"), "monthly-simple", 1, "FOO", None, "W/m2"),
     ],
     indirect=["copied_tables"],
 )
@@ -241,18 +220,8 @@ def test_rename_variable(copied_tables, id_, table, new_key, new_type, units):
 @pytest.mark.parametrize(
     "copied_tables, new_variable, new_id",
     [
-        (pytest.lazy_fixture("df_tables"), Variable("monthly", "FOO", "BAR", "C"), 100),
-        (pytest.lazy_fixture("parquet_tables"), Variable("monthly", "FOO", "BAR", "C"), 100),
-        (
-            pytest.lazy_fixture("simple_df_tables"),
-            SimpleVariable("monthly-simple", "FOO", "C"),
-            100,
-        ),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            SimpleVariable("monthly-simple", "FOO", "C"),
-            100,
-        ),
+        (lazy_fixture("tables"), Variable("monthly", "FOO", "BAR", "C"), 100),
+        (lazy_fixture("simple_tables"), SimpleVariable("monthly-simple", "FOO", "C"), 100,),
     ],
     indirect=["copied_tables"],
 )
@@ -266,10 +235,8 @@ def test_insert_variable(copied_tables, new_variable, new_id):
 @pytest.mark.parametrize(
     "copied_tables, table, ids",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [10, 16, 28]),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [10, 16, 28]),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [6, 7]),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", [6, 7]),
+        (lazy_fixture("tables"), "monthly", [10, 16, 28]),
+        (lazy_fixture("simple_tables"), "monthly-simple", [6, 7]),
     ],
     indirect=["copied_tables"],
 )
@@ -281,10 +248,8 @@ def test_delete_variables(copied_tables, table, ids):
 @pytest.mark.parametrize(
     "copied_tables, table, ids",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [10, 10000]),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [10, 10000]),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [6, 10000]),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", [6, 10000]),
+        (lazy_fixture("tables"), "monthly", [10, 10000]),
+        (lazy_fixture("simple_tables"), "monthly-simple", [6, 10000]),
     ],
     indirect=["copied_tables"],
 )
@@ -296,10 +261,8 @@ def test_delete_variables_invalid(copied_tables, table, ids):
 @pytest.mark.parametrize(
     "copied_tables, table, id_",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", 983),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", 983),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", 1),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", 1),
+        (lazy_fixture("tables"), "monthly", 983),
+        (lazy_fixture("simple_tables"), "monthly-simple", 1),
     ],
     indirect=["copied_tables"],
 )
@@ -312,10 +275,8 @@ def test_update_variable(copied_tables, table, id_):
 @pytest.mark.parametrize(
     "copied_tables, table, id_",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", 983),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", 983),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", 1),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", 1),
+        (lazy_fixture("tables"), "monthly", 983),
+        (lazy_fixture("simple_tables"), "monthly-simple", 1),
     ],
     indirect=["copied_tables"],
 )
@@ -327,12 +288,7 @@ def test_update_variable_invalid(copied_tables, table, id_):
 
 @pytest.mark.parametrize(
     "copied_tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple"),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple"),
-    ],
+    [(lazy_fixture("tables"), "monthly"), (lazy_fixture("simple_tables"), "monthly-simple"),],
     indirect=["copied_tables"],
 )
 def test_insert_special_column(copied_tables, table):
@@ -349,12 +305,7 @@ def test_insert_special_column(copied_tables, table):
 
 @pytest.mark.parametrize(
     "copied_tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple"),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple"),
-    ],
+    [(lazy_fixture("tables"), "monthly"), (lazy_fixture("simple_tables"), "monthly-simple"),],
     indirect=["copied_tables"],
 )
 def test_insert_special_column_invalid(copied_tables, table):
@@ -365,57 +316,41 @@ def test_insert_special_column_invalid(copied_tables, table):
 
 
 @pytest.mark.parametrize(
-    "tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple"),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple"),
-    ],
+    "test_tables, table",
+    [(lazy_fixture("tables"), "monthly"), (lazy_fixture("simple_tables"), "monthly-simple"),],
 )
-def test_get_special_column_invalid(tables, table):
+def test_get_special_column_invalid(test_tables, table):
     with pytest.raises(KeyError):
-        tables.get_special_column(table, "FOO")
+        test_tables.get_special_column(table, "FOO")
 
 
 @pytest.mark.parametrize(
-    "tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple"),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple"),
-    ],
+    "test_tables, table",
+    [(lazy_fixture("tables"), "monthly"), (lazy_fixture("simple_tables"), "monthly-simple"),],
 )
-def test_get_number_of_days(tables, table):
-    col = tables.get_special_column(table, N_DAYS_COLUMN)
+def test_get_number_of_days(test_tables, table):
+    col = test_tables.get_special_column(table, N_DAYS_COLUMN)
     assert col.to_list() == [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 
 @pytest.mark.parametrize(
-    "tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-    ],
+    "test_tables, table", [(lazy_fixture("tables"), "monthly"),],
 )
-def test_get_days_of_week(tables, table):
-    col = tables.get_special_column("daily", DAY_COLUMN)
+def test_get_days_of_week(test_tables, table):
+    col = test_tables.get_special_column("daily", DAY_COLUMN)
     assert col[0] == "Tuesday"
     assert col.size == 365
 
 
 @pytest.mark.parametrize(
-    "tables, table, shape",
+    "test_tables, table, shape",
     [
-        (pytest.lazy_fixture("df_tables"), "daily", (365, 19)),
-        (pytest.lazy_fixture("parquet_tables"), "daily", (365, 19)),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", (12, 7)),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", (12, 7)),
+        (lazy_fixture("tables"), "daily", (365, 19)),
+        (lazy_fixture("simple_tables"), "monthly-simple", (12, 7)),
     ],
 )
-def test_get_all_results(tables, table, shape):
-    assert tables.get_numeric_table(table).shape == shape
+def test_get_all_results(test_tables, table, shape):
+    assert test_tables.get_numeric_table(table).shape == shape
 
 
 TEST_DF = pd.DataFrame(
@@ -470,40 +405,26 @@ TEST_SIMPLE_DF = pd.DataFrame(
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids, test_df",
+    "test_tables, table, ids, test_df",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [324, 983], TEST_DF),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [324, 983], TEST_DF),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [2, 6], TEST_SIMPLE_DF),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            "monthly-simple",
-            [2, 6],
-            TEST_SIMPLE_DF,
-        ),
+        (lazy_fixture("tables"), "monthly", [324, 983], TEST_DF),
+        (lazy_fixture("simple_tables"), "monthly-simple", [2, 6], TEST_SIMPLE_DF),
     ],
 )
-def test_get_results(tables, table, ids, test_df):
-    df = tables.get_results_df(table, ids)
+def test_get_results(test_tables, table, ids, test_df):
+    df = test_tables.get_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids, test_df",
+    "test_tables, table, ids, test_df",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [324, 983], TEST_DF),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [324, 983], TEST_DF),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [2, 6], TEST_SIMPLE_DF),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            "monthly-simple",
-            [2, 6],
-            TEST_SIMPLE_DF,
-        ),
+        (lazy_fixture("tables"), "monthly", [324, 983], TEST_DF),
+        (lazy_fixture("simple_tables"), "monthly-simple", [2, 6], TEST_SIMPLE_DF),
     ],
 )
-def test_get_results_sliced(tables, table, ids, test_df):
-    df = tables.get_results_df(
+def test_get_results_sliced(test_tables, table, ids, test_df):
+    df = test_tables.get_results_df(
         table, ids, start_date=datetime(2002, 4, 1), end_date=datetime(2002, 6, 1),
     )
     test_df = test_df.iloc[3:6, :]
@@ -511,14 +432,10 @@ def test_get_results_sliced(tables, table, ids, test_df):
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids",
-    [
-        (pytest.lazy_fixture("df_tables"), "daily", [323]),
-        (pytest.lazy_fixture("parquet_tables"), "daily", [323]),
-    ],
+    "test_tables, table, ids", [(lazy_fixture("tables"), "daily", [323]),],
 )
-def test_get_results_include_day(tables, table, ids):
-    df = tables.get_results_df(
+def test_get_results_include_day(test_tables, table, ids):
+    df = test_tables.get_results_df(
         table,
         ids,
         start_date=datetime(2002, 4, 1),
@@ -533,16 +450,14 @@ def test_get_results_include_day(tables, table, ids):
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids",
+    "test_tables, table, ids",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [324, 983]),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [324, 983]),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [2, 6]),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple", [2, 6]),
+        (lazy_fixture("tables"), "monthly", [324, 983]),
+        (lazy_fixture("simple_tables"), "monthly-simple", [2, 6]),
     ],
 )
-def test_get_results_include_day_from_date(tables, table, ids):
-    df = tables.get_results_df(
+def test_get_results_include_day_from_date(test_tables, table, ids):
+    df = test_tables.get_results_df(
         table,
         ids,
         start_date=datetime(2002, 4, 1),
@@ -557,17 +472,12 @@ def test_get_results_include_day_from_date(tables, table, ids):
 
 
 @pytest.mark.parametrize(
-    "tables, table",
-    [
-        (pytest.lazy_fixture("df_tables"), "monthly"),
-        (pytest.lazy_fixture("parquet_tables"), "monthly"),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple"),
-        (pytest.lazy_fixture("simple_parquet_tables"), "monthly-simple"),
-    ],
+    "test_tables, table",
+    [(lazy_fixture("tables"), "monthly"), (lazy_fixture("simple_tables"), "monthly-simple"),],
 )
-def test_get_results_invalid_ids(tables, table):
+def test_get_results_invalid_ids(test_tables, table):
     with pytest.raises(KeyError):
-        _ = tables.get_results_df(table, [999999])
+        _ = test_tables.get_results_df(table, [999999])
 
 
 TEST_MAX_DF = pd.DataFrame(
@@ -598,21 +508,14 @@ TEST_MAX_SIMPLE_DF = pd.DataFrame(
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids, test_df",
+    "test_tables, table, ids, test_df",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [324, 983], TEST_MAX_DF),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [324, 983], TEST_MAX_DF),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [2, 6], TEST_MAX_SIMPLE_DF),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            "monthly-simple",
-            [2, 6],
-            TEST_MAX_SIMPLE_DF,
-        ),
+        (lazy_fixture("tables"), "monthly", [324, 983], TEST_MAX_DF),
+        (lazy_fixture("simple_tables"), "monthly-simple", [2, 6], TEST_MAX_SIMPLE_DF),
     ],
 )
-def test_get_global_max_results(tables, table, ids, test_df):
-    df = tables.get_global_max_results_df(table, ids)
+def test_get_global_max_results(test_tables, table, ids, test_df):
+    df = test_tables.get_global_max_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 
@@ -643,21 +546,14 @@ TEST_MIN_SIMPLE_DF = pd.DataFrame(
 
 
 @pytest.mark.parametrize(
-    "tables, table, ids, test_df",
+    "test_tables, table, ids, test_df",
     [
-        (pytest.lazy_fixture("df_tables"), "monthly", [324, 983], TEST_MIN_DF),
-        (pytest.lazy_fixture("parquet_tables"), "monthly", [324, 983], TEST_MIN_DF),
-        (pytest.lazy_fixture("simple_df_tables"), "monthly-simple", [2, 6], TEST_MIN_SIMPLE_DF),
-        (
-            pytest.lazy_fixture("simple_parquet_tables"),
-            "monthly-simple",
-            [2, 6],
-            TEST_MIN_SIMPLE_DF,
-        ),
+        (lazy_fixture("tables"), "monthly", [324, 983], TEST_MIN_DF),
+        (lazy_fixture("simple_tables"), "monthly-simple", [2, 6], TEST_MIN_SIMPLE_DF),
     ],
 )
-def test_get_global_min_results(tables, table, ids, test_df):
-    df = tables.get_global_min_results_df(table, ids)
+def test_get_global_min_results(test_tables, table, ids, test_df):
+    df = test_tables.get_global_min_results_df(table, ids)
     assert_frame_equal(df, test_df, check_column_type=False)
 
 
