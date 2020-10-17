@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from typing import Union
 
@@ -25,3 +26,5 @@ ResultsFileType = Union[
 TableType = Union[ForwardRef("DFTables"), ForwardRef("ParquetTables")]  # noqa: F821
 
 VariableType = Union[Variable, SimpleVariable]
+
+PathLike = Union[str, os.PathLike]

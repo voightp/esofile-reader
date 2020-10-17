@@ -119,7 +119,10 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_eso_file(
-        cls, file_path: str, progress_logger: EsoFileProgressLogger = None, year: int = 2002,
+        cls,
+        file_path: Union[str, Path],
+        progress_logger: EsoFileProgressLogger = None,
+        year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFile
@@ -127,6 +130,25 @@ class ResultsFile(BaseFile):
             file_path, progress_logger, ignore_peaks=True, year=year
         )
         return eso_files[0] if len(eso_files) == 1 else eso_files
+
+    @classmethod
+    def from_path(
+        cls, path: Union[str, Path], progress_logger: GenericProgressLogger = None
+    ) -> "ResultsFile":
+        """ Try to generate 'Results' file from generic path. """
+        switch = {
+            BaseFile.ESO: cls.from_eso_file,
+            BaseFile.XLSX: cls.from_excel,
+            BaseFile.CSV: cls.from_csv,
+        }
+        file_type = Path(path).suffix
+        try:
+            results_file = switch[file_type](path, progress_logger=progress_logger)
+        except KeyError:
+            raise FormatNotSupported(
+                f"Cannot process file '{path}'. '{file_type}' is not supported."
+            )
+        return results_file
 
     @classmethod
     def from_totals(cls, results_file: ResultsFileType) -> "ResultsFile":
@@ -158,21 +180,4 @@ class ResultsFile(BaseFile):
         results_file = ResultsFile(
             file_path, file_name, file_created, tables, tree, file_type=BaseFile.DIFF
         )
-        return results_file
-
-    @classmethod
-    def from_path(cls, path: str, *args, **kwargs) -> "ResultsFile":
-        """ Try to generate 'Results' file from generic path. """
-        switch = {
-            BaseFile.ESO: cls.from_eso_file,
-            BaseFile.XLSX: cls.from_excel,
-            BaseFile.CSV: cls.from_csv,
-        }
-        file_type = Path(path).suffix
-        try:
-            results_file = switch[file_type](path, *args, **kwargs)
-        except KeyError:
-            raise FormatNotSupported(
-                f"Cannot process file '{path}'. '{file_type}' is not supported."
-            )
         return results_file
