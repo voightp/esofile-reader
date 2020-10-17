@@ -5,21 +5,29 @@ from typing import Union, List, Optional
 import pandas as pd
 
 from esofile_reader import base_file, ResultsFile
-from esofile_reader.mini_classes import VariableType
+from esofile_reader.mini_classes import VariableType, ResultsFileType, PathLike
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.results_processing.table_formatter import TableFormatter
 
 
-def get_results_from_single_file(file, variables, **kwargs):
+def get_results_from_single_file(
+    file: Union[ResultsFile, PathLike],
+    variables: Union[VariableType, List[VariableType]],
+    **kwargs,
+) -> Optional[pd.DataFrame]:
     """ Load eso file and return requested results. """
     if issubclass(type(file), base_file.BaseFile):
         results_file = file
     else:
-        results_file = ResultsFile.from_path(file, **kwargs)
+        results_file = ResultsFile.from_path(file)
     return get_processed_results(results_file, variables, **kwargs)
 
 
-def get_results_from_multiple_files(file_list, variables, **kwargs):
+def get_results_from_multiple_files(
+    file_list: List[Union[ResultsFile, PathLike]],
+    variables: Union[VariableType, List[VariableType]],
+    **kwargs,
+) -> Optional[pd.DataFrame]:
     """ Extract results from multiple files. """
     frames = []
     for file in file_list:
@@ -27,16 +35,14 @@ def get_results_from_multiple_files(file_list, variables, **kwargs):
         if df is not None:
             frames.append(df)
     try:
-        res = pd.concat(frames, axis=1, sort=False)
+        return pd.concat(frames, axis=1, sort=False)
     except ValueError:
         # joined_variables = ", ".join(variables) if isinstance(variables, list) else variables
         logging.warning(f"Any of requested variables: '[{variables}]' was not found!")
-        return
-    return res
 
 
 def get_results(
-    files,
+    files: Union[List[Union[ResultsFileType, PathLike]], Union[ResultsFileType, PathLike]],
     variables: Union[VariableType, List[VariableType]],
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
@@ -47,8 +53,7 @@ def get_results(
     rate_units: str = "W",
     energy_units: str = "J",
     rate_to_energy: bool = False,
-    ignore_peaks: bool = True,
-):
+) -> Optional[pd.DataFrame]:
     """
      Return a pandas.DataFrame object with outputs for specified request.
 
@@ -83,8 +88,6 @@ def get_results(
             Convert default 'Rate' outputs to requested units.
         energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
             Convert default 'Energy' outputs to requested units
-        ignore_peaks : bool, default: True
-            Ignore peak values from 'Daily'+ _tables.
 
      Returns
      -------
@@ -101,7 +104,6 @@ def get_results(
         "rate_units": rate_units,
         "energy_units": energy_units,
         "part_match": part_match,
-        "ignore_peaks": ignore_peaks,
     }
     if isinstance(files, list):
         return get_results_from_multiple_files(files, variables, **kwargs)
