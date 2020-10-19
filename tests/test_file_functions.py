@@ -1,7 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
@@ -9,10 +8,6 @@ import esofile_reader.results_processing.aggregate_results
 from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
 from esofile_reader.exceptions import CannotAggregateVariables
-from esofile_reader.results_processing.process_results import (
-    finalize_table_format,
-    add_file_name_level,
-)
 from tests.session_fixtures import *
 
 
@@ -118,68 +113,6 @@ def test_header_df(file, column_names, n_columns):
 def test_rename(file):
     file.rename("foo")
     assert file.file_name == "foo"
-
-
-def test__add_file_name_row():
-    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-    out = add_file_name_level("eplusout_all_intervals", df, "row")
-    mi = pd.MultiIndex.from_product(
-        [["eplusout_all_intervals"], index], names=["file", "timestamp"]
-    )
-    assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
-
-
-def test__add_file_name_column():
-    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-    out = add_file_name_level("eplusout_all_intervals", df, "column")
-    mi = pd.MultiIndex.from_product(
-        [["eplusout_all_intervals"], ["a", "c"]], names=["file", None]
-    )
-    assert_frame_equal(out, pd.DataFrame([[1, 4], [2, 5], [3, 6]], index=index, columns=mi))
-
-
-def test__add_file_name_invalid():
-    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-    df = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=index)
-    out = add_file_name_level("eplusout_all_intervals", df, "foo")
-    mi = pd.MultiIndex.from_product(
-        [["eplusout_all_intervals"], index], names=["file", "timestamp"]
-    )
-    assert_frame_equal(out, pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]}, index=mi))
-
-
-def test_finalize_table_format():
-    index = pd.Index(pd.date_range("1/1/2002", freq="d", periods=3), name="timestamp")
-    columns = pd.MultiIndex.from_tuples(
-        [("a", "b", "c", "d", "e"), ("a", "d", "e", "f", "g"), ("f", "g", "h", "i", "j")],
-        names=[ID_LEVEL, TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
-    )
-    df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
-
-    test_index = pd.Index(["01-01", "02-01", "03-01"], name="timestamp")
-    test_columns = pd.MultiIndex.from_tuples(
-        [
-            ("eplusout_all_intervals", "c", "d", "e"),
-            ("eplusout_all_intervals", "e", "f", "g"),
-            ("eplusout_all_intervals", "h", "i", "j"),
-        ],
-        names=["file", KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL],
-    )
-    test_df = df.copy()
-    test_df.index = test_index
-    test_df.columns = test_columns
-
-    df = finalize_table_format(
-        df=df,
-        include_id=False,
-        include_table_name=False,
-        file_name="eplusout_all_intervals",
-        file_name_position="column",
-        timestamp_format="%d-%m",
-    )
-    assert_frame_equal(df, test_df)
 
 
 @pytest.mark.parametrize(

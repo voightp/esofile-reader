@@ -5,7 +5,7 @@ from typing import Union, List
 from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.exceptions import FormatNotSupported, NoResults
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
 from esofile_reader.processing.progress_logger import (
@@ -50,7 +50,7 @@ class ResultsFile(BaseFile):
 
     def __init__(
         self,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         file_name: str,
         file_created: datetime,
         tables: DFTables,
@@ -62,7 +62,7 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_excel(
         cls,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         sheet_names: List[str] = None,
         force_index: bool = False,
         progress_logger: GenericProgressLogger = None,
@@ -93,7 +93,7 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_csv(
         cls,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         force_index: bool = False,
         progress_logger: GenericProgressLogger = None,
         header_limit=10,
@@ -120,7 +120,7 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_eso_file(
         cls,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         progress_logger: EsoFileProgressLogger = None,
         year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
@@ -133,7 +133,7 @@ class ResultsFile(BaseFile):
 
     @classmethod
     def from_path(
-        cls, path: Union[str, Path], progress_logger: GenericProgressLogger = None
+        cls, path: PathLike, progress_logger: GenericProgressLogger = None
     ) -> "ResultsFile":
         """ Try to generate 'Results' file from generic path. """
         switch = {

@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from esofile_reader.base_file import BaseFile
 from esofile_reader.id_generator import incremental_id_gen, get_str_identifier
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.storages.df_storage import DFStorage
@@ -135,7 +135,7 @@ class ParquetFile(BaseFile):
 
     @classmethod
     def unzip_source_file(
-        cls, source: Union[Path, io.BytesIO], dest_dir: Union[str, Path]
+        cls, source: Union[Path, io.BytesIO], dest_dir: PathLike
     ) -> Tuple[Path, Dict[str, Any]]:
         # extract content in temp folder
         with ZipFile(source, "r") as zf:
@@ -153,9 +153,7 @@ class ParquetFile(BaseFile):
         return file_dir, info
 
     @classmethod
-    def from_file_system(
-        cls, source: Union[str, Path], dest_dir: Union[str, Path] = ""
-    ) -> "ParquetFile":
+    def from_file_system(cls, source: PathLike, dest_dir: PathLike = "") -> "ParquetFile":
         """ Load parquet file into given location. """
         source = Path(source)
         if source.suffix == cls.EXT:
@@ -181,7 +179,7 @@ class ParquetFile(BaseFile):
         return pqf
 
     @classmethod
-    def from_buffer(cls, source: io.BytesIO, dest_dir: Union[str, Path]) -> "ParquetFile":
+    def from_buffer(cls, source: io.BytesIO, dest_dir: PathLike) -> "ParquetFile":
         """ Load parquet file from buffer into given location. """
         workdir, info = cls.unzip_source_file(source, dest_dir)
         tables = ParquetTables.from_fs(workdir)
@@ -236,7 +234,7 @@ class ParquetFile(BaseFile):
                 for file in [f for f in dir_.iterdir() if f.suffix == ".parquet"]:
                     zf.write(file, arcname=file.relative_to(self.workdir))
 
-    def save_as(self, dir_: Union[str, Path], name: str) -> Path:
+    def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """
         device = Path(dir_, f"{name}{self.EXT}")
         self.write_zip(device)
@@ -262,7 +260,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    def load_storage(cls, path: Union[str, Path]):
+    def load_storage(cls, path: PathLike):
         """ Load ParquetStorage from filesystem. """
         path = path if isinstance(path, Path) else Path(path)
         if path.suffix != cls.EXT:
@@ -328,7 +326,7 @@ class ParquetStorage(DFStorage):
         name = self.path.with_suffix("").name
         self.save_as(dir_, name)
 
-    def merge_with(self, storage_path: Union[str, Path]) -> None:
+    def merge_with(self, storage_path: PathLike) -> None:
         """ Merge this storage with arbitrary number of other ones. """
         id_gen = incremental_id_gen(start=0, checklist=list(self.files.keys()))
         pqs = ParquetStorage.load_storage(storage_path)

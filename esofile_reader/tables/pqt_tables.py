@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
 from esofile_reader.id_generator import get_str_identifier
+from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from esofile_reader.tables.df_tables import DFTables
 
@@ -22,7 +23,7 @@ from esofile_reader.tables.df_tables import DFTables
 def parquet_frame_factory(
     df: pd.DataFrame,
     name: str,
-    pardir: Union[str, Path] = "",
+    pardir: PathLike = "",
     progress_logger: GenericProgressLogger = None,
 ):
     pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
@@ -171,7 +172,7 @@ class ParquetFrame:
         cls,
         df: pd.DataFrame,
         name: str,
-        pardir: Union[str, Path] = "",
+        pardir: PathLike = "",
         progress_logger: GenericProgressLogger = None,
     ) -> "ParquetFrame":
         workdir = Path(pardir, f"table-{name}").absolute()
