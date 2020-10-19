@@ -95,7 +95,7 @@ def get_processed_results(
             return results_file.peak_tables[output_type].get_results_df(
                 table, ids, start_date, end_date
             )
-        except TypeError:
+        except (TypeError, AttributeError):
             raise PeaksNotIncluded(
                 "Local peak outputs are not included, only Eso files with "
                 "kwarg 'ignore_peaks=False' includes local peak outputs."
