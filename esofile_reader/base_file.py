@@ -15,7 +15,7 @@ from esofile_reader.convertor import (
     is_hourly,
     is_timestep,
 )
-from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
+from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.results_processing.aggregate_results import aggregate_variables
 from esofile_reader.search_tree import Tree
@@ -61,7 +61,7 @@ class BaseFile:
 
     def __init__(
         self,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         file_name: str,
         file_created: datetime,
         tables: DFTables,
@@ -313,7 +313,7 @@ class BaseFile:
         self.search_tree.remove_variables(variables)
         return groups
 
-    def to_excel(self, path: Union[str, Path], **kwargs) -> None:
+    def to_excel(self, path: PathLike, **kwargs) -> None:
         """ Save file as excel. """
         with pd.ExcelWriter(path) as writer:
             for table_name, df in self.tables.items():

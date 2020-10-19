@@ -2,10 +2,11 @@ import os
 from copy import copy
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Union, List, Optional
+from typing import Dict, List, Optional
 
 from esofile_reader.base_file import BaseFile, get_file_information
 from esofile_reader.exceptions import *
+from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
@@ -44,7 +45,7 @@ class ResultsEsoFile(BaseFile):
 
     def __init__(
         self,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         file_name: str,
         file_created: datetime,
         tables: DFTables,
@@ -129,7 +130,7 @@ class EsoFile(ResultsEsoFile):
 
     def __init__(
         self,
-        file_path: Union[str, Path],
+        file_path: PathLike,
         progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
         year: int = 2002,
