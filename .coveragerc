@@ -35,7 +35,7 @@ omit  =
     venv\*
     .venv\*
     tests\*
-    __init__.py
+    *\__init__.py
 
 [paths]
 source =
