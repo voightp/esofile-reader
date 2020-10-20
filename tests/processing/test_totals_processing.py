@@ -11,7 +11,7 @@ from esofile_reader.exceptions import NoResults
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 from esofile_reader.tables.df_tables import DFTables
-from tests.session_fixtures import ROOT_PATH
+from tests.session_fixtures import TEST_FILES_PATH
 
 
 @pytest.fixture
@@ -192,7 +192,7 @@ def test_filter_non_numeric_columns(totals_tables):
 
 def test_only_simple_tables():
     rf = ResultsFile.from_excel(
-        Path(ROOT_PATH, "eso_files/test_excel_results.xlsx"),
+        Path(TEST_FILES_PATH, "test_excel_results.xlsx"),
         sheet_names=["simple-template-monthly", "simple-template-daily"],
     )
     with pytest.raises(NoResults):

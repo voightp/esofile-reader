@@ -1,7 +1,7 @@
 from esofile_reader.exceptions import MultiEnvFileRequired
 from tests.session_fixtures import *
 
-MULTIPLE_ENVS_PATH = Path(ROOT_PATH, "eso_files", "multiple_environments.eso")
+MULTIPLE_ENVS_PATH = Path(TEST_FILES_PATH, "multiple_environments.eso")
 
 
 @pytest.fixture(scope="module")
