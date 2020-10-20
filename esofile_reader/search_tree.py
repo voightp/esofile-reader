@@ -41,7 +41,7 @@ class Node:
     def __copy__(self):
         new_node = Node(parent=self.parent, key=self.key)
         if isinstance(self.children, LeafNode):
-            new_node.children = self.children
+            new_node.children = copy(self.children)
         else:
             for node_key, node in self.children.items():
                 new_node.children[node_key] = copy(node)
@@ -183,16 +183,6 @@ class Tree:
         duplicate_id = self._add_branch(id_, variable)
         if duplicate_id:
             raise KeyError(f"Cannot add variable: '{variable}', it already exists!")
-
-    def populate_tree(self, header_dct: Dict[str, Dict[int, Variable]]) -> Dict[int, Variable]:
-        """ Create a search tree. """
-        duplicates = {}
-        for table, data in header_dct.items():
-            for id_, variable in data.items():
-                duplicate_id = self._add_branch(id_, variable)
-                if duplicate_id:
-                    duplicates[duplicate_id] = variable
-        return duplicates
 
     def loop(
         self,

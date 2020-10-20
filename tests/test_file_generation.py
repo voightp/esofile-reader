@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from esofile_reader.exceptions import FormatNotSupported
 from esofile_reader.processing.progress_logger import GenericProgressLogger
 from tests.session_fixtures import *
 
@@ -32,6 +33,11 @@ def test_from_path(path, mock):
         logger = GenericProgressLogger("logger")
         _ = ResultsFile.from_path(path, progress_logger=logger)
         mocked_function.assert_called_with(path, progress_logger=logger)
+
+
+def test_unsupported_file_type():
+    with pytest.raises(FormatNotSupported):
+        _ = ResultsFile.from_path("some.foo")
 
 
 def test_from_totals(eplusout1):

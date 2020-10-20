@@ -278,3 +278,8 @@ def test_csv_file():
     rf = ResultsFile.from_csv(CSV_PATH)
     assert rf.tables["monthly"].shape == (12, 8)
     assert rf.table_names == ["monthly"]
+
+
+def test_empty_csv_file():
+    with pytest.raises(NoResults):
+        _ = ResultsFile.from_csv(Path(TEST_FILES_PATH, "empty_csv.csv"))

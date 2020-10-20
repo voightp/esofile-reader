@@ -103,6 +103,10 @@ def test_save_path_not_set(storage):
         pqs.save()
 
 
+def test_save(loaded_storage):
+    assert loaded_storage.save() == Path("pqs.cfs")
+
+
 def test_merge_storages(storage, loaded_storage):
     storage.merge_with(loaded_storage.path)
     assert storage.get_all_file_names() == [

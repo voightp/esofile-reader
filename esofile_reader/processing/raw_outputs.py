@@ -16,6 +16,7 @@ try:
         generate_peak_tables,
         generate_df_tables,
         insert_special_columns,
+        remove_duplicates,
     )
 except ModuleNotFoundError:
     import pyximport
@@ -105,6 +106,9 @@ class RawDFOutputs:
             tree = Tree.from_header_dict(header)
         except DuplicateVariable as e:
             tree = e.clean_tree
+            remove_duplicates(
+                e.duplicates, header, raw_outputs.outputs, raw_outputs.peak_outputs
+            )
         progress_logger.increment_progress()
         progress_logger.log_section("processing dates!")
         dates, n_days = process_raw_date_data(
