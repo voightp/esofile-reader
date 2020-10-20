@@ -162,7 +162,7 @@ class EsoFile(ResultsEsoFile):
                 )
 
     def __copy__(self):
-        ResultsEsoFile(
+        return ResultsEsoFile(
             file_path=self.file_path,
             file_name=self.file_name,
             file_created=self.file_created,

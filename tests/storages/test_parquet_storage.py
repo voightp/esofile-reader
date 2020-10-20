@@ -84,7 +84,7 @@ def test_delete_file(eplusout1):
     path = pqf.workdir
     assert path.exists()
 
-    storage.delete_file(1)
+    storage.delete_file(0)
     assert not path.exists()
 
 
