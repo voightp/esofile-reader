@@ -7,7 +7,7 @@ from pytest import lazy_fixture
 from esofile_reader import get_results
 from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.exceptions import InvalidOutputType, InvalidUnitsSystem
-from esofile_reader.mini_classes import Variable, SimpleVariable, PathLike
+from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.results_processing.table_formatter import TableFormatter
 from esofile_reader.storages.df_storage import DFStorage
 from esofile_reader.storages.pqt_storage import ParquetStorage
@@ -38,12 +38,7 @@ def parquet_file(eplusout1):
 
 @pytest.fixture(
     scope="module",
-    params=[
-        lazy_fixture("eso_file"),
-        lazy_fixture("df_file"),
-        lazy_fixture("parquet_file"),
-        Path(ROOT_PATH, "eso_files", "eplusout1.eso"),
-    ],
+    params=[lazy_fixture("eso_file"), lazy_fixture("df_file"), lazy_fixture("parquet_file"),],
 )
 def file(request):
     return request.param
@@ -51,7 +46,7 @@ def file(request):
 
 @pytest.fixture(scope="module")
 def simple_excel_file():
-    pth = Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx")
+    pth = Path(TEST_FILES_PATH, "test_excel_results.xlsx")
     sheets = ["simple-template-monthly", "simple-template-range"]
     return ResultsFile.from_excel(pth, sheets)
 
@@ -79,7 +74,6 @@ def simple_parquet_file(simple_excel_file):
         lazy_fixture("simple_excel_file"),
         lazy_fixture("simple_df_file"),
         lazy_fixture("simple_parquet_file"),
-        Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx"),
     ],
 )
 def simple_file(request):
@@ -159,7 +153,7 @@ TEST_VARIABLE = Variable("monthly", "BLOCK1:ZONEA", "Zone Mean Air Temperature",
         ),
     ],
 )
-def test_get_results(test_file, variables, start_date, end_date, expected_df):
+def test_get_results_start_end_date(test_file, variables, start_date, end_date, expected_df):
     df = get_results(test_file, variables, start_date=start_date, end_date=end_date)
     assert_frame_equal(df, expected_df)
 
@@ -629,7 +623,7 @@ def test_get_results_rate(test_file, variables, expected_df):
 
 
 def test_get_results_ignore_peaks():
-    ef = EsoFile(Path(ROOT_PATH, "eso_files", "eplusout1.eso"), ignore_peaks=False)
+    ef = EsoFile(Path(TEST_FILES_PATH, "eplusout1.eso"), ignore_peaks=False)
     assert list(ef.peak_tables.keys()) == ["local_min", "local_max"]
 
 
@@ -665,3 +659,8 @@ def test_get_results_multiple_files(file, eplusout2):
     )
 
     assert_frame_equal(df, test_df, check_freq=False)
+
+
+def test_get_results_from_path(eplusout1):
+    df = get_results(Path(TEST_FILES_PATH, "eplusout1.eso"), TEST_VARIABLES)
+    assert_frame_equal(df, eplusout1.get_results(TEST_VARIABLES))

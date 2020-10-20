@@ -24,8 +24,8 @@ from esofile_reader.processing.extensions.raw_tables import (
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from tests.session_fixtures import *
 
-HEADER_PATH = Path(ROOT_PATH, "eso_files", "header.txt")
-BODY_PATH = Path(ROOT_PATH, "eso_files", "body.txt")
+HEADER_PATH = Path(TEST_FILES_PATH, "header.txt")
+BODY_PATH = Path(TEST_FILES_PATH, "body.txt")
 
 
 @pytest.fixture(scope="module")
@@ -371,21 +371,19 @@ def test_body_blank_line(header_content):
 def test_file_blank_line():
     with pytest.raises(IncompleteFile):
         EsoFile(
-            Path(ROOT_PATH, "eso_files", "eplusout_incomplete.eso"),
-            EsoFileProgressLogger("foo"),
+            Path(TEST_FILES_PATH, "eplusout_incomplete.eso"), EsoFileProgressLogger("foo"),
         )
 
 
 def test_non_numeric_line():
     with pytest.raises(InvalidLineSyntax):
         EsoFile(
-            Path(ROOT_PATH, "eso_files", "eplusout_invalid_line.eso"),
-            EsoFileProgressLogger("foo"),
+            Path(TEST_FILES_PATH, "eplusout_invalid_line.eso"), EsoFileProgressLogger("foo"),
         )
 
 
 def test_logging_level_info():
     EsoFile(
-        Path(ROOT_PATH, "eso_files", "eplusout1.eso"),
+        Path(TEST_FILES_PATH, "eplusout1.eso"),
         progress_logger=EsoFileProgressLogger("foo", level=20),
     )

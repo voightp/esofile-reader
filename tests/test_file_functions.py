@@ -13,7 +13,7 @@ from tests.session_fixtures import *
 @pytest.fixture(scope="module")
 def simple_file():
     return ResultsFile.from_excel(
-        Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx"),
+        Path(TEST_FILES_PATH, "test_excel_results.xlsx"),
         sheet_names=["simple-template-monthly", "simple-no-template-no-index"],
     )
 
@@ -546,12 +546,12 @@ def test_as_df_invalid_table(eplusout_all_intervals):
         _ = eplusout_all_intervals.get_numeric_table("foo")
 
 
-def test_to_excel(eplusout1):
+def test_to_excel(tiny_eplusout):
     p = Path("test.xlsx")
     try:
-        eplusout1.to_excel(p)
+        tiny_eplusout.to_excel(p)
         loaded_ef = ResultsFile.from_excel(p)
-        assert loaded_ef.tables == eplusout1.tables
+        assert loaded_ef.tables == tiny_eplusout.tables
         assert p.exists()
     finally:
         p.unlink()

@@ -9,11 +9,11 @@ from pandas.testing import assert_index_equal
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.processing.excel import is_data_row, parse_header
 from esofile_reader.results_file import ResultsFile
-from tests.session_fixtures import ROOT_PATH
+from tests.session_fixtures import TEST_FILES_PATH
 
-RESULTS_PATH = Path(ROOT_PATH, "eso_files", "test_excel_results.xlsx")
-EDGE_CASE_PATH = Path(ROOT_PATH, "eso_files", "test_excel_edge_cases.xlsx")
-CSV_PATH = Path(ROOT_PATH, "eso_files", "test_excel_results.csv")
+RESULTS_PATH = Path(TEST_FILES_PATH, "test_excel_results.xlsx")
+EDGE_CASE_PATH = Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx")
+CSV_PATH = Path(TEST_FILES_PATH, "test_excel_results.csv")
 
 
 @pytest.fixture(scope="module")
@@ -110,7 +110,6 @@ def test_insufficient_header_info():
     ],
 )
 def test_is_simple(excel_file, table, is_simple):
-    df = excel_file.tables[table]
     assert excel_file.tables.is_simple(table) is is_simple
 
 
