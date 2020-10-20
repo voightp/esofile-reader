@@ -3,7 +3,7 @@ import pandas as pd
 from esofile_reader.constants import ID_LEVEL
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 
 def can_subtract_table(table: str, file: ResultsFileType, other_file: ResultsFileType) -> bool:

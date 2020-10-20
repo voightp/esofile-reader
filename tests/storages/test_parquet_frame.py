@@ -8,7 +8,7 @@ import pyarrow.parquet as pq
 import pytest
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from esofile_reader.tables.pqt_tables import ParquetFrame, parquet_frame_factory
+from esofile_reader.pqt.parquet_tables import ParquetFrame, parquet_frame_factory
 from tests.session_fixtures import ROOT_PATH
 
 

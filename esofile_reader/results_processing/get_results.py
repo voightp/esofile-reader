@@ -4,7 +4,8 @@ from typing import Union, List, Optional
 
 import pandas as pd
 
-from esofile_reader import base_file, ResultsFile
+from esofile_reader import ResultsFile
+from esofile_reader.abc import base_file
 from esofile_reader.mini_classes import VariableType, ResultsFileType, PathLike
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.results_processing.table_formatter import TableFormatter

@@ -10,7 +10,7 @@ from esofile_reader.constants import SPECIAL, COLUMN_LEVELS
 from esofile_reader.exceptions import NoResults
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 from tests.session_fixtures import TEST_FILES_PATH
 
 

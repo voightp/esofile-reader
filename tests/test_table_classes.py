@@ -8,8 +8,8 @@ from pytest import lazy_fixture
 
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.storages.pqt_storage import ParquetFile
-from esofile_reader.tables.df_functions import (
+from esofile_reader.pqt.parquet_storage import ParquetFile
+from esofile_reader.df.df_functions import (
     slice_series_by_datetime_index,
     slice_df_by_datetime_index,
     sort_by_ids,

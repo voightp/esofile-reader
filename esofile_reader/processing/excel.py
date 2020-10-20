@@ -12,7 +12,7 @@ from esofile_reader.constants import *
 from esofile_reader.exceptions import InsuficientHeaderInfo
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.processing.progress_logger import GenericProgressLogger
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 
 def is_data_row(sr: pd.Series):

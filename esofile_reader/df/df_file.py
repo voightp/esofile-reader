@@ -1,8 +1,6 @@
-from esofile_reader.base_file import BaseFile
-from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.abc.base_file import BaseFile
+from esofile_reader.df.df_tables import DFTables
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.storages.base_storage import BaseStorage
-from esofile_reader.tables.df_tables import DFTables
 
 
 class DFFile(BaseFile):
@@ -40,21 +38,3 @@ class DFFile(BaseFile):
             file.search_tree,
             file.file_type,
         )
-
-
-class DFStorage(BaseStorage):
-    def __init__(self):
-        super().__init__()
-        self.files = {}
-
-    def store_file(self, results_file: ResultsFileType) -> int:
-        id_gen = incremental_id_gen(checklist=list(self.files.keys()))
-        id_ = next(id_gen)
-        self.files[id_] = DFFile(id_, results_file)
-        return id_
-
-    def delete_file(self, id_: int) -> None:
-        del self.files[id_]
-
-    def get_all_file_names(self):
-        return [f.file_name for f in self.files.values()]

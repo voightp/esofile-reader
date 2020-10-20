@@ -4,12 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from esofile_reader.base_file import BaseFile, get_file_information
+from esofile_reader.abc.base_file import BaseFile, get_file_information
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 try:
     from esofile_reader.processing.extensions.esofile import process_eso_file

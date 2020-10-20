@@ -1,7 +1,7 @@
 import contextlib
 
-from esofile_reader.storages.pqt_storage import ParquetStorage
-from esofile_reader.tables.pqt_tables import ParquetFrame
+from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.pqt.parquet_tables import ParquetFrame
 from tests.session_fixtures import *
 
 

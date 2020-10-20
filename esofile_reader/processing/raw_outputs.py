@@ -9,7 +9,7 @@ from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.esofile_intervals import process_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 try:
     from esofile_reader.processing.extensions.raw_tables import (

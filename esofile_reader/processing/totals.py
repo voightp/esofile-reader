@@ -8,7 +8,7 @@ from pandas.api.types import is_numeric_dtype
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 VARIABLE_GROUPS = {
     "AFN Zone",
