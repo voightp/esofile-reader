@@ -83,12 +83,13 @@ def generate_df_tables(
 
 
 def insert_special_columns(
-    tables: DFTables, special_data: Dict[str, Dict[str, List[Any]]]
+    tables: DFTables, special_data: Dict[str, Optional[Dict[str, List[Any]]]]
 ) -> None:
     """ Add other special columns. """
-    for key, dict in special_data.items():
-        for interval, arr in dict.items():
-            tables.insert_special_column(interval, key, arr)
+    for key, dct in special_data.items():
+        if dct:
+            for interval, arr in dct.items():
+                tables.insert_special_column(interval, key, arr)
 
 
 def remove_duplicates(

@@ -199,6 +199,14 @@ def test_get_all_variables_df(test_tables, shape):
 
 
 @pytest.mark.parametrize(
+    "test_tables, expected_count",
+    [(lazy_fixture("tables"), 114), (lazy_fixture("simple_tables"), 14)],
+)
+def test_get_variables_count(test_tables, expected_count):
+    assert test_tables.get_all_variables_count() == expected_count
+
+
+@pytest.mark.parametrize(
     "copied_tables, table, id_, new_key, new_type, units",
     [
         (lazy_fixture("tables"), "timestep", 7, "FOO", "BAR", "W/m2"),

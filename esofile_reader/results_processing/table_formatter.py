@@ -1,6 +1,6 @@
 import contextlib
 import logging
-
+from typing import Optional
 import numpy as np
 import pandas as pd
 
@@ -30,7 +30,7 @@ class TableFormatter:
 
     def __init__(
         self,
-        file_name_position: str = "row",
+        file_name_position: Optional[str] = "row",
         include_table_name: bool = False,
         include_day: bool = False,
         include_id: bool = False,

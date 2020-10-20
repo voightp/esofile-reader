@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union, List
 
 from esofile_reader.base_file import BaseFile, get_file_information
-from esofile_reader.eso_file import ResultsEsoFile
+from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
@@ -126,10 +126,15 @@ class ResultsFile(BaseFile):
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFile
-        eso_files = ResultsEsoFile.from_multi_env_eso_file(
-            file_path, progress_logger, ignore_peaks=True, year=year
+        eso_file = EsoFile(file_path, progress_logger, ignore_peaks=True, year=year)
+        return ResultsFile(
+            eso_file.file_path,
+            eso_file.file_name,
+            eso_file.file_created,
+            eso_file.tables,
+            eso_file.search_tree,
+            file_type=eso_file.file_type,
         )
-        return eso_files[0] if len(eso_files) == 1 else eso_files
 
     @classmethod
     def from_path(

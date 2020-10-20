@@ -75,15 +75,9 @@ class ParquetFile(BaseFile):
         self.tables = tables
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.clean_up()
-
     def __copy__(self):
         new_workdir = get_unique_workdir(self.workdir)
-        self._copy(new_workdir)
+        return self._copy(new_workdir)
 
     def _copy(self, new_workdir: Path, new_id: int = None) -> "ParquetFile":
         new_tables = self.tables.copy_to(new_workdir)
@@ -304,7 +298,7 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
         del self.files[id_]
 
-    def save_as(self, dir_: Path, name: str) -> Path:
+    def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """
         path = Path(dir_, f"{name}{self.EXT}")
         self.path = path
@@ -318,13 +312,13 @@ class ParquetStorage(DFStorage):
                         zf.write(file, arcname=file.relative_to(self.workdir))
         return path
 
-    def save(self) -> None:
+    def save(self) -> Path:
         """ Save parquet storage. """
         if not self.path:
             raise FileNotFoundError("Path not defined! Call 'save_as' first.")
         dir_ = self.path.parent
         name = self.path.with_suffix("").name
-        self.save_as(dir_, name)
+        return self.save_as(dir_, name)
 
     def merge_with(self, storage_path: PathLike) -> None:
         """ Merge this storage with arbitrary number of other ones. """

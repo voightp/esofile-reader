@@ -45,6 +45,13 @@ def raw_outputs(all_raw_outputs):
     return all_raw_outputs[0]
 
 
+@pytest.fixture(scope="function")
+def duplicate_variable_eso_file():
+    return EsoFile(
+        Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), EsoFileProgressLogger("foo"),
+    )
+
+
 def test_esofile_statement():
     line = "Program Version,EnergyPlus, " "Version 9.1.0-08d2e308bb, YMD=2019.07.23 15:19"
     version, timestamp = process_statement_line(line)
@@ -387,3 +394,29 @@ def test_logging_level_info():
         Path(TEST_FILES_PATH, "eplusout1.eso"),
         progress_logger=EsoFileProgressLogger("foo", level=20),
     )
+
+
+def test_hourly_results_only():
+    eso_file = EsoFile(
+        Path(TEST_FILES_PATH, "eplusout_only_hourly.eso"), EsoFileProgressLogger("foo"),
+    )
+    assert eso_file.table_names == ["hourly"]
+
+
+@pytest.mark.parametrize("table, id_", [(M, 137), (RP, 138)])
+def test_remove_duplicate_variable(duplicate_variable_eso_file, table, id_):
+    with pytest.raises(KeyError):
+        _ = duplicate_variable_eso_file.tables.get_results_df(table, [id_])
+
+
+@pytest.mark.parametrize(
+    "variable, expected_id",
+    [
+        (Variable(M, "BLOCK1:ZONE1", "Zone Mean Radiant Temperature", "C"), 135),
+        (Variable(RP, "BLOCK1:ZONE1", "Zone Mean Radiant Temperature", "C"), 136),
+    ],
+)
+def test_remove_duplicate_variable_from_tree(
+    duplicate_variable_eso_file, variable, expected_id
+):
+    assert duplicate_variable_eso_file.find_id(variable) == [expected_id]

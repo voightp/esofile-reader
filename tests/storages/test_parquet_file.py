@@ -116,3 +116,11 @@ def test_parquet_file_copy(parquet_file, eplusout_all_intervals):
 def test_load_invalid_parquet_file():
     with pytest.raises(IOError):
         ParquetFile.from_file_system("foo.bar")
+
+
+def test_copy_parquet_file(parquet_file):
+    copied_parquet_file = copy(parquet_file)
+    try:
+        assert copied_parquet_file.tables == parquet_file.tables
+    finally:
+        copied_parquet_file.clean_up()

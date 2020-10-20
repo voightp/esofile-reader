@@ -105,16 +105,11 @@ class DFTables(BaseTables):
     def __eq__(self, other):
         def tables_match():
             for table_name in self.get_table_names():
-                try:
-                    df = self.get_table(table_name)
-                    df.columns = df.columns.droplevel(ID_LEVEL)
-                    other_df = other.get_table(table_name)
-                    other_df.columns = other_df.columns.droplevel(ID_LEVEL)
-                    pd.testing.assert_frame_equal(
-                        df, other_df, check_freq=False, check_dtype=False
-                    )
-                except KeyError:
-                    return False
+                df = self.get_table(table_name)
+                df.columns = df.columns.droplevel(ID_LEVEL)
+                other_df = other.get_table(table_name)
+                other_df.columns = other_df.columns.droplevel(ID_LEVEL)
+                pd.testing.assert_frame_equal(df, other_df, check_freq=False, check_dtype=False)
             return True
 
         table_names_match = self.tables.keys() == other.tables.keys()
@@ -157,7 +152,7 @@ class DFTables(BaseTables):
             return index
 
     def get_variables_count(self, table: str) -> int:
-        return len(self[table].index)
+        return len(self.get_numeric_table(table).columns)
 
     def get_all_variables_count(self) -> int:
         return sum([self.get_variables_count(table) for table in self.get_table_names()])

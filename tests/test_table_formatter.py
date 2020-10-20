@@ -81,8 +81,11 @@ def test_include_id(test_table, include, column_names):
     assert df.columns.names == column_names
 
 
-def test_timestamp_format(test_table):
-    table_formatter = TableFormatter(timestamp_format="%Y-%m-%d-%H-%M")
+@pytest.mark.parametrize("file_name_position", ["row", None])
+def test_timestamp_format(test_table, file_name_position):
+    table_formatter = TableFormatter(
+        timestamp_format="%Y-%m-%d-%H-%M", file_name_position=file_name_position
+    )
     df = table_formatter.format_table(test_table, "foo")
     formatted_timestamp = [
         "2002-01-01-00-00",

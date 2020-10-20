@@ -58,7 +58,8 @@ class ResultsEsoFile(BaseFile):
         self.peak_tables = peak_tables
 
     def __copy__(self):
-        type(self)(
+        # explicitly return this file type for all subclasses
+        return ResultsEsoFile(
             file_path=self.file_path,
             file_name=self.file_name,
             file_created=self.file_created,
@@ -160,13 +161,3 @@ class EsoFile(ResultsEsoFile):
                     f"Use '{super().__class__.__name__}.process_multi_env_file' "
                     f"to generate multiple files."
                 )
-
-    def __copy__(self):
-        return ResultsEsoFile(
-            file_path=self.file_path,
-            file_name=self.file_name,
-            file_created=self.file_created,
-            tables=copy(self.tables),
-            search_tree=copy(self.search_tree),
-            peak_tables=copy(self.peak_tables),
-        )

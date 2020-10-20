@@ -1,4 +1,4 @@
-import os
+from copy import copy
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
@@ -11,7 +11,6 @@ from esofile_reader.processing.diff import (
     process_diff,
 )
 from tests.session_fixtures import *
-from copy import copy
 
 
 @pytest.fixture(scope="module")
@@ -209,3 +208,14 @@ def test_no_shared_intervals(eplusout1):
 
     with pytest.raises(NoResults):
         _ = ResultsFile.from_diff(ef1, ef2)
+
+
+def test_simple_and_standard_table_same_name():
+    rf1 = ResultsFile.from_excel(
+        Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx"), sheet_names=["test"]
+    )
+    rf2 = ResultsFile.from_excel(
+        Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx"), sheet_names=["test-simple"]
+    )
+    with pytest.raises(NoResults):
+        ResultsFile.from_diff(rf1, rf2)

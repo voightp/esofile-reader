@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy
 from datetime import datetime
 
 import pandas as pd
@@ -6,6 +6,7 @@ from pandas.testing import assert_frame_equal
 
 from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
+from esofile_reader.eso_file import ResultsEsoFile
 from esofile_reader.exceptions import CannotAggregateVariables
 from tests.session_fixtures import *
 
@@ -20,12 +21,12 @@ def simple_file():
 
 @pytest.fixture(scope="function")
 def copied_simple_file(simple_file):
-    return deepcopy(simple_file)
+    return copy(simple_file)
 
 
 @pytest.fixture(scope="function")
 def copied_eplusout_all_intervals(eplusout_all_intervals):
-    return deepcopy(eplusout_all_intervals)
+    return copy(eplusout_all_intervals)
 
 
 @pytest.mark.parametrize(
@@ -541,6 +542,12 @@ def test_aggregate_variables_invalid_too_many_tables(copied_eplusout_all_interva
         _ = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
 
 
+def test_aggregate_variables_single_variable(copied_eplusout_all_intervals):
+    v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+    with pytest.raises(CannotAggregateVariables):
+        _ = copied_eplusout_all_intervals.aggregate_variables([v1], "sum")
+
+
 def test_as_df_invalid_table(eplusout_all_intervals):
     with pytest.raises(KeyError):
         _ = eplusout_all_intervals.get_numeric_table("foo")
@@ -555,3 +562,14 @@ def test_to_excel(tiny_eplusout):
         assert p.exists()
     finally:
         p.unlink()
+
+
+@pytest.mark.parametrize(
+    "file, expected_class",
+    [
+        (pytest.lazy_fixture("tiny_eplusout"), ResultsEsoFile),
+        (pytest.lazy_fixture("excel_file"), ResultsFile),
+    ],
+)
+def test_file_copy(file, expected_class):
+    assert isinstance(copy(file), expected_class)
