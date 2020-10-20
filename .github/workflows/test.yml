@@ -64,8 +64,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Test with unittest
-        run: poetry run python -m unittest discover -s ./tests -t ./tests -p test_*.py
+      - name: Test with pytest
+        run: poetry run pytest
 
 
         
