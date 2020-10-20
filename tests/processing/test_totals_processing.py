@@ -87,11 +87,7 @@ def test_file():
     tables["monthly"] = monthly_results
     tables["range"] = range_results
     tables["text"] = text_results
-
-    print(tables.get_numeric_table("text"))
-
     tree = Tree.from_header_dict(tables.get_all_variables_dct())
-
     return ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree, "test")
 
 

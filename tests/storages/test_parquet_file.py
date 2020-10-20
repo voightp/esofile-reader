@@ -63,7 +63,6 @@ def file(request):
 
 
 def test_saved_parquet_file(saved_parquet_file_path):
-    print(saved_parquet_file_path)
     assert saved_parquet_file_path.exists()
 
 

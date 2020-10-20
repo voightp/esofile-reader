@@ -4,7 +4,6 @@ from datetime import datetime
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-import esofile_reader.results_processing.aggregate_results
 from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
 from esofile_reader.exceptions import CannotAggregateVariables
@@ -448,7 +447,7 @@ def test_add_output_invalid_table(eplusout_all_intervals):
 
 def test_aggregate_variables(copied_eplusout_all_intervals):
     v = Variable(table="hourly", key=None, type="Zone People Occupant Count", units="")
-    id_, var = esofile_reader.results_processing.aggregate_results.aggregate_variables(v, "sum")
+    id_, var = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
     assert var == Variable(
         table="hourly", key="Custom Key - sum", type="Zone People Occupant Count", units="",
     )
@@ -466,10 +465,8 @@ def test_aggregate_energy_rate(copied_eplusout_all_intervals):
     v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
-    id_, var = esofile_reader.results_processing.aggregate_results.aggregate_variables(
-        [v1, v2], "sum"
-    )
-    df = copied_eplusout_all_intervals.get_results_df(var)
+    id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
+    df = copied_eplusout_all_intervals.get_results(var)
 
     test_mi = pd.MultiIndex.from_tuples(
         [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
@@ -502,7 +499,7 @@ def test_aggregate_energy_rate(copied_eplusout_all_intervals):
 def test_aggregate_energy_rate_hourly(copied_eplusout_all_intervals):
     v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
-    test_sr = copied_eplusout_all_intervals.get_results_df([v1, v2], rate_to_energy=True).sum(
+    test_sr = copied_eplusout_all_intervals.get_results([v1, v2], rate_to_energy=True).sum(
         axis=1
     )
     test_df = pd.DataFrame(test_sr)
@@ -510,10 +507,8 @@ def test_aggregate_energy_rate_hourly(copied_eplusout_all_intervals):
         [("Custom Key - sum", "Custom Type", "J")], names=["key", "type", "units"]
     )
     test_df.columns = test_mi
-    id_, var = esofile_reader.results_processing.aggregate_results.aggregate_variables(
-        [v1, v2], "sum"
-    )
-    df = copied_eplusout_all_intervals.get_results_df(id_)
+    id_, var = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
+    df = copied_eplusout_all_intervals.get_results(id_)
     assert_frame_equal(test_df, df)
 
 
@@ -523,7 +518,7 @@ def test_aggregate_invalid_variables(copied_eplusout_all_intervals):
         Variable("hourly", "invalid", "type", "units"),
     ]
     with pytest.raises(CannotAggregateVariables):
-        esofile_reader.results_processing.aggregate_results.aggregate_variables(vars, "sum")
+        copied_eplusout_all_intervals.aggregate_variables(vars, "sum")
 
 
 def test_aggregate_energy_rate_invalid(copied_eplusout_all_intervals):
@@ -531,21 +526,19 @@ def test_aggregate_energy_rate_invalid(copied_eplusout_all_intervals):
     v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
     with pytest.raises(CannotAggregateVariables):
-        _ = esofile_reader.results_processing.aggregate_results.aggregate_variables(
-            [v1, v2], "sum"
-        )
+        _ = copied_eplusout_all_intervals.aggregate_variables([v1, v2], "sum")
 
 
 def test_aggregate_variables_too_much_vars(copied_eplusout_all_intervals):
     v = Variable(table="hourly", key="BLOCK1:ZONE1", type=None, units=None)
     with pytest.raises(CannotAggregateVariables):
-        _ = esofile_reader.results_processing.aggregate_results.aggregate_variables(v, "sum")
+        _ = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
 
 
 def test_aggregate_variables_invalid_too_many_tables(copied_eplusout_all_intervals):
     v = Variable(table=None, key=None, type="Zone People Occupant Count", units="")
     with pytest.raises(CannotAggregateVariables):
-        _ = esofile_reader.results_processing.aggregate_results.aggregate_variables(v, "sum")
+        _ = copied_eplusout_all_intervals.aggregate_variables(v, "sum")
 
 
 def test_as_df_invalid_table(eplusout_all_intervals):

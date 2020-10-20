@@ -1,24 +1,6 @@
 import pytest
 
 from esofile_reader.processing.esofile_intervals import *
-from esofile_reader.processing.esofile_intervals import (
-    convert_to_datetime,
-    generate_datetime_dates,
-)
-
-
-def test_update_dt_format_index():
-    index = pd.date_range(start="1/1/2018", freq="d", periods=3, name=TIMESTAMP_COLUMN)
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}, index=index)
-    df = update_datetime_format(df, "%Y-%m---%d")
-    assert df.index.to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]
-
-
-def test_update_dt_format_column():
-    dates = [datetime(2018, 1, 1), datetime(2018, 1, 2), datetime(2018, 1, 3)]
-    df = pd.DataFrame({"a": [1, 2, 3], "b": dates})
-    df = update_datetime_format(df, "%Y-%m---%d")
-    assert df["b"].to_list(), ["2018-01---01", "2018-01---02", "2018-01---03"]
 
 
 def test_datetime_helper_year_end():

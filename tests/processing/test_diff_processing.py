@@ -11,6 +11,7 @@ from esofile_reader.processing.diff import (
     process_diff,
 )
 from tests.session_fixtures import *
+from copy import copy
 
 
 @pytest.fixture(scope="module")
@@ -196,9 +197,9 @@ def test_process_diff_different_datetime(eplusout1, eplusout_all_intervals):
         assert diff.tables[interval].shape == test_shape
 
 
-def test_no_shared_intervals():
-    ef1 = EsoFile(os.path.join(ROOT, "../eso_files/eplusout1.eso"))
-    ef2 = EsoFile(os.path.join(ROOT, "../eso_files/eplusout1.eso"))
+def test_no_shared_intervals(eplusout1):
+    ef1 = copy(eplusout1)
+    ef2 = copy(eplusout1)
 
     del ef1.tables["hourly"]
     del ef1.tables["daily"]
