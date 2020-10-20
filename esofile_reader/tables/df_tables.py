@@ -1,4 +1,3 @@
-import contextlib
 import logging
 from copy import copy
 from datetime import datetime
@@ -301,14 +300,16 @@ class DFTables(BaseTables):
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
     ) -> pd.DataFrame:
+        day_column = None
         try:
-            days_sr = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
-            df[DAY_COLUMN] = days_sr
-            df.set_index(DAY_COLUMN, append=True, inplace=True)
+            day_column = self.get_special_column(table, DAY_COLUMN, start_date, end_date)
         except KeyError:
-            with contextlib.suppress(AttributeError):
-                df[DAY_COLUMN] = df.index.strftime("%A")
-                df.set_index(DAY_COLUMN, append=True, inplace=True)
+            if isinstance(df.index, pd.DatetimeIndex):
+                day_column = df.index.strftime("%A")
+        if day_column is not None:
+            df.index = pd.MultiIndex.from_arrays(
+                [df.index, day_column], names=[df.index.name, DAY_COLUMN]
+            )
         return df
 
     def get_results_df(
