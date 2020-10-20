@@ -1,24 +1,15 @@
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 from pandas.testing import assert_index_equal
 
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.processing.excel import is_data_row, parse_header
-from esofile_reader.results_file import ResultsFile
-from tests.session_fixtures import TEST_FILES_PATH
+from tests.session_fixtures import *
 
-RESULTS_PATH = Path(TEST_FILES_PATH, "test_excel_results.xlsx")
 EDGE_CASE_PATH = Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx")
 CSV_PATH = Path(TEST_FILES_PATH, "test_excel_results.csv")
-
-
-@pytest.fixture(scope="module")
-def excel_file():
-    return ResultsFile.from_excel(RESULTS_PATH)
 
 
 def test_is_data_row_mixed():
