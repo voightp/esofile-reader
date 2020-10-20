@@ -8,8 +8,8 @@ import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.tables.df_functions import create_peak_min_outputs, create_peak_max_outputs
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_functions import create_peak_min_outputs, create_peak_max_outputs
+from esofile_reader.df.df_tables import DFTables
 
 
 def create_header_df(

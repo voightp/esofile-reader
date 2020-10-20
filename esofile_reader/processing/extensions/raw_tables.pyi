@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Any
 
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 
 def generate_peak_tables(

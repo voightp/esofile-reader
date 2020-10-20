@@ -1,6 +1,6 @@
 import pandas as pd
 
-from esofile_reader.storages.df_storage import DFStorage
+from esofile_reader.df.df_storage import DFStorage
 from tests.session_fixtures import *
 
 

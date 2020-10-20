@@ -1,4 +1,4 @@
-from typing import List, Union, Sequence, Tuple, Any
+from typing import List, Union, Tuple, Any
 
 import numpy as np
 import pandas as pd

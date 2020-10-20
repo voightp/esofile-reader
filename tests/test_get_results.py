@@ -9,8 +9,8 @@ from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.exceptions import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.mini_classes import Variable, SimpleVariable
 from esofile_reader.results_processing.table_formatter import TableFormatter
-from esofile_reader.storages.df_storage import DFStorage
-from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader.df.df_storage import DFStorage
+from esofile_reader.pqt.parquet_storage import ParquetStorage
 from tests.session_fixtures import *
 
 

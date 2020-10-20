@@ -16,7 +16,7 @@ from esofile_reader.constants import *
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import GenericProgressLogger
-from esofile_reader.tables.df_tables import DFTables
+from esofile_reader.df.df_tables import DFTables
 
 
 @contextlib.contextmanager
