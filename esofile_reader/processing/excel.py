@@ -1,18 +1,20 @@
+import csv
 import io
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import numpy as np
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InsuficientHeaderInfo
+from esofile_reader.df.df_tables import DFTables
+from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.processing.progress_logger import GenericProgressLogger
-from esofile_reader.df.df_tables import DFTables
 
 
 def is_data_row(sr: pd.Series):
@@ -340,8 +342,12 @@ def process_csv(
     progress_logger: GenericProgressLogger,
     force_index: bool = False,
     header_limit: int = 10,
+    separator: Optional[str] = None,
 ) -> DFTables:
     """ Create results file data based on given csv file."""
-    csv_df = pd.read_csv(file_path, sep=None, engine="python")
-    name = file_path.stem
+    try:
+        csv_df = pd.read_csv(file_path, sep=separator, engine="python")
+        name = file_path.stem
+    except csv.Error:
+        raise NoResults(f"Cannot read {file_path}. {traceback.format_exc()}")
     return process_csv_table(csv_df, name, progress_logger, force_index, header_limit)
