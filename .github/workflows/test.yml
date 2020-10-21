@@ -65,7 +65,7 @@ jobs:
         run: poetry install
 
       - name: Test with pytest
-        run: poetry run pytest
+        run: poetry run pytest -v
 
 
         
