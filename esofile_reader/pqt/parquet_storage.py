@@ -94,7 +94,7 @@ class ParquetStorage(DFStorage):
         """ Merge this storage with arbitrary number of other ones. """
         id_gen = incremental_id_gen(start=0, checklist=list(self.files.keys()))
         pqs = ParquetStorage.load_storage(storage_path)
-        for id_, file in pqs.files.items():
+        for id_, file in dict(sorted(pqs.files.items())).items():
             # create new identifiers in case that id already exists
             new_id = next(id_gen) if id_ in self.files.keys() else id_
             new_name = get_str_identifier(file.file_name, self.get_all_file_names())
