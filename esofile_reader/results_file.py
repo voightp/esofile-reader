@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, List
 
-from esofile_reader.abc.base_file import BaseFile, get_file_information
+from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType, PathLike

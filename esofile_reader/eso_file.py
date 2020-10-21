@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from esofile_reader.abc.base_file import BaseFile, get_file_information
+from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger

@@ -8,7 +8,7 @@ import pandas as pd
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
-from esofile_reader.abc.base_tables import BaseTables
+from esofile_reader.abstractions.base_tables import BaseTables
 from esofile_reader.df.df_functions import (
     merge_peak_outputs,
     slicer,
