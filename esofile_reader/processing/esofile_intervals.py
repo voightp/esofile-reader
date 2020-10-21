@@ -3,6 +3,22 @@ from typing import Tuple, List, Dict, Optional
 
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import IntervalTuple
+import calendar
+
+MONTH_END_DAYS = {
+    1: 31,
+    2: 28,
+    3: 31,
+    4: 30,
+    5: 31,
+    6: 30,
+    7: 31,
+    8: 31,
+    9: 30,
+    10: 31,
+    11: 30,
+    12: 31,
+}
 
 
 def datetime_helper(month: int, day: int, hour: int, end_minute: int) -> Tuple[int, ...]:
@@ -57,21 +73,7 @@ def parse_result_datetime(
 
 def is_end_day(month: int, day: int) -> bool:
     """ Check if day us the month end day. """
-    months = {
-        1: 31,
-        2: 28,
-        3: 31,
-        4: 30,
-        5: 31,
-        6: 30,
-        7: 31,
-        8: 31,
-        9: 30,
-        10: 31,
-        11: 30,
-        12: 31,
-    }
-    return day == months[month]
+    return day == MONTH_END_DAYS[month]
 
 
 def get_month_n_days_from_cumulative(monthly_cumulative_days: List[int]):
@@ -115,22 +117,7 @@ def get_num_of_days(cumulative_days: Dict[str, List[int]]) -> Dict[str, List[int
 
 def get_month_end_date(date: datetime) -> datetime:
     """ Return month end date of a given date. """
-    months = {
-        1: 31,
-        2: 28,
-        3: 31,
-        4: 30,
-        5: 31,
-        6: 30,
-        7: 31,
-        8: 31,
-        9: 30,
-        10: 31,
-        11: 30,
-        12: 31,
-    }
-    end_date = date.replace(day=months[date.month])
-    return end_date
+    return date.replace(day=MONTH_END_DAYS[date.month])
 
 
 def check_year_increment(
