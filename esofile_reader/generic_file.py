@@ -25,7 +25,7 @@ except ModuleNotFoundError:
     from esofile_reader.processing.extensions.esofile import process_eso_file
 
 
-class ResultsFile(BaseFile):
+class GenericFile(BaseFile):
     """
     Generic results file with methods to process data
     from various sources.
@@ -67,8 +67,8 @@ class ResultsFile(BaseFile):
         force_index: bool = False,
         progress_logger: GenericProgressLogger = None,
         header_limit=10,
-    ) -> "ResultsFile":
-        """ Generate 'ResultsFile' from excel spreadsheet. """
+    ) -> "GenericFile":
+        """ Generate 'GenericFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
@@ -85,7 +85,7 @@ class ResultsFile(BaseFile):
             else:
                 progress_logger.log_section("generating search tree!")
                 tree = Tree.from_header_dict(tables.get_all_variables_dct())
-            results_file = ResultsFile(
+            results_file = GenericFile(
                 file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
             )
         return results_file
@@ -97,8 +97,8 @@ class ResultsFile(BaseFile):
         force_index: bool = False,
         progress_logger: GenericProgressLogger = None,
         header_limit=10,
-    ) -> "ResultsFile":
-        """ Generate 'ResultsFile' from csv file. """
+    ) -> "GenericFile":
+        """ Generate 'GenericFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
             progress_logger = GenericProgressLogger(file_path.name)
@@ -112,7 +112,7 @@ class ResultsFile(BaseFile):
                 )
             progress_logger.log_section("generating search tree!")
             tree = Tree.from_header_dict(tables.get_all_variables_dct())
-            results_file = ResultsFile(
+            results_file = GenericFile(
                 file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
             )
         return results_file
@@ -127,7 +127,7 @@ class ResultsFile(BaseFile):
         """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit ResultsEsoFile
         eso_file = EsoFile(file_path, progress_logger, ignore_peaks=True, year=year)
-        return ResultsFile(
+        return GenericFile(
             eso_file.file_path,
             eso_file.file_name,
             eso_file.file_created,
@@ -139,7 +139,7 @@ class ResultsFile(BaseFile):
     @classmethod
     def from_path(
         cls, path: PathLike, progress_logger: GenericProgressLogger = None
-    ) -> "ResultsFile":
+    ) -> "GenericFile":
         """ Try to generate 'Results' file from generic path. """
         switch = {
             BaseFile.ESO: cls.from_eso_file,
@@ -156,7 +156,7 @@ class ResultsFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_totals(cls, results_file: ResultsFileType) -> "ResultsFile":
+    def from_totals(cls, results_file: ResultsFileType) -> "GenericFile":
         """ Generate totals 'ResultsFileType' from another file. """
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
@@ -165,13 +165,13 @@ class ResultsFile(BaseFile):
         if tables.empty:
             raise NoResults(f"Cannot generate totals for file '{file_path}'.")
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = ResultsFile(
+        results_file = GenericFile(
             file_path, file_name, file_created, tables, tree, file_type=BaseFile.TOTALS
         )
         return results_file
 
     @classmethod
-    def from_diff(cls, file: ResultsFileType, other_file: ResultsFileType) -> "ResultsFile":
+    def from_diff(cls, file: ResultsFileType, other_file: ResultsFileType) -> "GenericFile":
         """ Generate 'Results' file as a difference between two files. """
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
@@ -182,7 +182,7 @@ class ResultsFile(BaseFile):
                 "Cannot generate 'difference' file, there aren't any shared variables!"
             )
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = ResultsFile(
+        results_file = GenericFile(
             file_path, file_name, file_created, tables, tree, file_type=BaseFile.DIFF
         )
         return results_file

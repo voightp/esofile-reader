@@ -13,7 +13,7 @@ from tests.session_fixtures import *
 
 @pytest.fixture(scope="module")
 def simple_file():
-    return ResultsFile.from_excel(
+    return GenericFile.from_excel(
         Path(TEST_FILES_PATH, "test_excel_results.xlsx"),
         sheet_names=["simple-template-monthly", "simple-no-template-no-index"],
     )
@@ -557,7 +557,7 @@ def test_to_excel(tiny_eplusout):
     p = Path("test.xlsx")
     try:
         tiny_eplusout.to_excel(p)
-        loaded_ef = ResultsFile.from_excel(p)
+        loaded_ef = GenericFile.from_excel(p)
         assert loaded_ef.tables == tiny_eplusout.tables
         assert p.exists()
     finally:
@@ -568,7 +568,7 @@ def test_to_excel(tiny_eplusout):
     "file, expected_class",
     [
         (pytest.lazy_fixture("tiny_eplusout"), ResultsEsoFile),
-        (pytest.lazy_fixture("excel_file"), ResultsFile),
+        (pytest.lazy_fixture("excel_file"), GenericFile),
     ],
 )
 def test_file_copy(file, expected_class):

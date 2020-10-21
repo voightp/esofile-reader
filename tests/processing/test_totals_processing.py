@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from esofile_reader import ResultsFile, Variable
+from esofile_reader import GenericFile, Variable
 from esofile_reader.constants import SPECIAL, COLUMN_LEVELS
 from esofile_reader.exceptions import NoResults
 from esofile_reader.processing.totals import process_totals
@@ -88,12 +88,12 @@ def test_file():
     tables["range"] = range_results
     tables["text"] = text_results
     tree = Tree.from_header_dict(tables.get_all_variables_dct())
-    return ResultsFile("dummy/path", "base", datetime.utcnow(), tables, tree, "test")
+    return GenericFile("dummy/path", "base", datetime.utcnow(), tables, tree, "test")
 
 
 @pytest.fixture
 def totals_file(test_file):
-    return ResultsFile.from_totals(test_file)
+    return GenericFile.from_totals(test_file)
 
 
 @pytest.fixture
@@ -191,9 +191,9 @@ def test_filter_non_numeric_columns(totals_tables):
 
 
 def test_only_simple_tables():
-    rf = ResultsFile.from_excel(
+    rf = GenericFile.from_excel(
         Path(TEST_FILES_PATH, "test_excel_results.xlsx"),
         sheet_names=["simple-template-monthly", "simple-template-daily"],
     )
     with pytest.raises(NoResults):
-        _ = ResultsFile.from_totals(rf)
+        _ = GenericFile.from_totals(rf)

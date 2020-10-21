@@ -183,14 +183,14 @@ def test_identical_files_diff_special_tables(same_file_diff, eplusout1):
 
 
 def test_process_diff_similar_files(eplusout1, eplusout2):
-    diff = ResultsFile.from_diff(eplusout1, eplusout2)
+    diff = GenericFile.from_diff(eplusout1, eplusout2)
     shapes = [(4392, 59), (183, 59), (6, 59)]
     for table, test_shape in zip(diff.table_names, shapes):
         assert diff.tables[table].shape == test_shape
 
 
 def test_process_diff_different_datetime(eplusout1, eplusout_all_intervals):
-    diff = ResultsFile.from_diff(eplusout1, eplusout_all_intervals)
+    diff = GenericFile.from_diff(eplusout1, eplusout_all_intervals)
     shapes = [(4392, 3), (183, 3), (6, 3)]
     for interval, test_shape in zip(diff.table_names, shapes):
         assert diff.tables[interval].shape == test_shape
@@ -207,15 +207,15 @@ def test_no_shared_intervals(eplusout1):
     del ef2.tables["runperiod"]
 
     with pytest.raises(NoResults):
-        _ = ResultsFile.from_diff(ef1, ef2)
+        _ = GenericFile.from_diff(ef1, ef2)
 
 
 def test_simple_and_standard_table_same_name():
-    rf1 = ResultsFile.from_excel(
+    rf1 = GenericFile.from_excel(
         Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx"), sheet_names=["test"]
     )
-    rf2 = ResultsFile.from_excel(
+    rf2 = GenericFile.from_excel(
         Path(TEST_FILES_PATH, "test_excel_edge_cases.xlsx"), sheet_names=["test-simple"]
     )
     with pytest.raises(NoResults):
-        ResultsFile.from_diff(rf1, rf2)
+        GenericFile.from_diff(rf1, rf2)

@@ -24,7 +24,7 @@ def df_tables(eplusout_all_intervals):
 
 @pytest.fixture(scope="module")
 def simple_file():
-    return ResultsFile.from_excel(
+    return GenericFile.from_excel(
         Path(TEST_FILES_PATH, "test_excel_results.xlsx"),
         sheet_names=["simple-template-monthly", "simple-no-template-no-index"],
     )
