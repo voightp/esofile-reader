@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import contextlib
 import math
 import shutil
@@ -84,7 +84,7 @@ class _ParquetIndexer:
         return df.loc[row, :]
 
     def __setitem__(self, key, value):
-        if not isinstance(value, (int, float, str, pd.Series, collections.Sequence)):
+        if not isinstance(value, (int, float, str, pd.Series, collections.abc.Sequence)):
             raise TypeError(
                 f"Invalid value type: {value.__class__.__name__}, "
                 f"only standard python types and arrays are allowed!"
