@@ -163,13 +163,13 @@ def test_column_names(excel_file, table, column_names):
 
 
 def test_drop_blank_lines():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-lines"])
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-lines"])
     df = ef.tables["blank-lines"]
     assert df.shape == (12, 7)
 
 
 def test_force_index_generic_column():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["force-index"], force_index=True)
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["force-index"], force_index=True)
     df = ef.tables["force-index"]
     assert df.shape == (12, 6)
     assert df.index.name == "index"
@@ -177,7 +177,7 @@ def test_force_index_generic_column():
 
 
 def test_index_duplicate_values():
-    ef = ResultsFile.from_excel(
+    ef = GenericFile.from_excel(
         EDGE_CASE_PATH, sheet_names=["duplicate-index"], force_index=True
     )
     df = ef.tables["duplicate-index"]
@@ -187,30 +187,30 @@ def test_index_duplicate_values():
 
 
 def test_column_duplicate_values():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["duplicate-columns"])
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["duplicate-columns"])
     df = ef.tables["monthly"]
     assert df.shape == (12, 7)
 
 
 def test_too_few_header_rows():
     with pytest.raises(InsuficientHeaderInfo):
-        _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-few-header-items"])
+        _ = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-few-header-items"])
 
 
 def test_too_many_header_rows():
     with pytest.raises(InsuficientHeaderInfo):
-        _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-header-items"])
+        _ = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-header-items"])
 
 
 def test_too_many_header_rows_template():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["too-many-items-template"])
     df = ef.tables["monthly"]
     assert df.shape == (12, 7)
     assert df.columns.names == ["id", "table", "key", "type", "units"]
 
 
 def test_too_switched_template_levels():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["switched-template-levels"])
     df = ef.tables["monthly"]
     assert df.shape == (12, 7)
     assert df.columns.names == ["id", "table", "key", "type", "units"]
@@ -218,11 +218,11 @@ def test_too_switched_template_levels():
 
 def test_template_missing_key_level():
     with pytest.raises(InsuficientHeaderInfo):
-        _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["missing-key"])
+        _ = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["missing-key"])
 
 
 def test_multiple_tables_single_sheet():
-    ef = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["multiple-tables"])
+    ef = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["multiple-tables"])
     df = ef.tables["table1"]
     assert df.shape == (12, 3)
     assert df.index.name == "timestamp"
@@ -251,26 +251,26 @@ def test_all_tables(excel_file):
     "sheet_names", [["dup-names-table", "dup-names"], ["dup-names", "dup-names-table"]]
 )
 def test_duplicate_table_names(sheet_names):
-    rf = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=sheet_names)
+    rf = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=sheet_names)
     assert rf.table_names == ["dup-names", "dup-names (2)"]
 
 
 def test_no_numeric_outputs():
     with pytest.raises(NoResults):
-        _ = ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["only-special-column"])
+        _ = GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["only-special-column"])
 
 
 def test_blank_sheet():
     with pytest.raises(NoResults):
-        ResultsFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-sheet"])
+        GenericFile.from_excel(EDGE_CASE_PATH, sheet_names=["blank-sheet"])
 
 
 def test_csv_file():
-    rf = ResultsFile.from_csv(CSV_PATH)
+    rf = GenericFile.from_csv(CSV_PATH)
     assert rf.tables["monthly"].shape == (12, 8)
     assert rf.table_names == ["monthly"]
 
 
 def test_empty_csv_file():
     with pytest.raises(NoResults):
-        _ = ResultsFile.from_csv(Path(TEST_FILES_PATH, "empty_csv.csv"))
+        _ = GenericFile.from_csv(Path(TEST_FILES_PATH, "empty_csv.csv"))

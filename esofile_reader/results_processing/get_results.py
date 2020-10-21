@@ -4,7 +4,7 @@ from typing import Union, List, Optional
 
 import pandas as pd
 
-from esofile_reader import ResultsFile
+from esofile_reader import GenericFile
 from esofile_reader.abstractions import base_file
 from esofile_reader.mini_classes import VariableType, ResultsFileType, PathLike
 from esofile_reader.results_processing.process_results import get_processed_results
@@ -12,7 +12,7 @@ from esofile_reader.results_processing.table_formatter import TableFormatter
 
 
 def get_results_from_single_file(
-    file: Union[ResultsFile, PathLike],
+    file: Union[GenericFile, PathLike],
     variables: Union[VariableType, List[VariableType]],
     **kwargs,
 ) -> Optional[pd.DataFrame]:
@@ -20,12 +20,12 @@ def get_results_from_single_file(
     if issubclass(type(file), base_file.BaseFile):
         results_file = file
     else:
-        results_file = ResultsFile.from_path(file)
+        results_file = GenericFile.from_path(file)
     return get_processed_results(results_file, variables, **kwargs)
 
 
 def get_results_from_multiple_files(
-    file_list: List[Union[ResultsFile, PathLike]],
+    file_list: List[Union[GenericFile, PathLike]],
     variables: Union[VariableType, List[VariableType]],
     **kwargs,
 ) -> Optional[pd.DataFrame]:

@@ -48,7 +48,7 @@ def file(request):
 def simple_excel_file():
     pth = Path(TEST_FILES_PATH, "test_excel_results.xlsx")
     sheets = ["simple-template-monthly", "simple-template-range"]
-    return ResultsFile.from_excel(pth, sheets)
+    return GenericFile.from_excel(pth, sheets)
 
 
 @pytest.fixture(scope="module")

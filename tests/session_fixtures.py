@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from esofile_reader import EsoFile, ResultsFile
+from esofile_reader import EsoFile, GenericFile
 
 ROOT_PATH = Path(__file__).parent.absolute()
 TEST_FILES_PATH = Path(ROOT_PATH, "eso_files")
@@ -45,4 +45,4 @@ def tiny_eplusout():
 
 @pytest.fixture(scope="session")
 def excel_file():
-    return ResultsFile.from_excel(Path(TEST_FILES_PATH, "test_excel_results.xlsx"))
+    return GenericFile.from_excel(Path(TEST_FILES_PATH, "test_excel_results.xlsx"))
