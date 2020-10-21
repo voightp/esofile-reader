@@ -342,6 +342,6 @@ def process_csv(
     header_limit: int = 10,
 ) -> DFTables:
     """ Create results file data based on given csv file."""
-    csv_df = pd.read_csv(file_path, sep=None)
+    csv_df = pd.read_csv(file_path, sep=None, engine="python")
     name = file_path.stem
     return process_csv_table(csv_df, name, progress_logger, force_index, header_limit)
