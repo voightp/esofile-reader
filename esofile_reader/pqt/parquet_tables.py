@@ -1,8 +1,6 @@
-import collections.abc
 import contextlib
 import math
 import shutil
-from collections.abc import Iterable
 from pathlib import Path
 from typing import List, Dict, Tuple, Sequence, Union, Optional
 from uuid import uuid1
@@ -13,10 +11,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from esofile_reader.constants import *
+from esofile_reader.df.df_tables import DFTables
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import GenericProgressLogger
-from esofile_reader.df.df_tables import DFTables
 
 
 @contextlib.contextmanager
@@ -61,7 +59,7 @@ class _ParquetIndexer:
         """ Get column multiindex items as a list of tuples. """
 
         def is_boolean():
-            return isinstance(col, Iterable) and all(
+            return isinstance(col, (list, pd.Series, np.ndarray)) and all(
                 map(lambda x: isinstance(x, (bool, np.bool_)), col)
             )
 
@@ -112,7 +110,7 @@ class _ParquetIndexer:
         return df.loc[row, :]
 
     def __setitem__(self, key, value):
-        if not isinstance(value, (int, float, str, pd.Series, collections.abc.Sequence)):
+        if not isinstance(value, (int, float, str, pd.Series, list, np.ndarray)):
             raise TypeError(
                 f"Invalid value type: {value.__class__.__name__}, "
                 f"only standard python types and arrays are allowed!"
