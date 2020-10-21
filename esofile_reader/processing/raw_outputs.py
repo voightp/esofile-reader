@@ -29,7 +29,7 @@ except ModuleNotFoundError:
     )
 
 
-class RawOutputs:
+class RawOutputData:
     def __init__(
         self, environment_name: str, header: Dict[str, Dict[int, Variable]], ignore_peaks: bool,
     ):
@@ -82,7 +82,7 @@ class RawOutputs:
         return len(self.outputs) + 0 if self.peak_outputs is None else len(self.peak_outputs)
 
 
-class RawDFOutputs:
+class RawOutputDFData:
     def __init__(
         self,
         environment_name: str,
@@ -97,8 +97,8 @@ class RawDFOutputs:
 
     @classmethod
     def from_raw_outputs(
-        cls, raw_outputs: RawOutputs, progress_logger: EsoFileProgressLogger, year: int
-    ) -> "RawDFOutputs":
+        cls, raw_outputs: RawOutputData, progress_logger: EsoFileProgressLogger, year: int
+    ) -> "RawOutputDFData":
         # Create a 'search tree' to allow searching for variables
         progress_logger.log_section("generating search tree!")
         header = deepcopy(raw_outputs.header)
@@ -125,4 +125,4 @@ class RawDFOutputs:
         tables = generate_df_tables(raw_outputs.outputs, header, dates, progress_logger)
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_outputs.days_of_week}
         insert_special_columns(tables, other_data)
-        return RawDFOutputs(raw_outputs.environment_name, tables, peak_tables, tree)
+        return RawOutputDFData(raw_outputs.environment_name, tables, peak_tables, tree)

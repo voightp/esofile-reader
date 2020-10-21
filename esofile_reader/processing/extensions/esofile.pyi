@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple, TextIO, Optional, Union
 
 from esofile_reader.mini_classes import Variable, IntervalTuple
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.processing.raw_outputs import RawOutputs, RawDFOutputs
+from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
 
 
 def get_eso_file_version(raw_version: str) -> int: ...
@@ -40,17 +40,17 @@ def read_body(
     header: Dict[str, Dict[int, Variable]],
     ignore_peaks: bool,
     progress_logger: EsoFileProgressLogger
-) -> List[RawOutputs]: ...
+) -> List[RawOutputData]: ...
 
 
-def count_tables(all_raw_outputs: List[RawOutputs]) -> int: ...
+def count_tables(all_raw_outputs: List[RawOutputData]) -> int: ...
 
 
 def process_raw_file_content(
-    all_raw_outputs: List[RawOutputs],
+    all_raw_outputs: List[RawOutputData],
     year: int,
     progress_logger: EsoFileProgressLogger
-) -> List[RawOutputs]: ...
+) -> List[RawOutputData]: ...
 
 
 def read_file(
@@ -79,4 +79,4 @@ def process_eso_file(
     progress_logger: EsoFileProgressLogger,
     ignore_peaks: bool = True,
     year: int = 2002
-) -> List[RawDFOutputs]: ...
+) -> List[RawOutputDFData]: ...
