@@ -19,4 +19,5 @@ class DFStorage(BaseStorage):
         del self.files[id_]
 
     def get_all_file_names(self):
-        return [f.file_name for f in self.files.values()]
+        # always return sorted by id
+        return [file.file_name for file in dict(sorted(self.files.items())).values()]
