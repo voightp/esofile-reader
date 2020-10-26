@@ -3,7 +3,6 @@ from typing import Tuple, List, Dict, Optional
 
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import IntervalTuple
-import calendar
 
 MONTH_END_DAYS = {
     1: 31,
