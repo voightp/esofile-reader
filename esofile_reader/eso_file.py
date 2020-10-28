@@ -74,7 +74,7 @@ class ResultsEsoFile(BaseFile):
         file_path: str,
         progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
-        year: int = 2002,
+        year: Optional[int] = 2002,
     ) -> List["ResultsEsoFile"]:
         """ Generate independent 'EsoFile' for each environment. """
         file_path, file_name, file_created = get_file_information(file_path)
@@ -134,7 +134,7 @@ class EsoFile(ResultsEsoFile):
         file_path: PathLike,
         progress_logger: EsoFileProgressLogger = None,
         ignore_peaks: bool = True,
-        year: int = 2002,
+        year: Optional[int] = 2002,
     ):
         if progress_logger is None:
             progress_logger = EsoFileProgressLogger(Path(file_path).name)

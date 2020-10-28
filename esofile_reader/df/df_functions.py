@@ -5,7 +5,7 @@ from typing import Sequence, Optional, List
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_intervals import parse_result_datetime
+from esofile_reader.processing.esofile_intervals import combine_peak_result_datetime
 
 
 def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:
@@ -51,7 +51,7 @@ def _local_peaks(
                 day = val[day_ix] if day_ix else None
                 hour = val[hour_ix]
                 end_min = val[end_min_ix]
-                ts = parse_result_datetime(date, month, day, hour, end_min)
+                ts = combine_peak_result_datetime(date, month, day, hour, end_min)
                 return ts
             else:
                 return val

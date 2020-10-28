@@ -7,7 +7,7 @@ import numpy as np
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.esofile_intervals import convert_raw_date_data
 from esofile_reader.processing.extensions.esofile import (
     process_statement_line,
     process_header_line,
@@ -277,12 +277,13 @@ def test_read_body_day_of_week(raw_outputs, interval, values):
     ],
 )
 def test_generate_peak_tables(raw_outputs, peak, interval, shape):
-    dates = raw_outputs.dates
     cumulative_days = raw_outputs.cumulative_days
     header = raw_outputs.header
     raw_peak_outputs = raw_outputs.peak_outputs
     logger = EsoFileProgressLogger("foo")
-    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
+    dates, n_days = convert_raw_date_data(
+        raw_outputs.dates, raw_outputs.days_of_week, cumulative_days, 2002
+    )
     outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
@@ -299,12 +300,12 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     ],
 )
 def test_generate_df_tables(raw_outputs, interval, shape):
-    dates = raw_outputs.dates
-    cumulative_days = raw_outputs.cumulative_days
     header = raw_outputs.header
     outputs = raw_outputs.outputs
     logger = EsoFileProgressLogger("foo")
-    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
+    dates, n_days = convert_raw_date_data(
+        raw_outputs.dates, raw_outputs.days_of_week, raw_outputs.cumulative_days, 2002
+    )
     outputs = generate_df_tables(outputs, header, dates, logger)
     assert outputs[interval].shape == shape
 
@@ -344,7 +345,7 @@ def test_remove_duplicates():
 
 def test_header_invalid_line():
     f = StringIO("this is wrong!")
-    with pytest.raises(AttributeError):
+    with pytest.raises(InvalidLineSyntax):
         read_header(f, EsoFileProgressLogger("foo"))
 
 
@@ -420,3 +421,8 @@ def test_remove_duplicate_variable_from_tree(
     duplicate_variable_eso_file, variable, expected_id
 ):
     assert duplicate_variable_eso_file.find_id(variable) == [expected_id]
+
+
+# @pytest.mark.parametrize("drop_tables")
+# def test_leap_year_eso_file(drop_tables):
+#     ef = EsoFile(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"))

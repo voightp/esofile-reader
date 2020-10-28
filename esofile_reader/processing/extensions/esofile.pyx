@@ -360,7 +360,7 @@ def count_tables(all_raw_outputs: List[RawOutputData]) -> int:
 
 def process_raw_file_content(
     all_raw_outputs: List[RawOutputData],
-    year: int,
+    year: Optional[int],
     progress_logger: EsoFileProgressLogger
 ) -> List[RawOutputDFData]:
     all_raw_df_outputs = []
@@ -431,7 +431,7 @@ cpdef process_eso_file(
     object file_path,
     object progress_logger,
     object ignore_peaks,
-    int year = 2002
+    object year = None
 ):
     """ Open the eso file and trigger file processing. """
     preprocess_file(file_path, progress_logger)

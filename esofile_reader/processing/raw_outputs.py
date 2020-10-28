@@ -4,12 +4,12 @@ from math import nan
 from typing import Dict, Tuple, Optional
 
 from esofile_reader.constants import *
+from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.processing.esofile_intervals import convert_raw_date_data
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.df.df_tables import DFTables
 
 try:
     from esofile_reader.processing.extensions.raw_tables import (
@@ -97,7 +97,10 @@ class RawOutputDFData:
 
     @classmethod
     def from_raw_outputs(
-        cls, raw_outputs: RawOutputData, progress_logger: EsoFileProgressLogger, year: int
+        cls,
+        raw_outputs: RawOutputData,
+        progress_logger: EsoFileProgressLogger,
+        year: Optional[int],
     ) -> "RawOutputDFData":
         # Create a 'search tree' to allow searching for variables
         progress_logger.log_section("generating search tree!")
@@ -111,9 +114,10 @@ class RawOutputDFData:
             )
         progress_logger.increment_progress()
         progress_logger.log_section("processing dates!")
-        dates, n_days = process_raw_date_data(
-            raw_outputs.dates, raw_outputs.cumulative_days, year
+        dates, n_days = convert_raw_date_data(
+            raw_outputs.dates, raw_outputs.days_of_week, raw_outputs.cumulative_days, year
         )
+
         if raw_outputs.peak_outputs:
             progress_logger.log_section("generating peak tables!")
             peak_tables = generate_peak_tables(

@@ -6,7 +6,7 @@ MULTIPLE_ENVS_PATH = Path(TEST_FILES_PATH, "multiple_environments.eso")
 
 @pytest.fixture(scope="module")
 def eso_files():
-    return EsoFile.from_multi_env_eso_file(MULTIPLE_ENVS_PATH)
+    return EsoFile.from_multi_env_eso_file(MULTIPLE_ENVS_PATH, year=2017)
 
 
 def test_file_names(eso_files):
@@ -42,4 +42,4 @@ def test_ids(eso_files):
 
 def test_multienv_file_required():
     with pytest.raises(MultiEnvFileRequired):
-        EsoFile(MULTIPLE_ENVS_PATH)
+        EsoFile(MULTIPLE_ENVS_PATH, year=None)
