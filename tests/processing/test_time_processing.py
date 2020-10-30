@@ -1,6 +1,7 @@
-import pytest
-
-from esofile_reader.processing.esofile_intervals import *
+from esofile_reader.processing.esofile_time import *
+from esofile_reader.processing.extensions.esofile import read_file
+from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from tests.session_fixtures import *
 
 
 @pytest.mark.parametrize(
@@ -169,15 +170,9 @@ def test_update_start_dates():
         (2020, True, IntervalTuple(10, 28, 0, 0), "Wednesday"),
         (2020, True, IntervalTuple(2, 29, 0, 0), "Saturday"),
         (2020, True, IntervalTuple(1, 1, 0, 0), "Wednesday"),
-        (2020, True, None, None),
-        (2016, True, None, None),
-        (2000, True, None, None),
         (2002, False, IntervalTuple(10, 28, 0, 0), "Monday"),
         (2002, False, IntervalTuple(2, 28, 0, 0), "Thursday"),
         (2002, False, IntervalTuple(1, 1, 0, 0), "Tuesday"),
-        (1900, False, None, None),
-        (2001, False, None, None),
-        (1990, False, None, None),
     ],
 )
 def test_validate_year(year, is_leap, date, day):
@@ -226,36 +221,6 @@ def test_is_leap_year_ts_to_d(dates, expected):
 
 
 @pytest.mark.parametrize(
-    "interval, dates, n_days, expected",
-    [
-        (
-            M,
-            [IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0), IntervalTuple(3, 1, 0, 0),],
-            [31, 29, 31],
-            True,
-        ),
-        (
-            M,
-            [IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0), IntervalTuple(3, 1, 0, 0),],
-            [31, 28, 31],
-            False,
-        ),
-        (A, [IntervalTuple(1, 1, 0, 0),], [366], True),
-        (
-            M,
-            [IntervalTuple(3, 1, 0, 0), IntervalTuple(4, 1, 0, 0), IntervalTuple(5, 1, 0, 0),],
-            [31, 30, 31],
-            False,
-        ),
-        (A, [IntervalTuple(1, 1, 0, 0),], [365], False),
-        (RP, [IntervalTuple(1, 1, 0, 0)], [366], False,),
-    ],
-)
-def test_is_leap_year_m_to_rp(interval, dates, n_days, expected):
-    assert is_leap_year_m_to_rp(interval, dates, n_days) is expected
-
-
-@pytest.mark.parametrize(
     "is_leap, date, day, max_year, expected",
     [
         (True, IntervalTuple(2, 1, 0, 0), "Sunday", 2020, 2004),
@@ -297,3 +262,65 @@ def test_seek_year(is_leap, date, day, max_year, expected):
 )
 def test_get_allowed_years(is_leap, date, day, max_year, expected):
     assert get_allowed_years(is_leap, date, day, max_year, n_samples=3) == expected
+
+
+@pytest.mark.parametrize(
+    "drop_intervals, year, expected_start_end",
+    [
+        (
+            [],
+            None,
+            {
+                TS: (datetime(2020, 1, 1, 0, 30), datetime(2021, 1, 1, 0)),
+                H: (datetime(2020, 1, 1, 1, 0), datetime(2021, 1, 1, 0)),
+                D: (datetime(2020, 1, 1), datetime(2020, 12, 31, 0)),
+                M: (datetime(2020, 1, 1), datetime(2020, 12, 1, 0)),
+                A: (datetime(2020, 1, 1), datetime(2020, 1, 1)),
+                RP: (datetime(2020, 1, 1), datetime(2020, 1, 1)),
+            },
+        ),
+        (
+            [TS, H, D],
+            None,
+            {
+                M: (datetime(2002, 1, 1), datetime(2002, 12, 1, 0)),
+                A: (datetime(2002, 1, 1), datetime(2002, 1, 1)),
+                RP: (datetime(2002, 1, 1), datetime(2002, 1, 1)),
+            },
+        ),
+        (
+            [],
+            2020,
+            {
+                TS: (datetime(2020, 1, 1, 0, 30), datetime(2021, 1, 1, 0)),
+                H: (datetime(2020, 1, 1, 1, 0), datetime(2021, 1, 1, 0)),
+                D: (datetime(2020, 1, 1), datetime(2020, 12, 31, 0)),
+                M: (datetime(2020, 1, 1), datetime(2020, 12, 1, 0)),
+                A: (datetime(2020, 1, 1), datetime(2020, 1, 1)),
+                RP: (datetime(2020, 1, 1), datetime(2020, 1, 1)),
+            },
+        ),
+        (
+            [TS, H, D],
+            2010,
+            {
+                M: (datetime(2010, 1, 1), datetime(2010, 12, 1, 0)),
+                A: (datetime(2010, 1, 1), datetime(2010, 1, 1)),
+                RP: (datetime(2010, 1, 1), datetime(2010, 1, 1)),
+            },
+        ),
+    ],
+)
+def test_convert_raw_date_data(drop_intervals, year, expected_start_end):
+    with open(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), "r") as file:
+        logger = EsoFileProgressLogger("foo")
+        with logger.log_task("Test leap year"):
+            all_raw_outputs = read_file(file, logger)
+            raw_outputs = all_raw_outputs[-1]
+            for interval in drop_intervals:
+                raw_outputs.remove_interval_data(interval)
+
+            dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, year)
+            for interval, date_arr in dates.items():
+                assert date_arr[0] == expected_start_end[interval][0]
+                assert date_arr[-1] == expected_start_end[interval][1]

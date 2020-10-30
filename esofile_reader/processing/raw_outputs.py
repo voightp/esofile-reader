@@ -1,13 +1,14 @@
+import contextlib
 from collections import defaultdict
 from copy import deepcopy
 from math import nan
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 
 from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.esofile_intervals import convert_raw_date_data
+from esofile_reader.processing.esofile_time import convert_raw_date_data, get_n_days
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
 
@@ -42,6 +43,15 @@ class RawOutputData:
             self.cumulative_days,
             self.days_of_week,
         ) = self.initialize_results_bins(ignore_peaks)
+
+    @classmethod
+    def sanitize_output_data(cls, all_raw_outputs: List["RawOutputData"]):
+        """ Remove invalid data. """
+        for raw_outputs in all_raw_outputs:
+            if raw_outputs.is_sizing_environment():
+                for interval in (M, A, RP):
+                    raw_outputs.remove_interval_data(interval)
+        return all_raw_outputs
 
     def initialize_results_bins(
         self, ignore_peaks: bool
@@ -81,6 +91,29 @@ class RawOutputData:
     def get_n_tables(self):
         return len(self.outputs) + 0 if self.peak_outputs is None else len(self.peak_outputs)
 
+    def remove_interval_data(self, interval: str) -> None:
+        attributes = [
+            self.header,
+            self.outputs,
+            self.peak_outputs,
+            self.dates,
+            self.cumulative_days,
+            self.days_of_week,
+        ]
+        for attr in attributes:
+            with contextlib.suppress(KeyError):
+                del attr[interval]
+
+    def is_sizing_environment(self) -> bool:
+        if self.days_of_week:
+            sample_values = next(iter(self.days_of_week.values()))
+            return sample_values[0] in ["WinterDesignDay", "SummerDesignDay"]
+        else:
+            return (
+                "summer design day" in self.environment_name.lower()
+                or "winter design day" in self.environment_name.lower()
+            )
+
 
 class RawOutputDFData:
     def __init__(
@@ -114,9 +147,8 @@ class RawOutputDFData:
             )
         progress_logger.increment_progress()
         progress_logger.log_section("processing dates!")
-        dates, n_days = convert_raw_date_data(
-            raw_outputs.dates, raw_outputs.days_of_week, raw_outputs.cumulative_days, year
-        )
+        n_days = get_n_days(raw_outputs.dates, raw_outputs.cumulative_days)
+        dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, year)
 
         if raw_outputs.peak_outputs:
             progress_logger.log_section("generating peak tables!")

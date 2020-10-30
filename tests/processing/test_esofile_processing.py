@@ -7,7 +7,7 @@ import numpy as np
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
 from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile_intervals import convert_raw_date_data
+from esofile_reader.processing.esofile_time import convert_raw_date_data
 from esofile_reader.processing.extensions.esofile import (
     process_statement_line,
     process_header_line,
@@ -46,7 +46,7 @@ def raw_outputs(all_raw_outputs):
 
 
 @pytest.fixture(scope="function")
-def duplicate_variable_eso_file():
+def duplicate_variable_file():
     return EsoFile(
         Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), EsoFileProgressLogger("foo"),
     )
@@ -277,13 +277,10 @@ def test_read_body_day_of_week(raw_outputs, interval, values):
     ],
 )
 def test_generate_peak_tables(raw_outputs, peak, interval, shape):
-    cumulative_days = raw_outputs.cumulative_days
     header = raw_outputs.header
     raw_peak_outputs = raw_outputs.peak_outputs
     logger = EsoFileProgressLogger("foo")
-    dates, n_days = convert_raw_date_data(
-        raw_outputs.dates, raw_outputs.days_of_week, cumulative_days, 2002
-    )
+    dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
@@ -303,9 +300,7 @@ def test_generate_df_tables(raw_outputs, interval, shape):
     header = raw_outputs.header
     outputs = raw_outputs.outputs
     logger = EsoFileProgressLogger("foo")
-    dates, n_days = convert_raw_date_data(
-        raw_outputs.dates, raw_outputs.days_of_week, raw_outputs.cumulative_days, 2002
-    )
+    dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = generate_df_tables(outputs, header, dates, logger)
     assert outputs[interval].shape == shape
 
@@ -405,9 +400,9 @@ def test_hourly_results_only():
 
 
 @pytest.mark.parametrize("table, id_", [(M, 137), (RP, 138)])
-def test_remove_duplicate_variable(duplicate_variable_eso_file, table, id_):
+def test_remove_duplicate_variable(duplicate_variable_file, table, id_):
     with pytest.raises(KeyError):
-        _ = duplicate_variable_eso_file.tables.get_results_df(table, [id_])
+        _ = duplicate_variable_file.tables.get_results_df(table, [id_])
 
 
 @pytest.mark.parametrize(
@@ -417,12 +412,17 @@ def test_remove_duplicate_variable(duplicate_variable_eso_file, table, id_):
         (Variable(RP, "BLOCK1:ZONE1", "Zone Mean Radiant Temperature", "C"), 136),
     ],
 )
-def test_remove_duplicate_variable_from_tree(
-    duplicate_variable_eso_file, variable, expected_id
-):
-    assert duplicate_variable_eso_file.find_id(variable) == [expected_id]
+def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, expected_id):
+    assert duplicate_variable_file.find_id(variable) == [expected_id]
 
 
-# @pytest.mark.parametrize("drop_tables")
-# def test_leap_year_eso_file(drop_tables):
-#     ef = EsoFile(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"))
+def test_multiple_env_eso_file():
+    eso_files = EsoFile.from_multi_env_eso_file(
+        Path(TEST_FILES_PATH, "multiple_environments.eso"), year=None
+    )
+    sizing_tables = [TS, H]
+    all_tables = [M, TS, H]
+    for i, ef in enumerate(eso_files):
+        # first env on test file is normal, remaining ones report 'Sizing' day
+        expected_tables = sizing_tables if i > 0 else all_tables
+        assert ef.table_names == expected_tables

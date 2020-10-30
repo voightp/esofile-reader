@@ -46,7 +46,7 @@ def read_body(
 def count_tables(all_raw_outputs: List[RawOutputData]) -> int: ...
 
 
-def process_raw_file_content(
+def create_raw_df_outputs(
     all_raw_outputs: List[RawOutputData],
     year: int,
     progress_logger: EsoFileProgressLogger
@@ -55,18 +55,10 @@ def process_raw_file_content(
 
 def read_file(
     file: TextIO, progress_logger: EsoFileProgressLogger, ignore_peaks: bool = True
-) -> Tuple[
-    List[str],
-    List[Dict[str, dict]],
-    List[Optional[Dict[str, dict]]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    List[Dict[str, list]],
-    Dict[str, Dict[int, Variable]]
-]: ...
+) -> List[RawOutputData]: ...
 
 
-def count_lines(file_path: Union[str, Path]): ...
+def count_lines(file_path: Union[str, Path]) -> int: ...
 
 
 def preprocess_file(

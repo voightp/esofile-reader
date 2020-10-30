@@ -1,7 +1,7 @@
 import calendar
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import LeapYearMismatch, StartDayMismatch
@@ -103,11 +103,8 @@ def check_year_increment(
     if first_step_data is current_step_data:
         # do not increment first step
         return False
-    elif first_step_data == current_step_data:
+    elif first_step_data >= current_step_data:
         # duplicate date -> increment year
-        return True
-    elif first_step_data > current_step_data:
-        # current date comes earlier than first -> increment year
         return True
     else:
         return False
@@ -143,7 +140,7 @@ def update_start_dates(dates: Dict[str, List[datetime]]) -> Dict[str, List[datet
     return dates
 
 
-def process_cumulative_days(
+def get_n_days(
     raw_dates: Dict[str, List[IntervalTuple]], cumulative_days: Dict[str, List[int]]
 ) -> Optional[Dict[str, List[int]]]:
     """ Convert cumulative days to number of days pers step. """
@@ -156,82 +153,49 @@ def process_cumulative_days(
     return num_of_days
 
 
-def validate_year(
-    year: int, is_leap: bool, date: Optional[IntervalTuple], day: Optional[str]
-) -> None:
+def validate_year(year: int, is_leap: bool, date: IntervalTuple, day: str) -> None:
     """ Check if date for given and day corresponds to specified year. """
-    if (date and not day) or (not date and day):
-        raise ValueError(
-            "Both 'date' and 'day' arguments need to be either specified"
-            " or set to 'None' to check only for leap year."
-        )
     if calendar.isleap(year) is is_leap:
-        if date:
-            test_datetime = datetime(year, date.month, date.day)
-            test_day = test_datetime.strftime("%A")
-            if day != test_day and day not in ("SummerDesignDay", "WinterDesignDay",):
-                max_year = REFERENCE_YEAR + 10  # give some choices from future
-                suitable_years = get_allowed_years(is_leap, date, day, max_year, n_samples=3)
-                raise StartDayMismatch(
-                    f"Start day '{day}' for given day '{test_datetime.strftime('%Y-%m-%d')}'"
-                    f" does not correspond to real calendar day '{test_day}'!"
-                    f"\nEither set 'year' kwarg as 'None' to identify year automatically"
-                    f" or use one of '{suitable_years}'."
-                )
+        test_datetime = datetime(year, date.month, date.day)
+        test_day = test_datetime.strftime("%A")
+        if day != test_day and day not in ("SummerDesignDay", "WinterDesignDay",):
+            max_year = REFERENCE_YEAR + 10  # give some choices from future
+            suitable_years = get_allowed_years(is_leap, date, day, max_year, n_samples=3)
+            raise StartDayMismatch(
+                f"Start day '{day}' for given day '{test_datetime.strftime('%Y-%m-%d')}'"
+                f" does not correspond to real calendar day '{test_day}'!"
+                f"\nEither set 'year' kwarg as 'None' to identify year automatically"
+                f" or use one of '{suitable_years}'."
+            )
     else:
         raise LeapYearMismatch(
             f"Specified year '{year}' does not match expected calendar data!"
             f" Outputs are reported for {'leap' if is_leap else 'standard'} year"
             f" but given year '{year}' is {'standard' if is_leap else 'leap'}."
             f" Either set 'year' kwarg as 'None' to seek year automatically"
-            f" or use an actual {'leap' if is_leap else 'standard'} year."
+            f" or use {'leap' if is_leap else 'standard'} year."
         )
 
 
 def is_leap_year_ts_to_d(raw_dates_arr: List[IntervalTuple]) -> bool:
-    """ Check if raw dates include 29th of February. """
+    """ Check if first year is leap based on timestep, hourly or daily data. """
     for tup in raw_dates_arr:
         if (tup.month, tup.day) == (2, 29):
             return True
-    else:
-        return False
-
-
-def is_leap_year_m_to_rp(
-    interval: str, raw_dates_arr: List[IntervalTuple], n_days_arr: List[int]
-) -> bool:
-    """ Check if outputs for given interval ale reported for leap year. """
-    if interval == M:
-        try:
-            # check if February has 29 days
-            index = raw_dates_arr.index(IntervalTuple(2, 1, 0, 0))
-            return n_days_arr[index] == 29
-        except ValueError:
-            # February is not included
+        elif check_year_increment(raw_dates_arr[0], tup):
+            # stop once first year is covered
             return False
-    elif interval == A:
-        # check if there's 366 days in year
-        return n_days_arr[0] == 366
     else:
         return False
 
 
-def seek_year(
-    is_leap: bool, date: Optional[IntervalTuple], day: Optional[str], max_year: int
-) -> int:
+def seek_year(is_leap: bool, date: IntervalTuple, day: str, max_year: int) -> int:
     """ Find first year matching given criteria. """
     for year in range(max_year, 0, -1):
         if calendar.isleap(year) is is_leap:
-            if date:
-                test_datetime = datetime(year, date.month, date.day)
-                test_start_day = test_datetime.strftime("%A")
-                if day == test_start_day:
-                    break
-                elif day in ("SummerDesignDay", "WinterDesignDay"):
-                    logging.info("Sizing simulation, setting year to 2002.")
-                    year = 2002
-                    break
-            else:
+            test_datetime = datetime(year, date.month, date.day)
+            test_start_day = test_datetime.strftime("%A")
+            if day == test_start_day:
                 break
     else:
         raise ValueError(
@@ -244,11 +208,7 @@ def seek_year(
 
 
 def get_allowed_years(
-    is_leap: bool,
-    first_date: Optional[IntervalTuple],
-    first_day: Optional[str],
-    max_year: int,
-    n_samples: int = 4,
+    is_leap: bool, first_date: IntervalTuple, first_day: str, max_year: int, n_samples: int = 4,
 ) -> List[int]:
     """ Get a sample of allowed years for given conditions. """
     allowed_years = []
@@ -261,26 +221,7 @@ def get_allowed_years(
 
 def get_lowest_interval(all_intervals: List[str]) -> str:
     """ Find the shortest interval from given ones. """
-    return next((interval for interval in (TS, H, D, A, RP) if interval in all_intervals))
-
-
-def get_info_from_raw_data(
-    raw_dates: Dict[str, List[IntervalTuple]],
-    days_of_week: Dict[str, List[str]],
-    n_days: Dict[str, List[int]],
-) -> Tuple[bool, Optional[IntervalTuple], Optional[str]]:
-    """ Gather available """
-    lowest_interval = get_lowest_interval(list(raw_dates.keys()))
-    lowest_interval_values = raw_dates[lowest_interval]
-    if lowest_interval in {TS, H, D}:
-        is_leap = is_leap_year_ts_to_d(lowest_interval_values)
-        first_day = days_of_week[lowest_interval][0]
-        first_date = lowest_interval_values[0]
-    else:
-        n_days_arr = n_days[lowest_interval]
-        is_leap = is_leap_year_m_to_rp(lowest_interval, lowest_interval_values, n_days_arr)
-        first_date, first_day = None, None
-    return is_leap, first_date, first_day
+    return next((interval for interval in (TS, H, D, M, A, RP) if interval in all_intervals))
 
 
 def convert_raw_dates(
@@ -296,15 +237,24 @@ def convert_raw_dates(
 def convert_raw_date_data(
     raw_dates: Dict[str, List[IntervalTuple]],
     days_of_week: Dict[str, List[str]],
-    cumulative_days: Dict[str, List[int]],
     year: Optional[int],
-) -> Tuple[Dict[str, List[datetime]], Dict[str, List[int]]]:
+) -> Dict[str, List[datetime]]:
     """ Convert EnergyPlus dates into standard datetime format. """
-    n_days = process_cumulative_days(raw_dates, cumulative_days)
-    is_leap, first_date, first_day = get_info_from_raw_data(raw_dates, days_of_week, n_days)
-    if year is None:
-        year = seek_year(is_leap, first_date, first_day, REFERENCE_YEAR)
+    lowest_interval = get_lowest_interval(list(raw_dates.keys()))
+    if lowest_interval in {TS, H, D}:
+        lowest_interval_values = raw_dates[lowest_interval]
+        is_leap = is_leap_year_ts_to_d(lowest_interval_values)
+        first_date = lowest_interval_values[0]
+        first_day = days_of_week[lowest_interval][0]
+        if first_day in ("SummerDesignDay", "WinterDesignDay"):
+            logging.info("Sizing simulation, setting year to 2002.")
+            year = 2002
+        if year is None:
+            year = seek_year(is_leap, first_date, first_day, REFERENCE_YEAR)
+        else:
+            validate_year(year, is_leap, first_date, first_day)
     else:
-        validate_year(year, is_leap, first_date, first_day)
+        # allow any year defined or set EnergyPlus default 2002
+        year = year if year else 2002
     dates = convert_raw_dates(raw_dates, year)
-    return update_start_dates(dates), n_days
+    return update_start_dates(dates)

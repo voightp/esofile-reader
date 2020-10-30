@@ -77,6 +77,11 @@ cpdef tuple process_header_line(str line):
         type_ = key
         key = "Cumulative Meter" if "Cumulative" in key else "Meter"
 
+    # regex matches only 'Each' from 'Each Call', since it's reported in TimeStep
+    # put it into the same bin, if this would duplicate other variable, it will be deleted
+    if interval == "Each":
+        interval = "TimeStep"
+
     return line_id, key, type_, units, interval.lower()
 
 
@@ -358,7 +363,7 @@ def count_tables(all_raw_outputs: List[RawOutputData]) -> int:
     return sum(raw_outputs.get_n_tables() for raw_outputs in all_raw_outputs)
 
 
-def process_raw_file_content(
+def create_raw_df_outputs(
     all_raw_outputs: List[RawOutputData],
     year: Optional[int],
     progress_logger: EsoFileProgressLogger
@@ -373,9 +378,7 @@ def process_raw_file_content(
     return all_raw_df_outputs
 
 
-cpdef read_file(
-    object file,object progress_logger,object ignore_peaks = True
-):
+cpdef read_file(object file, object progress_logger, object ignore_peaks = True):
     """ Read raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -398,7 +401,9 @@ cpdef read_file(
 
     # Read body to obtain outputs and environment dictionaries
     progress_logger.log_section("processing data!")
-    return read_body(file, last_standard_item_id, header, ignore_peaks, progress_logger)
+    all_raw_outputs = read_body(file, last_standard_item_id, header, ignore_peaks, progress_logger)
+
+    return RawOutputData.sanitize_output_data(all_raw_outputs)
 
 
 @cython.boundscheck(False)
@@ -427,11 +432,11 @@ def preprocess_file(
     progress_logger.set_new_maximum_progress(maximum)
 
 
-cpdef process_eso_file(
-    object file_path,
-    object progress_logger,
-    object ignore_peaks,
-    object year = None
+def process_eso_file(
+    file_path: Union[str, Path],
+    progress_logger: EsoFileProgressLogger,
+    ignore_peaks: bool = True,
+    year: int = None
 ):
     """ Open the eso file and trigger file processing. """
     preprocess_file(file_path, progress_logger)
@@ -440,4 +445,4 @@ cpdef process_eso_file(
             all_raw_outputs = read_file(file, progress_logger, ignore_peaks=ignore_peaks)
     except StopIteration:
         raise IncompleteFile(f"File is not complete!")
-    return process_raw_file_content(all_raw_outputs, year, progress_logger)
+    return create_raw_df_outputs(all_raw_outputs, year, progress_logger)

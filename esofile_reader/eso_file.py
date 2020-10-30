@@ -1,15 +1,14 @@
-import os
 from copy import copy
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from esofile_reader.abstractions.base_file import BaseFile, get_file_information
+from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.df.df_tables import DFTables
 
 try:
     from esofile_reader.processing.extensions.esofile import process_eso_file
@@ -139,9 +138,7 @@ class EsoFile(ResultsEsoFile):
         if progress_logger is None:
             progress_logger = EsoFileProgressLogger(Path(file_path).name)
         with progress_logger.log_task("Process eso file data!"):
-            file_path = Path(file_path)
-            file_name = file_path.stem
-            file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))
+            file_path, file_name, file_created = get_file_information(file_path)
             all_raw_df_outputs = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
             )
@@ -158,6 +155,6 @@ class EsoFile(ResultsEsoFile):
                 raise MultiEnvFileRequired(
                     f"Cannot populate file {file_path}. "
                     f"as there are multiple environments included.\n"
-                    f"Use '{super().__class__.__name__}.process_multi_env_file' "
+                    f"Use '{type(self)}.from_multi_env_eso_file' "
                     f"to generate multiple files."
                 )

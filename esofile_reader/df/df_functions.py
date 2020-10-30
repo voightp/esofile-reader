@@ -5,7 +5,7 @@ from typing import Sequence, Optional, List
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_intervals import combine_peak_result_datetime
+from esofile_reader.processing.esofile_time import combine_peak_result_datetime
 
 
 def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:
