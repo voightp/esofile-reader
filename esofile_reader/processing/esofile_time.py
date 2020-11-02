@@ -192,7 +192,11 @@ def is_leap_year_ts_to_d(raw_dates_arr: List[IntervalTuple]) -> bool:
 def seek_year(is_leap: bool, date: IntervalTuple, day: str, max_year: int) -> int:
     """ Find first year matching given criteria. """
     for year in range(max_year, 0, -1):
-        if calendar.isleap(year) is is_leap:
+        if day in ("SummerDesignDay", "WinterDesignDay"):
+            logging.info("Sizing simulation, setting year to 2002.")
+            year = 2002
+            break
+        elif calendar.isleap(year) is is_leap:
             test_datetime = datetime(year, date.month, date.day)
             test_start_day = test_datetime.strftime("%A")
             if day == test_start_day:
@@ -246,9 +250,6 @@ def convert_raw_date_data(
         is_leap = is_leap_year_ts_to_d(lowest_interval_values)
         first_date = lowest_interval_values[0]
         first_day = days_of_week[lowest_interval][0]
-        if first_day in ("SummerDesignDay", "WinterDesignDay"):
-            logging.info("Sizing simulation, setting year to 2002.")
-            year = 2002
         if year is None:
             year = seek_year(is_leap, first_date, first_day, REFERENCE_YEAR)
         else:
