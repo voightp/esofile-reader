@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, TextIO, Optional, Union
 
-from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
 
@@ -26,12 +26,12 @@ def read_header(
 
 def process_sub_monthly_interval_line(
     line_id: int, data: List[str]
-) -> Tuple[str, IntervalTuple, str]: ...
+) -> Tuple[str, EsoTimestamp, str]: ...
 
 
 def process_monthly_plus_interval_line(
     line_id: int, data: List[str]
-) -> Tuple[str, IntervalTuple, Optional[int]]: ...
+) -> Tuple[str, EsoTimestamp, Optional[int]]: ...
 
 
 def read_body(

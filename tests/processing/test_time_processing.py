@@ -7,17 +7,17 @@ from tests.session_fixtures import *
 @pytest.mark.parametrize(
     "year,interval_tuple,expected",
     [
-        (2002, IntervalTuple(1, 1, 0, 0), datetime(2002, 1, 1, 0, 0)),
-        (2002, IntervalTuple(1, 1, 1, 30), datetime(2002, 1, 1, 0, 30)),
-        (2002, IntervalTuple(12, 31, 24, 60), datetime(2003, 1, 1, 0, 0)),
-        (2002, IntervalTuple(10, 31, 24, 60), datetime(2002, 11, 1, 0, 0)),
-        (2002, IntervalTuple(10, 25, 24, 60), datetime(2002, 10, 26, 0, 0, 0)),
-        (2002, IntervalTuple(10, 25, 22, 60), datetime(2002, 10, 25, 22, 0, 0)),
-        (2002, IntervalTuple(10, 25, 22, 10), datetime(2002, 10, 25, 21, 10, 0)),
+        (2002, EsoTimestamp(1, 1, 0, 0), datetime(2002, 1, 1, 0, 0)),
+        (2002, EsoTimestamp(1, 1, 1, 30), datetime(2002, 1, 1, 0, 30)),
+        (2002, EsoTimestamp(12, 31, 24, 60), datetime(2003, 1, 1, 0, 0)),
+        (2002, EsoTimestamp(10, 31, 24, 60), datetime(2002, 11, 1, 0, 0)),
+        (2002, EsoTimestamp(10, 25, 24, 60), datetime(2002, 10, 26, 0, 0, 0)),
+        (2002, EsoTimestamp(10, 25, 22, 60), datetime(2002, 10, 25, 22, 0, 0)),
+        (2002, EsoTimestamp(10, 25, 22, 10), datetime(2002, 10, 25, 21, 10, 0)),
     ],
 )
 def test_parse_eplus_datetime(year, interval_tuple, expected):
-    assert parse_eplus_datetime(year, *interval_tuple) == expected
+    assert parse_eplus_timestamp(year, *interval_tuple) == expected
 
 
 @pytest.mark.parametrize(
@@ -66,10 +66,10 @@ def test_get_num_of_days():
 @pytest.mark.parametrize(
     "first_step_data,current_step_data,increment",
     [
-        (IntervalTuple(1, 1, 0, 0), IntervalTuple(1, 1, 0, 0), True),
-        (IntervalTuple(2, 1, 0, 0), IntervalTuple(1, 1, 0, 0), True),
-        (IntervalTuple(1, 1, 1, 0), IntervalTuple(12, 31, 24, 60), False),
-        (IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 1, 0), True),
+        (EsoTimestamp(1, 1, 0, 0), EsoTimestamp(1, 1, 0, 0), True),
+        (EsoTimestamp(2, 1, 0, 0), EsoTimestamp(1, 1, 0, 0), True),
+        (EsoTimestamp(1, 1, 1, 0), EsoTimestamp(12, 31, 24, 60), False),
+        (EsoTimestamp(1, 1, 1, 0), EsoTimestamp(1, 1, 1, 0), True),
     ],
     ids=["monthly", "monthly", "daily", "daily"],
 )
@@ -80,8 +80,8 @@ def test_increment_year(first_step_data, current_step_data, increment):
 @pytest.mark.parametrize(
     "first_step_data,current_step_data",
     [
-        (IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0)),
-        (IntervalTuple(1, 1, 1, 0), IntervalTuple(1, 1, 2, 0)),
+        (EsoTimestamp(1, 1, 0, 0), EsoTimestamp(2, 1, 0, 0)),
+        (EsoTimestamp(1, 1, 1, 0), EsoTimestamp(1, 1, 2, 0)),
     ],
     ids=["monthly", "daily"],
 )
@@ -94,7 +94,7 @@ def test_do_not_increment_year_monthly(first_step_data, current_step_data):
     [
         (
             2002,
-            [IntervalTuple(1, 1, 0, 0), IntervalTuple(2, 1, 0, 0), IntervalTuple(3, 1, 0, 0)],
+            [EsoTimestamp(1, 1, 0, 0), EsoTimestamp(2, 1, 0, 0), EsoTimestamp(3, 1, 0, 0)],
             [
                 datetime(2002, 1, 1, 0, 0, 0),
                 datetime(2002, 2, 1, 0, 0, 0),
@@ -104,9 +104,9 @@ def test_do_not_increment_year_monthly(first_step_data, current_step_data):
         (
             2002,
             [
-                IntervalTuple(12, 31, 23, 60),
-                IntervalTuple(12, 31, 24, 60),
-                IntervalTuple(1, 1, 1, 60),
+                EsoTimestamp(12, 31, 23, 60),
+                EsoTimestamp(12, 31, 24, 60),
+                EsoTimestamp(1, 1, 1, 60),
             ],
             [
                 datetime(2002, 12, 31, 23, 0, 0),
@@ -123,14 +123,14 @@ def test_generate_timestamp_dates(year, interval_tuples, expected):
 def test_convert_to_dt_index():
     env_dct = {
         "hourly": [
-            IntervalTuple(12, 31, 23, 60),
-            IntervalTuple(12, 31, 24, 60),
-            IntervalTuple(1, 1, 1, 60),
+            EsoTimestamp(12, 31, 23, 60),
+            EsoTimestamp(12, 31, 24, 60),
+            EsoTimestamp(1, 1, 1, 60),
         ],
         "monthly": [
-            IntervalTuple(1, 1, 0, 0),
-            IntervalTuple(2, 1, 0, 0),
-            IntervalTuple(3, 1, 0, 0),
+            EsoTimestamp(1, 1, 0, 0),
+            EsoTimestamp(2, 1, 0, 0),
+            EsoTimestamp(3, 1, 0, 0),
         ],
     }
     dates = convert_raw_dates(env_dct, 2002)
@@ -167,12 +167,12 @@ def test_update_start_dates():
 @pytest.mark.parametrize(
     "year, is_leap, date, day",
     [
-        (2020, True, IntervalTuple(10, 28, 0, 0), "Wednesday"),
-        (2020, True, IntervalTuple(2, 29, 0, 0), "Saturday"),
-        (2020, True, IntervalTuple(1, 1, 0, 0), "Wednesday"),
-        (2002, False, IntervalTuple(10, 28, 0, 0), "Monday"),
-        (2002, False, IntervalTuple(2, 28, 0, 0), "Thursday"),
-        (2002, False, IntervalTuple(1, 1, 0, 0), "Tuesday"),
+        (2020, True, EsoTimestamp(10, 28, 0, 0), "Wednesday"),
+        (2020, True, EsoTimestamp(2, 29, 0, 0), "Saturday"),
+        (2020, True, EsoTimestamp(1, 1, 0, 0), "Wednesday"),
+        (2002, False, EsoTimestamp(10, 28, 0, 0), "Monday"),
+        (2002, False, EsoTimestamp(2, 28, 0, 0), "Thursday"),
+        (2002, False, EsoTimestamp(1, 1, 0, 0), "Tuesday"),
     ],
 )
 def test_validate_year(year, is_leap, date, day):
@@ -182,10 +182,10 @@ def test_validate_year(year, is_leap, date, day):
 @pytest.mark.parametrize(
     "year, is_leap, date, day, error",
     [
-        (2019, True, IntervalTuple(10, 28, 0, 0), "Wednesday", LeapYearMismatch),
+        (2019, True, EsoTimestamp(10, 28, 0, 0), "Wednesday", LeapYearMismatch),
         (2001, True, None, None, LeapYearMismatch),
-        (2002, False, IntervalTuple(10, 28, 0, 0), "Tuesday", StartDayMismatch),
-        (2020, True, IntervalTuple(1, 1, 0, 0), "Friday", StartDayMismatch),
+        (2002, False, EsoTimestamp(10, 28, 0, 0), "Tuesday", StartDayMismatch),
+        (2020, True, EsoTimestamp(1, 1, 0, 0), "Friday", StartDayMismatch),
     ],
 )
 def test_validate_year_incorrect(year, is_leap, date, day, error):
@@ -198,19 +198,19 @@ def test_validate_year_incorrect(year, is_leap, date, day, error):
     [
         (
             [
-                IntervalTuple(2, 28, 0, 0),
-                IntervalTuple(2, 29, 0, 0),
-                IntervalTuple(3, 1, 0, 0),
-                IntervalTuple(3, 2, 0, 0),
+                EsoTimestamp(2, 28, 0, 0),
+                EsoTimestamp(2, 29, 0, 0),
+                EsoTimestamp(3, 1, 0, 0),
+                EsoTimestamp(3, 2, 0, 0),
             ],
             True,
         ),
         (
             [
-                IntervalTuple(2, 27, 0, 0),
-                IntervalTuple(2, 28, 0, 0),
-                IntervalTuple(3, 1, 0, 0),
-                IntervalTuple(3, 2, 0, 0),
+                EsoTimestamp(2, 27, 0, 0),
+                EsoTimestamp(2, 28, 0, 0),
+                EsoTimestamp(3, 1, 0, 0),
+                EsoTimestamp(3, 2, 0, 0),
             ],
             False,
         ),
@@ -223,20 +223,20 @@ def test_is_leap_year_ts_to_d(dates, expected):
 @pytest.mark.parametrize(
     "is_leap, date, day, max_year, expected",
     [
-        (True, IntervalTuple(2, 1, 0, 0), "Sunday", 2020, 2004),
-        (True, IntervalTuple(2, 2, 0, 0), "Monday", 2020, 2004),
-        (True, IntervalTuple(2, 3, 0, 0), "Tuesday", 2020, 2004),
-        (True, IntervalTuple(2, 4, 0, 0), "Wednesday", 2020, 2004),
-        (True, IntervalTuple(2, 5, 0, 0), "Thursday", 2020, 2004),
-        (True, IntervalTuple(2, 6, 0, 0), "Friday", 2020, 2004),
-        (True, IntervalTuple(2, 7, 0, 0), "Saturday", 2020, 2004),
-        (False, IntervalTuple(2, 1, 0, 0), "Sunday", 2020, 2015),
-        (False, IntervalTuple(2, 2, 0, 0), "Monday", 2020, 2015),
-        (False, IntervalTuple(2, 3, 0, 0), "Tuesday", 2020, 2015),
-        (False, IntervalTuple(2, 4, 0, 0), "Wednesday", 2020, 2015),
-        (False, IntervalTuple(2, 5, 0, 0), "Thursday", 2020, 2015),
-        (False, IntervalTuple(2, 6, 0, 0), "Friday", 2020, 2015),
-        (False, IntervalTuple(2, 7, 0, 0), "Saturday", 2020, 2015),
+        (True, EsoTimestamp(2, 1, 0, 0), "Sunday", 2020, 2004),
+        (True, EsoTimestamp(2, 2, 0, 0), "Monday", 2020, 2004),
+        (True, EsoTimestamp(2, 3, 0, 0), "Tuesday", 2020, 2004),
+        (True, EsoTimestamp(2, 4, 0, 0), "Wednesday", 2020, 2004),
+        (True, EsoTimestamp(2, 5, 0, 0), "Thursday", 2020, 2004),
+        (True, EsoTimestamp(2, 6, 0, 0), "Friday", 2020, 2004),
+        (True, EsoTimestamp(2, 7, 0, 0), "Saturday", 2020, 2004),
+        (False, EsoTimestamp(2, 1, 0, 0), "Sunday", 2020, 2015),
+        (False, EsoTimestamp(2, 2, 0, 0), "Monday", 2020, 2015),
+        (False, EsoTimestamp(2, 3, 0, 0), "Tuesday", 2020, 2015),
+        (False, EsoTimestamp(2, 4, 0, 0), "Wednesday", 2020, 2015),
+        (False, EsoTimestamp(2, 5, 0, 0), "Thursday", 2020, 2015),
+        (False, EsoTimestamp(2, 6, 0, 0), "Friday", 2020, 2015),
+        (False, EsoTimestamp(2, 7, 0, 0), "Saturday", 2020, 2015),
     ],
 )
 def test_seek_year(is_leap, date, day, max_year, expected):
@@ -246,18 +246,18 @@ def test_seek_year(is_leap, date, day, max_year, expected):
 @pytest.mark.parametrize(
     "is_leap, date, day, max_year, expected",
     [
-        (True, IntervalTuple(1, 1, 0, 0), "Sunday", 2030, [2012, 1984, 1956]),
-        (True, IntervalTuple(1, 1, 0, 0), "Monday", 2030, [2024, 1996, 1968]),
-        (True, IntervalTuple(1, 1, 0, 0), "Tuesday", 2030, [2008, 1980, 1952]),
-        (True, IntervalTuple(1, 1, 0, 0), "Wednesday", 2030, [2020, 1992, 1964]),
-        (True, IntervalTuple(1, 1, 0, 0), "Friday", 2030, [2016, 1988, 1960]),
-        (True, IntervalTuple(1, 1, 0, 0), "Saturday", 2030, [2028, 2000, 1972]),
-        (False, IntervalTuple(1, 1, 0, 0), "Sunday", 2030, [2023, 2017, 2006]),
-        (False, IntervalTuple(1, 1, 0, 0), "Monday", 2030, [2029, 2018, 2007]),
-        (False, IntervalTuple(1, 1, 0, 0), "Tuesday", 2030, [2030, 2019, 2013]),
-        (False, IntervalTuple(1, 1, 0, 0), "Wednesday", 2030, [2025, 2014, 2003]),
-        (False, IntervalTuple(1, 1, 0, 0), "Friday", 2030, [2027, 2021, 2010]),
-        (False, IntervalTuple(1, 1, 0, 0), "Saturday", 2030, [2022, 2011, 2005]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Sunday", 2030, [2012, 1984, 1956]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Monday", 2030, [2024, 1996, 1968]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Tuesday", 2030, [2008, 1980, 1952]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Wednesday", 2030, [2020, 1992, 1964]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Friday", 2030, [2016, 1988, 1960]),
+        (True, EsoTimestamp(1, 1, 0, 0), "Saturday", 2030, [2028, 2000, 1972]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Sunday", 2030, [2023, 2017, 2006]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Monday", 2030, [2029, 2018, 2007]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Tuesday", 2030, [2030, 2019, 2013]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Wednesday", 2030, [2025, 2014, 2003]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Friday", 2030, [2027, 2021, 2010]),
+        (False, EsoTimestamp(1, 1, 0, 0), "Saturday", 2030, [2022, 2011, 2005]),
     ],
 )
 def test_get_allowed_years(is_leap, date, day, max_year, expected):

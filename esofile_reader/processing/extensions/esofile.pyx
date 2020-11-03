@@ -8,7 +8,7 @@ import cython
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
 from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
 from esofile_reader.search_tree import Tree
@@ -173,7 +173,7 @@ def process_sub_monthly_interval_line(
         """ Process TS or H interval entry and return interval identifier. """
         # omit day of week in conversion
         items = [int(float(item)) for item in data[:-1]]
-        interval = IntervalTuple(items[1], items[2], items[4], items[6])
+        interval = EsoTimestamp(items[1], items[2], items[4], items[6])
 
         # check if interval is timestep or hourly interval
         if items[5] == 0 and items[6] == 60:
@@ -185,7 +185,7 @@ def process_sub_monthly_interval_line(
         """ Populate D list and return identifier. """
         # omit day of week in in conversion
         i = [int(item) for item in data[:-1]]
-        return D, IntervalTuple(i[1], i[2], 0, 0), data[-1].strip()
+        return D, EsoTimestamp(i[1], i[2], 0, 0), data[-1].strip()
 
     categories = {
         TIMESTEP_OR_HOURLY_LINE: parse_timestep_or_hourly_interval,
@@ -223,15 +223,15 @@ def process_monthly_plus_interval_line(
 
     def parse_monthly_interval():
         """ Populate M list and return identifier. """
-        return M, IntervalTuple(int(data[1]), 1, 0, 0), int(data[0])
+        return M, EsoTimestamp(int(data[1]), 1, 0, 0), int(data[0])
 
     def parse_runperiod_interval():
         """ Populate RP list and return identifier. """
-        return RP, IntervalTuple(1, 1, 0, 0), int(data[0])
+        return RP, EsoTimestamp(1, 1, 0, 0), int(data[0])
 
     def parse_annual_interval():
         """ Populate A list and return identifier. """
-        return A, IntervalTuple(1, 1, 0, 0), None
+        return A, EsoTimestamp(1, 1, 0, 0), None
 
     categories = {
         MONTHLY_LINE: parse_monthly_interval,

@@ -6,7 +6,7 @@ import numpy as np
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
-from esofile_reader.mini_classes import Variable, IntervalTuple
+from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.esofile_time import convert_raw_date_data
 from esofile_reader.processing.extensions.esofile import (
     process_statement_line,
@@ -139,14 +139,14 @@ def test_read_header_from_file(header_content, interval, id_, variable):
         (
             2,
             [" 1", " 2", " 3", " 0", "10.00", "0.00", "60.00", "Saturday"],
-            (H, IntervalTuple(2, 3, 10, 60), "Saturday",),
+            (H, EsoTimestamp(2, 3, 10, 60), "Saturday",),
         ),
         (
             2,
             [" 1", " 2", " 3", " 0", "10.00", "0.00", "30.00", "Saturday"],
-            (TS, IntervalTuple(2, 3, 10, 30), "Saturday",),
+            (TS, EsoTimestamp(2, 3, 10, 30), "Saturday",),
         ),
-        (3, [" 20", " 1", " 2", " 0", "Saturday"], (D, IntervalTuple(1, 2, 0, 0), "Saturday")),
+        (3, [" 20", " 1", " 2", " 0", "Saturday"], (D, EsoTimestamp(1, 2, 0, 0), "Saturday")),
     ],
 )
 def test_process_sub_monthly_interval_line(line_id, line, processed_line):
@@ -156,9 +156,9 @@ def test_process_sub_monthly_interval_line(line_id, line, processed_line):
 @pytest.mark.parametrize(
     "line_id,line,processed_line",
     [
-        (4, [" 58", " 1"], (M, IntervalTuple(1, 1, 0, 0), 58)),
-        (5, ["365"], (RP, IntervalTuple(1, 1, 0, 0), 365)),
-        (6, ["1"], (A, IntervalTuple(1, 1, 0, 0), None)),
+        (4, [" 58", " 1"], (M, EsoTimestamp(1, 1, 0, 0), 58)),
+        (5, ["365"], (RP, EsoTimestamp(1, 1, 0, 0), 365)),
+        (6, ["1"], (A, EsoTimestamp(1, 1, 0, 0), None)),
     ],
 )
 def test_process_monthly_plus_interval_line(line_id, line, processed_line):
@@ -233,15 +233,15 @@ def test_read_body_raw_peak_outputs(raw_outputs, interval, id_, values):
 @pytest.mark.parametrize(
     "interval,index,values",
     [
-        ("timestep", 0, IntervalTuple(month=6, day=30, hour=1, end_minute=30)),
-        ("timestep", -1, IntervalTuple(month=7, day=1, hour=24, end_minute=60)),
-        ("hourly", 0, IntervalTuple(month=6, day=30, hour=1, end_minute=60)),
-        ("hourly", -1, IntervalTuple(month=7, day=1, hour=24, end_minute=60)),
-        ("daily", 0, IntervalTuple(month=6, day=30, hour=0, end_minute=0)),
-        ("daily", -1, IntervalTuple(month=7, day=1, hour=0, end_minute=0)),
-        ("monthly", 0, IntervalTuple(month=6, day=1, hour=0, end_minute=0)),
-        ("monthly", 0, IntervalTuple(month=6, day=1, hour=0, end_minute=0)),
-        ("runperiod", -1, IntervalTuple(month=1, day=1, hour=0, end_minute=0)),
+        ("timestep", 0, EsoTimestamp(month=6, day=30, hour=1, end_minute=30)),
+        ("timestep", -1, EsoTimestamp(month=7, day=1, hour=24, end_minute=60)),
+        ("hourly", 0, EsoTimestamp(month=6, day=30, hour=1, end_minute=60)),
+        ("hourly", -1, EsoTimestamp(month=7, day=1, hour=24, end_minute=60)),
+        ("daily", 0, EsoTimestamp(month=6, day=30, hour=0, end_minute=0)),
+        ("daily", -1, EsoTimestamp(month=7, day=1, hour=0, end_minute=0)),
+        ("monthly", 0, EsoTimestamp(month=6, day=1, hour=0, end_minute=0)),
+        ("monthly", 0, EsoTimestamp(month=6, day=1, hour=0, end_minute=0)),
+        ("runperiod", -1, EsoTimestamp(month=1, day=1, hour=0, end_minute=0)),
     ],
 )
 def test_read_body_raw_dates(raw_outputs, interval, index, values):

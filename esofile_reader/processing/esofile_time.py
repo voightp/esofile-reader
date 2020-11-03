@@ -5,10 +5,10 @@ from typing import List, Dict, Optional
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import LeapYearMismatch, StartDayMismatch
-from esofile_reader.mini_classes import IntervalTuple
+from esofile_reader.mini_classes import EsoTimestamp
 
 
-def parse_eplus_datetime(
+def parse_eplus_timestamp(
     year: int, month: int, day: int, hour: int, end_minute: int
 ) -> datetime:
     """
@@ -45,15 +45,15 @@ def combine_peak_result_datetime(
     if month is not None:
         # Runperiod results, all the timestamp information is
         # available in the output tuple
-        new_datetime = parse_eplus_datetime(date.year, month, day, hour, end_min)
+        new_datetime = parse_eplus_timestamp(date.year, month, day, hour, end_min)
     elif day is not None:
         # Monthly results, month needs to be extracted from the datetime
         # index of the output, other line is available in the output tuple
-        new_datetime = parse_eplus_datetime(date.year, date.month, day, hour, end_min)
+        new_datetime = parse_eplus_timestamp(date.year, date.month, day, hour, end_min)
     else:
         # Daily outputs, month and day is extracted from the datetime
         # index, hour and end minute is is taken from the output tuple
-        new_datetime = parse_eplus_datetime(date.year, date.month, date.day, hour, end_min)
+        new_datetime = parse_eplus_timestamp(date.year, date.month, date.day, hour, end_min)
     return new_datetime
 
 
@@ -97,7 +97,7 @@ def get_num_of_days(cumulative_days: Dict[str, List[int]]) -> Dict[str, List[int
 
 
 def check_year_increment(
-    first_step_data: IntervalTuple, current_step_data: IntervalTuple,
+    first_step_data: EsoTimestamp, current_step_data: EsoTimestamp,
 ) -> bool:
     """ Check if year value should be incremented inside environment table. """
     if first_step_data is current_step_data:
@@ -110,7 +110,7 @@ def check_year_increment(
         return False
 
 
-def generate_datetime_dates(raw_dates: List[IntervalTuple], year: int) -> List[datetime]:
+def generate_datetime_dates(raw_dates: List[EsoTimestamp], year: int) -> List[datetime]:
     """ Generate datetime index for a given period. """
     dates = []
     for i in range(0, len(raw_dates)):
@@ -119,7 +119,7 @@ def generate_datetime_dates(raw_dates: List[IntervalTuple], year: int) -> List[d
         if check_year_increment(raw_dates[0], raw_dates[i]):
             year += 1
         # year can be incremented automatically when converting to datetime
-        date = parse_eplus_datetime(year, *raw_dates[i])
+        date = parse_eplus_timestamp(year, *raw_dates[i])
         dates.append(date)
     return dates
 
@@ -141,7 +141,7 @@ def update_start_dates(dates: Dict[str, List[datetime]]) -> Dict[str, List[datet
 
 
 def get_n_days(
-    raw_dates: Dict[str, List[IntervalTuple]], cumulative_days: Dict[str, List[int]]
+    raw_dates: Dict[str, List[EsoTimestamp]], cumulative_days: Dict[str, List[int]]
 ) -> Optional[Dict[str, List[int]]]:
     """ Convert cumulative days to number of days pers step. """
     monthly_to_runperiod_dates = {k: v for k, v in raw_dates.items() if k in (M, A, RP)}
@@ -153,7 +153,7 @@ def get_n_days(
     return num_of_days
 
 
-def validate_year(year: int, is_leap: bool, date: IntervalTuple, day: str) -> None:
+def validate_year(year: int, is_leap: bool, date: EsoTimestamp, day: str) -> None:
     """ Check if date for given and day corresponds to specified year. """
     if calendar.isleap(year) is is_leap:
         test_datetime = datetime(year, date.month, date.day)
@@ -177,7 +177,7 @@ def validate_year(year: int, is_leap: bool, date: IntervalTuple, day: str) -> No
         )
 
 
-def is_leap_year_ts_to_d(raw_dates_arr: List[IntervalTuple]) -> bool:
+def is_leap_year_ts_to_d(raw_dates_arr: List[EsoTimestamp]) -> bool:
     """ Check if first year is leap based on timestep, hourly or daily data. """
     for tup in raw_dates_arr:
         if (tup.month, tup.day) == (2, 29):
@@ -189,7 +189,7 @@ def is_leap_year_ts_to_d(raw_dates_arr: List[IntervalTuple]) -> bool:
         return False
 
 
-def seek_year(is_leap: bool, date: IntervalTuple, day: str, max_year: int) -> int:
+def seek_year(is_leap: bool, date: EsoTimestamp, day: str, max_year: int) -> int:
     """ Find first year matching given criteria. """
     for year in range(max_year, 0, -1):
         if day in ("SummerDesignDay", "WinterDesignDay"):
@@ -212,7 +212,7 @@ def seek_year(is_leap: bool, date: IntervalTuple, day: str, max_year: int) -> in
 
 
 def get_allowed_years(
-    is_leap: bool, first_date: IntervalTuple, first_day: str, max_year: int, n_samples: int = 4,
+    is_leap: bool, first_date: EsoTimestamp, first_day: str, max_year: int, n_samples: int = 4,
 ) -> List[int]:
     """ Get a sample of allowed years for given conditions. """
     allowed_years = []
@@ -229,7 +229,7 @@ def get_lowest_interval(all_intervals: List[str]) -> str:
 
 
 def convert_raw_dates(
-    raw_dates: Dict[str, List[IntervalTuple]], year: int
+    raw_dates: Dict[str, List[EsoTimestamp]], year: int
 ) -> Dict[str, List[datetime]]:
     """ Transform raw E+ date and time data into datetime.datetime objects. """
     dates = {}
@@ -239,7 +239,7 @@ def convert_raw_dates(
 
 
 def convert_raw_date_data(
-    raw_dates: Dict[str, List[IntervalTuple]],
+    raw_dates: Dict[str, List[EsoTimestamp]],
     days_of_week: Dict[str, List[str]],
     year: Optional[int],
 ) -> Dict[str, List[datetime]]:
