@@ -115,6 +115,24 @@ class RawOutputData:
             )
 
 
+class RawSqlData:
+    def __init__(
+        self,
+        environment_name: str,
+        header: Dict[str, Dict[int, Variable]],
+        outputs,
+        dates: Dict[str, List[Tuple[int, ...]]],
+        n_interval_minutes: Dict[str, List[int]],
+        days_of_week: Dict[str, List[str]],
+    ):
+        self.environment_name = environment_name
+        self.header = header
+        self.outputs = outputs
+        self.dates = dates
+        self.n_interval_minutes = n_interval_minutes
+        self.days_of_week = days_of_week
+
+
 class RawOutputDFData:
     def __init__(
         self,

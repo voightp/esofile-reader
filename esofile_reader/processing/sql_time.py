@@ -8,11 +8,6 @@ from sqlalchemy.sql.selectable import Select
 from esofile_reader.constants import *
 from esofile_reader.processing.esofile_time import parse_eplus_timestamp
 
-MONTH_PLACEHOLDER = literal(1)
-DAY_PLACEHOLDER = literal(1)
-HOUR_PLACEHOLDER = literal(0)
-MINUTE_PLACEHOLDER = literal(0)
-
 INTERVAL_TYPE_MAP = {
     -1: TS,
     1: H,
@@ -43,12 +38,78 @@ def create_time_table(metadata: MetaData) -> Table:
     )
 
 
-def get_env_interval_pairs(conn: Connection, time_table: Table) -> List[Tuple[int, int]]:
-    s = select([time_table.c.EnvironmentPeriodIndex, time_table.c.IntervalType]).distinct()
-    return conn.execute(s).fetchall()
+def create_environment_periods_table(metadata: MetaData) -> Table:
+    return Table(
+        "EnvironmentPeriods",
+        metadata,
+        Column("EnvironmentPeriodIndex", Integer, primary_key=True),
+        Column("SimulationIndex", Integer),
+        Column("EnvironmentName", String),
+        Column("EnvironmentType", Integer),
+    )
 
 
-def get_env_interval_select(
+def get_environment_details(conn: Connection, env_table: Table) -> List[Tuple[int, str]]:
+    statement = select([env_table.c.EnvironmentPeriodIndex, env_table.c.EnvironmentName])
+    return conn.execute(statement).fetchall()
+
+
+def get_time_columns_with_placeholders(time_table, interval_type: int) -> List[Column]:
+    month_placeholder = literal(1, type_=Integer)
+    day_placeholder = literal(1, type_=Integer)
+    hour_placeholder = literal(0, type_=Integer)
+    minute_placeholder = literal(0, type_=Integer)
+
+    if interval_type in {1, -1}:
+        columns = [
+            time_table.c.Month,
+            time_table.c.Day,
+            time_table.c.Hour,
+            time_table.c.Minute,
+        ]
+    elif interval_type == 2:
+        columns = [
+            time_table.c.Month,
+            time_table.c.Day,
+            hour_placeholder,
+            minute_placeholder,
+        ]
+    elif interval_type == 3:
+        columns = [
+            time_table.c.Month,
+            day_placeholder,
+            hour_placeholder,
+            minute_placeholder,
+        ]
+    elif interval_type in {4, 5}:
+        columns = [
+            month_placeholder,
+            day_placeholder,
+            hour_placeholder,
+            minute_placeholder,
+        ]
+    else:
+        raise KeyError(f"Unexpected interval type '{interval_type}'!")
+    return columns
+
+
+def get_environment_indexes(conn: Connection, time_table: Table) -> List[int]:
+    statement = select(
+        [time_table.c.EnvironmentPeriodIndex, time_table.c.IntervalType]
+    ).distinct()
+    return conn.execute(statement).fetchall()
+
+
+def get_interval_types(conn: Connection, time_table: Table, env_index: int) -> List[int]:
+    statement = (
+        select([time_table.c.IntervalType])
+        .where(time_table.c.EnvironmentPeriodIndex == env_index)
+        .distinct()
+    )
+    return [r[0] for r in conn.execute(statement)]
+
+
+def get_filtered_statement(
     time_table: Table, env_index: int, interval_type: int, columns: List[Column]
 ) -> Select:
     return select(columns).where(
@@ -59,124 +120,43 @@ def get_env_interval_select(
     )
 
 
-def get_timestep_statement(time_table: Table, env_index: int) -> Select:
-    # dealing with hourly, zone timestep and system timestep
-    return get_env_interval_select(
-        time_table,
-        env_index=env_index,
-        interval_type=-1,
-        columns=[
-            time_table.c.Year,
-            time_table.c.Month,
-            time_table.c.Day,
-            time_table.c.Hour,
-            time_table.c.Minute,
-        ],
-    )
-
-
-def get_hourly_statement(time_table: Table, env_index: int) -> Select:
-    # dealing with hourly, zone timestep and system timestep
-    return get_env_interval_select(
-        time_table,
-        env_index=env_index,
-        interval_type=1,
-        columns=[
-            time_table.c.Year,
-            time_table.c.Month,
-            time_table.c.Day,
-            time_table.c.Hour,
-            time_table.c.Minute,
-        ],
-    )
-
-
-def get_daily_statement(time_table: Table, env_index: int) -> Select:
-    return get_env_interval_select(
-        time_table,
-        env_index=env_index,
-        interval_type=2,
-        columns=[
-            time_table.c.Year,
-            time_table.c.Month,
-            time_table.c.Day,
-            HOUR_PLACEHOLDER,
-            MINUTE_PLACEHOLDER,
-        ],
-    )
-
-
-def get_monthly_statement(time_table: Table, env_index: int) -> Select:
-    return get_env_interval_select(
-        time_table,
-        env_index=env_index,
-        interval_type=3,
-        columns=[
-            time_table.c.Year,
-            time_table.c.Month,
-            DAY_PLACEHOLDER,
-            HOUR_PLACEHOLDER,
-            MINUTE_PLACEHOLDER,
-        ],
-    )
-
-
-def get_annual_statement(time_table: Table, env_index: int) -> Select:
-    return get_env_interval_select(
-        time_table,
-        env_index=env_index,
-        interval_type=5,
-        columns=[
-            time_table.c.Year,
-            MONTH_PLACEHOLDER,
-            DAY_PLACEHOLDER,
-            HOUR_PLACEHOLDER,
-            MINUTE_PLACEHOLDER,
-        ],
-    )
-
-
-def get_min_year_statement(time_table: Table, env_index: int) -> Optional[int]:
+def get_lowest_year_statement(time_table: Table, env_index: int) -> Optional[int]:
     return select([func.min(time_table.c.Year)]).where(
         time_table.c.EnvironmentPeriodIndex == env_index
     )
 
 
-def get_runperiod_statement(time_table: Table, env_index: int) -> Select:
-    min_year = get_min_year_statement(time_table, env_index)
-    return get_env_interval_select(
+def get_date_columns(time_table: Table, env_index: int, interval_type: int):
+    year = (
+        get_lowest_year_statement(time_table, env_index)
+        if interval_type == 4
+        else time_table.c.Year
+    )
+    month, day, hour, minute = get_time_columns_with_placeholders(time_table, interval_type)
+    return year, month, day, hour, minute
+
+
+def get_dates_statement(time_table: Table, env_index: int, interval_type: int) -> Select:
+    year, month, day, hour, minute = get_date_columns(time_table, env_index, interval_type)
+    statement = get_filtered_statement(
         time_table,
         env_index=env_index,
-        interval_type=4,
-        columns=[
-            min_year,
-            MONTH_PLACEHOLDER,
-            DAY_PLACEHOLDER,
-            HOUR_PLACEHOLDER,
-            MINUTE_PLACEHOLDER,
-        ],
+        interval_type=interval_type,
+        columns=[year, month, day, hour, minute],
     )
+    return statement
 
 
-def get_timestamps(
+def get_dates(
     conn: Connection, time_table: Table, env_index: int, interval_type: int
 ) -> List[Tuple[int, ...]]:
-    switch = {
-        -1: get_timestep_statement,
-        1: get_hourly_statement,
-        2: get_daily_statement,
-        3: get_monthly_statement,
-        4: get_runperiod_statement,
-        5: get_annual_statement,
-    }
-    statement = switch[interval_type](time_table, env_index)
-    return conn.execute(statement).fetchall()
+    return conn.execute(get_dates_statement(time_table, env_index, interval_type)).fetchall()
 
 
 def get_days_of_week(
     conn: Connection, time_table: Table, env_index: int, interval_type: int
 ) -> List[str]:
-    statement = get_env_interval_select(
+    statement = get_filtered_statement(
         time_table, env_index, interval_type, [time_table.c.DayType]
     )
     return [r[0] for r in conn.execute(statement)]
@@ -185,7 +165,7 @@ def get_days_of_week(
 def get_intervals(
     conn: Connection, time_table: Table, env_index: int, interval_type: int
 ) -> List[Optional[int]]:
-    statement = get_env_interval_select(
+    statement = get_filtered_statement(
         time_table, env_index, interval_type, [time_table.c.Interval]
     )
     return [r[0] for r in conn.execute(statement)]
@@ -195,10 +175,6 @@ def parse_eplus_timestamps(eplus_timestamps: List[Tuple[int, ...]]) -> List[date
     timestamps = []
     for eplus_timestamp in eplus_timestamps:
         year, month, day, hour, minute = eplus_timestamp
-        year = 2002 if year == 0 else year
+        year = 2002 if (year == 0 or year is None) else year
         timestamps.append(parse_eplus_timestamp(year, month, day, hour, minute))
     return timestamps
-
-
-def process_interval_data(interval_type: int):
-    pass

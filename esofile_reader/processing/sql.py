@@ -1,59 +1,80 @@
-from pathlib import Path
+from copy import deepcopy
+from typing import Dict, List
 
-from sqlalchemy import MetaData, create_engine
-from sqlalchemy.engine import Engine
+from sqlalchemy import MetaData, create_engine, Table
+from sqlalchemy.engine.base import Connection
 
+from esofile_reader.mini_classes import Variable
+from esofile_reader.processing.raw_outputs import RawSqlData
 from esofile_reader.processing.sql_time import (
-    get_timestamps,
-    get_env_interval_pairs,
+    get_dates,
     get_days_of_week,
     get_intervals,
-    parse_eplus_timestamps,
     create_time_table,
+    create_environment_periods_table,
+    get_interval_types,
+    get_environment_details,
+    INTERVAL_TYPE_MAP,
 )
 from esofile_reader.processing.sql_variables import (
     create_report_data_table,
     create_data_dictionary_table,
-    get_reporting_frequencies,
-    get_header_data,
-    parse_sql_header,
+    get_output_data,
+    process_sql_header,
 )
 
-TEST_FILE_PATH = Path(Path(__file__).parents[2], "tests", "eso_files", "eplusout_leap_year.sql")
+
+def process_environment_data(
+    conn: Connection,
+    time_table: Table,
+    data_table: Table,
+    env_index: int,
+    env_name: str,
+    header: Dict[str, Dict[int, Variable]],
+) -> RawSqlData:
+    dates = {}
+    days_of_week = {}
+    n_minutes = {}
+    outputs = {}
+    for interval_type in get_interval_types(conn, time_table, env_index):
+        interval = INTERVAL_TYPE_MAP[interval_type]
+        dates[interval] = get_dates(conn, time_table, env_index, interval_type)
+        if interval_type <= 2:
+            days_of_week[interval] = get_days_of_week(
+                conn, time_table, env_index, interval_type
+            )
+        else:
+            n_minutes[interval] = get_intervals(conn, time_table, env_index, interval_type)
+        outputs[interval] = get_output_data(
+            conn, time_table, data_table, interval_type, env_index
+        )
+    return RawSqlData(
+        environment_name=env_name,
+        header=deepcopy(header),
+        outputs=outputs,
+        dates=dates,
+        n_interval_minutes=n_minutes,
+        days_of_week=days_of_week,
+    )
 
 
-def set_up_db(path: str, echo=True) -> Engine:
+def process_sql_file(path: str, echo=True) -> List[RawSqlData]:
     engine = create_engine(f"sqlite:///{path}", echo=echo)
     metadata = MetaData(bind=engine)
 
     # reflect database object, this could be done using 'autoload=True' but
-    # better to define tables explicitly to have a nice reference
+    # better to define tables explicitly to have a useful reference
     time_table = create_time_table(metadata)
     data_dict_table = create_data_dictionary_table(metadata)
     data_table = create_report_data_table(metadata)
-
-    time_series = {}
-    interval_types = []
+    environments_table = create_environment_periods_table(metadata)
 
     with engine.connect() as conn:
-        # get environment time data
-        pairs = get_env_interval_pairs(conn, time_table)
-        for env_index, interval_type in pairs:
-            # interval data
-            eplus_timestamps = get_timestamps(conn, time_table, env_index, interval_type)
-            datetime_timestamps = parse_eplus_timestamps(eplus_timestamps)
-            if interval_type <= 2:
-                days_of_week = get_days_of_week(conn, time_table, env_index, interval_type)
-            else:
-                minute_intervals = get_intervals(conn, time_table, env_index, interval_type)
-
-        # header data
-        reporting_frequencies = get_reporting_frequencies(conn, data_dict_table)
-        for frequency in reporting_frequencies:
-            sql_header = get_header_data(conn, data_dict_table, frequency)
-            header = parse_sql_header(sql_header)
-
-    return engine
-
-
-set_up_db(TEST_FILE_PATH, False)
+        header = process_sql_header(conn, data_dict_table)
+        all_raw_data = []
+        for env_index, env_name in get_environment_details(conn, environments_table):
+            raw_sql_data = process_environment_data(
+                conn, time_table, data_table, env_index, env_name, header
+            )
+            all_raw_data.append(raw_sql_data)
+    return all_raw_data
