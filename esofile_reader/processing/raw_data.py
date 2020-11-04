@@ -1,6 +1,5 @@
 import contextlib
 from collections import defaultdict
-from copy import deepcopy
 from math import nan
 from typing import Dict, Tuple, Optional, List
 
@@ -9,7 +8,10 @@ from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.esofile_time import convert_raw_date_data, get_n_days
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import (
+    EsoFileProgressLogger,
+    GenericProgressLogger,
+)
 from esofile_reader.search_tree import Tree
 
 try:
@@ -147,36 +149,46 @@ class RawDFData:
         self.tree = tree
 
     @classmethod
-    def from_raw_outputs(
+    def from_raw_eso_data(
         cls,
-        raw_outputs: RawEsoData,
+        raw_eso_data: RawEsoData,
         progress_logger: EsoFileProgressLogger,
         year: Optional[int],
     ) -> "RawDFData":
         # Create a 'search tree' to allow searching for variables
         progress_logger.log_section("generating search tree!")
-        header = deepcopy(raw_outputs.header)
         try:
-            tree = Tree.from_header_dict(header)
+            tree = Tree.from_header_dict(raw_eso_data.header)
         except DuplicateVariable as e:
             tree = e.clean_tree
             remove_duplicates(
-                e.duplicates, header, raw_outputs.outputs, raw_outputs.peak_outputs
+                e.duplicates,
+                raw_eso_data.header,
+                raw_eso_data.outputs,
+                raw_eso_data.peak_outputs,
             )
         progress_logger.increment_progress()
         progress_logger.log_section("processing dates!")
-        n_days = get_n_days(raw_outputs.dates, raw_outputs.cumulative_days)
-        dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, year)
+        n_days = get_n_days(raw_eso_data.dates, raw_eso_data.cumulative_days)
+        dates = convert_raw_date_data(raw_eso_data.dates, raw_eso_data.days_of_week, year)
 
-        if raw_outputs.peak_outputs:
+        if raw_eso_data.peak_outputs:
             progress_logger.log_section("generating peak tables!")
             peak_tables = generate_peak_tables(
-                raw_outputs.peak_outputs, header, dates, progress_logger
+                raw_eso_data.peak_outputs, raw_eso_data.header, dates, progress_logger
             )
         else:
             peak_tables = None
         progress_logger.log_section("generating tables!")
-        tables = generate_df_tables(raw_outputs.outputs, header, dates, progress_logger)
-        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_outputs.days_of_week}
+        tables = generate_df_tables(
+            raw_eso_data.outputs, raw_eso_data.header, dates, progress_logger
+        )
+        other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_eso_data.days_of_week}
         insert_special_columns(tables, other_data)
-        return RawDFData(raw_outputs.environment_name, tables, peak_tables, tree)
+        return RawDFData(raw_eso_data.environment_name, tables, peak_tables, tree)
+
+    @classmethod
+    def from_raw_sql_data(
+        cls, raw_sql_data: RawSqlData, progress_logger: GenericProgressLogger
+    ) -> "RawDFData":
+        pass

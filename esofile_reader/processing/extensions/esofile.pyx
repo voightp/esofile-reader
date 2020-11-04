@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -318,7 +319,7 @@ cpdef list read_body(
             if line_id == ENVIRONMENT_LINE:
                 # initialize variables for current environment
                 environment_name = line[0].strip()
-                raw_outputs = RawOutputData(environment_name, header, ignore_peaks)
+                raw_outputs = RawOutputData(environment_name, deepcopy(header), ignore_peaks)
                 all_raw_outputs.append(raw_outputs)
             else:
                 try:
@@ -373,7 +374,7 @@ def create_raw_df_outputs(
     n_trees = len(all_raw_outputs)
     progress_logger.set_new_maximum_progress(n_tables + n_trees)
     for raw_outputs in all_raw_outputs:
-        raw_df_outputs = RawDFData.from_raw_outputs(raw_outputs, progress_logger, year)
+        raw_df_outputs = RawDFData.from_raw_eso_data(raw_outputs, progress_logger, year)
         all_raw_df_outputs.append(raw_df_outputs)
     return all_raw_df_outputs
 
