@@ -30,7 +30,7 @@ except ModuleNotFoundError:
     )
 
 
-class RawOutputData:
+class RawEsoData:
     def __init__(
         self, environment_name: str, header: Dict[str, Dict[int, Variable]], ignore_peaks: bool,
     ):
@@ -45,7 +45,7 @@ class RawOutputData:
         ) = self.initialize_results_bins(ignore_peaks)
 
     @classmethod
-    def sanitize_output_data(cls, all_raw_outputs: List["RawOutputData"]):
+    def sanitize_output_data(cls, all_raw_outputs: List["RawEsoData"]):
         """ Remove invalid data. """
         for raw_outputs in all_raw_outputs:
             if raw_outputs.is_sizing_environment():
@@ -133,7 +133,7 @@ class RawSqlData:
         self.days_of_week = days_of_week
 
 
-class RawOutputDFData:
+class RawDFData:
     def __init__(
         self,
         environment_name: str,
@@ -149,10 +149,10 @@ class RawOutputDFData:
     @classmethod
     def from_raw_outputs(
         cls,
-        raw_outputs: RawOutputData,
+        raw_outputs: RawEsoData,
         progress_logger: EsoFileProgressLogger,
         year: Optional[int],
-    ) -> "RawOutputDFData":
+    ) -> "RawDFData":
         # Create a 'search tree' to allow searching for variables
         progress_logger.log_section("generating search tree!")
         header = deepcopy(raw_outputs.header)
@@ -179,4 +179,4 @@ class RawOutputDFData:
         tables = generate_df_tables(raw_outputs.outputs, header, dates, progress_logger)
         other_data = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_outputs.days_of_week}
         insert_special_columns(tables, other_data)
-        return RawOutputDFData(raw_outputs.environment_name, tables, peak_tables, tree)
+        return RawDFData(raw_outputs.environment_name, tables, peak_tables, tree)

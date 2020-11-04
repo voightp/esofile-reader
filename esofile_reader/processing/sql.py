@@ -5,7 +5,7 @@ from sqlalchemy import MetaData, create_engine, Table
 from sqlalchemy.engine.base import Connection
 
 from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.raw_outputs import RawSqlData
+from esofile_reader.processing.raw_data import RawSqlData
 from esofile_reader.processing.sql_time import (
     get_dates,
     get_days_of_week,

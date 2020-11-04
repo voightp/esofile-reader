@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple, TextIO, Optional, Union
 
 from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
+from esofile_reader.processing.raw_data import RawEsoData, RawDFData
 
 
 def get_eso_file_version(raw_version: str) -> int: ...
@@ -40,22 +40,22 @@ def read_body(
     header: Dict[str, Dict[int, Variable]],
     ignore_peaks: bool,
     progress_logger: EsoFileProgressLogger
-) -> List[RawOutputData]: ...
+) -> List[RawEsoData]: ...
 
 
-def count_tables(all_raw_outputs: List[RawOutputData]) -> int: ...
+def count_tables(all_raw_outputs: List[RawEsoData]) -> int: ...
 
 
 def create_raw_df_outputs(
-    all_raw_outputs: List[RawOutputData],
+    all_raw_outputs: List[RawEsoData],
     year: int,
     progress_logger: EsoFileProgressLogger
-) -> List[RawOutputData]: ...
+) -> List[RawEsoData]: ...
 
 
 def read_file(
     file: TextIO, progress_logger: EsoFileProgressLogger, ignore_peaks: bool = True
-) -> List[RawOutputData]: ...
+) -> List[RawEsoData]: ...
 
 
 def count_lines(file_path: Union[str, Path]) -> int: ...
@@ -71,4 +71,4 @@ def process_eso_file(
     progress_logger: EsoFileProgressLogger,
     ignore_peaks: bool = True,
     year: int = 2002
-) -> List[RawOutputDFData]: ...
+) -> List[RawDFData]: ...

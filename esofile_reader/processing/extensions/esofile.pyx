@@ -10,7 +10,7 @@ from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
+from esofile_reader.processing.raw_data import RawEsoData, RawDFData
 from esofile_reader.search_tree import Tree
 from esofile_reader.df.df_tables import DFTables
 
@@ -256,7 +256,7 @@ cpdef list read_body(
 
     The line from eso file is processed line by line until the
     'End of Data' is reached. Outputs, dates, days of week are
-    distributed into relevant bins in RawOutputData container.
+    distributed into relevant bins in RawEsoData container.
 
     Index 1-5 for eso file generated prior to E+ 8.9 or 1-6 from E+ 8.9
     further, indicates that line is an interval.
@@ -373,7 +373,7 @@ def create_raw_df_outputs(
     n_trees = len(all_raw_outputs)
     progress_logger.set_new_maximum_progress(n_tables + n_trees)
     for raw_outputs in all_raw_outputs:
-        raw_df_outputs = RawOutputDFData.from_raw_outputs(raw_outputs, progress_logger, year)
+        raw_df_outputs = RawDFData.from_raw_outputs(raw_outputs, progress_logger, year)
         all_raw_df_outputs.append(raw_df_outputs)
     return all_raw_df_outputs
 
