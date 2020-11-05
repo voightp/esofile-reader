@@ -16,7 +16,7 @@ ERROR = 40
 IGNORE = 100
 
 
-class GenericProgressLogger:
+class GenericLogger:
     def __init__(self, name: str, level=ERROR):
         self.name = name
         self.section_timestamps = []
@@ -81,7 +81,7 @@ class GenericProgressLogger:
             self.section_timestamps.clear()
 
 
-class EsoFileProgressLogger(GenericProgressLogger):
+class EsoFileLogger(GenericLogger):
     # chunk size defines after how many lines it takes to increment progress
     CHUNK_SIZE = 20000
 

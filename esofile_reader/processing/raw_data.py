@@ -9,8 +9,8 @@ from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.esofile_time import convert_raw_date_data, get_n_days
 from esofile_reader.processing.progress_logger import (
-    EsoFileProgressLogger,
-    GenericProgressLogger,
+    EsoFileLogger,
+    GenericLogger,
 )
 from esofile_reader.search_tree import Tree
 
@@ -150,10 +150,7 @@ class RawDFData:
 
     @classmethod
     def from_raw_eso_data(
-        cls,
-        raw_eso_data: RawEsoData,
-        progress_logger: EsoFileProgressLogger,
-        year: Optional[int],
+        cls, raw_eso_data: RawEsoData, progress_logger: EsoFileLogger, year: Optional[int],
     ) -> "RawDFData":
         # Create a 'search tree' to allow searching for variables
         progress_logger.log_section("generating search tree!")
@@ -189,6 +186,7 @@ class RawDFData:
 
     @classmethod
     def from_raw_sql_data(
-        cls, raw_sql_data: RawSqlData, progress_logger: GenericProgressLogger
+        cls, raw_sql_data: RawSqlData, progress_logger: GenericLogger
     ) -> "RawDFData":
-        pass
+
+        return RawDFData(raw_sql_data.environment_name, tables, peak_tables, tree)

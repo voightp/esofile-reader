@@ -9,8 +9,8 @@ from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
 from esofile_reader.processing.progress_logger import (
-    EsoFileProgressLogger,
-    GenericProgressLogger,
+    EsoFileLogger,
+    GenericLogger,
 )
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
@@ -65,13 +65,13 @@ class GenericFile(BaseFile):
         file_path: PathLike,
         sheet_names: List[str] = None,
         force_index: bool = False,
-        progress_logger: GenericProgressLogger = None,
+        progress_logger: GenericLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
-            progress_logger = GenericProgressLogger(file_path.name)
+            progress_logger = GenericLogger(file_path.name)
         with progress_logger.log_task("Processing xlsx file."):
             tables = process_excel(
                 file_path,
@@ -95,13 +95,13 @@ class GenericFile(BaseFile):
         cls,
         file_path: PathLike,
         force_index: bool = False,
-        progress_logger: GenericProgressLogger = None,
+        progress_logger: GenericLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not progress_logger:
-            progress_logger = GenericProgressLogger(file_path.name)
+            progress_logger = GenericLogger(file_path.name)
         with progress_logger.log_task("Process csv file!"):
             tables = process_csv(
                 file_path, progress_logger, force_index=force_index, header_limit=header_limit,
@@ -119,14 +119,11 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_eso_file(
-        cls,
-        file_path: PathLike,
-        progress_logger: EsoFileProgressLogger = None,
-        year: int = 2002,
+        cls, file_path: PathLike, progress_logger: EsoFileLogger = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
-        """ Generate 'ResultsFileType' from EnergyPlus .eso file. """
-        # peaks are only allowed on explicit ResultsEsoFile
-        eso_file = EsoFile(file_path, progress_logger, ignore_peaks=True, year=year)
+        """ Generate 'ResultsFile' from EnergyPlus .eso file. """
+        # peaks are only allowed on explicit EsoFile
+        eso_file = EsoFile.from_path(file_path, progress_logger, ignore_peaks=True, year=year)
         return GenericFile(
             eso_file.file_path,
             eso_file.file_name,
@@ -137,14 +134,22 @@ class GenericFile(BaseFile):
         )
 
     @classmethod
-    def from_path(
-        cls, path: PathLike, progress_logger: GenericProgressLogger = None
-    ) -> "GenericFile":
-        """ Try to generate 'Results' file from generic path. """
+    def from_sql(
+        cls, file_path: PathLike, progress_logger: EsoFileLogger = None,
+    ) -> Union[List[ResultsFileType], ResultsFileType]:
+        """ Generate 'ResultsFile' from EnergyPlus .sql file. """
+        file_path, file_name, file_created = get_file_information(file_path)
+        if not progress_logger:
+            progress_logger = GenericLogger(file_path.name)
+
+    @classmethod
+    def from_path(cls, path: PathLike, progress_logger: GenericLogger = None) -> "GenericFile":
+        """ Try to generate 'Resultsfile' from generic path. """
         switch = {
             BaseFile.ESO: cls.from_eso_file,
             BaseFile.XLSX: cls.from_excel,
             BaseFile.CSV: cls.from_csv,
+            BaseFile.SQL: cls.from_sql,
         }
         file_type = Path(path).suffix
         try:
@@ -157,7 +162,7 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_totals(cls, results_file: ResultsFileType) -> "GenericFile":
-        """ Generate totals 'ResultsFileType' from another file. """
+        """ Generate totals 'ResultsFile' from another file. """
         file_path = results_file.file_path
         file_name = f"{results_file.file_name} - totals"
         file_created = results_file.file_created  # use base file timestamp
@@ -172,7 +177,7 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_diff(cls, file: ResultsFileType, other_file: ResultsFileType) -> "GenericFile":
-        """ Generate 'Results' file as a difference between two files. """
+        """ Generate 'Resultsfile' as a difference between two files. """
         file_path = ""
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()

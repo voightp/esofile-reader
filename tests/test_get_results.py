@@ -623,7 +623,7 @@ def test_get_results_rate(test_file, variables, expected_df):
 
 
 def test_get_results_ignore_peaks():
-    ef = EsoFile(Path(TEST_FILES_PATH, "eplusout1.eso"), ignore_peaks=False)
+    ef = EsoFile.from_path(Path(TEST_FILES_PATH, "eplusout1.eso"), ignore_peaks=False)
     assert list(ef.peak_tables.keys()) == ["local_min", "local_max"]
 
 

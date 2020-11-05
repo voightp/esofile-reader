@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from esofile_reader.exceptions import FormatNotSupported
-from esofile_reader.processing.progress_logger import GenericProgressLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 from tests.session_fixtures import *
 
 
@@ -20,6 +20,10 @@ def test_from_eso_file():
     assert rf.file_type == GenericFile.ESO
 
 
+def test_from_sql_file():
+    pytest.fail()
+
+
 @pytest.mark.parametrize(
     "path, mock",
     [
@@ -30,7 +34,7 @@ def test_from_eso_file():
 )
 def test_from_path(path, mock):
     with patch(f"esofile_reader.generic_file.GenericFile.{mock}") as mocked_function:
-        logger = GenericProgressLogger("logger")
+        logger = GenericLogger("logger")
         _ = GenericFile.from_path(path, progress_logger=logger)
         mocked_function.assert_called_with(path, progress_logger=logger)
 

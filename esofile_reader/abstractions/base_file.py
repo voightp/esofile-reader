@@ -58,6 +58,7 @@ class BaseFile:
     DIFF = "diff"
     XLSX = ".xlsx"
     CSV = ".csv"
+    SQL = ".sql"
 
     def __init__(
         self,

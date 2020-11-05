@@ -7,7 +7,7 @@ import pandas as pd
 
 from esofile_reader.constants import *
 from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import EsoFileLogger
 from esofile_reader.df.df_functions import create_peak_min_outputs, create_peak_max_outputs
 from esofile_reader.df.df_tables import DFTables
 
@@ -35,7 +35,7 @@ def generate_peak_tables(
     raw_peak_outputs: Dict[str, Dict[int, List[float]]],
     header: Dict[str, Dict[int, Variable]],
     dates: Dict[str, List[datetime]],
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: EsoFileLogger,
 ) -> Dict[str, DFTables]:
     """ Transform processed peak output data into DataFrame like classes. """
     min_peaks = DFTables()
@@ -66,7 +66,7 @@ def generate_df_tables(
     raw_outputs: Dict[str, Dict[int, List[float]]],
     header: Dict[str, Dict[int, Variable]],
     dates: Dict[str, List[datetime]],
-    progress_logger: EsoFileProgressLogger,
+    progress_logger: EsoFileLogger,
 ) -> DFTables:
     """ Transform processed output data into DataFrame like classes. """
     tables = DFTables()

@@ -14,15 +14,12 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.mini_classes import PathLike
-from esofile_reader.processing.progress_logger import GenericProgressLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 
 
 @contextlib.contextmanager
 def parquet_frame_factory(
-    df: pd.DataFrame,
-    name: str,
-    pardir: PathLike = "",
-    progress_logger: GenericProgressLogger = None,
+    df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: GenericLogger = None,
 ):
     pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
     try:
@@ -171,7 +168,7 @@ class ParquetFrame:
         df: pd.DataFrame,
         name: str,
         pardir: PathLike = "",
-        progress_logger: GenericProgressLogger = None,
+        progress_logger: GenericLogger = None,
     ) -> "ParquetFrame":
         workdir = Path(pardir, f"table-{name}").absolute()
         workdir.mkdir()
@@ -421,7 +418,7 @@ class ParquetFrame:
 
         return df.loc[:, items]
 
-    def store_df(self, df: pd.DataFrame, progress_logger: GenericProgressLogger = None) -> None:
+    def store_df(self, df: pd.DataFrame, progress_logger: GenericLogger = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
         df = df.copy()
@@ -549,7 +546,7 @@ class ParquetTables(DFTables):
 
     @classmethod
     def from_dftables(
-        cls, dftables: DFTables, pardir: Path, progress_logger: GenericProgressLogger = None
+        cls, dftables: DFTables, pardir: Path, progress_logger: GenericLogger = None
     ) -> "ParquetTables":
         """ Create parquet data from DataFrame like class. """
         pqt = ParquetTables()
@@ -558,7 +555,7 @@ class ParquetTables(DFTables):
         return pqt
 
     @classmethod
-    def from_fs(cls, pardir: Path, progress_logger: GenericProgressLogger = None):
+    def from_fs(cls, pardir: Path, progress_logger: GenericLogger = None):
         """ Create parquet data from filesystem directory. """
         pqt = ParquetTables()
         for p in [p for p in Path(pardir).iterdir() if p.is_dir()]:

@@ -1,6 +1,6 @@
 from esofile_reader.processing.esofile_time import *
 from esofile_reader.processing.extensions.esofile import read_file
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import EsoFileLogger
 from tests.session_fixtures import *
 
 
@@ -313,7 +313,7 @@ def test_get_allowed_years(is_leap, date, day, max_year, expected):
 )
 def test_convert_raw_date_data(drop_intervals, year, expected_start_end):
     with open(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), "r") as file:
-        logger = EsoFileProgressLogger("foo")
+        logger = EsoFileLogger("foo")
         with logger.log_task("Test leap year"):
             all_raw_outputs = read_file(file, logger)
             raw_outputs = all_raw_outputs[-1]

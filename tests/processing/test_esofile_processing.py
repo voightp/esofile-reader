@@ -5,7 +5,12 @@ from math import nan
 import numpy as np
 
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
+from esofile_reader.exceptions import (
+    InvalidLineSyntax,
+    BlankLineError,
+    IncompleteFile,
+    MultiEnvFileRequired,
+)
 from esofile_reader.mini_classes import Variable, EsoTimestamp
 from esofile_reader.processing.esofile_time import convert_raw_date_data
 from esofile_reader.processing.extensions.esofile import (
@@ -21,7 +26,7 @@ from esofile_reader.processing.extensions.raw_tables import (
     generate_peak_tables,
     remove_duplicates,
 )
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import EsoFileLogger
 from tests.session_fixtures import *
 
 HEADER_PATH = Path(TEST_FILES_PATH, "header.txt")
@@ -31,13 +36,13 @@ BODY_PATH = Path(TEST_FILES_PATH, "body.txt")
 @pytest.fixture(scope="module")
 def header_content():
     with open(HEADER_PATH, "r") as f:
-        return read_header(f, EsoFileProgressLogger("foo"))
+        return read_header(f, EsoFileLogger("foo"))
 
 
 @pytest.fixture(scope="function")
 def all_raw_outputs(header_content):
     with open(BODY_PATH, "r") as f:
-        return read_body(f, 6, header_content, False, EsoFileProgressLogger("dummy"))
+        return read_body(f, 6, header_content, False, EsoFileLogger("dummy"))
 
 
 @pytest.fixture(scope="function")
@@ -47,8 +52,8 @@ def raw_outputs(all_raw_outputs):
 
 @pytest.fixture(scope="function")
 def duplicate_variable_file():
-    return EsoFile(
-        Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), EsoFileProgressLogger("foo"),
+    return EsoFile.from_path(
+        Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), EsoFileLogger("foo"),
     )
 
 
@@ -88,7 +93,7 @@ def test_read_header():
         "3676,11,Some meter [ach] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]\n"
         "End of Data Dictionary\n"
     )
-    header_dct = read_header(file, EsoFileProgressLogger("foo"))
+    header_dct = read_header(file, EsoFileLogger("foo"))
     test_header = {
         "hourly": {7: Variable("hourly", "Environment", "Air Temperature", "C")},
         "runperiod": {3676: Variable("runperiod", "Meter", "Some meter", "ach")},
@@ -105,7 +110,7 @@ def test_read_header_blank_line():
     file = StringIO(s)
 
     with pytest.raises(BlankLineError):
-        read_header(file, EsoFileProgressLogger("foo"))
+        read_header(file, EsoFileLogger("foo"))
 
 
 @pytest.mark.parametrize(
@@ -279,7 +284,7 @@ def test_read_body_day_of_week(raw_outputs, interval, values):
 def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     header = raw_outputs.header
     raw_peak_outputs = raw_outputs.peak_outputs
-    logger = EsoFileProgressLogger("foo")
+    logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
@@ -299,7 +304,7 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
 def test_generate_df_tables(raw_outputs, interval, shape):
     header = raw_outputs.header
     outputs = raw_outputs.outputs
-    logger = EsoFileProgressLogger("foo")
+    logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = generate_df_tables(outputs, header, dates, logger)
     assert outputs[interval].shape == shape
@@ -341,13 +346,13 @@ def test_remove_duplicates():
 def test_header_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
-        read_header(f, EsoFileProgressLogger("foo"))
+        read_header(f, EsoFileLogger("foo"))
 
 
 def test_body_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
-        read_body(f, 6, {"a": {}}, False, EsoFileProgressLogger("foo"))
+        read_body(f, 6, {"a": {}}, False, EsoFileLogger("foo"))
 
 
 def test_body_blank_line(header_content):
@@ -368,33 +373,32 @@ def test_body_blank_line(header_content):
 620,0.0"""
     )
     with pytest.raises(BlankLineError):
-        read_body(f, 6, header_content, False, EsoFileProgressLogger("foo"))
+        read_body(f, 6, header_content, False, EsoFileLogger("foo"))
 
 
 def test_file_blank_line():
     with pytest.raises(IncompleteFile):
-        EsoFile(
-            Path(TEST_FILES_PATH, "eplusout_incomplete.eso"), EsoFileProgressLogger("foo"),
+        EsoFile.from_path(
+            Path(TEST_FILES_PATH, "eplusout_incomplete.eso"), EsoFileLogger("foo"),
         )
 
 
 def test_non_numeric_line():
     with pytest.raises(InvalidLineSyntax):
-        EsoFile(
-            Path(TEST_FILES_PATH, "eplusout_invalid_line.eso"), EsoFileProgressLogger("foo"),
+        EsoFile.from_path(
+            Path(TEST_FILES_PATH, "eplusout_invalid_line.eso"), EsoFileLogger("foo"),
         )
 
 
 def test_logging_level_info():
-    EsoFile(
-        Path(TEST_FILES_PATH, "eplusout1.eso"),
-        progress_logger=EsoFileProgressLogger("foo", level=20),
+    EsoFile.from_path(
+        Path(TEST_FILES_PATH, "eplusout1.eso"), progress_logger=EsoFileLogger("foo", level=20),
     )
 
 
 def test_hourly_results_only():
-    eso_file = EsoFile(
-        Path(TEST_FILES_PATH, "eplusout_only_hourly.eso"), EsoFileProgressLogger("foo"),
+    eso_file = EsoFile.from_path(
+        Path(TEST_FILES_PATH, "eplusout_only_hourly.eso"), EsoFileLogger("foo"),
     )
     assert eso_file.table_names == ["hourly"]
 
@@ -417,12 +421,40 @@ def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, 
 
 
 def test_multiple_env_eso_file():
-    eso_files = EsoFile.from_multi_env_eso_file(
-        Path(TEST_FILES_PATH, "multiple_environments.eso"), year=None
+    eso_files = EsoFile.from_multi_env_file_path(
+        Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
     )
-    sizing_tables = [TS, H]
-    all_tables = [M, TS, H]
+    sizing_tables = [TS, H, D]
+    all_tables = [TS, H, D, M, RP, A]
     for i, ef in enumerate(eso_files):
         # first env on test file is normal, remaining ones report 'Sizing' day
         expected_tables = sizing_tables if i > 0 else all_tables
         assert ef.table_names == expected_tables
+
+
+def test_file_names(multienv_leap_files):
+    test_names = [
+        "eplusout_leap_year",
+        "eplusout_leap_year - WINTER DESIGN DAY IN TEST (01-01:31-12)",
+        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) SEP",
+        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) AUG",
+        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) JUL",
+        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) JUN",
+    ]
+    names = [ef.file_name for ef in multienv_leap_files]
+    assert names == test_names
+
+
+def test_complete(multienv_leap_files):
+    for ef in multienv_leap_files:
+        assert ef.complete
+
+
+def test_tree(multienv_leap_files):
+    trees = [ef.search_tree.__repr__() for ef in multienv_leap_files]
+    assert len(set(trees)) == 2
+
+
+def test_multienv_file_required():
+    with pytest.raises(MultiEnvFileRequired):
+        EsoFile.from_path(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None)

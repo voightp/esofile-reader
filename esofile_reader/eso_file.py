@@ -7,7 +7,7 @@ from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import EsoFileLogger
 from esofile_reader.search_tree import Tree
 
 try:
@@ -19,12 +19,10 @@ except ModuleNotFoundError:
     from esofile_reader.processing.extensions.esofile import process_eso_file
 
 
-class ResultsEsoFile(BaseFile):
+class EsoFile(BaseFile):
     """
     Enhanced results file to allow storing and extracting
     .eso file specific 'peak outputs'.
-
-    File type passed to super() class is always 'eso'.
 
     Attributes
     ----------
@@ -38,6 +36,8 @@ class ResultsEsoFile(BaseFile):
         TableType storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
+    peak_tables : DFTables
+        TableType storage instance.
 
 
     """
@@ -58,7 +58,7 @@ class ResultsEsoFile(BaseFile):
 
     def __copy__(self):
         # explicitly return this file type for all subclasses
-        return ResultsEsoFile(
+        return EsoFile(
             file_path=self.file_path,
             file_name=self.file_name,
             file_created=self.file_created,
@@ -68,17 +68,49 @@ class ResultsEsoFile(BaseFile):
         )
 
     @classmethod
-    def from_multi_env_eso_file(
+    def from_path(
         cls,
         file_path: str,
-        progress_logger: EsoFileProgressLogger = None,
+        progress_logger: EsoFileLogger = None,
         ignore_peaks: bool = True,
         year: Optional[int] = 2002,
-    ) -> List["ResultsEsoFile"]:
+    ) -> "EsoFile":
+        if progress_logger is None:
+            progress_logger = EsoFileLogger(Path(file_path).name)
+        with progress_logger.log_task("Process eso file data!"):
+            file_path, file_name, file_created = get_file_information(file_path)
+            all_raw_df_outputs = process_eso_file(
+                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
+            )
+            if len(all_raw_df_outputs) == 1:
+                progress_logger.log_section("creating class instance!")
+                raw_df_outputs = all_raw_df_outputs[0]
+                tables = raw_df_outputs.tables
+                peak_tables = raw_df_outputs.peak_tables
+                tree = raw_df_outputs.tree
+                return cls(
+                    file_path, file_name, file_created, tables, tree, peak_tables=peak_tables
+                )
+            else:
+                raise MultiEnvFileRequired(
+                    f"Cannot populate file {file_path}. "
+                    f"as there are multiple environments included.\n"
+                    f"Use '{cls.__name__}.from_multi_env_eso_file' "
+                    f"to generate multiple files."
+                )
+
+    @classmethod
+    def from_multi_env_file_path(
+        cls,
+        file_path: str,
+        progress_logger: EsoFileLogger = None,
+        ignore_peaks: bool = True,
+        year: Optional[int] = 2002,
+    ) -> List["EsoFile"]:
         """ Generate independent 'EsoFile' for each environment. """
         file_path, file_name, file_created = get_file_information(file_path)
         if progress_logger is None:
-            progress_logger = EsoFileProgressLogger(file_path.name)
+            progress_logger = EsoFileLogger(file_path.name)
         with progress_logger.log_task("Process eso file data!"):
             all_raw_df_outputs = process_eso_file(
                 file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
@@ -91,7 +123,7 @@ class ResultsEsoFile(BaseFile):
                 name = (
                     f"{file_name} - {raw_df_outputs.environment_name}" if i > 0 else file_name
                 )
-                ef = ResultsEsoFile(
+                ef = EsoFile(
                     file_path=file_path,
                     file_name=name,
                     file_created=file_created,
@@ -101,60 +133,3 @@ class ResultsEsoFile(BaseFile):
                 )
                 eso_files.append(ef)
         return eso_files
-
-
-class EsoFile(ResultsEsoFile):
-    """
-    A wrapper class to allow .eso file processing by passing
-    file path as a parameter.
-
-    Parameters
-    ----------
-    file_path : str, or Path
-        A full path of the result file.
-    progress_logger : EsoFileProgressLogger
-        A watcher to report processing progress.
-    ignore_peaks : bool
-        Allow skipping .eso file peak data.
-    year : int
-        A year for which index data are bound to.
-
-    Raises
-    ------
-    IncompleteFile
-    BlankLineError
-    MultiEnvFileRequired
-
-
-    """
-
-    def __init__(
-        self,
-        file_path: PathLike,
-        progress_logger: EsoFileProgressLogger = None,
-        ignore_peaks: bool = True,
-        year: Optional[int] = 2002,
-    ):
-        if progress_logger is None:
-            progress_logger = EsoFileProgressLogger(Path(file_path).name)
-        with progress_logger.log_task("Process eso file data!"):
-            file_path, file_name, file_created = get_file_information(file_path)
-            all_raw_df_outputs = process_eso_file(
-                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
-            )
-            if len(all_raw_df_outputs) == 1:
-                progress_logger.log_section("creating class instance!")
-                raw_df_outputs = all_raw_df_outputs[0]
-                tables = raw_df_outputs.tables
-                peak_tables = raw_df_outputs.peak_tables
-                tree = raw_df_outputs.tree
-                super().__init__(
-                    file_path, file_name, file_created, tables, tree, peak_tables=peak_tables
-                )
-            else:
-                raise MultiEnvFileRequired(
-                    f"Cannot populate file {file_path}. "
-                    f"as there are multiple environments included.\n"
-                    f"Use '{type(self)}.from_multi_env_eso_file' "
-                    f"to generate multiple files."
-                )

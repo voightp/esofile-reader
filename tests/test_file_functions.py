@@ -6,7 +6,7 @@ from pandas.testing import assert_frame_equal
 
 from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
-from esofile_reader.eso_file import ResultsEsoFile
+from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import CannotAggregateVariables
 from tests.session_fixtures import *
 
@@ -567,7 +567,7 @@ def test_to_excel(tiny_eplusout):
 @pytest.mark.parametrize(
     "file, expected_class",
     [
-        (pytest.lazy_fixture("tiny_eplusout"), ResultsEsoFile),
+        (pytest.lazy_fixture("tiny_eplusout"), EsoFile),
         (pytest.lazy_fixture("excel_file"), GenericFile),
     ],
 )

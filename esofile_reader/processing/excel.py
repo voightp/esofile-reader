@@ -14,7 +14,7 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_str_identifier
-from esofile_reader.processing.progress_logger import GenericProgressLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 
 
 def is_data_row(sr: pd.Series):
@@ -269,7 +269,7 @@ def process_sheet(
 
 def process_workbook(
     wb: Workbook,
-    progress_logger: GenericProgressLogger,
+    progress_logger: GenericLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -302,7 +302,7 @@ def process_workbook(
 
 def process_excel(
     file_path: Path,
-    progress_logger: GenericProgressLogger,
+    progress_logger: GenericLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -317,7 +317,7 @@ def process_excel(
 def process_csv_table(
     df: pd.DataFrame,
     name: str,
-    progress_logger: GenericProgressLogger,
+    progress_logger: GenericLogger,
     force_index: bool = False,
     header_limit: int = 10,
 ) -> DFTables:
@@ -339,7 +339,7 @@ def process_csv_table(
 
 def process_csv(
     file_path: Path,
-    progress_logger: GenericProgressLogger,
+    progress_logger: GenericLogger,
     force_index: bool = False,
     header_limit: int = 10,
     separator: Optional[str] = None,
