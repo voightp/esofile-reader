@@ -11,7 +11,7 @@ from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
 from esofile_reader.abstractions.base_tables import BaseTables
 from esofile_reader.df.df_functions import (
     merge_peak_outputs,
-    slicer,
+    slice_df,
     slice_series_by_datetime_index,
 )
 
@@ -315,7 +315,7 @@ class DFTables(BaseTables):
         end_date: Optional[datetime] = None,
         include_day: bool = False,
     ) -> pd.DataFrame:
-        df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
+        df = slice_df(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
         if include_day and self.is_index_datetime(table):
             df = self.add_day_to_index(df, table, start_date, end_date)

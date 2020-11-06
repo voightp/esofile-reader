@@ -20,7 +20,15 @@ def test_from_eso_file():
     assert rf.file_type == GenericFile.ESO
 
 
+def test_from_multienv_eso_file():
+    pytest.fail()
+
+
 def test_from_sql_file():
+    pytest.fail()
+
+
+def test_from_multienv_sql_file():
     pytest.fail()
 
 

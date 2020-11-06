@@ -49,7 +49,7 @@ class GenericLogger:
     def increment_progress(self, i: Union[int, float] = 1) -> None:
         self.progress += i
 
-    def set_new_maximum_progress(self, max_progress: int, progress: int = 0):
+    def set_maximum_progress(self, max_progress: int, progress: int = 0):
         self.max_progress = max_progress
         self.progress = progress
 

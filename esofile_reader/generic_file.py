@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Union, List
 
 from esofile_reader.abstractions.base_file import BaseFile, get_file_information
+from esofile_reader.df.df_tables import DFTables
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType, PathLike
@@ -14,7 +15,6 @@ from esofile_reader.processing.progress_logger import (
 )
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
-from esofile_reader.df.df_tables import DFTables
 
 try:
     from esofile_reader.processing.extensions.esofile import process_eso_file
@@ -135,12 +135,38 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_sql(
-        cls, file_path: PathLike, progress_logger: EsoFileLogger = None,
-    ) -> Union[List[ResultsFileType], ResultsFileType]:
+        cls, file_path: PathLike, progress_logger: GenericLogger = None,
+    ) -> "GenericFile":
         """ Generate 'ResultsFile' from EnergyPlus .sql file. """
-        file_path, file_name, file_created = get_file_information(file_path)
-        if not progress_logger:
-            progress_logger = GenericLogger(file_path.name)
+        eso_file = EsoFile.from_path(file_path, progress_logger)
+        return GenericFile(
+            eso_file.file_path,
+            eso_file.file_name,
+            eso_file.file_created,
+            eso_file.tables,
+            eso_file.search_tree,
+            file_type=eso_file.file_type,
+        )
+
+    @classmethod
+    def from_multi_env_sql(
+        cls, file_path: PathLike, progress_logger: GenericLogger = None,
+    ) -> List["GenericFile"]:
+        """ Generate 'ResultsFile' from EnergyPlus multienv .sql file. """
+        eso_files = EsoFile.from_multi_env_path(file_path, progress_logger)
+        files = []
+        for ef in eso_files:
+            files.append(
+                GenericFile(
+                    ef.file_path,
+                    ef.file_name,
+                    ef.file_created,
+                    ef.tables,
+                    ef.search_tree,
+                    file_type=ef.file_type,
+                )
+            )
+        return files
 
     @classmethod
     def from_path(cls, path: PathLike, progress_logger: GenericLogger = None) -> "GenericFile":

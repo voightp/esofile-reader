@@ -21,12 +21,8 @@ from esofile_reader.processing.extensions.esofile import (
     process_monthly_plus_interval_line,
     read_body,
 )
-from esofile_reader.processing.extensions.raw_tables import (
-    generate_df_tables,
-    generate_peak_tables,
-    remove_duplicates,
-)
 from esofile_reader.processing.progress_logger import EsoFileLogger
+from esofile_reader.processing.raw_data_parser import RawEsoParser
 from tests.session_fixtures import *
 
 HEADER_PATH = Path(TEST_FILES_PATH, "header.txt")
@@ -286,7 +282,7 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     raw_peak_outputs = raw_outputs.peak_outputs
     logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
+    outputs = RawEsoParser().parse_peak_outputs(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
 
@@ -306,7 +302,7 @@ def test_generate_df_tables(raw_outputs, interval, shape):
     outputs = raw_outputs.outputs
     logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = generate_df_tables(outputs, header, dates, logger)
+    outputs = RawEsoParser().parse_outputs(outputs, header, dates, {}, logger)
     assert outputs[interval].shape == shape
 
 
@@ -329,18 +325,7 @@ def test_df_tables_numeric_type(eplusout_all_intervals, interval):
 
 
 def test_remove_duplicates():
-    v1 = Variable("hourly", "a", "b", "c")
-    v2 = Variable("hourly", "d", "e", "f")
-    v3 = Variable("hourly", "g", "h", "i")
-    ids = {1: v1, 2: v2}
-    header_dct = {"hourly": {1: v1, 2: v2, 3: v3}}
-    outputs_dct = {"hourly": {1: v1, 3: v3}}
-    peak_outpus = None
-
-    remove_duplicates(ids, header_dct, outputs_dct, peak_outpus)
-
-    assert header_dct["hourly"] == {3: v3}
-    assert outputs_dct["hourly"] == {3: v3}
+    pytest.fail()
 
 
 def test_header_invalid_line():
@@ -392,7 +377,7 @@ def test_non_numeric_line():
 
 def test_logging_level_info():
     EsoFile.from_path(
-        Path(TEST_FILES_PATH, "eplusout1.eso"), progress_logger=EsoFileLogger("foo", level=20),
+        Path(TEST_FILES_PATH, "eplusout1.eso"), logger=EsoFileLogger("foo", level=20),
     )
 
 
@@ -421,7 +406,7 @@ def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, 
 
 
 def test_multiple_env_eso_file():
-    eso_files = EsoFile.from_multi_env_file_path(
+    eso_files = EsoFile.from_multi_env_path(
         Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
     )
     sizing_tables = [TS, H, D]

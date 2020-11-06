@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from copy import copy
-from typing import Union, Optional, Dict, List, Iterator
+from typing import Union, Optional, Dict, List, Iterator, Tuple
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import DuplicateVariable
@@ -135,6 +135,19 @@ class Tree:
                 f"Header contains duplicates: {duplicates}", tree, duplicates
             )
         return tree
+
+    @classmethod
+    def cleaned_from_header_dict(
+        cls, header_dct: Dict[str, Dict[int, VariableType]]
+    ) -> Tuple["Tree", Optional[Dict[int, Variable]]]:
+        """ Create a search tree instance from header dictionary with no duplicates. """
+        try:
+            tree = Tree.from_header_dict(header_dct)
+            duplicates = None
+        except DuplicateVariable as e:
+            tree = e.clean_tree
+            duplicates = e.duplicates
+        return tree, duplicates
 
     def create_variable_iterator(self, variable: VariableType) -> Iterator:
         """ Pass reordered variable. """

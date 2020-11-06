@@ -53,7 +53,7 @@ def process_environment_data(
         header=deepcopy(header),
         outputs=outputs,
         dates=dates,
-        n_interval_minutes=n_minutes,
+        n_minutes=n_minutes,
         days_of_week=days_of_week,
     )
 

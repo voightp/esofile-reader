@@ -103,7 +103,7 @@ def sort_by_ids(df: pd.DataFrame, ids: List[int]):
     return df.iloc[:, indexes]
 
 
-def slicer(
+def slice_df(
     df: pd.DataFrame,
     ids: Sequence[int],
     start_date: Optional[datetime] = None,

@@ -1,22 +1,17 @@
 from copy import copy
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from esofile_reader.abstractions.base_file import BaseFile, get_file_information
+from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
 from esofile_reader.processing.progress_logger import EsoFileLogger
+from esofile_reader.processing.raw_data import RawData
+from esofile_reader.processing.raw_data_parser import choose_parser, Parser
 from esofile_reader.search_tree import Tree
-
-try:
-    from esofile_reader.processing.extensions.esofile import process_eso_file
-except ModuleNotFoundError:
-    import pyximport
-
-    pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.extensions.esofile import process_eso_file
 
 
 class EsoFile(BaseFile):
@@ -36,9 +31,8 @@ class EsoFile(BaseFile):
         TableType storage instance.
     search_tree : Tree
         N array tree for efficient id searching.
-    peak_tables : DFTables
+    peak_tables : Dict of {str, DFTables}
         TableType storage instance.
-
 
     """
 
@@ -68,68 +62,97 @@ class EsoFile(BaseFile):
         )
 
     @classmethod
+    def _process_env_data(
+        cls, raw_data: RawData, parser: Parser, logger: EsoFileLogger, year: int
+    ) -> Tuple[Tree, DFTables, Optional[Dict[str, DFTables]]]:
+        """ Process an environment raw data into final classes. """
+        logger.set_maximum_progress(raw_data.get_n_tables() + 1)
+        logger.log_section("generating search tree!")
+        tree, duplicates = Tree.cleaned_from_header_dict(raw_data.header)
+        if duplicates:
+            raw_data.remove_variables(duplicates)
+        logger.increment_progress()
+
+        logger.log_section("processing dates!")
+        dates, n_days = parser.parse_date_data(raw_data, year)
+        special_columns = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_data.days_of_week}
+
+        logger.log_section("generating tables!")
+        tables = parser.parse_outputs(
+            raw_data.outputs, raw_data.header, dates, special_columns, logger
+        )
+
+        if raw_data.peak_outputs:
+            logger.log_section("generating peak tables!")
+            peak_tables = parser.parse_peak_outputs(
+                raw_data.peak_outputs, raw_data.header, dates, logger
+            )
+
+        else:
+            peak_tables = None
+
+        return tree, tables, peak_tables
+
+    @classmethod
+    def _process_raw_data(
+        cls, file_path: PathLike, logger: EsoFileLogger, ignore_peaks: bool, year: int
+    ) -> List["EsoFile"]:
+        """ Process raw data from all environments into final classes. """
+        file_path, file_name, file_created = get_file_information(file_path)
+        parser = choose_parser(file_path)
+        eso_files = []
+        all_raw_data = parser.process_file(file_path, logger, ignore_peaks)
+        for i, raw_data in enumerate(reversed(all_raw_data)):
+            tree, tables, peak_tables = cls._process_env_data(raw_data, parser, logger, year)
+            logger.log_section("Creating class instance!")
+            # last processed environment uses a plain name, this is in place to only
+            # assign distinct names for 'sizing' results which are reported first
+            name = f"{file_name} - {raw_data.environment_name}" if i > 0 else file_name
+            ef = cls(
+                file_path=file_path,
+                file_name=name,
+                file_created=file_created,
+                tables=tables,
+                search_tree=tree,
+                peak_tables=peak_tables,
+            )
+            eso_files.append(ef)
+        return eso_files
+
+    @classmethod
     def from_path(
         cls,
         file_path: str,
-        progress_logger: EsoFileLogger = None,
+        logger: EsoFileLogger = None,
         ignore_peaks: bool = True,
         year: Optional[int] = 2002,
     ) -> "EsoFile":
-        if progress_logger is None:
-            progress_logger = EsoFileLogger(Path(file_path).name)
-        with progress_logger.log_task("Process eso file data!"):
-            file_path, file_name, file_created = get_file_information(file_path)
-            all_raw_df_outputs = process_eso_file(
-                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
-            )
-            if len(all_raw_df_outputs) == 1:
-                progress_logger.log_section("creating class instance!")
-                raw_df_outputs = all_raw_df_outputs[0]
-                tables = raw_df_outputs.tables
-                peak_tables = raw_df_outputs.peak_tables
-                tree = raw_df_outputs.tree
-                return cls(
-                    file_path, file_name, file_created, tables, tree, peak_tables=peak_tables
-                )
+        """ """
+        file_path, file_name, file_created = get_file_information(file_path)
+        if logger is None:
+            logger = EsoFileLogger(file_path.name)
+        with logger.log_task(f"Process '{file_path.suffix}' file!"):
+            eso_files = cls._process_raw_data(Path(file_path), logger, ignore_peaks, year)
+            if len(eso_files) == 1:
+                return eso_files[0]
             else:
                 raise MultiEnvFileRequired(
                     f"Cannot populate file {file_path}. "
                     f"as there are multiple environments included.\n"
-                    f"Use '{cls.__name__}.from_multi_env_eso_file' "
+                    f"Use '{cls.__name__}.from_multi_env_path' "
                     f"to generate multiple files."
                 )
 
     @classmethod
-    def from_multi_env_file_path(
+    def from_multi_env_path(
         cls,
         file_path: str,
-        progress_logger: EsoFileLogger = None,
+        logger: EsoFileLogger = None,
         ignore_peaks: bool = True,
         year: Optional[int] = 2002,
     ) -> List["EsoFile"]:
-        """ Generate independent 'EsoFile' for each environment. """
         file_path, file_name, file_created = get_file_information(file_path)
-        if progress_logger is None:
-            progress_logger = EsoFileLogger(file_path.name)
-        with progress_logger.log_task("Process eso file data!"):
-            all_raw_df_outputs = process_eso_file(
-                file_path, progress_logger, ignore_peaks=ignore_peaks, year=year
-            )
-            progress_logger.log_section("creating class instance!")
-            eso_files = []
-            for i, raw_df_outputs in enumerate(reversed(all_raw_df_outputs)):
-                # last processed environment uses a plain name, this is in place to only
-                # assign distinct names for 'sizing' results which are reported first
-                name = (
-                    f"{file_name} - {raw_df_outputs.environment_name}" if i > 0 else file_name
-                )
-                ef = EsoFile(
-                    file_path=file_path,
-                    file_name=name,
-                    file_created=file_created,
-                    tables=raw_df_outputs.tables,
-                    search_tree=raw_df_outputs.tree,
-                    peak_tables=raw_df_outputs.peak_tables,
-                )
-                eso_files.append(ef)
-        return eso_files
+        if logger is None:
+            logger = EsoFileLogger(Path(file_path).name)
+        with logger.log_task(f"Process multi-environment {file_path.suffix} file!"):
+            return cls._process_raw_data(Path(file_path), logger, ignore_peaks, year)

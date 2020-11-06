@@ -15,11 +15,11 @@ from esofile_reader.convertor import (
     is_hourly,
     is_timestep,
 )
-from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
-from esofile_reader.results_processing.process_results import get_processed_results
-from esofile_reader.results_processing.aggregate_results import aggregate_variables
-from esofile_reader.search_tree import Tree
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
+from esofile_reader.results_processing.aggregate_results import aggregate_variables
+from esofile_reader.results_processing.process_results import get_processed_results
+from esofile_reader.search_tree import Tree
 
 
 def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
@@ -95,6 +95,9 @@ class BaseFile:
             copy(self.search_tree),
             self.file_type,
         )
+
+    def __eq__(self, other: "BaseFile"):
+        return self.tables == other.tables
 
     @property
     def complete(self) -> bool:

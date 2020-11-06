@@ -50,7 +50,7 @@ class ParquetStorage(DFStorage):
         with progress_logger.log_task("Store file!"):
             n = sum([ParquetFrame.get_n_chunks(df) for df in results_file.tables.values()])
             progress_logger.log_section("writing parquets!")
-            progress_logger.set_new_maximum_progress(n)
+            progress_logger.set_maximum_progress(n)
 
             id_gen = incremental_id_gen(checklist=list(self.files.keys()))
             id_ = next(id_gen)
