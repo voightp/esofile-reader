@@ -32,20 +32,21 @@ except ModuleNotFoundError:
     from esofile_reader.processing.extensions.esofile import process_eso_file
 
 
-def create_header_multiindex(
-    header: Dict[int, Variable], names: List[str], sort_array: pd.Index
-) -> pd.MultiIndex:
+def align_id_level(df: pd.DataFrame, id_level: pd.Index):
+    return df.loc[:, id_level]
+
+
+def create_header_multiindex(header: Dict[int, Variable], names: List[str]) -> pd.MultiIndex:
     """ Create sorted header MultiIndex. """
-    df = pd.DataFrame(header)
-    df = df.T
-    df = df.loc[sort_array, :]
-    df.reset_index(inplace=True)
-    return pd.MultiIndex.from_frame(df, names=names)
+    tuples = []
+    for id_, variable in header.items():
+        tuples.append((id_, *variable))
+    return pd.MultiIndex.from_tuples(tuples, names=names)
 
 
 def create_df_from_columns(outputs_dct: Dict[int, List[float]]) -> pd.DataFrame:
     """ Create plain values pd.DataFrame from dictionary. """
-    return pd.DataFrame(outputs_dct)
+    return pd.DataFrame(outputs_dct, dtype=float)
 
 
 def create_df_from_rows(outputs_rows: List[Tuple[int, int, float]],) -> pd.DataFrame:
@@ -132,7 +133,8 @@ class RawEsoParser(Parser):
         tables = DFTables()
         for interval, values in outputs.items():
             df = create_df_from_columns(values)
-            mi = create_header_multiindex(header[interval], COLUMN_LEVELS, df.columns)
+            mi = create_header_multiindex(header[interval], COLUMN_LEVELS)
+            df = align_id_level(df, mi.get_level_values(ID_LEVEL))
             df.columns = mi
             df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
             tables[interval] = df
@@ -151,7 +153,7 @@ class RawEsoParser(Parser):
         max_peaks = DFTables()
         for interval, values in peak_outputs.items():
             df = create_df_from_columns(values)
-            mi = create_header_multiindex(header[interval], COLUMN_LEVELS, df.columns)
+            mi = create_header_multiindex(header[interval], COLUMN_LEVELS)
             df.columns = mi
             df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
@@ -191,7 +193,7 @@ class RawSqlParser(Parser):
         tables = DFTables()
         for interval, values in outputs.items():
             df = create_df_from_rows(values)
-            mi = create_header_multiindex(header[interval], COLUMN_LEVELS, df.columns)
+            mi = create_header_multiindex(header[interval], COLUMN_LEVELS)
             df.columns = mi
             df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
             tables[interval] = df
