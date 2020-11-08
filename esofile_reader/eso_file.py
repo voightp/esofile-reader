@@ -87,7 +87,6 @@ class EsoFile(BaseFile):
             peak_tables = parser.parse_peak_outputs(
                 raw_data.peak_outputs, raw_data.header, dates, logger
             )
-
         else:
             peak_tables = None
 

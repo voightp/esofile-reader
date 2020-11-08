@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 
 from sqlalchemy import select, and_, func, literal, Table, Column, Integer, String, MetaData
 from sqlalchemy.engine.base import Connection
@@ -178,3 +178,20 @@ def parse_eplus_timestamps(eplus_timestamps: List[Tuple[int, ...]]) -> List[date
         year = 2002 if (year == 0 or year is None) else year
         timestamps.append(parse_eplus_timestamp(year, month, day, hour, minute))
     return timestamps
+
+
+def get_n_days_from_minutes(n_minutes: Dict[str, List[Optional[int]]]):
+    # TODO handle annual
+    n_days = {}
+    for interval, n_minutes_arr in n_minutes.items():
+        n_days[interval] = [int(n / 1440) if n else None for n in n_minutes_arr]
+    return n_days
+
+
+def convert_raw_sql_date_data(
+    eplus_timestamps: Dict[str, List[Tuple[int, ...]]]
+) -> Dict[str, List[datetime]]:
+    datetime_dates = {}
+    for interval, eplus_timestamp in eplus_timestamps.items():
+        datetime_dates[interval] = parse_eplus_timestamps(eplus_timestamp)
+    return datetime_dates

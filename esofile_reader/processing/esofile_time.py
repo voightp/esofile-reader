@@ -140,12 +140,11 @@ def update_start_dates(dates: Dict[str, List[datetime]]) -> Dict[str, List[datet
     return dates
 
 
-def get_n_days(
-    raw_dates: Dict[str, List[EsoTimestamp]], cumulative_days: Dict[str, List[int]]
+def get_n_days_from_cumulative(
+    cumulative_days: Dict[str, List[int]]
 ) -> Optional[Dict[str, List[int]]]:
     """ Convert cumulative days to number of days pers step. """
-    monthly_to_runperiod_dates = {k: v for k, v in raw_dates.items() if k in (M, A, RP)}
-    if monthly_to_runperiod_dates:
+    if cumulative_days:
         # Separate number of days data if any M to RP table is available
         num_of_days = get_num_of_days(cumulative_days)
     else:

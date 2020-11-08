@@ -2,9 +2,10 @@ from copy import deepcopy
 from typing import Dict, List
 
 from sqlalchemy import MetaData, create_engine, Table
-from sqlalchemy.engine.base import Connection
+from sqlalchemy.engine.base import Connection, Engine
+
+from esofile_reader.mini_classes import Variable, PathLike
 from esofile_reader.processing.progress_logger import GenericLogger
-from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.raw_data import RawSqlData
 from esofile_reader.processing.sql_time import (
     get_dates,
@@ -58,12 +59,7 @@ def process_environment_data(
     )
 
 
-def process_sql_file(
-    path: str, echo=False, progress_logger: GenericLogger = None
-) -> List[RawSqlData]:
-    engine = create_engine(f"sqlite:///{path}", echo=echo)
-    metadata = MetaData(bind=engine)
-
+def read_sql_file(engine: Engine, metadata: MetaData) -> List[RawSqlData]:
     # reflect database object, this could be done using 'autoload=True' but
     # better to define tables explicitly to have a useful reference
     time_table = create_time_table(metadata)
@@ -80,3 +76,12 @@ def process_sql_file(
             )
             all_raw_data.append(raw_sql_data)
     return all_raw_data
+
+
+def process_sql_file(
+    file_path: PathLike, logger: GenericLogger, echo=False,
+) -> List[RawSqlData]:
+    engine = create_engine(f"sqlite:///{file_path}", echo=echo)
+    metadata = MetaData(bind=engine)
+    # validate sql schema
+    return read_sql_file(engine, metadata)
