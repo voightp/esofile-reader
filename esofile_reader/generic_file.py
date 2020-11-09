@@ -9,10 +9,7 @@ from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
-from esofile_reader.processing.progress_logger import (
-    EsoFileLogger,
-    GenericLogger,
-)
+from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 
@@ -65,17 +62,17 @@ class GenericFile(BaseFile):
         file_path: PathLike,
         sheet_names: List[str] = None,
         force_index: bool = False,
-        progress_logger: GenericLogger = None,
+        logger: GenericLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
-        if not progress_logger:
-            progress_logger = GenericLogger(file_path.name)
-        with progress_logger.log_task("Processing xlsx file."):
+        if not logger:
+            logger = GenericLogger(file_path.name)
+        with logger.log_task("Processing xlsx file."):
             tables = process_excel(
                 file_path,
-                progress_logger,
+                logger,
                 sheet_names=sheet_names,
                 force_index=force_index,
                 header_limit=header_limit,
@@ -83,7 +80,7 @@ class GenericFile(BaseFile):
             if tables.empty:
                 raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
             else:
-                progress_logger.log_section("generating search tree!")
+                logger.log_section("generating search tree!")
                 tree = Tree.from_header_dict(tables.get_all_variables_dct())
             results_file = GenericFile(
                 file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
@@ -95,22 +92,20 @@ class GenericFile(BaseFile):
         cls,
         file_path: PathLike,
         force_index: bool = False,
-        progress_logger: GenericLogger = None,
+        logger: GenericLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
-        if not progress_logger:
-            progress_logger = GenericLogger(file_path.name)
-        with progress_logger.log_task("Process csv file!"):
+        if not logger:
+            logger = GenericLogger(file_path.name)
+        with logger.log_task("Process csv file!"):
             tables = process_csv(
-                file_path, progress_logger, force_index=force_index, header_limit=header_limit,
+                file_path, logger, force_index=force_index, header_limit=header_limit,
             )
             if tables.empty:
-                raise NoResults(
-                    f"There aren't any numeric outputs in file {progress_logger.name}."
-                )
-            progress_logger.log_section("generating search tree!")
+                raise NoResults(f"There aren't any numeric outputs in file {logger.name}.")
+            logger.log_section("generating search tree!")
             tree = Tree.from_header_dict(tables.get_all_variables_dct())
             results_file = GenericFile(
                 file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
@@ -118,68 +113,51 @@ class GenericFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_eso_file(
-        cls, file_path: PathLike, progress_logger: EsoFileLogger = None, year: int = 2002,
+    def from_eplus_file(
+        cls, file_path: PathLike, logger: GenericLogger = None, year: int = 2002,
+    ) -> "GenericFile":
+        """ Generate 'ResultsFile' from EnergyPlus .eso or .sql file. """
+        eso_file = EsoFile.from_path(file_path, logger, ignore_peaks=True, year=year)
+        return GenericFile(
+            eso_file.file_path,
+            eso_file.file_name,
+            eso_file.file_created,
+            eso_file.tables,
+            eso_file.search_tree,
+            file_type=eso_file.file_type,
+        )
+
+    @classmethod
+    def from_eplus_multienv_file(
+        cls, file_path: PathLike, logger: GenericLogger = None, year: int = 2002,
     ) -> Union[List[ResultsFileType], ResultsFileType]:
         """ Generate 'ResultsFile' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit EsoFile
-        eso_file = EsoFile.from_path(file_path, progress_logger, ignore_peaks=True, year=year)
-        return GenericFile(
-            eso_file.file_path,
-            eso_file.file_name,
-            eso_file.file_created,
-            eso_file.tables,
-            eso_file.search_tree,
-            file_type=eso_file.file_type,
-        )
-
-    @classmethod
-    def from_sql(
-        cls, file_path: PathLike, progress_logger: GenericLogger = None,
-    ) -> "GenericFile":
-        """ Generate 'ResultsFile' from EnergyPlus .sql file. """
-        eso_file = EsoFile.from_path(file_path, progress_logger)
-        return GenericFile(
-            eso_file.file_path,
-            eso_file.file_name,
-            eso_file.file_created,
-            eso_file.tables,
-            eso_file.search_tree,
-            file_type=eso_file.file_type,
-        )
-
-    @classmethod
-    def from_multi_env_sql(
-        cls, file_path: PathLike, progress_logger: GenericLogger = None,
-    ) -> List["GenericFile"]:
-        """ Generate 'ResultsFile' from EnergyPlus multienv .sql file. """
-        eso_files = EsoFile.from_multi_env_path(file_path, progress_logger)
-        files = []
-        for ef in eso_files:
-            files.append(
-                GenericFile(
-                    ef.file_path,
-                    ef.file_name,
-                    ef.file_created,
-                    ef.tables,
-                    ef.search_tree,
-                    file_type=ef.file_type,
-                )
+        eso_files = EsoFile.from_multienv_path(file_path, logger, ignore_peaks=True, year=year)
+        return [
+            GenericFile(
+                ef.file_path,
+                ef.file_name,
+                ef.file_created,
+                ef.tables,
+                ef.search_tree,
+                file_type=ef.file_type,
             )
-        return files
+            for ef in eso_files
+        ]
 
     @classmethod
-    def from_path(cls, path: PathLike, progress_logger: GenericLogger = None) -> "GenericFile":
-        """ Try to generate 'Resultsfile' from generic path. """
+    def from_path(cls, path: PathLike, logger: GenericLogger = None) -> "GenericFile":
+        """ Try to generate 'Results file' from generic path. """
         switch = {
-            BaseFile.ESO: cls.from_eso_file,
+            BaseFile.SQL: cls.from_eplus_file,
+            BaseFile.ESO: cls.from_eplus_file,
             BaseFile.XLSX: cls.from_excel,
             BaseFile.CSV: cls.from_csv,
-            BaseFile.SQL: cls.from_sql,
         }
         file_type = Path(path).suffix
         try:
-            results_file = switch[file_type](path, progress_logger=progress_logger)
+            results_file = switch[file_type](path, logger=logger)
         except KeyError:
             raise FormatNotSupported(
                 f"Cannot process file '{path}'. '{file_type}' is not supported."

@@ -230,7 +230,7 @@ class BaseFile:
             var_args.pop(2)
         return var_cls(*var_args)
 
-    def create_header_variable(
+    def _create_header_variable(
         self, table: str, key: str, units: str, type_: str = None
     ) -> VariableType:
         """ Create unique header variable. """
@@ -270,7 +270,7 @@ class BaseFile:
             if ids:
                 id_ = ids[0]
                 # create new variable and add it into tree
-                new_variable = self.create_header_variable(
+                new_variable = self._create_header_variable(
                     table, new_key, units, type_=new_type
                 )
 
@@ -293,7 +293,7 @@ class BaseFile:
         self, table: str, key: str, units: str, array: Sequence, type_: str = None
     ) -> Optional[Tuple[int, VariableType]]:
         """ Add specified output variable to the file. """
-        new_variable = self.create_header_variable(table, key, units, type_=type_)
+        new_variable = self._create_header_variable(table, key, units, type_=type_)
         id_ = self.tables.insert_column(new_variable, array)
         if id_:
             self.search_tree.add_variable(id_, new_variable)

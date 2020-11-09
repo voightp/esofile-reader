@@ -15,7 +15,7 @@ from esofile_reader.processing.esofile_time import (
     convert_raw_date_data,
     get_n_days_from_cumulative,
 )
-from esofile_reader.processing.progress_logger import EsoFileLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.raw_data import RawData
 from esofile_reader.processing.sql import process_sql_file
 from esofile_reader.processing.sql_time import (
@@ -83,7 +83,7 @@ def choose_parser(file_path: Path):
 class Parser(ABC):
     @staticmethod
     @abstractmethod
-    def process_file(file_path: Path, progress_logger: EsoFileLogger, ignore_peaks: bool):
+    def process_file(file_path: Path, progress_logger: GenericLogger, ignore_peaks: bool):
         pass
 
     @staticmethod
@@ -97,7 +97,7 @@ class Parser(ABC):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ) -> DFTables:
         pass
 
@@ -106,7 +106,7 @@ class Parser(ABC):
         peak_outputs: Dict[str, Any],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ):
         pass
 
@@ -128,7 +128,7 @@ class RawEsoParser(Parser):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ) -> DFTables:
         tables = DFTables()
         for interval, values in outputs.items():
@@ -147,7 +147,7 @@ class RawEsoParser(Parser):
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ):
         min_peaks = DFTables()
         max_peaks = DFTables()
@@ -188,7 +188,7 @@ class RawSqlParser(Parser):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ) -> DFTables:
         tables = DFTables()
         for interval, values in outputs.items():
@@ -206,7 +206,7 @@ class RawSqlParser(Parser):
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: EsoFileLogger,
+        progress_logger: GenericLogger,
     ):
         # sql outputs do not support peaks
         return None

@@ -8,7 +8,7 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
-from esofile_reader.processing.progress_logger import EsoFileLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.raw_data import RawData
 from esofile_reader.processing.raw_data_parser import choose_parser, Parser
 from esofile_reader.search_tree import Tree
@@ -51,8 +51,7 @@ class EsoFile(BaseFile):
         self.peak_tables = peak_tables
 
     def __copy__(self):
-        # explicitly return this file type for all subclasses
-        return EsoFile(
+        return type(self)(
             file_path=self.file_path,
             file_name=self.file_name,
             file_created=self.file_created,
@@ -63,7 +62,7 @@ class EsoFile(BaseFile):
 
     @classmethod
     def _process_env_data(
-        cls, raw_data: RawData, parser: Parser, logger: EsoFileLogger, year: int
+        cls, raw_data: RawData, parser: Parser, logger: GenericLogger, year: int
     ) -> Tuple[Tree, DFTables, Optional[Dict[str, DFTables]]]:
         """ Process an environment raw data into final classes. """
         logger.set_maximum_progress(raw_data.get_n_tables() + 1)
@@ -94,7 +93,7 @@ class EsoFile(BaseFile):
 
     @classmethod
     def _process_raw_data(
-        cls, file_path: PathLike, logger: EsoFileLogger, ignore_peaks: bool, year: int
+        cls, file_path: PathLike, logger: GenericLogger, ignore_peaks: bool, year: int
     ) -> List["EsoFile"]:
         """ Process raw data from all environments into final classes. """
         file_path, file_name, file_created = get_file_information(file_path)
@@ -122,14 +121,14 @@ class EsoFile(BaseFile):
     def from_path(
         cls,
         file_path: str,
-        logger: EsoFileLogger = None,
+        logger: GenericLogger = None,
         ignore_peaks: bool = True,
         year: Optional[int] = 2002,
     ) -> "EsoFile":
         """ """
         file_path, file_name, file_created = get_file_information(file_path)
         if logger is None:
-            logger = EsoFileLogger(file_path.name)
+            logger = GenericLogger(file_path.name)
         with logger.log_task(f"Process '{file_path.suffix}' file!"):
             eso_files = cls._process_raw_data(Path(file_path), logger, ignore_peaks, year)
             if len(eso_files) == 1:
@@ -143,15 +142,15 @@ class EsoFile(BaseFile):
                 )
 
     @classmethod
-    def from_multi_env_path(
+    def from_multienv_path(
         cls,
         file_path: str,
-        logger: EsoFileLogger = None,
+        logger: GenericLogger = None,
         ignore_peaks: bool = True,
         year: Optional[int] = 2002,
     ) -> List["EsoFile"]:
         file_path, file_name, file_created = get_file_information(file_path)
         if logger is None:
-            logger = EsoFileLogger(Path(file_path).name)
+            logger = GenericLogger(Path(file_path).name)
         with logger.log_task(f"Process multi-environment {file_path.suffix} file!"):
             return cls._process_raw_data(Path(file_path), logger, ignore_peaks, year)

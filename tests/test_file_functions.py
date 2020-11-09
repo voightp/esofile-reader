@@ -6,7 +6,6 @@ from pandas.testing import assert_frame_equal
 
 from esofile_reader import Variable, SimpleVariable
 from esofile_reader.constants import *
-from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import CannotAggregateVariables
 from tests.session_fixtures import *
 
@@ -268,7 +267,7 @@ def test_find_table_id_map_unexpected_type(eplusout_all_intervals):
 def test_create_new_header_variable(
     file, table, new_key, new_type, new_units, created_variable
 ):
-    v = file.create_header_variable(table, new_key, new_units, type_=new_type)
+    v = file._create_header_variable(table, new_key, new_units, type_=new_type)
     assert v == created_variable
 
 
@@ -281,7 +280,7 @@ def test_create_new_header_variable(
 )
 def test_create_new_header_variable_invalid(file, table, new_key, new_type, new_units):
     with pytest.raises(TypeError):
-        _ = file.create_header_variable(table, new_key, new_units, type_=new_type)
+        _ = file._create_header_variable(table, new_key, new_units, type_=new_type)
 
 
 @pytest.mark.parametrize(

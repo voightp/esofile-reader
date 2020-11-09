@@ -52,6 +52,6 @@ def excel_file():
 
 @pytest.fixture(scope="session")
 def multienv_leap_files():
-    return EsoFile.from_multi_env_path(
+    return EsoFile.from_multienv_path(
         Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
     )

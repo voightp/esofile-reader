@@ -32,12 +32,15 @@ def process_environment_data(
     env_index: int,
     env_name: str,
     header: Dict[str, Dict[int, Variable]],
+    logger: GenericLogger,
 ) -> RawSqlData:
     dates = {}
     days_of_week = {}
     n_minutes = {}
     outputs = {}
-    for interval_type in get_interval_types(conn, time_table, env_index):
+    interval_types = get_interval_types(conn, time_table, env_index)
+    logger.set_maximum_progress(len(interval_types))
+    for interval_type in interval_types:
         interval = INTERVAL_TYPE_MAP[interval_type]
         dates[interval] = get_dates(conn, time_table, env_index, interval_type)
         if interval_type <= 2:
@@ -49,6 +52,7 @@ def process_environment_data(
         outputs[interval] = get_output_data(
             conn, time_table, data_table, interval_type, env_index
         )
+        logger.increment_progress()
     return RawSqlData(
         environment_name=env_name,
         header=deepcopy(header),
@@ -59,7 +63,9 @@ def process_environment_data(
     )
 
 
-def read_sql_file(engine: Engine, metadata: MetaData) -> List[RawSqlData]:
+def read_sql_file(
+    engine: Engine, metadata: MetaData, logger: GenericLogger
+) -> List[RawSqlData]:
     # reflect database object, this could be done using 'autoload=True' but
     # better to define tables explicitly to have a useful reference
     time_table = create_time_table(metadata)
@@ -71,8 +77,9 @@ def read_sql_file(engine: Engine, metadata: MetaData) -> List[RawSqlData]:
         header = process_sql_header(conn, data_dict_table)
         all_raw_data = []
         for env_index, env_name in get_environment_details(conn, environments_table):
+            logger.log_section(f"Processing environment '{env_name}'!")
             raw_sql_data = process_environment_data(
-                conn, time_table, data_table, env_index, env_name, header
+                conn, time_table, data_table, env_index, env_name, header, logger
             )
             all_raw_data.append(raw_sql_data)
     return all_raw_data
@@ -84,4 +91,4 @@ def process_sql_file(
     engine = create_engine(f"sqlite:///{file_path}", echo=echo)
     metadata = MetaData(bind=engine)
     # validate sql schema
-    return read_sql_file(engine, metadata)
+    return read_sql_file(engine, metadata, logger)
