@@ -74,26 +74,15 @@ def get_month_n_days_from_cumulative(monthly_cumulative_days: List[int]):
     return m_actual_days
 
 
+def get_annual_n_days(annual_timestamps: List[datetime]) -> List[int]:
+    """ Calculate number of days for annual interval. """
+    return [366 if calendar.isleap(dt.year) else 365 for dt in annual_timestamps]
+
+
 def find_num_of_days_annual(ann_num_of_days: List[int], rp_num_of_days: List[int]) -> List[int]:
     """ Use runperiod data to calculate number of days for each annual period. """
     days = rp_num_of_days[0] // len(ann_num_of_days)
     return [days for _ in ann_num_of_days]
-
-
-def get_num_of_days(cumulative_days: Dict[str, List[int]]) -> Dict[str, List[int]]:
-    """ Split num of days and date. """
-    num_of_days = {}
-    for table, values in cumulative_days.items():
-        if table == M:
-            # calculate actual number of days for monthly table
-            num_of_days[M] = get_month_n_days_from_cumulative(values)
-        else:
-            num_of_days[table] = values
-    # calculate number of days for annual table for
-    # an incomplete year run or multi year analysis
-    if A in cumulative_days.keys() and RP in cumulative_days.keys():
-        num_of_days[A] = find_num_of_days_annual(num_of_days[A], num_of_days[RP])
-    return num_of_days
 
 
 def check_year_increment(
@@ -141,15 +130,22 @@ def update_start_dates(dates: Dict[str, List[datetime]]) -> Dict[str, List[datet
 
 
 def get_n_days_from_cumulative(
-    cumulative_days: Dict[str, List[int]]
+    cumulative_days: Dict[str, List[int]], dates: Dict[str, List[datetime]]
 ) -> Optional[Dict[str, List[int]]]:
-    """ Convert cumulative days to number of days pers step. """
+    """ Calculate actual number of days for monthly, runperiod and annual intervals. """
     if cumulative_days:
-        # Separate number of days data if any M to RP table is available
-        num_of_days = get_num_of_days(cumulative_days)
+        n_days = {}
+        for table, values in cumulative_days.items():
+            if table == M:
+                n_days[M] = get_month_n_days_from_cumulative(values)
+            elif table == A:
+                n_days[A] = get_annual_n_days(dates[A])
+            else:
+                n_days[table] = values
+        return n_days
     else:
-        num_of_days = None
-    return num_of_days
+        n_days = None
+    return n_days
 
 
 def validate_year(year: int, is_leap: bool, date: EsoTimestamp, day: str) -> None:

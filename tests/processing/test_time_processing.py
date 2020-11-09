@@ -57,10 +57,12 @@ def test_find_num_of_days_annual():
     assert out == [350, 350]
 
 
-def test_get_num_of_days():
-    days = {M: [10, 20, 30], RP: [100], A: [1]}
-    out = get_num_of_days(days)
-    assert out == {"monthly": [10, 10, 10], "runperiod": [100], "annual": [100]}
+@pytest.mark.parametrize("year, expected", [(2020, 366), (2001, 365)])
+def test_get_num_of_days(year, expected):
+    days = {M: [10, 20, 30], RP: [123], A: [None]}
+    dates = {A: [datetime(year, 1, 1)]}
+    out = get_n_days_from_cumulative(days, dates)
+    assert out == {"monthly": [10, 10, 10], "runperiod": [123], "annual": [expected]}
 
 
 @pytest.mark.parametrize(

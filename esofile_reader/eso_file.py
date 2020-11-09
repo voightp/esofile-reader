@@ -74,17 +74,17 @@ class EsoFile(BaseFile):
         logger.increment_progress()
 
         logger.log_section("processing dates!")
-        dates, n_days = parser.parse_date_data(raw_data, year)
+        dates, n_days = parser.cast_date_data(raw_data, year)
         special_columns = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_data.days_of_week}
 
         logger.log_section("generating tables!")
-        tables = parser.parse_outputs(
+        tables = parser.cast_outputs(
             raw_data.outputs, raw_data.header, dates, special_columns, logger
         )
 
         if raw_data.peak_outputs:
             logger.log_section("generating peak tables!")
-            peak_tables = parser.parse_peak_outputs(
+            peak_tables = parser.cast_peak_outputs(
                 raw_data.peak_outputs, raw_data.header, dates, logger
             )
         else:

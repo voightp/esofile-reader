@@ -264,13 +264,13 @@ class DFTables(BaseTables):
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        if name not in self.tables[table].columns.get_level_values(KEY_LEVEL):
-            raise KeyError(f"'{name}' column is not available " f"on the given data set.")
         if self.is_simple(table):
             v = (SPECIAL, table, name, "")
         else:
             v = (SPECIAL, table, name, "", "")
         col = slice_series_by_datetime_index(self.tables[table].loc[:, v], start_date, end_date)
+        if col.empty:
+            raise KeyError(f"'{name}' column is not available on the given data set.")
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col

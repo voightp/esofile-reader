@@ -282,7 +282,7 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     raw_peak_outputs = raw_outputs.peak_outputs
     logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = RawEsoParser().parse_peak_outputs(raw_peak_outputs, header, dates, logger)
+    outputs = RawEsoParser().cast_peak_outputs(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
 
@@ -302,7 +302,7 @@ def test_generate_df_tables(raw_outputs, interval, shape):
     outputs = raw_outputs.outputs
     logger = EsoFileLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = RawEsoParser().parse_outputs(outputs, header, dates, {}, logger)
+    outputs = RawEsoParser().cast_outputs(outputs, header, dates, {}, logger)
     assert outputs[interval].shape == shape
 
 

@@ -88,11 +88,11 @@ class Parser(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_date_data(raw_data: RawData, year: int) -> Dict[str, List[datetime]]:
+    def cast_date_data(raw_data: RawData, year: int) -> Dict[str, List[datetime]]:
         pass
 
     @staticmethod
-    def parse_outputs(
+    def cast_outputs(
         outputs: Dict[str, Any],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
@@ -102,7 +102,7 @@ class Parser(ABC):
         pass
 
     @staticmethod
-    def parse_peak_outputs(
+    def cast_peak_outputs(
         peak_outputs: Dict[str, Any],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
@@ -117,13 +117,13 @@ class RawEsoParser(Parser):
         return process_eso_file(file_path, progress_logger, ignore_peaks=ignore_peaks)
 
     @staticmethod
-    def parse_date_data(raw_eso_data, year):
-        n_days = get_n_days_from_cumulative(raw_eso_data.cumulative_days)
+    def cast_date_data(raw_eso_data, year):
         dates = convert_raw_date_data(raw_eso_data.dates, raw_eso_data.days_of_week, year)
+        n_days = get_n_days_from_cumulative(raw_eso_data.cumulative_days, dates)
         return dates, n_days
 
     @staticmethod
-    def parse_outputs(
+    def cast_outputs(
         outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
@@ -143,7 +143,7 @@ class RawEsoParser(Parser):
         return tables
 
     @staticmethod
-    def parse_peak_outputs(
+    def cast_peak_outputs(
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
@@ -177,13 +177,13 @@ class RawSqlParser(Parser):
         return process_sql_file(file_path, progress_logger)
 
     @staticmethod
-    def parse_date_data(raw_sql_data, year):
-        n_days = get_n_days_from_minutes(raw_sql_data.n_minutes)
+    def cast_date_data(raw_sql_data, year):
         dates = convert_raw_sql_date_data(raw_sql_data.dates)
+        n_days = get_n_days_from_minutes(raw_sql_data.n_minutes, dates)
         return dates, n_days
 
     @staticmethod
-    def parse_outputs(
+    def cast_outputs(
         outputs: Dict[str, List[Tuple[int, int, float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
@@ -202,7 +202,7 @@ class RawSqlParser(Parser):
         return tables
 
     @staticmethod
-    def parse_peak_outputs(
+    def cast_peak_outputs(
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],

@@ -6,7 +6,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.sql.selectable import Select
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_time import parse_eplus_timestamp
+from esofile_reader.processing.esofile_time import parse_eplus_timestamp, get_annual_n_days
 
 INTERVAL_TYPE_MAP = {
     -1: TS,
@@ -180,11 +180,15 @@ def parse_eplus_timestamps(eplus_timestamps: List[Tuple[int, ...]]) -> List[date
     return timestamps
 
 
-def get_n_days_from_minutes(n_minutes: Dict[str, List[Optional[int]]]):
-    # TODO handle annual
+def get_n_days_from_minutes(
+    n_minutes: Dict[str, List[Optional[int]]], dates: Dict[str, List[datetime]]
+):
     n_days = {}
     for interval, n_minutes_arr in n_minutes.items():
-        n_days[interval] = [int(n / 1440) if n else None for n in n_minutes_arr]
+        if interval == A:
+            n_days[A] = get_annual_n_days(dates[A])
+        else:
+            n_days[interval] = [int(n / 1440) if n else None for n in n_minutes_arr]
     return n_days
 
 
