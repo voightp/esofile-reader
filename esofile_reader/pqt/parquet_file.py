@@ -119,7 +119,7 @@ class ParquetFile(BaseFile):
             file_name=results_file.file_name,
             tables=tables,
             file_created=results_file.file_created,
-            search_tree=results_file.search_tree,
+            search_tree=copy(results_file.search_tree),
             file_type=results_file.file_type,
             workdir=workdir,
         )

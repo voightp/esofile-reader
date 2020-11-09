@@ -287,7 +287,7 @@ class BaseFile:
                     self.tables.update_variable_name(table, id_, new_variable.key)
                 return id_, new_variable
             else:
-                logging.warning(f"Cannot rename variable! {variable} not found.")
+                raise KeyError(f"Cannot rename variable! {variable} not found.")
 
     def insert_variable(
         self, table: str, key: str, units: str, array: Sequence, type_: str = None

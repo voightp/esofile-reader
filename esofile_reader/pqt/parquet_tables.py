@@ -439,8 +439,8 @@ class ParquetFrame:
                 progress_logger.increment_progress()
 
         self._chunks_table = pd.concat(frames)
-        self._columns = df.columns
-        self._index = df.index
+        self._columns = df.columns.copy()
+        self._index = df.index.copy()
 
     def update_columns(
         self,

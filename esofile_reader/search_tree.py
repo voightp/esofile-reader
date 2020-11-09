@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from copy import copy
+from copy import copy, deepcopy
 from typing import Union, Optional, Dict, List, Iterator, Tuple
 
 from esofile_reader.constants import *
@@ -41,10 +41,10 @@ class Node:
     def __copy__(self):
         new_node = Node(parent=self.parent, key=self.key)
         if isinstance(self.children, LeafNode):
-            new_node.children = copy(self.children)
+            new_node.children = deepcopy(self.children)
         else:
             for node_key, node in self.children.items():
-                new_node.children[node_key] = copy(node)
+                new_node.children[node_key] = deepcopy(node)
         return new_node
 
 
