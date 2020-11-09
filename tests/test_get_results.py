@@ -662,7 +662,7 @@ def test_get_results_multiple_files(file, eplusout2):
 
 
 def test_get_results_from_path(eplusout1):
-    df = get_results(Path(TEST_FILES_PATH, "eplusout1.eso"), TEST_VARIABLES)
+    df = get_results(Path(TEST_FILES_PATH, "eplusout1.eso"), TEST_VARIABLES, year=2002)
     assert_frame_equal(df, eplusout1.get_results(TEST_VARIABLES))
 
 

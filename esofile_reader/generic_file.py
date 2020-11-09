@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Optional
 
 from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.df.df_tables import DFTables
@@ -114,7 +114,7 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_eplus_file(
-        cls, file_path: PathLike, logger: GenericLogger = None, year: int = 2002,
+        cls, file_path: PathLike, logger: GenericLogger = None, year: Optional[int] = None,
     ) -> "GenericFile":
         """ Generate 'ResultsFile' from EnergyPlus .eso or .sql file. """
         eso_file = EsoFile.from_path(file_path, logger, ignore_peaks=True, year=year)
@@ -129,8 +129,8 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_eplus_multienv_file(
-        cls, file_path: PathLike, logger: GenericLogger = None, year: int = 2002,
-    ) -> Union[List[ResultsFileType], ResultsFileType]:
+        cls, file_path: PathLike, logger: GenericLogger = None, year: Optional[int] = None,
+    ) -> List["GenericFile"]:
         """ Generate 'ResultsFile' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit EsoFile
         eso_files = EsoFile.from_multienv_path(file_path, logger, ignore_peaks=True, year=year)
@@ -147,8 +147,8 @@ class GenericFile(BaseFile):
         ]
 
     @classmethod
-    def from_path(cls, path: PathLike, logger: GenericLogger = None) -> "GenericFile":
-        """ Try to generate 'Results file' from generic path. """
+    def from_path(cls, path: PathLike, logger: GenericLogger = None, **kwargs) -> "GenericFile":
+        """ Generate 'Results file' from generic path. """
         switch = {
             BaseFile.SQL: cls.from_eplus_file,
             BaseFile.ESO: cls.from_eplus_file,
@@ -157,7 +157,7 @@ class GenericFile(BaseFile):
         }
         file_type = Path(path).suffix
         try:
-            results_file = switch[file_type](path, logger=logger)
+            results_file = switch[file_type](Path(path), logger=logger, **kwargs)
         except KeyError:
             raise FormatNotSupported(
                 f"Cannot process file '{path}'. '{file_type}' is not supported."

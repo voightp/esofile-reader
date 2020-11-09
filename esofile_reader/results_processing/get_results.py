@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Dict, Any
 
 import pandas as pd
 
@@ -14,25 +14,27 @@ from esofile_reader.results_processing.table_formatter import TableFormatter
 def get_results_from_single_file(
     file: Union[GenericFile, PathLike],
     variables: Union[VariableType, List[VariableType]],
-    **kwargs,
+    processing_kwargs: Dict[str, Any],
+    results_kwargs: Dict[str, Any],
 ) -> Optional[pd.DataFrame]:
     """ Load eso file and return requested results. """
     if issubclass(type(file), base_file.BaseFile):
         results_file = file
     else:
-        results_file = GenericFile.from_path(file)
-    return get_processed_results(results_file, variables, **kwargs)
+        results_file = GenericFile.from_path(file, **processing_kwargs)
+    return get_processed_results(results_file, variables, **results_kwargs)
 
 
 def get_results_from_multiple_files(
     file_list: List[Union[GenericFile, PathLike]],
     variables: Union[VariableType, List[VariableType]],
-    **kwargs,
+    processing_kwargs: Dict[str, Any],
+    results_kwargs: Dict[str, Any],
 ) -> Optional[pd.DataFrame]:
     """ Extract results from multiple files. """
     frames = []
     for file in file_list:
-        df = get_results_from_single_file(file, variables, **kwargs)
+        df = get_results_from_single_file(file, variables, processing_kwargs, results_kwargs)
         if df is not None:
             frames.append(df)
     try:
@@ -54,6 +56,7 @@ def get_results(
     rate_units: str = "W",
     energy_units: str = "J",
     rate_to_energy: bool = False,
+    **kwargs,
 ) -> Optional[pd.DataFrame]:
     """
      Return a pandas.DataFrame object with outputs for specified request.
@@ -66,7 +69,7 @@ def get_results(
 
      Parameters
      ----------
-         files : {str, EsoFile} or list of ({str, EsoFile})
+        files : {str, EsoFile} or list of ({str, EsoFile})
             Eso files defined as 'EsoFile' objects or using path like objects.
         variables : VariableType or list of (VariableType)
             Requested variables.
@@ -89,13 +92,16 @@ def get_results(
             Convert default 'Rate' outputs to requested units.
         energy_units : {'J', 'kJ', 'MJ', 'GJ', 'Btu', 'kWh', 'MWh'}
             Convert default 'Energy' outputs to requested units
+        **kwargs
+            Keyword arguments passed to file processing if created from path.
 
      Returns
      -------
      pandas.DataFrame
          Results for requested variables.
     """
-    kwargs = {
+    processing_kwargs = kwargs
+    results_kwargs = {
         "start_date": start_date,
         "end_date": end_date,
         "output_type": output_type,
@@ -107,5 +113,7 @@ def get_results(
         "part_match": part_match,
     }
     if isinstance(files, list):
-        return get_results_from_multiple_files(files, variables, **kwargs)
-    return get_results_from_single_file(files, variables, **kwargs)
+        return get_results_from_multiple_files(
+            files, variables, processing_kwargs, results_kwargs
+        )
+    return get_results_from_single_file(files, variables, processing_kwargs, results_kwargs)
