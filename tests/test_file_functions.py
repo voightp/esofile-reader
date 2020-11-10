@@ -15,8 +15,6 @@ from tests.session_fixtures import *
 @pytest.fixture(scope="module")
 def parquet_eso_file(eplusout_all_intervals):
     pqf = ParquetFile.from_results_file(0, eplusout_all_intervals)
-    print(eplusout_all_intervals.search_tree)
-    print(pqf.search_tree)
     try:
         yield pqf
     finally:
@@ -58,7 +56,12 @@ def simple_file(request):
 
 @pytest.fixture(scope="function")
 def copied_file(request):
-    return copy(request.param)
+    copied_file = copy(request.param)
+    try:
+        yield copied_file
+    finally:
+        if isinstance(copied_file, ParquetFile):
+            copied_file.clean_up()
 
 
 @pytest.mark.parametrize(
@@ -496,8 +499,10 @@ def test_aggregate_variables(copied_file, variables, expected):
     assert var == expected
 
 
-def test_aggregate_energy_rate(eso_file):
-    copied_file = copy(eso_file)
+@pytest.mark.parametrize(
+    "copied_file", [pytest.lazy_fixture("eso_file")], indirect=["copied_file"]
+)
+def test_aggregate_energy_rate(copied_file):
     v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
 
@@ -532,8 +537,10 @@ def test_aggregate_energy_rate(eso_file):
     assert_frame_equal(df, test_df)
 
 
-def test_aggregate_energy_rate_hourly(eso_file):
-    copied_file = copy(eso_file)
+@pytest.mark.parametrize(
+    "copied_file", [pytest.lazy_fixture("eso_file")], indirect=["copied_file"]
+)
+def test_aggregate_energy_rate_hourly(copied_file):
     v1 = Variable("hourly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("hourly", "CHILLER", "Chiller Electric Energy", "J")
     test_sr = copied_file.get_results([v1, v2], rate_to_energy=True).sum(axis=1)
