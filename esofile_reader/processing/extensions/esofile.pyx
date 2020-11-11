@@ -67,7 +67,9 @@ cpdef tuple process_header_line(str line):
     cdef int line_id
     # //@formatter:on
 
-    pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
+    pattern = re.compile(
+        "^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*(?: \w+)?).*$"
+    )
 
     # this raises attribute error when there's some unexpected line syntax
     raw_line_id, _, key, type_, units, interval = pattern.search(line).groups()
@@ -80,7 +82,8 @@ cpdef tuple process_header_line(str line):
 
     # regex matches only 'Each' from 'Each Call', since it's reported in TimeStep
     # put it into the same bin, if this would duplicate other variable, it will be deleted
-    if interval == "Each":
+    if interval == "Each Call":
+        type_ = "System - " + type_
         interval = "TimeStep"
 
     return line_id, key, type_, units, interval.lower()
