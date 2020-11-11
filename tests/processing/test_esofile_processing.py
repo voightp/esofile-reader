@@ -68,8 +68,28 @@ def test_esofile_statement():
             (8, "Environment", "Air Temperature", "C", "daily"),
         ),
         (
+            "8,7,NO,UNITS TEST [] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]",
+            (8, "NO", "UNITS TEST", "", "daily"),
+        ),
+        (
             "302,1,InteriorEquipment:Electricity [J] !Hourly",
             (302, "Meter", "InteriorEquipment:Electricity", "J", "hourly"),
+        ),
+        (
+            "592,1,NODE BLOCK1:ZONE1 IN,System Node Temperature [C] !Each Call",
+            (592, "NODE BLOCK1:ZONE1 IN", "System - System Node Temperature", "C", "timestep"),
+        ),
+        (
+            "129,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Each Call,OFFICE_OPENOFF_OCC",
+            (129, "BLOCK1:ZONE1", "System - Zone Mean Air Temperature", "C", "timestep"),
+        ),
+        (
+            "129,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Hourly,OFFICE_OPENOFF_OCC",
+            (129, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C", "hourly"),
+        ),
+        (
+            "130,9,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC",
+            (130, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C", "monthly"),
         ),
     ],
 )
