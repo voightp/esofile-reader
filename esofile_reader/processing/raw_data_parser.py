@@ -154,6 +154,7 @@ class RawEsoParser(Parser):
         for interval, values in peak_outputs.items():
             df = create_df_from_columns(values)
             mi = create_header_multiindex(header[interval], COLUMN_LEVELS)
+            df = align_id_level(df, mi.get_level_values(ID_LEVEL))
             df.columns = mi
             df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
 
@@ -194,6 +195,7 @@ class RawSqlParser(Parser):
         for interval, values in outputs.items():
             df = create_df_from_rows(values)
             mi = create_header_multiindex(header[interval], COLUMN_LEVELS)
+            df = align_id_level(df, mi.get_level_values(ID_LEVEL))
             df.columns = mi
             df.index = pd.Index(dates[interval], name=TIMESTAMP_COLUMN)
             tables[interval] = df
