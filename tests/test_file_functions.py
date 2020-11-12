@@ -118,13 +118,35 @@ def test_complete(file):
 
 
 @pytest.mark.parametrize(
+    "file, table, n",
+    [
+        (pytest.lazy_fixture("eso_file"), H, 19),
+        (pytest.lazy_fixture("simple_file"), "monthly-simple", 7),
+    ],
+)
+def test_get_header_dict(file, table, n):
+    assert len(file.get_header_dictionary(table)) == n
+
+
+@pytest.mark.parametrize(
+    "file, table, shape",
+    [
+        (pytest.lazy_fixture("eso_file"), H, (19, 5)),
+        (pytest.lazy_fixture("simple_file"), "monthly-simple", (7, 4)),
+    ],
+)
+def test_get_header_df(file, table, shape):
+    assert file.get_header_df(table).shape == shape
+
+
+@pytest.mark.parametrize(
     "file,column_names,n_columns",
     [
         (pytest.lazy_fixture("eso_file"), ["id", "table", "key", "type", "units"], 114,),
         (pytest.lazy_fixture("simple_file"), ["id", "table", "key", "units"], 14),
     ],
 )
-def test_header_df(file, column_names, n_columns):
+def test_all_header_df(file, column_names, n_columns):
     assert file.tables.get_all_variables_df().columns.to_list() == column_names
     assert len(file.tables.get_all_variables_df().index) == n_columns
 
@@ -350,6 +372,12 @@ def test_rename_variable(copied_file, variable, new_key, new_type, test_variable
             "VARIABLE",
         ),
         (
+            pytest.lazy_fixture("eso_file"),
+            Variable(table="timestep", key=None, type=None, units=None),
+            "NEW3",
+            "VARIABLE",
+        ),
+        (
             pytest.lazy_fixture("simple_file"),
             SimpleVariable(table="monthly-simple", key="foo", units=""),
             "dummy",
@@ -361,6 +389,15 @@ def test_rename_variable(copied_file, variable, new_key, new_type, test_variable
 def test_rename_variable_invalid(copied_file, variable, new_key, new_type):
     with pytest.raises(KeyError):
         copied_file.rename_variable(variable, new_key=new_key, new_type=new_type)
+
+
+def test_rename_variable_missing_args(eplusout_all_intervals):
+    with pytest.raises(ValueError):
+        eplusout_all_intervals.rename_variable(
+            Variable(table="timestep", key="foo", type="", units=""),
+            new_key=None,
+            new_type=None,
+        )
 
 
 @pytest.mark.parametrize(

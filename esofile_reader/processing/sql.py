@@ -114,9 +114,7 @@ def parse_sql_variable_data(
     header = {}
     for id_, is_meter, key, type_, frequency, units in sql_header:
         if is_meter:
-            meter_type = "Cumulative Meter" if key.strip() == "Cumulative" else "Meter"
-            key = type_
-            type_ = meter_type
+            key = "Cumulative Meter" if key.strip() == "Cumulative" else "Meter"
         if frequency == "HVAC System Timestep":
             type_ = "System - " + type_
         header[id_] = Variable(DATA_DICT_MAP[frequency], key, type_, units)

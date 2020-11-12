@@ -59,7 +59,7 @@ def excel_file():
 
 @pytest.fixture(scope="session")
 def leap_year_file():
-    return EsoFile.from_multienv_path(Path(EPLUS_TEST_FILES_PATH, "leap_year.eso"), year=None)
+    return EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "leap_year.eso"), year=None)
 
 
 @pytest.fixture(scope="session")
@@ -71,6 +71,4 @@ def multienv_file():
 
 @pytest.fixture(scope="session")
 def multiyear_file():
-    return EsoFile.from_multienv_path(
-        Path(EPLUS_TEST_FILES_PATH, "multiple_years.eso"), year=None
-    )
+    return EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "multiple_years.eso"), year=None)

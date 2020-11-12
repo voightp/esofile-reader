@@ -109,7 +109,12 @@ class DFTables(BaseTables):
                 df.columns = df.columns.droplevel(ID_LEVEL)
                 other_df = other.get_table(table_name)
                 other_df.columns = other_df.columns.droplevel(ID_LEVEL)
-                pd.testing.assert_frame_equal(df, other_df, check_freq=False, check_dtype=False)
+                try:
+                    pd.testing.assert_frame_equal(
+                        df, other_df, check_freq=False, check_dtype=False
+                    )
+                except AssertionError:
+                    return False
             return True
 
         table_names_match = self.tables.keys() == other.tables.keys()
@@ -269,8 +274,6 @@ class DFTables(BaseTables):
         else:
             v = (SPECIAL, table, name, "", "")
         col = slice_series_by_datetime_index(self.tables[table].loc[:, v], start_date, end_date)
-        if col.empty:
-            raise KeyError(f"'{name}' column is not available on the given data set.")
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
         return col

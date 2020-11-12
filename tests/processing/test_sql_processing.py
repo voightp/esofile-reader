@@ -2,23 +2,28 @@ from tests.session_fixtures import *
 
 
 @pytest.fixture(scope="module")
-def sql_multienv_leap_files():
-    return EsoFile.from_multienv_path(Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.sql"))
+def sql_multienv_files():
+    return EsoFile.from_multienv_path(Path(EPLUS_TEST_FILES_PATH, "multiple_environments.sql"))
 
 
-def test_environment_names(sql_multienv_leap_files):
-    print(sql_multienv_leap_files)
+@pytest.fixture(scope="module")
+def sql_multiyear_file():
+    return EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "multiple_years.sql"))
 
 
-def test_compare_with_eso(sql_multienv_leap_files):
-    efs = EsoFile.from_multienv_path(Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"))
-    for ef, sqf in zip(efs, sql_multienv_leap_files):
-        for table in ef.table_names:
-            import pandas as pd
+@pytest.fixture(scope="module")
+def sql_leap_year():
+    return EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "leap_year.sql"))
 
-            pd.Series(ef.tables[table].index).to_csv("ef.csv")
-            pd.Series(sqf.tables[table].index).to_csv("sqf.csv")
-            print(ef.tables[table].index.difference(sqf.tables[table].index))
-            print(sqf.tables[table].index.difference(ef.tables[table].index))
-            break
-        break
+
+def test_compare_multienv_with_eso(sql_multienv_files, multienv_file):
+    for ef, sqf in zip(multienv_file, sql_multienv_files):
+        assert ef == sqf
+
+
+def test_compare_multiyear_with_eso(sql_multiyear_file, multiyear_file):
+    assert sql_multiyear_file == multiyear_file
+
+
+def test_compare_leap_with_eso(sql_leap_year, leap_year_file):
+    assert sql_leap_year == leap_year_file

@@ -376,7 +376,7 @@ def test_remove_variable(test_tree, variable, remaining_ids):
     ],
 )
 def test_remove_branch(test_tree, variable):
-    test_tree.remove_variable(variable)
+    test_tree.remove_variables(variable)
     assert test_tree.find_ids(variable) == []
 
 
@@ -488,10 +488,36 @@ def test_remove_multiple_variables(mixed_tree):
 @pytest.mark.parametrize(
     "test_tree",
     [
-        (pytest.lazy_fixture("tree"),),
-        (pytest.lazy_fixture("simple_tree"),),
-        (pytest.lazy_fixture("mixed_tree"),),
+        pytest.lazy_fixture("tree"),
+        pytest.lazy_fixture("simple_tree"),
+        pytest.lazy_fixture("mixed_tree"),
     ],
 )
 def test_copy_tree(test_tree):
     assert test_tree.__repr__() == copy(test_tree.__repr__())
+
+
+@pytest.mark.parametrize(
+    "test_tree, variable, id_",
+    [
+        (
+            pytest.lazy_fixture("tree"),
+            Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+            1,
+        ),
+        (
+            pytest.lazy_fixture("simple_tree"),
+            SimpleVariable("daily", "BLOCK1:ZONE1 Zone Temperature", "C"),
+            1,
+        ),
+        (
+            pytest.lazy_fixture("mixed_tree"),
+            SimpleVariable("daily", "BLOCK1:ZONE1 Zone Temperature", "C"),
+            1,
+        ),
+    ],
+)
+def test_copy_tree_identity(test_tree, variable, id_):
+    copied_tree = copy(test_tree)
+    copied_tree.remove_variables(variable)
+    assert test_tree.find_ids(variable) == [id_]

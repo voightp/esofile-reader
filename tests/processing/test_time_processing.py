@@ -216,6 +216,17 @@ def test_validate_year_incorrect(year, is_leap, date, day, error):
             ],
             False,
         ),
+        (
+            [
+                EsoTimestamp(2, 27, 0, 0),
+                EsoTimestamp(2, 28, 0, 0),
+                EsoTimestamp(3, 1, 0, 0),
+                EsoTimestamp(3, 2, 0, 0),
+                EsoTimestamp(3, 2, 0, 0),
+                EsoTimestamp(2, 27, 0, 0),
+            ],
+            False,
+        ),
     ],
 )
 def test_is_leap_year_ts_to_d(dates, expected):
@@ -243,6 +254,11 @@ def test_is_leap_year_ts_to_d(dates, expected):
 )
 def test_seek_year(is_leap, date, day, max_year, expected):
     assert seek_year(is_leap, date, day, max_year) == expected
+
+
+def test_seek_year_cannot_find():
+    with pytest.raises(ValueError):
+        print(seek_year(True, EsoTimestamp(2, 1, 0, 0), "Monday", 10))
 
 
 @pytest.mark.parametrize(

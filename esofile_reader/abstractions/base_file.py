@@ -270,7 +270,7 @@ class BaseFile:
                 )
 
                 # remove current item to avoid item duplicity
-                self.search_tree.remove_variable(variable)
+                self.search_tree.remove_variables(variable)
                 self.search_tree.add_variable(id_, new_variable)
 
                 # rename variable in data set
@@ -281,7 +281,7 @@ class BaseFile:
                 else:
                     self.tables.update_variable_name(table, id_, new_variable.key)
                 return id_, new_variable
-            elif len(ids) == 0:
+            elif len(ids) > 1:
                 raise KeyError(
                     f"Cannot rename variable! Too many ids found for variable {variable}"
                 )

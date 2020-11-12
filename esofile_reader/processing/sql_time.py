@@ -93,13 +93,6 @@ def get_time_columns_with_placeholders(time_table, interval_type: int) -> List[C
     return columns
 
 
-def get_environment_indexes(conn: Connection, time_table: Table) -> List[int]:
-    statement = select(
-        [time_table.c.EnvironmentPeriodIndex, time_table.c.IntervalType]
-    ).distinct()
-    return conn.execute(statement).fetchall()
-
-
 def get_interval_types(conn: Connection, time_table: Table, env_index: int) -> List[int]:
     statement = (
         select([time_table.c.IntervalType])
