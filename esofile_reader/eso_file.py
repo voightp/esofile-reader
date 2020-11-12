@@ -41,13 +41,12 @@ class EsoFile(BaseFile):
         file_path: PathLike,
         file_name: str,
         file_created: datetime,
+        file_type: str,
         tables: DFTables,
         search_tree: Tree,
         peak_tables: Optional[Dict[str, DFTables]] = None,
     ):
-        super().__init__(
-            file_path, file_name, file_created, tables, search_tree, file_type=BaseFile.ESO
-        )
+        super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
         self.peak_tables = peak_tables
 
     def __copy__(self):
@@ -55,6 +54,7 @@ class EsoFile(BaseFile):
             file_path=self.file_path,
             file_name=self.file_name,
             file_created=self.file_created,
+            file_type=self.file_type,
             tables=copy(self.tables),
             search_tree=copy(self.search_tree),
             peak_tables=copy(self.peak_tables),
@@ -116,6 +116,7 @@ class EsoFile(BaseFile):
                 tables=tables,
                 search_tree=tree,
                 peak_tables=peak_tables,
+                file_type=file_path.suffix,
             )
             eso_files.append(ef)
         return eso_files

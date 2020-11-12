@@ -14,6 +14,7 @@ from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.raw_data import RawEsoData
 from esofile_reader.search_tree import Tree
 from esofile_reader.df.df_tables import DFTables
+from decimal import Decimal, ROUND_HALF_UP
 
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
@@ -175,10 +176,11 @@ def process_sub_monthly_interval_line(
 
     def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
+        end_minute = Decimal(data[6]).to_integral(rounding=ROUND_HALF_UP)
         interval = EsoTimestamp(
-            int(data[1]), int(data[2]), int(data[4]), round(float(data[6]))
+            int(data[1]), int(data[2]), int(data[4]), end_minute
         )
-        if float(data[5]) == 0 and float(data[6]) == 60:
+        if float(data[5]) == 0 and end_minute == 60:
             return H, interval, data[-1].strip()
         else:
             return TS, interval, data[-1].strip()
