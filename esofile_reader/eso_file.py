@@ -66,6 +66,9 @@ class EsoFile(BaseFile):
     ) -> Tuple[Tree, DFTables, Optional[Dict[str, DFTables]]]:
         """ Process an environment raw data into final classes. """
         logger.set_maximum_progress(raw_data.get_n_tables() + 1)
+        logger.log_section("sanitazing data!")
+        raw_data.sanitize()
+
         logger.log_section("generating search tree!")
         tree, duplicates = Tree.cleaned_from_header_dict(raw_data.header)
         if duplicates:
@@ -123,7 +126,7 @@ class EsoFile(BaseFile):
         file_path: str,
         logger: GenericLogger = None,
         ignore_peaks: bool = True,
-        year: Optional[int] = 2002,
+        year: Optional[int] = None,
     ) -> "EsoFile":
         """ """
         file_path, file_name, file_created = get_file_information(file_path)
@@ -147,7 +150,7 @@ class EsoFile(BaseFile):
         file_path: str,
         logger: GenericLogger = None,
         ignore_peaks: bool = True,
-        year: Optional[int] = 2002,
+        year: Optional[int] = None,
     ) -> List["EsoFile"]:
         file_path, file_name, file_created = get_file_information(file_path)
         if logger is None:

@@ -666,7 +666,7 @@ def test_get_results_from_path(eplusout1):
     assert_frame_equal(df, eplusout1.get_results(TEST_VARIABLES))
 
 
-def test_get_peak_results_wring_interval(eplusout1_peaks):
+def test_get_peak_results_wrong_interval(eplusout1_peaks):
     with pytest.raises(PeaksNotIncluded):
         _ = eplusout1_peaks.get_results(
             Variable("hourly", "BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),

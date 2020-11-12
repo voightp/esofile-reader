@@ -17,14 +17,11 @@ class RawData:
         self.days_of_week = None
         self.peak_outputs = None
 
-    @classmethod
-    def sanitize_data(cls, all_raw_outputs: List["RawData"]):
+    def sanitize(self):
         """ Remove invalid data. """
-        for raw_outputs in all_raw_outputs:
-            if raw_outputs.is_sizing_environment():
-                for interval in (M, A, RP):
-                    raw_outputs.remove_interval_data(interval)
-        return all_raw_outputs
+        if self.is_sizing_environment():
+            for interval in (M, A, RP):
+                self.remove_interval_data(interval)
 
     def is_sizing_environment(self) -> bool:
         if self.days_of_week:
@@ -57,7 +54,7 @@ class RawData:
             self.days_of_week,
         ]
         for attr in attributes:
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(KeyError, TypeError):
                 del attr[interval]
 
 
@@ -111,7 +108,7 @@ class RawEsoData(RawData):
 
     def remove_interval_data(self, interval: str) -> None:
         super().remove_interval_data(interval)
-        with contextlib.suppress(KeyError):
+        with contextlib.suppress(KeyError, TypeError):
             del self.cumulative_days[interval]
 
 
@@ -120,7 +117,7 @@ class RawSqlData(RawData):
         self,
         environment_name: str,
         header: Dict[str, Dict[int, Variable]],
-        outputs,
+        outputs: Dict[str, List[Tuple[int, int, float]]],
         dates: Dict[str, List[Tuple[int, ...]]],
         n_minutes: Dict[str, List[int]],
         days_of_week: Dict[str, List[str]],
@@ -135,5 +132,13 @@ class RawSqlData(RawData):
 
     def remove_interval_data(self, interval: str) -> None:
         super().remove_interval_data(interval)
-        with contextlib.suppress(KeyError):
+        with contextlib.suppress(KeyError, TypeError):
             del self.n_minutes[interval]
+
+    def sanitize(self):
+        super().sanitize()
+        for interval, variables in self.header.items():
+            ids = {r[1] for r in self.outputs[interval]}
+            missing_ids = set(variables).difference(ids)
+            for id_ in missing_ids:
+                del self.header[interval][id_]

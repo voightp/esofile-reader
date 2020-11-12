@@ -175,21 +175,17 @@ def process_sub_monthly_interval_line(
 
     def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
-        # omit day of week in conversion
-        items = [int(float(item)) for item in data[:-1]]
-        interval = EsoTimestamp(items[1], items[2], items[4], items[6])
-
-        # check if interval is timestep or hourly interval
-        if items[5] == 0 and items[6] == 60:
+        interval = EsoTimestamp(
+            int(data[1]), int(data[2]), int(data[4]), round(float(data[6]))
+        )
+        if float(data[5]) == 0 and float(data[6]) == 60:
             return H, interval, data[-1].strip()
         else:
             return TS, interval, data[-1].strip()
 
     def parse_daily_interval():
         """ Populate D list and return identifier. """
-        # omit day of week in in conversion
-        i = [int(item) for item in data[:-1]]
-        return D, EsoTimestamp(i[1], i[2], 0, 0), data[-1].strip()
+        return D, EsoTimestamp(int(data[1]), int(data[2]), 0, 0), data[-1].strip()
 
     categories = {
         TIMESTEP_OR_HOURLY_LINE: parse_timestep_or_hourly_interval,
@@ -290,7 +286,7 @@ cpdef list read_body(
     cdef double res
     cdef list peak_res
     cdef str raw_line, interval
-    cdef list all_raw_outputs = []
+    cdef list all_raw_data = []
     # //@formatter:on
 
     counter = logger.line_counter % logger.CHUNK_SIZE
@@ -323,7 +319,7 @@ cpdef list read_body(
                 # initialize variables for current environment
                 environment_name = line[0].strip()
                 raw_outputs = RawEsoData(environment_name, deepcopy(header), ignore_peaks)
-                all_raw_outputs.append(raw_outputs)
+                all_raw_data.append(raw_outputs)
             else:
                 try:
                     if line_id > DAILY_LINE:
@@ -360,7 +356,7 @@ cpdef list read_body(
     if logger.progress != logger.max_progress:
         logger.increment_progress()
 
-    return all_raw_outputs
+    return all_raw_data
 
 
 cpdef read_file(object file, object logger, object ignore_peaks = True):
@@ -386,9 +382,8 @@ cpdef read_file(object file, object logger, object ignore_peaks = True):
 
     # Read body to obtain outputs and environment dictionaries
     logger.log_section("processing data!")
-    all_raw_outputs = read_body(file, last_standard_item_id, header, ignore_peaks, logger)
+    return read_body(file, last_standard_item_id, header, ignore_peaks, logger)
 
-    return RawEsoData.sanitize_data(all_raw_outputs)
 
 
 @cython.boundscheck(False)

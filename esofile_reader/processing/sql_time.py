@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Tuple, Dict
 
 from sqlalchemy import select, and_, func, literal, Table, Column, Integer, String, MetaData
@@ -6,7 +6,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.sql.selectable import Select
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_time import parse_eplus_timestamp, get_annual_n_days
+from esofile_reader.processing.esofile_time import get_annual_n_days
 
 INTERVAL_TYPE_MAP = {
     -1: TS,
@@ -171,18 +171,9 @@ def get_intervals(
     return [r[0] for r in conn.execute(statement)]
 
 
-def parse_eplus_timestamps(eplus_timestamps: List[Tuple[int, ...]]) -> List[datetime]:
-    timestamps = []
-    for eplus_timestamp in eplus_timestamps:
-        year, month, day, hour, minute = eplus_timestamp
-        year = 2002 if (year == 0 or year is None) else year
-        timestamps.append(parse_eplus_timestamp(year, month, day, hour, minute))
-    return timestamps
-
-
 def get_n_days_from_minutes(
     n_minutes: Dict[str, List[Optional[int]]], dates: Dict[str, List[datetime]]
-):
+) -> Dict[str, List[int]]:
     n_days = {}
     for interval, n_minutes_arr in n_minutes.items():
         if interval == A:
@@ -192,10 +183,29 @@ def get_n_days_from_minutes(
     return n_days
 
 
+def parse_sql_timestamp(year: int, month: int, day: int, hour: int, minute: int) -> datetime:
+    if hour == 24:
+        # Convert last step of day
+        shifted_datetime = datetime(year, month, day, hour - 1)
+        corrected_datetime = shifted_datetime + timedelta(hours=1)
+    else:
+        corrected_datetime = datetime(year, month, day, hour, minute)
+    return corrected_datetime
+
+
+def parse_sql_timestamps(eplus_timestamps: List[Tuple[int, ...]]) -> List[datetime]:
+    timestamps = []
+    for eplus_timestamp in eplus_timestamps:
+        year, month, day, hour, minute = eplus_timestamp
+        year = 2002 if (year == 0 or year is None) else year
+        timestamps.append(parse_sql_timestamp(year, month, day, hour, minute))
+    return timestamps
+
+
 def convert_raw_sql_date_data(
     eplus_timestamps: Dict[str, List[Tuple[int, ...]]]
 ) -> Dict[str, List[datetime]]:
     datetime_dates = {}
     for interval, eplus_timestamp in eplus_timestamps.items():
-        datetime_dates[interval] = parse_eplus_timestamps(eplus_timestamp)
+        datetime_dates[interval] = parse_sql_timestamps(eplus_timestamp)
     return datetime_dates

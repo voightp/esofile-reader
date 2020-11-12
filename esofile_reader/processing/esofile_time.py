@@ -8,7 +8,7 @@ from esofile_reader.exceptions import LeapYearMismatch, StartDayMismatch
 from esofile_reader.mini_classes import EsoTimestamp
 
 
-def parse_eplus_timestamp(
+def parse_eso_timestamp(
     year: int, month: int, day: int, hour: int, end_minute: int
 ) -> datetime:
     """
@@ -42,19 +42,16 @@ def combine_peak_result_datetime(
     date: datetime, month: Optional[int], day: Optional[int], hour: int, end_min: int
 ) -> datetime:
     """ Combine index date and peak occurrence date to return an appropriate peak timestamp. """
-    if month is not None:
-        # Runperiod results, all the timestamp information is
-        # available in the output tuple
-        new_datetime = parse_eplus_timestamp(date.year, month, day, hour, end_min)
-    elif day is not None:
+    year = date.year
+    if month is None:
         # Monthly results, month needs to be extracted from the datetime
         # index of the output, other line is available in the output tuple
-        new_datetime = parse_eplus_timestamp(date.year, date.month, day, hour, end_min)
-    else:
-        # Daily outputs, month and day is extracted from the datetime
-        # index, hour and end minute is is taken from the output tuple
-        new_datetime = parse_eplus_timestamp(date.year, date.month, date.day, hour, end_min)
-    return new_datetime
+        month = date.month
+        if day is None:
+            # Daily outputs, month and day is extracted from the datetime
+            # index, hour and end minute is is taken from the output tuple
+            day = date.day
+    return parse_eso_timestamp(year, month, day, hour, end_min)
 
 
 def get_month_n_days_from_cumulative(monthly_cumulative_days: List[int]):
@@ -108,7 +105,7 @@ def generate_datetime_dates(raw_dates: List[EsoTimestamp], year: int) -> List[da
         if check_year_increment(raw_dates[0], raw_dates[i]):
             year += 1
         # year can be incremented automatically when converting to datetime
-        date = parse_eplus_timestamp(year, *raw_dates[i])
+        date = parse_eso_timestamp(year, *raw_dates[i])
         dates.append(date)
     return dates
 

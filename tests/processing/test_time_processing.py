@@ -16,8 +16,8 @@ from tests.session_fixtures import *
         (2002, EsoTimestamp(10, 25, 22, 10), datetime(2002, 10, 25, 21, 10, 0)),
     ],
 )
-def test_parse_eplus_datetime(year, interval_tuple, expected):
-    assert parse_eplus_timestamp(year, *interval_tuple) == expected
+def test_parse_eso_timestamp(year, interval_tuple, expected):
+    assert parse_eso_timestamp(year, *interval_tuple) == expected
 
 
 @pytest.mark.parametrize(
