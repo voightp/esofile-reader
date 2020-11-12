@@ -330,7 +330,7 @@ def test_get_allowed_years(is_leap, date, day, max_year, expected):
     ],
 )
 def test_convert_raw_date_data(drop_intervals, year, expected_start_end):
-    with open(Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"), "r") as file:
+    with open(Path(EPLUS_TEST_FILES_PATH, "leap_year.eso"), "r") as file:
         logger = GenericLogger("foo")
         with logger.log_task("Test leap year"):
             all_raw_outputs = read_file(file, logger)

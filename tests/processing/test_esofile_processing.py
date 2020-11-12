@@ -344,10 +344,6 @@ def test_df_tables_numeric_type(eplusout_all_intervals, interval):
     assert set(dtypes) == {np.dtype("float64")}
 
 
-def test_remove_duplicates():
-    pytest.fail()
-
-
 def test_header_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
@@ -427,10 +423,10 @@ def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, 
 
 def test_multiple_env_eso_file():
     eso_files = EsoFile.from_multienv_path(
-        Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
+        Path(EPLUS_TEST_FILES_PATH, "multiple_environments.eso"), year=None
     )
     sizing_tables = [TS, H, D]
-    all_tables = [TS, H, D, M, RP, A]
+    all_tables = [TS, H, D, M, A, RP]
     for i, ef in enumerate(eso_files):
         # first env on test file is normal, remaining ones report 'Sizing' day
         expected_tables = sizing_tables if i > 0 else all_tables
@@ -447,11 +443,6 @@ def test_file_names(multienv_file):
     ]
     names = [ef.file_name for ef in multienv_file]
     assert names == test_names
-
-
-def test_complete(multienv_leap_files):
-    for ef in multienv_leap_files:
-        assert ef.complete
 
 
 def test_multienv_file_required():

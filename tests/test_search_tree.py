@@ -357,7 +357,7 @@ def test_find_ids_part_match(test_tree, variable, part_match, test_ids):
     ],
 )
 def test_remove_variable(test_tree, variable, remaining_ids):
-    test_tree.remove_variable(variable)
+    test_tree.remove_variables(variable)
     check_variable = (
         SimpleVariable(None, None, None)
         if type(variable) is SimpleVariable
