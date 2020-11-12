@@ -25,8 +25,8 @@ from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.raw_data_parser import RawEsoParser
 from tests.session_fixtures import *
 
-HEADER_PATH = Path(TEST_FILES_PATH, "header.txt")
-BODY_PATH = Path(TEST_FILES_PATH, "body.txt")
+HEADER_PATH = Path(EPLUS_TEST_FILES_PATH, "header.txt")
+BODY_PATH = Path(EPLUS_TEST_FILES_PATH, "body.txt")
 
 
 @pytest.fixture(scope="module")
@@ -49,7 +49,7 @@ def raw_outputs(all_raw_outputs):
 @pytest.fixture(scope="function")
 def duplicate_variable_file():
     return EsoFile.from_path(
-        Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), GenericLogger("foo"),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), GenericLogger("foo"),
     )
 
 
@@ -159,12 +159,12 @@ def test_read_header_from_file(header_content, interval, id_, variable):
     [
         (
             2,
-            [" 1", " 2", " 3", " 0", "10.00", "0.00", "60.00", "Saturday"],
+            [" 1", " 2", " 3", " 0", "10", "0.00", "60.00", "Saturday"],
             (H, EsoTimestamp(2, 3, 10, 60), "Saturday",),
         ),
         (
             2,
-            [" 1", " 2", " 3", " 0", "10.00", "0.00", "30.00", "Saturday"],
+            [" 1", " 2", " 3", " 0", "10", "0.00", "30.00", "Saturday"],
             (TS, EsoTimestamp(2, 3, 10, 30), "Saturday",),
         ),
         (3, [" 20", " 1", " 2", " 0", "Saturday"], (D, EsoTimestamp(1, 2, 0, 0), "Saturday")),
@@ -384,26 +384,26 @@ def test_body_blank_line(header_content):
 def test_file_blank_line():
     with pytest.raises(IncompleteFile):
         EsoFile.from_path(
-            Path(TEST_FILES_PATH, "eplusout_incomplete.eso"), GenericLogger("foo"),
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_incomplete.eso"), GenericLogger("foo"),
         )
 
 
 def test_non_numeric_line():
     with pytest.raises(InvalidLineSyntax):
         EsoFile.from_path(
-            Path(TEST_FILES_PATH, "eplusout_invalid_line.eso"), GenericLogger("foo"),
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_invalid_line.eso"), GenericLogger("foo"),
         )
 
 
 def test_logging_level_info():
     EsoFile.from_path(
-        Path(TEST_FILES_PATH, "eplusout1.eso"), logger=GenericLogger("foo", level=20),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), logger=GenericLogger("foo", level=20),
     )
 
 
 def test_hourly_results_only():
     eso_file = EsoFile.from_path(
-        Path(TEST_FILES_PATH, "eplusout_only_hourly.eso"), GenericLogger("foo"),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_only_hourly.eso"), GenericLogger("foo"),
     )
     assert eso_file.table_names == ["hourly"]
 
@@ -427,7 +427,7 @@ def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, 
 
 def test_multiple_env_eso_file():
     eso_files = EsoFile.from_multienv_path(
-        Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None
     )
     sizing_tables = [TS, H, D]
     all_tables = [TS, H, D, M, RP, A]
@@ -437,16 +437,15 @@ def test_multiple_env_eso_file():
         assert ef.table_names == expected_tables
 
 
-def test_file_names(multienv_leap_files):
+def test_file_names(multienv_file):
     test_names = [
-        "eplusout_leap_year",
-        "eplusout_leap_year - WINTER DESIGN DAY IN TEST (01-01:31-12)",
-        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) SEP",
-        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) AUG",
-        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) JUL",
-        "eplusout_leap_year - SUMMER DESIGN DAY IN TEST (01-01:31-12) JUN",
+        "multiple_environments",
+        "multiple_environments - WINTER DESIGN DAY IN UNTITLED (01-01:31-12)",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) SEP",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) AUG",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) JUL",
     ]
-    names = [ef.file_name for ef in multienv_leap_files]
+    names = [ef.file_name for ef in multienv_file]
     assert names == test_names
 
 
@@ -455,11 +454,11 @@ def test_complete(multienv_leap_files):
         assert ef.complete
 
 
-def test_tree(multienv_leap_files):
-    trees = [ef.search_tree.__repr__() for ef in multienv_leap_files]
+def test_tree(multienv_file):
+    trees = [ef.search_tree.__repr__() for ef in multienv_file]
     assert len(set(trees)) == 2
 
 
 def test_multienv_file_required():
     with pytest.raises(MultiEnvFileRequired):
-        EsoFile.from_path(Path(TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None)
+        EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None)

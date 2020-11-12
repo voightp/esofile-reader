@@ -16,20 +16,27 @@ def test_from_csv():
 
 
 def test_from_eso_file():
-    rf = GenericFile.from_eplus_file(Path(TEST_FILES_PATH, "eplusout1.eso"))
+    rf = GenericFile.from_eplus_file(Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"))
     assert rf.file_type == GenericFile.ESO
 
 
 def test_from_multienv_eso_file():
-    pytest.fail()
+    rfs = GenericFile.from_eplus_multienv_file(
+        Path(EPLUS_TEST_FILES_PATH, "multiple_environments.eso")
+    )
+    assert all(map(lambda rf: rf.file_type == GenericFile.ESO, rfs))
 
 
 def test_from_sql_file():
-    pytest.fail()
+    rf = GenericFile.from_eplus_file(Path(EPLUS_TEST_FILES_PATH, "leap_year.sql"))
+    assert rf.file_type == GenericFile.SQL
 
 
 def test_from_multienv_sql_file():
-    pytest.fail()
+    rfs = GenericFile.from_eplus_multienv_file(
+        Path(EPLUS_TEST_FILES_PATH, "multiple_environments.sql")
+    )
+    assert all(map(lambda rf: rf.file_type == GenericFile.SQL, rfs))
 
 
 @pytest.mark.parametrize(
@@ -37,7 +44,7 @@ def test_from_multienv_sql_file():
     [
         (Path(TEST_FILES_PATH, "test_excel_results.xlsx"), "from_excel"),
         (Path(TEST_FILES_PATH, "test_excel_results.csv"), "from_csv"),
-        (Path(TEST_FILES_PATH, "eplusout1.eso"), "from_eplus_file"),
+        (Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), "from_eplus_file"),
     ],
 )
 def test_from_path(path, mock):
