@@ -454,11 +454,6 @@ def test_complete(multienv_leap_files):
         assert ef.complete
 
 
-def test_tree(multienv_file):
-    trees = [ef.search_tree.__repr__() for ef in multienv_file]
-    assert len(set(trees)) == 2
-
-
 def test_multienv_file_required():
     with pytest.raises(MultiEnvFileRequired):
-        EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "eplusout_leap_year.eso"), year=None)
+        EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "multiple_environments.eso"), year=None)

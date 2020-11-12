@@ -563,9 +563,13 @@ def test_aggregate_invalid_variables(eso_file):
         eso_file.aggregate_variables(vars, "sum")
 
 
-def test_aggregate_energy_rate_invalid(eplusout_all_intervals):
-    copied_file = copy(eplusout_all_intervals)
-    copied_file.tables["monthly"].drop(SPECIAL, axis=1, inplace=True, level=0)
+@pytest.mark.parametrize(
+    "copied_file", [(pytest.lazy_fixture("eso_file")),], indirect=["copied_file"],
+)
+def test_aggregate_energy_rate_invalid(copied_file):
+    copied_file.tables["monthly"].drop(
+        (SPECIAL, M, N_DAYS_COLUMN, "", ""), axis=1, inplace=True,
+    )
     v1 = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
     v2 = Variable("monthly", "CHILLER", "Chiller Electric Energy", "J")
     with pytest.raises(CannotAggregateVariables):
@@ -593,6 +597,16 @@ def test_aggregate_variables_single_variable(eso_file):
 def test_as_df_invalid_table(eso_file):
     with pytest.raises(KeyError):
         _ = eso_file.get_numeric_table("foo")
+
+
+@pytest.mark.parametrize(
+    "copied_file", [(pytest.lazy_fixture("eso_file")),], indirect=["copied_file"],
+)
+def test_remove_variables(copied_file):
+    variable = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
+    copied_file.remove_variables(variable)
+    assert not copied_file.find_id(variable)
+    assert variable not in copied_file.tables[M].columns
 
 
 def test_to_excel(tiny_eplusout):

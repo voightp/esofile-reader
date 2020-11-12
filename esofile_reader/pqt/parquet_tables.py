@@ -520,6 +520,7 @@ class ParquetFrame:
                 )
             arr = self._columns.get_level_values(level).isin(columns)
         else:
+            columns = columns if isinstance(columns, list) else [columns]
             arr = self._columns.isin(columns)
         drop_items = self._columns[arr].tolist()
         items = self._columns[~arr].tolist()

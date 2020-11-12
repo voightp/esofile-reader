@@ -1,4 +1,3 @@
-import logging
 import os
 import traceback
 from collections import defaultdict
@@ -123,11 +122,7 @@ class BaseFile:
 
     def get_special_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
-        try:
-            df = self.tables.get_special_table(table)
-        except KeyError:
-            raise KeyError(f"Cannot find special table: '{table}'.\n{traceback.format_exc()}")
-        return df
+        return self.tables.get_special_table(table)
 
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
@@ -258,7 +253,7 @@ class BaseFile:
     ) -> Tuple[int, VariableType]:
         """ Rename the given 'Variable' using given names. """
         if new_key is None and new_type is None:
-            logging.warning("Cannot rename variable! Type and key are not specified.")
+            raise ValueError("Cannot rename variable! Type or key are not specified.")
         else:
             # assign original values if one of new ones is not specified
             table, key, units = variable.table, variable.key, variable.units
@@ -267,7 +262,7 @@ class BaseFile:
                 new_type = new_type if new_type is not None else variable.type
 
             ids = self.find_id(variable)
-            if ids:
+            if len(ids) == 1:
                 id_ = ids[0]
                 # create new variable and add it into tree
                 new_variable = self._create_header_variable(
@@ -286,6 +281,10 @@ class BaseFile:
                 else:
                     self.tables.update_variable_name(table, id_, new_variable.key)
                 return id_, new_variable
+            elif len(ids) == 0:
+                raise KeyError(
+                    f"Cannot rename variable! Too many ids found for variable {variable}"
+                )
             else:
                 raise KeyError(f"Cannot rename variable! {variable} not found.")
 
