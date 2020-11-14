@@ -8,6 +8,7 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
+from esofile_reader.processing.esofile_time import get_n_days_from_cumulative
 from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.processing.raw_data import RawData
 from esofile_reader.processing.raw_data_parser import choose_parser, Parser
@@ -66,27 +67,26 @@ class EsoFile(BaseFile):
     ) -> Tuple[Tree, DFTables, Optional[Dict[str, DFTables]]]:
         """ Process an environment raw data into final classes. """
         logger.set_maximum_progress(raw_data.get_n_tables() + 1)
-        logger.log_section("sanitazing data!")
-        raw_data.sanitize()
+        logger.log_section("sanitizing data!")
+        parser.sanitize(raw_data)
 
         logger.log_section("generating search tree!")
-        tree, duplicates = Tree.cleaned_from_header_dict(raw_data.header)
-        if duplicates:
-            raw_data.remove_variables(duplicates)
+        tree = Tree.from_header_dict(raw_data.header)
         logger.increment_progress()
 
         logger.log_section("processing dates!")
-        dates, n_days = parser.cast_date_data(raw_data, year)
+        dates = parser.cast_to_datetime(raw_data, year)
+        n_days = get_n_days_from_cumulative(raw_data.cumulative_days, dates)
         special_columns = {N_DAYS_COLUMN: n_days, DAY_COLUMN: raw_data.days_of_week}
 
         logger.log_section("generating tables!")
-        tables = parser.cast_outputs(
+        tables = parser.cast_to_df(
             raw_data.outputs, raw_data.header, dates, special_columns, logger
         )
 
         if raw_data.peak_outputs:
             logger.log_section("generating peak tables!")
-            peak_tables = parser.cast_peak_outputs(
+            peak_tables = parser.cast_peak_to_df(
                 raw_data.peak_outputs, raw_data.header, dates, logger
             )
         else:

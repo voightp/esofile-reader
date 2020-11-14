@@ -110,7 +110,7 @@ class DFTables(BaseTables):
                 df = df.sort_values(df.columns.names, axis=1)
                 other_df = other.get_table(table_name)
                 other_df.columns = other_df.columns.droplevel(ID_LEVEL)
-                other_df = df.sort_values(other_df.columns.names, axis=1)
+                other_df = other_df.sort_values(other_df.columns.names, axis=1)
                 try:
                     pd.testing.assert_frame_equal(
                         df, other_df, check_freq=False, check_dtype=False

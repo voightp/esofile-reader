@@ -24,7 +24,7 @@ from esofile_reader.processing.raw_data import RawSqlData
 from esofile_reader.processing.sql_time import (
     get_dates,
     get_days_of_week,
-    get_intervals,
+    get_cumulative_days,
     create_time_table,
     create_environment_periods_table,
     get_interval_types,
@@ -114,7 +114,11 @@ def parse_sql_variable_data(
     header = {}
     for id_, is_meter, key, type_, frequency, units in sql_header:
         if is_meter:
-            key = "Cumulative Meter" if key.strip() == "Cumulative" else "Meter"
+            if key == "Cumulative ":
+                type_ = "Cumulative " + type_
+                key = "Cumulative Meter"
+            else:
+                key = "Meter"
         if frequency == "HVAC System Timestep":
             type_ = "System - " + type_
         header[id_] = Variable(DATA_DICT_MAP[frequency], key, type_, units)
@@ -154,7 +158,7 @@ def process_environment_data(
 ) -> RawSqlData:
     dates = {}
     days_of_week = {}
-    n_minutes = {}
+    cumulative_days = {}
     outputs = {}
     interval_types = get_interval_types(conn, time_table, env_index)
     logger.set_maximum_progress(len(interval_types))
@@ -166,7 +170,9 @@ def process_environment_data(
                 conn, time_table, env_index, interval_type
             )
         else:
-            n_minutes[interval] = get_intervals(conn, time_table, env_index, interval_type)
+            cumulative_days[interval] = get_cumulative_days(
+                conn, time_table, env_index, interval_type
+            )
         outputs[interval] = get_output_data(
             conn, time_table, data_table, interval_type, env_index
         )
@@ -176,7 +182,7 @@ def process_environment_data(
         header=header,
         outputs=outputs,
         dates=dates,
-        n_minutes=n_minutes,
+        cumulative_days=cumulative_days,
         days_of_week=days_of_week,
     )
 

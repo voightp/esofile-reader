@@ -302,7 +302,7 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     raw_peak_outputs = raw_outputs.peak_outputs
     logger = GenericLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = RawEsoParser().cast_peak_outputs(raw_peak_outputs, header, dates, logger)
+    outputs = RawEsoParser().cast_peak_to_df(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
 
@@ -322,7 +322,7 @@ def test_generate_df_tables(raw_outputs, interval, shape):
     outputs = raw_outputs.outputs
     logger = GenericLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
-    outputs = RawEsoParser().cast_outputs(outputs, header, dates, {}, logger)
+    outputs = RawEsoParser().cast_to_df(outputs, header, dates, {}, logger)
     assert outputs[interval].shape == shape
 
 
@@ -404,10 +404,15 @@ def test_hourly_results_only():
     assert eso_file.table_names == ["hourly"]
 
 
-@pytest.mark.parametrize("table, id_", [(M, 137), (RP, 138)])
-def test_remove_duplicate_variable(duplicate_variable_file, table, id_):
-    with pytest.raises(KeyError):
-        _ = duplicate_variable_file.tables.get_results_df(table, [id_])
+@pytest.mark.parametrize(
+    "variable, id_",
+    [
+        (Variable(M, "BLOCK1:ZONE1 (1)", "Zone Mean Radiant Temperature", "C"), 137),
+        (Variable(RP, "BLOCK1:ZONE1 (1)", "Zone Mean Radiant Temperature", "C"), 138),
+    ],
+)
+def test_duplicate_variable(duplicate_variable_file, variable, id_):
+    assert duplicate_variable_file.find_id(variable) == [id_]
 
 
 @pytest.mark.parametrize(
@@ -421,13 +426,10 @@ def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, 
     assert duplicate_variable_file.find_id(variable) == [expected_id]
 
 
-def test_multiple_env_eso_file():
-    eso_files = EsoFile.from_multienv_path(
-        Path(EPLUS_TEST_FILES_PATH, "multiple_environments.eso"), year=None
-    )
+def test_drop_sizing_intervals(multienv_file):
     sizing_tables = [TS, H, D]
     all_tables = [TS, H, D, M, A, RP]
-    for i, ef in enumerate(eso_files):
+    for i, ef in enumerate(multienv_file):
         # first env on test file is normal, remaining ones report 'Sizing' day
         expected_tables = sizing_tables if i > 0 else all_tables
         assert ef.table_names == expected_tables

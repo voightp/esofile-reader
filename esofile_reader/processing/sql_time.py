@@ -6,7 +6,6 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.sql.selectable import Select
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_time import get_annual_n_days
 
 INTERVAL_TYPE_MAP = {
     -1: TS,
@@ -155,25 +154,13 @@ def get_days_of_week(
     return [r[0] for r in conn.execute(statement)]
 
 
-def get_intervals(
+def get_cumulative_days(
     conn: Connection, time_table: Table, env_index: int, interval_type: int
 ) -> List[Optional[int]]:
     statement = get_filtered_statement(
-        time_table, env_index, interval_type, [time_table.c.Interval]
+        time_table, env_index, interval_type, [time_table.c.SimulationDays]
     )
     return [r[0] for r in conn.execute(statement)]
-
-
-def get_n_days_from_minutes(
-    n_minutes: Dict[str, List[Optional[int]]], dates: Dict[str, List[datetime]]
-) -> Dict[str, List[int]]:
-    n_days = {}
-    for interval, n_minutes_arr in n_minutes.items():
-        if interval == A:
-            n_days[A] = get_annual_n_days(dates[A])
-        else:
-            n_days[interval] = [int(n / 1440) if n else None for n in n_minutes_arr]
-    return n_days
 
 
 def parse_sql_timestamp(year: int, month: int, day: int, hour: int, minute: int) -> datetime:

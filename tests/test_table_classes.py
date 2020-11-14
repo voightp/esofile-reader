@@ -7,13 +7,13 @@ from pandas.testing import assert_index_equal, assert_frame_equal, assert_series
 from pytest import lazy_fixture
 
 from esofile_reader.constants import *
-from esofile_reader.mini_classes import Variable, SimpleVariable
-from esofile_reader.pqt.parquet_storage import ParquetFile
 from esofile_reader.df.df_functions import (
     slice_series_by_datetime_index,
     slice_df_by_datetime_index,
     sort_by_ids,
 )
+from esofile_reader.mini_classes import Variable, SimpleVariable
+from esofile_reader.pqt.parquet_storage import ParquetFile
 from tests.session_fixtures import *
 
 
@@ -652,3 +652,7 @@ def test_set_table_invalid(df_tables):
     )
     with pytest.raises(TypeError):
         df_tables["test"] = df
+
+
+def test_file_not_equal(eplusout1, eplusout2):
+    assert not eplusout1 == eplusout2
