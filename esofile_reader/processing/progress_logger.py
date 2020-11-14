@@ -16,7 +16,9 @@ ERROR = 40
 IGNORE = 100
 
 
-class GenericProgressLogger:
+class GenericLogger:
+    CHUNK_SIZE = 20000
+
     def __init__(self, name: str, level=ERROR):
         self.name = name
         self.section_timestamps = []
@@ -24,6 +26,8 @@ class GenericProgressLogger:
         self.progress = 0
         self.level = level
         self.current_task_name = ""
+        self.n_lines = -1
+        self.line_counter = 0
 
     def print_message(self, message: str):
         print(f"{self.name} - {message}", flush=True)
@@ -49,7 +53,7 @@ class GenericProgressLogger:
     def increment_progress(self, i: Union[int, float] = 1) -> None:
         self.progress += i
 
-    def set_new_maximum_progress(self, max_progress: int, progress: int = 0):
+    def set_maximum_progress(self, max_progress: int, progress: int = 0):
         self.max_progress = max_progress
         self.progress = progress
 
@@ -79,20 +83,3 @@ class GenericProgressLogger:
             raise e
         finally:
             self.section_timestamps.clear()
-
-
-class EsoFileProgressLogger(GenericProgressLogger):
-    # chunk size defines after how many lines it takes to increment progress
-    CHUNK_SIZE = 20000
-
-    def __init__(self, name: str, level=ERROR):
-        super().__init__(name, level=level)
-        self.n_lines = -1
-        self.chunk_size = -1
-        self.line_counter = 0
-
-    def log_task_finished(self) -> None:
-        super().log_task_finished()
-        relative_time = self.n_lines / self.get_total_task_time()
-        message = f"Processing speed: {relative_time:.0f} lines per s"
-        self.log_message(message, INFO)

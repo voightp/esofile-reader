@@ -1,4 +1,3 @@
-import logging
 import os
 import traceback
 from collections import defaultdict
@@ -15,11 +14,11 @@ from esofile_reader.convertor import (
     is_hourly,
     is_timestep,
 )
-from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
-from esofile_reader.results_processing.process_results import get_processed_results
-from esofile_reader.results_processing.aggregate_results import aggregate_variables
-from esofile_reader.search_tree import Tree
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
+from esofile_reader.results_processing.aggregate_results import aggregate_variables
+from esofile_reader.results_processing.process_results import get_processed_results
+from esofile_reader.search_tree import Tree
 
 
 def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
@@ -58,6 +57,7 @@ class BaseFile:
     DIFF = "diff"
     XLSX = ".xlsx"
     CSV = ".csv"
+    SQL = ".sql"
 
     def __init__(
         self,
@@ -95,6 +95,9 @@ class BaseFile:
             self.file_type,
         )
 
+    def __eq__(self, other: "BaseFile"):
+        return self.tables == other.tables
+
     @property
     def complete(self) -> bool:
         """ Check if the file has been populated. """
@@ -119,11 +122,7 @@ class BaseFile:
 
     def get_special_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
-        try:
-            df = self.tables.get_special_table(table)
-        except KeyError:
-            raise KeyError(f"Cannot find special table: '{table}'.\n{traceback.format_exc()}")
-        return df
+        return self.tables.get_special_table(table)
 
     def get_numeric_table(self, table: str) -> pd.DataFrame:
         """ Return the file as a single DataFrame (without special columns). """
@@ -226,7 +225,7 @@ class BaseFile:
             var_args.pop(2)
         return var_cls(*var_args)
 
-    def create_header_variable(
+    def _create_header_variable(
         self, table: str, key: str, units: str, type_: str = None
     ) -> VariableType:
         """ Create unique header variable. """
@@ -254,7 +253,7 @@ class BaseFile:
     ) -> Tuple[int, VariableType]:
         """ Rename the given 'Variable' using given names. """
         if new_key is None and new_type is None:
-            logging.warning("Cannot rename variable! Type and key are not specified.")
+            raise ValueError("Cannot rename variable! Type or key are not specified.")
         else:
             # assign original values if one of new ones is not specified
             table, key, units = variable.table, variable.key, variable.units
@@ -263,15 +262,15 @@ class BaseFile:
                 new_type = new_type if new_type is not None else variable.type
 
             ids = self.find_id(variable)
-            if ids:
+            if len(ids) == 1:
                 id_ = ids[0]
                 # create new variable and add it into tree
-                new_variable = self.create_header_variable(
+                new_variable = self._create_header_variable(
                     table, new_key, units, type_=new_type
                 )
 
                 # remove current item to avoid item duplicity
-                self.search_tree.remove_variable(variable)
+                self.search_tree.remove_variables(variable)
                 self.search_tree.add_variable(id_, new_variable)
 
                 # rename variable in data set
@@ -282,14 +281,18 @@ class BaseFile:
                 else:
                     self.tables.update_variable_name(table, id_, new_variable.key)
                 return id_, new_variable
+            elif len(ids) > 1:
+                raise KeyError(
+                    f"Cannot rename variable! Too many ids found for variable {variable}"
+                )
             else:
-                logging.warning(f"Cannot rename variable! {variable} not found.")
+                raise KeyError(f"Cannot rename variable! {variable} not found.")
 
     def insert_variable(
         self, table: str, key: str, units: str, array: Sequence, type_: str = None
     ) -> Optional[Tuple[int, VariableType]]:
         """ Add specified output variable to the file. """
-        new_variable = self.create_header_variable(table, key, units, type_=type_)
+        new_variable = self._create_header_variable(table, key, units, type_=type_)
         id_ = self.tables.insert_column(new_variable, array)
         if id_:
             self.search_tree.add_variable(id_, new_variable)

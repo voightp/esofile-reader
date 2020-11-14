@@ -5,7 +5,7 @@ from typing import Sequence, Optional, List
 import pandas as pd
 
 from esofile_reader.constants import *
-from esofile_reader.processing.esofile_intervals import combine_peak_result_datetime
+from esofile_reader.processing.esofile_time import combine_peak_result_datetime
 
 
 def merge_peak_outputs(timestamp_df: pd.DataFrame, values_df: pd.DataFrame) -> pd.DataFrame:
@@ -46,7 +46,7 @@ def _local_peaks(
 
     def get_timestamps(sr):
         def parse_vals(val):
-            if isinstance(val, list):
+            if isinstance(val, tuple):
                 month = val[month_ix] if month_ix else None
                 day = val[day_ix] if day_ix else None
                 hour = val[hour_ix]
@@ -60,7 +60,7 @@ def _local_peaks(
         sr = sr.apply(parse_vals)
         return sr
 
-    vals = df.applymap(lambda x: x[val_ix] if isinstance(x, list) else x)
+    vals = df.applymap(lambda x: x[val_ix] if isinstance(x, tuple) else x)
     ixs = df.apply(get_timestamps, axis=1)
     df = merge_peak_outputs(ixs, vals)
     return df
@@ -103,7 +103,7 @@ def sort_by_ids(df: pd.DataFrame, ids: List[int]):
     return df.iloc[:, indexes]
 
 
-def slicer(
+def slice_df(
     df: pd.DataFrame,
     ids: Sequence[int],
     start_date: Optional[datetime] = None,

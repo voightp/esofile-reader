@@ -1,0 +1,108 @@
+Program Version,EnergyPlus, Version 8.9.0-40101eaafd, YMD=2020.10.20 14:40
+1,5,Environment Title[],Latitude[deg],Longitude[deg],Time Zone[],Elevation[m]
+2,8,Day of Simulation[],Month[],Day of Month[],DST Indicator[1=yes 0=no],Hour[],StartMinute[],EndMinute[],DayType
+3,5,Cumulative Day of Simulation[],Month[],Day of Month[],DST Indicator[1=yes 0=no],DayType  ! When Daily Report Variables Requested
+4,2,Cumulative Days of Simulation[],Month[]  ! When Monthly Report Variables Requested
+5,1,Cumulative Days of Simulation[] ! When Run Period Report Variables Requested
+6,1,Calendar Year of Simulation[] ! When Annual Report Variables Requested
+7,9,Environment,Site Outdoor Air Drybulb Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+8,11,Environment,Site Outdoor Air Drybulb Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+9,9,Environment,Site Outdoor Air Dewpoint Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+10,11,Environment,Site Outdoor Air Dewpoint Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+11,9,Environment,Site Outdoor Air Barometric Pressure [Pa] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+12,11,Environment,Site Outdoor Air Barometric Pressure [Pa] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+13,9,Environment,Site Wind Speed [m/s] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+14,11,Environment,Site Wind Speed [m/s] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+15,9,Environment,Site Wind Direction [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+16,11,Environment,Site Wind Direction [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+17,9,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+18,11,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+19,9,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+20,11,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+21,9,Environment,Site Solar Azimuth Angle [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+22,11,Environment,Site Solar Azimuth Angle [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+23,9,Environment,Site Solar Altitude Angle [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+24,11,Environment,Site Solar Altitude Angle [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+135,9,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+136,11,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+137,9,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+138,11,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+139,9,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],ON
+140,9,BLOCK1:ZONE1,Zone Operative Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+141,11,BLOCK1:ZONE1,Zone Operative Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+228,9,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+229,11,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+29,9,Electricity:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+102,9,InteriorEquipment:Electricity [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+65,9,InteriorLights:Electricity [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+31,11,Electricity:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+104,11,InteriorEquipment:Electricity [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+67,11,InteriorLights:Electricity [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+517,9,DistrictCooling:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+332,9,DistrictHeating:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+554,9,Carbon Equivalent:Facility [kg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+519,11,DistrictCooling:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+334,11,DistrictHeating:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+556,11,Carbon Equivalent:Facility [kg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+End of Data Dictionary
+1,UNTITLED (29-O6:O5-O7),  51.15,  -0.18,   0.00,  62.00
+4,2, 6
+7,21.443749999999996,10.2,30, 4,60,31.3,30,15,60
+9,9.972395833333332,1.1,29,15,60,15.4,30,10,60
+11,100927.08333333333,100200.0,30,24,60,101300.0,29, 1,60
+13,2.4494791666666666,0.0,30, 3,60,6.2,29,10,60
+15,81.19791666666667,0.0,30, 3,60,330.0,30,13,30
+17,78.94791666666667,0.0,29, 1,30,163.0,29, 9,30
+19,359.2916666666667,0.0,29, 1,30,854.0,29,12,30
+21,182.78209041187106,6.20102865211224,30, 1,30,359.10131810190645,29,24,60
+23,20.252396095129439,-15.621595753734195,30,24,60,62.11590855742003,29,12,60
+139,28.059810364480957,25.035053863695674,30, 5,30,31.65239822387645,30,15,60
+29,9724598.269233408,101297.898637848,29, 1,30,101297.898637848,29, 1,30
+65,0.0,0.0,29, 1,30,0.0,29, 1,30
+102,9724598.269233408,101297.898637848,29, 1,30,101297.898637848,29, 1,30
+332,0.0,0.0,29, 1,30,0.0,29, 1,30
+517,0.0,0.0,29, 1,30,0.0,29, 1,30
+554,0.0,0.0,29, 1,30,0.0,29, 1,30
+4,7, 7
+7,14.175833333333334,9.6, 2, 1,60,21.6, 5,16,60
+9,10.393124912359628,7.5, 2,10,60,13.2, 5,21,60
+11,100536.04166666667,99600.0, 1, 4,60,102100.0, 5,22,60
+13,2.5683333333333335,0.0, 1, 1,60,5.1, 2,13,60
+15,222.54166666666667,0.0, 1, 1,30,355.0, 5,15,30
+17,149.10416666666667,0.0, 1, 1,30,437.0, 1,13,30
+19,71.25,0.0, 1, 1,30,669.0, 5, 9,30
+21,182.610186992035,5.999231846952213, 5, 1,30,359.0034812382162, 1,24,60
+23,20.055848701406526,-15.981178702411361, 5,24,60,62.002565839195067, 1,12,60
+135,26.183857533332064,22.720166291370956, 4, 6,60,28.997951315071359, 1, 1,30
+137,23.98304090857863,21.403050345179876, 4, 4,60,27.45598348604271, 1, 1,30
+139,23.769211246112428,21.403050345179876, 4, 4,60,27.45598348604271, 1, 1,30
+140,25.083449220955346,22.108944630764655, 4, 4,60,28.226967400557038, 1, 1,30
+228,45.79233922431738,33.63932098394693, 1,19,29,51.768948435017708, 4,10,30
+29,638213647.2461641,101297.898637848, 1, 1,30,5069092.8492, 1, 7,30
+65,382934303.99999919,0.0, 1, 1,30,3191119.2, 1, 7,30
+102,255279343.2461637,101297.898637848, 1, 1,30,1877973.6492, 1, 7,30
+332,25563937.254701806,0.0, 1, 1,30,868550.1821888422, 4, 5,30
+517,391467991.00066307,0.0, 1, 1,30,6284207.649523076, 5,14,60
+554,0.0,0.0, 1, 1,30,0.0, 1, 1,30
+5,7
+8,16.25238095238095,9.6, 7, 2, 1,60,31.3, 6,30,15,60
+10,10.272916604066403,1.1, 6,29,15,60,15.4, 6,30,10,60
+12,100647.76785714286,99600.0, 7, 1, 4,60,102100.0, 7, 5,22,60
+14,2.5343750000000044,0.0, 6,30, 3,60,6.2, 6,29,10,60
+16,182.1577380952381,0.0, 6,30, 3,60,355.0, 7, 5,15,30
+18,129.0595238095238,0.0, 6,29, 1,30,437.0, 7, 1,13,30
+20,153.54761904761905,0.0, 6,29, 1,30,854.0, 6,29,12,30
+22,182.65930225484522,5.999231846952213, 7, 5, 1,30,359.10131810190645, 6,29,24,60
+24,20.11200509961307,-15.981178702411361, 7, 5,24,60,62.11590855742003, 6,29,12,60
+136,26.183857533332064,22.720166291370956, 7, 4, 6,60,31.76438281054784, 6,30,15,60
+138,23.98304090857863,21.403050345179876, 7, 4, 4,60,31.65239822387645, 6,30,15,60
+141,25.083449220955346,22.108944630764655, 7, 4, 4,60,31.708390517212146, 6,30,15,60
+229,45.79233922431738,16.25181626266662, 6,29,16,60,51.768948435017708, 7, 4,10,30
+31,647938245.5153978,101297.898637848, 6,29, 1,30,5069092.8492, 7, 1, 7,30
+67,382934303.99999919,0.0, 6,29, 1,30,3191119.2, 7, 1, 7,30
+104,265003941.51539708,101297.898637848, 6,29, 1,30,1877973.6492, 7, 1, 7,30
+334,25563937.254701806,0.0, 6,29, 1,30,868550.1821888422, 7, 4, 5,30
+519,391467991.00066307,0.0, 6,29, 1,30,6284207.649523076, 7, 5,14,60
+556,0.0,0.0, 6,29, 1,30,0.0, 6,29, 1,30
+End of Data
+ Number of Records Written=          55

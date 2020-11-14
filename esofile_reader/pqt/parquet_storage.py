@@ -5,7 +5,7 @@ from zipfile import ZipFile
 
 from esofile_reader.id_generator import incremental_id_gen, get_str_identifier
 from esofile_reader.mini_classes import ResultsFileType, PathLike
-from esofile_reader.processing.progress_logger import GenericProgressLogger
+from esofile_reader.processing.progress_logger import GenericLogger
 from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.pqt.parquet_tables import ParquetFrame
 from esofile_reader.pqt.parquet_file import ParquetFile
@@ -42,15 +42,15 @@ class ParquetStorage(DFStorage):
         return pqs
 
     def store_file(
-        self, results_file: ResultsFileType, progress_logger: GenericProgressLogger = None
+        self, results_file: ResultsFileType, progress_logger: GenericLogger = None
     ) -> int:
         """ Store results file as 'ParquetFile'. """
         if not progress_logger:
-            progress_logger = GenericProgressLogger(results_file.file_path)
+            progress_logger = GenericLogger(results_file.file_path)
         with progress_logger.log_task("Store file!"):
             n = sum([ParquetFrame.get_n_chunks(df) for df in results_file.tables.values()])
             progress_logger.log_section("writing parquets!")
-            progress_logger.set_new_maximum_progress(n)
+            progress_logger.set_maximum_progress(n)
 
             id_gen = incremental_id_gen(checklist=list(self.files.keys()))
             id_ = next(id_gen)

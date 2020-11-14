@@ -64,6 +64,9 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
+      - name: Install extras
+        run: poetry install --extras "sql"
+
       - name: Test with pytest
         run: poetry run pytest -v
 

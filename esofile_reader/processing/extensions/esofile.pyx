@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -8,11 +9,12 @@ import cython
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
-from esofile_reader.processing.raw_outputs import RawOutputData, RawOutputDFData
+from esofile_reader.mini_classes import Variable, EsoTimestamp
+from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.raw_data import RawEsoData
 from esofile_reader.search_tree import Tree
 from esofile_reader.df.df_tables import DFTables
+from decimal import Decimal, ROUND_HALF_UP
 
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
@@ -66,7 +68,9 @@ cpdef tuple process_header_line(str line):
     cdef int line_id
     # //@formatter:on
 
-    pattern = re.compile("^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
+    pattern = re.compile(
+        "^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*(?: \w+)?).*$"
+    )
 
     # this raises attribute error when there's some unexpected line syntax
     raw_line_id, _, key, type_, units, interval = pattern.search(line).groups()
@@ -77,13 +81,19 @@ cpdef tuple process_header_line(str line):
         type_ = key
         key = "Cumulative Meter" if "Cumulative" in key else "Meter"
 
+    # regex matches only 'Each' from 'Each Call', since it's reported in TimeStep
+    # put it into the same bin, if this would duplicate other variable, it will be deleted
+    if interval == "Each Call":
+        type_ = "System - " + type_
+        interval = "TimeStep"
+
     return line_id, key, type_, units, interval.lower()
 
 
 @cython.boundscheck(False)
 @cython.wraparound(True)
 @cython.binding(True)
-cpdef object read_header(object eso_file, object progress_logger):
+cpdef object read_header(object eso_file, object logger):
     """
     Read header dictionary of the eso file.
 
@@ -95,7 +105,7 @@ cpdef object read_header(object eso_file, object progress_logger):
     ----------
     eso_file : EsoFile
         Opened EnergyPlus result file.
-    progress_logger: EsoFileProgressLogger
+    logger: GenericLogger
         Watcher to report processing progress.
 
     Returns
@@ -110,22 +120,22 @@ cpdef object read_header(object eso_file, object progress_logger):
     # //@formatter:on
 
     header = defaultdict(partial(defaultdict))
-    counter = progress_logger.line_counter % progress_logger.CHUNK_SIZE
-    chunk_size = progress_logger.CHUNK_SIZE
+    counter = logger.line_counter % logger.CHUNK_SIZE
+    chunk_size = logger.CHUNK_SIZE
     while True:
         raw_line = next(eso_file)
 
         counter += 1
         if counter == chunk_size:
-            progress_logger.increment_progress()
-            progress_logger.line_counter += counter
+            logger.increment_progress()
+            logger.line_counter += counter
             counter = 0
 
         try:
             line_id, key, type_, units, interval = process_header_line(raw_line)
         except AttributeError:
             if "End of Data Dictionary" in raw_line:
-                progress_logger.line_counter += counter
+                logger.line_counter += counter
                 break
             elif raw_line == "\n":
                 raise BlankLineError("Empty line!")
@@ -166,21 +176,18 @@ def process_sub_monthly_interval_line(
 
     def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
-        # omit day of week in conversion
-        items = [int(float(item)) for item in data[:-1]]
-        interval = IntervalTuple(items[1], items[2], items[4], items[6])
-
-        # check if interval is timestep or hourly interval
-        if items[5] == 0 and items[6] == 60:
+        end_minute = Decimal(data[6]).to_integral(rounding=ROUND_HALF_UP)
+        interval = EsoTimestamp(
+            int(data[1]), int(data[2]), int(data[4]), end_minute
+        )
+        if float(data[5]) == 0 and end_minute == 60:
             return H, interval, data[-1].strip()
         else:
             return TS, interval, data[-1].strip()
 
     def parse_daily_interval():
         """ Populate D list and return identifier. """
-        # omit day of week in in conversion
-        i = [int(item) for item in data[:-1]]
-        return D, IntervalTuple(i[1], i[2], 0, 0), data[-1].strip()
+        return D, EsoTimestamp(int(data[1]), int(data[2]), 0, 0), data[-1].strip()
 
     categories = {
         TIMESTEP_OR_HOURLY_LINE: parse_timestep_or_hourly_interval,
@@ -218,15 +225,15 @@ def process_monthly_plus_interval_line(
 
     def parse_monthly_interval():
         """ Populate M list and return identifier. """
-        return M, IntervalTuple(int(data[1]), 1, 0, 0), int(data[0])
+        return M, EsoTimestamp(int(data[1]), 1, 0, 0), int(data[0])
 
     def parse_runperiod_interval():
         """ Populate RP list and return identifier. """
-        return RP, IntervalTuple(1, 1, 0, 0), int(data[0])
+        return RP, EsoTimestamp(1, 1, 0, 0), int(data[0])
 
     def parse_annual_interval():
         """ Populate A list and return identifier. """
-        return A, IntervalTuple(1, 1, 0, 0), None
+        return A, EsoTimestamp(1, 1, 0, 0), None
 
     categories = {
         MONTHLY_LINE: parse_monthly_interval,
@@ -244,14 +251,14 @@ cpdef list read_body(
     int highest_interval_id,
     object header,
     object ignore_peaks,
-    object progress_logger
+    object logger
 ):
     """
     Read body of the eso file.
 
     The line from eso file is processed line by line until the
     'End of Data' is reached. Outputs, dates, days of week are
-    distributed into relevant bins in RawOutputData container.
+    distributed into relevant bins in RawEsoData container.
 
     Index 1-5 for eso file generated prior to E+ 8.9 or 1-6 from E+ 8.9
     further, indicates that line is an interval.
@@ -267,8 +274,8 @@ cpdef list read_body(
         This is generated by 'read_header' function.
     ignore_peaks : bool, default: True
         Ignore peak values from 'Daily'+ intervals.
-    progress_logger : EsoFileProgressLogger
-        A custom class to progress_logger processing progress
+    logger : GenericLogger
+        A custom class to logger processing progress
 
     Returns
     -------
@@ -281,17 +288,17 @@ cpdef list read_body(
     cdef double res
     cdef list peak_res
     cdef str raw_line, interval
-    cdef list all_raw_outputs = []
+    cdef list all_raw_data = []
     # //@formatter:on
 
-    counter = progress_logger.line_counter % progress_logger.CHUNK_SIZE
-    chunk_size = progress_logger.CHUNK_SIZE
+    counter = logger.line_counter % logger.CHUNK_SIZE
+    chunk_size = logger.CHUNK_SIZE
     while True:
         raw_line = next(eso_file)
         counter += 1
         if counter == chunk_size:
-            progress_logger.increment_progress()
-            progress_logger.line_counter += counter
+            logger.increment_progress()
+            logger.line_counter += counter
             counter = 0
 
         # process raw line, leave this in while loop to avoid function call overhead
@@ -301,7 +308,7 @@ cpdef list read_body(
             line = split_line[1:]
         except ValueError:
             if "End of Data" in raw_line:
-                progress_logger.line_counter += counter
+                logger.line_counter += counter
                 break
             elif raw_line == "\n":
                 raise BlankLineError("Empty line!")
@@ -313,8 +320,8 @@ cpdef list read_body(
             if line_id == ENVIRONMENT_LINE:
                 # initialize variables for current environment
                 environment_name = line[0].strip()
-                raw_outputs = RawOutputData(environment_name, header, ignore_peaks)
-                all_raw_outputs.append(raw_outputs)
+                raw_outputs = RawEsoData(environment_name, deepcopy(header), ignore_peaks)
+                all_raw_data.append(raw_outputs)
             else:
                 try:
                     if line_id > DAILY_LINE:
@@ -348,34 +355,13 @@ cpdef list read_body(
                 raise InvalidLineSyntax(f"Unexpected value in line '{raw_line}'.")
 
     # update progress to compensate for reminder
-    if progress_logger.progress != progress_logger.max_progress:
-        progress_logger.increment_progress()
+    if logger.progress != logger.max_progress:
+        logger.increment_progress()
 
-    return all_raw_outputs
-
-
-def count_tables(all_raw_outputs: List[RawOutputData]) -> int:
-    return sum(raw_outputs.get_n_tables() for raw_outputs in all_raw_outputs)
+    return all_raw_data
 
 
-def process_raw_file_content(
-    all_raw_outputs: List[RawOutputData],
-    year: Optional[int],
-    progress_logger: EsoFileProgressLogger
-) -> List[RawOutputDFData]:
-    all_raw_df_outputs = []
-    n_tables = count_tables(all_raw_outputs)
-    n_trees = len(all_raw_outputs)
-    progress_logger.set_new_maximum_progress(n_tables + n_trees)
-    for raw_outputs in all_raw_outputs:
-        raw_df_outputs = RawOutputDFData.from_raw_outputs(raw_outputs, progress_logger, year)
-        all_raw_df_outputs.append(raw_df_outputs)
-    return all_raw_df_outputs
-
-
-cpdef read_file(
-    object file,object progress_logger,object ignore_peaks = True
-):
+cpdef read_file(object file, object logger, object ignore_peaks = True):
     """ Read raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -383,22 +369,23 @@ cpdef read_file(
 
     # process first few standard lines, ignore timestamp
     version, timestamp = process_statement_line(next(file))
-    progress_logger.line_counter += 1
+    logger.line_counter += 1
     last_standard_item_id = 6 if version >= 890 else 5
 
     # Skip standard reporting intervals
     for _ in range(last_standard_item_id):
         next(file)
-        progress_logger.line_counter += 1
+        logger.line_counter += 1
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    progress_logger.log_section("processing data dictionary!")
-    header = read_header(file, progress_logger)
+    logger.log_section("processing data dictionary!")
+    header = read_header(file, logger)
 
     # Read body to obtain outputs and environment dictionaries
-    progress_logger.log_section("processing data!")
-    return read_body(file, last_standard_item_id, header, ignore_peaks, progress_logger)
+    logger.log_section("processing data!")
+    return read_body(file, last_standard_item_id, header, ignore_peaks, logger)
+
 
 
 @cython.boundscheck(False)
@@ -417,27 +404,26 @@ cpdef count_lines(object file_path):
 
 
 def preprocess_file(
-    file_path: Union[str, Path], progress_logger: EsoFileProgressLogger
+    file_path: Union[str, Path], logger: EsoFileProgressLogger
 ) -> None:
     """ Set maximum progress for eso file processing. """
-    progress_logger.log_section("pre-processing!")
+    logger.log_section("pre-processing!")
     n_lines = count_lines(file_path)
-    maximum = n_lines // progress_logger.CHUNK_SIZE
-    progress_logger.n_lines = n_lines
-    progress_logger.set_new_maximum_progress(maximum)
+    maximum = n_lines // logger.CHUNK_SIZE
+    logger.n_lines = n_lines
+    logger.set_maximum_progress(maximum)
 
 
-cpdef process_eso_file(
-    object file_path,
-    object progress_logger,
-    object ignore_peaks,
-    object year = None
-):
+def process_eso_file(
+    file_path: Union[str, Path],
+    logger: EsoFileProgressLogger,
+    ignore_peaks: bool = True,
+    year: int = None
+) -> List[RawEsoData]:
     """ Open the eso file and trigger file processing. """
-    preprocess_file(file_path, progress_logger)
+    preprocess_file(file_path, logger)
     try:
         with open(file_path, "r") as file:
-            all_raw_outputs = read_file(file, progress_logger, ignore_peaks=ignore_peaks)
+            return read_file(file, logger, ignore_peaks=ignore_peaks)
     except StopIteration:
         raise IncompleteFile(f"File is not complete!")
-    return process_raw_file_content(all_raw_outputs, year, progress_logger)
