@@ -23,6 +23,7 @@ COLUMN_LEVELS = ("id", "table", "key", "type", "units")
 SIMPLE_COLUMN_LEVELS = ("id", "table", "key", "units")
 PEAK_COLUMN_LEVELS = ("id", "table", "key", "type", "units", "data")
 SPECIAL = "special"
+REFERENCE_YEAR = 2020
 
 AVERAGED_UNITS = [
     "W",

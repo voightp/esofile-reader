@@ -11,7 +11,7 @@ from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
 from esofile_reader.abstractions.base_tables import BaseTables
 from esofile_reader.df.df_functions import (
     merge_peak_outputs,
-    slicer,
+    slice_df,
     slice_series_by_datetime_index,
 )
 
@@ -107,9 +107,16 @@ class DFTables(BaseTables):
             for table_name in self.get_table_names():
                 df = self.get_table(table_name)
                 df.columns = df.columns.droplevel(ID_LEVEL)
+                df = df.sort_values(df.columns.names, axis=1)
                 other_df = other.get_table(table_name)
                 other_df.columns = other_df.columns.droplevel(ID_LEVEL)
-                pd.testing.assert_frame_equal(df, other_df, check_freq=False, check_dtype=False)
+                other_df = other_df.sort_values(other_df.columns.names, axis=1)
+                try:
+                    pd.testing.assert_frame_equal(
+                        df, other_df, check_freq=False, check_dtype=False
+                    )
+                except AssertionError:
+                    return False
             return True
 
         table_names_match = self.tables.keys() == other.tables.keys()
@@ -264,8 +271,6 @@ class DFTables(BaseTables):
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
     ) -> pd.Series:
-        if name not in self.tables[table].columns.get_level_values(KEY_LEVEL):
-            raise KeyError(f"'{name}' column is not available " f"on the given data set.")
         if self.is_simple(table):
             v = (SPECIAL, table, name, "")
         else:
@@ -315,7 +320,7 @@ class DFTables(BaseTables):
         end_date: Optional[datetime] = None,
         include_day: bool = False,
     ) -> pd.DataFrame:
-        df = slicer(self.tables[table], ids, start_date=start_date, end_date=end_date)
+        df = slice_df(self.tables[table], ids, start_date=start_date, end_date=end_date)
         df = df.copy()
         if include_day and self.is_index_datetime(table):
             df = self.add_day_to_index(df, table, start_date, end_date)

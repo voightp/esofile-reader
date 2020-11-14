@@ -1,0 +1,106 @@
+7,1,Environment,Site Outdoor Air Drybulb Temperature [C] !TimeStep
+8,1,Environment,Site Outdoor Air Drybulb Temperature [C] !Hourly
+9,7,Environment,Site Outdoor Air Drybulb Temperature [C] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+10,9,Environment,Site Outdoor Air Drybulb Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+11,11,Environment,Site Outdoor Air Drybulb Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+12,1,Environment,Site Outdoor Air Dewpoint Temperature [C] !TimeStep
+13,1,Environment,Site Outdoor Air Dewpoint Temperature [C] !Hourly
+14,7,Environment,Site Outdoor Air Dewpoint Temperature [C] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+15,9,Environment,Site Outdoor Air Dewpoint Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+16,11,Environment,Site Outdoor Air Dewpoint Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+17,1,Environment,Site Outdoor Air Barometric Pressure [Pa] !TimeStep
+18,1,Environment,Site Outdoor Air Barometric Pressure [Pa] !Hourly
+19,7,Environment,Site Outdoor Air Barometric Pressure [Pa] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+20,9,Environment,Site Outdoor Air Barometric Pressure [Pa] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+21,11,Environment,Site Outdoor Air Barometric Pressure [Pa] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+22,1,Environment,Site Wind Speed [m/s] !TimeStep
+23,1,Environment,Site Wind Speed [m/s] !Hourly
+24,7,Environment,Site Wind Speed [m/s] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+25,9,Environment,Site Wind Speed [m/s] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+26,11,Environment,Site Wind Speed [m/s] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+27,1,Environment,Site Wind Direction [deg] !TimeStep
+28,1,Environment,Site Wind Direction [deg] !Hourly
+29,7,Environment,Site Wind Direction [deg] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+30,9,Environment,Site Wind Direction [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+31,11,Environment,Site Wind Direction [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+32,1,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !TimeStep
+33,1,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !Hourly
+34,7,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+35,9,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+36,11,Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+37,1,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !TimeStep
+38,1,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !Hourly
+39,7,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+40,9,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+41,11,Environment,Site Direct Solar Radiation Rate per Area [W/m2] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+42,1,Environment,Site Solar Azimuth Angle [deg] !TimeStep
+43,1,Environment,Site Solar Azimuth Angle [deg] !Hourly
+44,7,Environment,Site Solar Azimuth Angle [deg] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+45,9,Environment,Site Solar Azimuth Angle [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+46,11,Environment,Site Solar Azimuth Angle [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+47,1,Environment,Site Solar Altitude Angle [deg] !TimeStep
+48,1,Environment,Site Solar Altitude Angle [deg] !Hourly
+49,7,Environment,Site Solar Altitude Angle [deg] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+50,9,Environment,Site Solar Altitude Angle [deg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+51,11,Environment,Site Solar Altitude Angle [deg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+162,1,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !TimeStep,OFFICE_OPENOFF_OCC
+163,1,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !Hourly,OFFICE_OPENOFF_OCC
+164,7,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute],OFFICE_OPENOFF_OCC
+165,9,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+166,11,BLOCK1:ZONE1,Zone Mean Radiant Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+167,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !TimeStep,OFFICE_OPENOFF_OCC
+168,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Hourly,OFFICE_OPENOFF_OCC
+169,7,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute],OFFICE_OPENOFF_OCC
+170,9,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+171,11,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+172,1,BLOCK1:ZONE1,Zone Operative Temperature [C] !TimeStep,OFFICE_OPENOFF_OCC
+173,1,BLOCK1:ZONE1,Zone Operative Temperature [C] !Hourly,OFFICE_OPENOFF_OCC
+174,7,BLOCK1:ZONE1,Zone Operative Temperature [C] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute],OFFICE_OPENOFF_OCC
+175,9,BLOCK1:ZONE1,Zone Operative Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+176,11,BLOCK1:ZONE1,Zone Operative Temperature [C] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+177,1,BLOCK1:ZONE1,Zone Infiltration Air Change Rate [ach] !TimeStep
+178,1,BLOCK1:ZONE1,Zone Infiltration Air Change Rate [ach] !Hourly
+179,7,BLOCK1:ZONE1,Zone Infiltration Air Change Rate [ach] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+180,9,BLOCK1:ZONE1,Zone Infiltration Air Change Rate [ach] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+181,11,BLOCK1:ZONE1,Zone Infiltration Air Change Rate [ach] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+268,1,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !TimeStep,OFFICE_OPENOFF_OCC
+269,1,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !Hourly,OFFICE_OPENOFF_OCC
+270,7,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute],OFFICE_OPENOFF_OCC
+271,9,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+272,11,BLOCK1:ZONE1,Zone Air Relative Humidity [%] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute],OFFICE_OPENOFF_OCC
+53,1,Electricity:Facility [J] !TimeStep
+126,1,InteriorEquipment:Electricity [J] !TimeStep
+89,1,InteriorLights:Electricity [J] !TimeStep
+54,1,Electricity:Facility [J] !Hourly
+127,1,InteriorEquipment:Electricity [J] !Hourly
+90,1,InteriorLights:Electricity [J] !Hourly
+55,7,Electricity:Facility [J] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+128,7,InteriorEquipment:Electricity [J] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+91,7,InteriorLights:Electricity [J] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+56,9,Electricity:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+129,9,InteriorEquipment:Electricity [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+92,9,InteriorLights:Electricity [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+58,11,Electricity:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+131,11,InteriorEquipment:Electricity [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+94,11,InteriorLights:Electricity [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+558,1,DistrictCooling:Facility [J] !Hourly
+373,1,DistrictHeating:Facility [J] !Hourly
+595,1,Carbon Equivalent:Facility [kg] !Hourly
+559,7,DistrictCooling:Facility [J] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+374,7,DistrictHeating:Facility [J] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+596,7,Carbon Equivalent:Facility [kg] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+560,9,DistrictCooling:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+375,9,DistrictHeating:Facility [J] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+597,9,Carbon Equivalent:Facility [kg] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+562,11,DistrictCooling:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+377,11,DistrictHeating:Facility [J] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+599,11,Carbon Equivalent:Facility [kg] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+557,1,DistrictCooling:Facility [J] !TimeStep
+372,1,DistrictHeating:Facility [J] !TimeStep
+594,1,Carbon Equivalent:Facility [kg] !TimeStep
+620,1,BLOCK1:ZONE1,Zone Mechanical Ventilation Air Changes per Hour [ach] !TimeStep
+621,1,BLOCK1:ZONE1,Zone Mechanical Ventilation Air Changes per Hour [ach] !Hourly
+622,7,BLOCK1:ZONE1,Zone Mechanical Ventilation Air Changes per Hour [ach] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]
+623,9,BLOCK1:ZONE1,Zone Mechanical Ventilation Air Changes per Hour [ach] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute]
+624,11,BLOCK1:ZONE1,Zone Mechanical Ventilation Air Changes per Hour [ach] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]
+End of Data Dictionary

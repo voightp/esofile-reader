@@ -12,7 +12,7 @@ Variable = namedtuple("Variable", "table key type units")
 SimpleVariable = namedtuple("SimpleVariable", "table key units")
 
 # A mini class to store table data
-IntervalTuple = namedtuple("IntervalTuple", "month day hour end_minute")
+EsoTimestamp = namedtuple("EsoTimestamp", "month day hour end_minute")
 
 # type hint to cover all result types
 ResultsFileType = Union[

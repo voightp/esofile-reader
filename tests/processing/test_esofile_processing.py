@@ -5,9 +5,14 @@ from math import nan
 import numpy as np
 
 from esofile_reader.constants import *
-from esofile_reader.exceptions import InvalidLineSyntax, BlankLineError, IncompleteFile
-from esofile_reader.mini_classes import Variable, IntervalTuple
-from esofile_reader.processing.esofile_intervals import process_raw_date_data
+from esofile_reader.exceptions import (
+    InvalidLineSyntax,
+    BlankLineError,
+    IncompleteFile,
+    MultiEnvFileRequired,
+)
+from esofile_reader.mini_classes import Variable, EsoTimestamp
+from esofile_reader.processing.esofile_time import convert_raw_date_data
 from esofile_reader.processing.extensions.esofile import (
     process_statement_line,
     process_header_line,
@@ -16,28 +21,24 @@ from esofile_reader.processing.extensions.esofile import (
     process_monthly_plus_interval_line,
     read_body,
 )
-from esofile_reader.processing.extensions.raw_tables import (
-    generate_df_tables,
-    generate_peak_tables,
-    remove_duplicates,
-)
-from esofile_reader.processing.progress_logger import EsoFileProgressLogger
+from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.raw_data_parser import RawEsoParser
 from tests.session_fixtures import *
 
-HEADER_PATH = Path(TEST_FILES_PATH, "header.txt")
-BODY_PATH = Path(TEST_FILES_PATH, "body.txt")
+HEADER_PATH = Path(EPLUS_TEST_FILES_PATH, "header.txt")
+BODY_PATH = Path(EPLUS_TEST_FILES_PATH, "body.txt")
 
 
 @pytest.fixture(scope="module")
 def header_content():
     with open(HEADER_PATH, "r") as f:
-        return read_header(f, EsoFileProgressLogger("foo"))
+        return read_header(f, GenericLogger("foo"))
 
 
 @pytest.fixture(scope="function")
 def all_raw_outputs(header_content):
     with open(BODY_PATH, "r") as f:
-        return read_body(f, 6, header_content, False, EsoFileProgressLogger("dummy"))
+        return read_body(f, 6, header_content, False, GenericLogger("dummy"))
 
 
 @pytest.fixture(scope="function")
@@ -46,9 +47,9 @@ def raw_outputs(all_raw_outputs):
 
 
 @pytest.fixture(scope="function")
-def duplicate_variable_eso_file():
-    return EsoFile(
-        Path(TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), EsoFileProgressLogger("foo"),
+def duplicate_variable_file():
+    return EsoFile.from_path(
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), GenericLogger("foo"),
     )
 
 
@@ -67,8 +68,28 @@ def test_esofile_statement():
             (8, "Environment", "Air Temperature", "C", "daily"),
         ),
         (
+            "8,7,NO,UNITS TEST [] !Daily [Value,Min,Hour,Minute,Max,Hour,Minute]",
+            (8, "NO", "UNITS TEST", "", "daily"),
+        ),
+        (
             "302,1,InteriorEquipment:Electricity [J] !Hourly",
             (302, "Meter", "InteriorEquipment:Electricity", "J", "hourly"),
+        ),
+        (
+            "592,1,NODE BLOCK1:ZONE1 IN,System Node Temperature [C] !Each Call",
+            (592, "NODE BLOCK1:ZONE1 IN", "System - System Node Temperature", "C", "timestep"),
+        ),
+        (
+            "129,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Each Call,OFFICE_OPENOFF_OCC",
+            (129, "BLOCK1:ZONE1", "System - Zone Mean Air Temperature", "C", "timestep"),
+        ),
+        (
+            "129,1,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Hourly,OFFICE_OPENOFF_OCC",
+            (129, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C", "hourly"),
+        ),
+        (
+            "130,9,BLOCK1:ZONE1,Zone Mean Air Temperature [C] !Monthly [Value,Min,Day,Hour,Minute,Max,Day,Hour,Minute],OFFICE_OPENOFF_OCC",
+            (130, "BLOCK1:ZONE1", "Zone Mean Air Temperature", "C", "monthly"),
         ),
     ],
 )
@@ -88,7 +109,7 @@ def test_read_header():
         "3676,11,Some meter [ach] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]\n"
         "End of Data Dictionary\n"
     )
-    header_dct = read_header(file, EsoFileProgressLogger("foo"))
+    header_dct = read_header(file, GenericLogger("foo"))
     test_header = {
         "hourly": {7: Variable("hourly", "Environment", "Air Temperature", "C")},
         "runperiod": {3676: Variable("runperiod", "Meter", "Some meter", "ach")},
@@ -105,7 +126,7 @@ def test_read_header_blank_line():
     file = StringIO(s)
 
     with pytest.raises(BlankLineError):
-        read_header(file, EsoFileProgressLogger("foo"))
+        read_header(file, GenericLogger("foo"))
 
 
 @pytest.mark.parametrize(
@@ -138,15 +159,15 @@ def test_read_header_from_file(header_content, interval, id_, variable):
     [
         (
             2,
-            [" 1", " 2", " 3", " 0", "10.00", "0.00", "60.00", "Saturday"],
-            (H, IntervalTuple(2, 3, 10, 60), "Saturday",),
+            [" 1", " 2", " 3", " 0", "10", "0.00", "60.00", "Saturday"],
+            (H, EsoTimestamp(2, 3, 10, 60), "Saturday",),
         ),
         (
             2,
-            [" 1", " 2", " 3", " 0", "10.00", "0.00", "30.00", "Saturday"],
-            (TS, IntervalTuple(2, 3, 10, 30), "Saturday",),
+            [" 1", " 2", " 3", " 0", "10", "0.00", "30.00", "Saturday"],
+            (TS, EsoTimestamp(2, 3, 10, 30), "Saturday",),
         ),
-        (3, [" 20", " 1", " 2", " 0", "Saturday"], (D, IntervalTuple(1, 2, 0, 0), "Saturday")),
+        (3, [" 20", " 1", " 2", " 0", "Saturday"], (D, EsoTimestamp(1, 2, 0, 0), "Saturday")),
     ],
 )
 def test_process_sub_monthly_interval_line(line_id, line, processed_line):
@@ -156,9 +177,9 @@ def test_process_sub_monthly_interval_line(line_id, line, processed_line):
 @pytest.mark.parametrize(
     "line_id,line,processed_line",
     [
-        (4, [" 58", " 1"], (M, IntervalTuple(1, 1, 0, 0), 58)),
-        (5, ["365"], (RP, IntervalTuple(1, 1, 0, 0), 365)),
-        (6, ["1"], (A, IntervalTuple(1, 1, 0, 0), None)),
+        (4, [" 58", " 1"], (M, EsoTimestamp(1, 1, 0, 0), 58)),
+        (5, ["365"], (RP, EsoTimestamp(1, 1, 0, 0), 365)),
+        (6, ["1"], (A, EsoTimestamp(1, 1, 0, 0), None)),
     ],
 )
 def test_process_monthly_plus_interval_line(line_id, line, processed_line):
@@ -233,15 +254,15 @@ def test_read_body_raw_peak_outputs(raw_outputs, interval, id_, values):
 @pytest.mark.parametrize(
     "interval,index,values",
     [
-        ("timestep", 0, IntervalTuple(month=6, day=30, hour=1, end_minute=30)),
-        ("timestep", -1, IntervalTuple(month=7, day=1, hour=24, end_minute=60)),
-        ("hourly", 0, IntervalTuple(month=6, day=30, hour=1, end_minute=60)),
-        ("hourly", -1, IntervalTuple(month=7, day=1, hour=24, end_minute=60)),
-        ("daily", 0, IntervalTuple(month=6, day=30, hour=0, end_minute=0)),
-        ("daily", -1, IntervalTuple(month=7, day=1, hour=0, end_minute=0)),
-        ("monthly", 0, IntervalTuple(month=6, day=1, hour=0, end_minute=0)),
-        ("monthly", 0, IntervalTuple(month=6, day=1, hour=0, end_minute=0)),
-        ("runperiod", -1, IntervalTuple(month=1, day=1, hour=0, end_minute=0)),
+        ("timestep", 0, EsoTimestamp(month=6, day=30, hour=1, end_minute=30)),
+        ("timestep", -1, EsoTimestamp(month=7, day=1, hour=24, end_minute=60)),
+        ("hourly", 0, EsoTimestamp(month=6, day=30, hour=1, end_minute=60)),
+        ("hourly", -1, EsoTimestamp(month=7, day=1, hour=24, end_minute=60)),
+        ("daily", 0, EsoTimestamp(month=6, day=30, hour=0, end_minute=0)),
+        ("daily", -1, EsoTimestamp(month=7, day=1, hour=0, end_minute=0)),
+        ("monthly", 0, EsoTimestamp(month=6, day=1, hour=0, end_minute=0)),
+        ("monthly", 0, EsoTimestamp(month=6, day=1, hour=0, end_minute=0)),
+        ("runperiod", -1, EsoTimestamp(month=1, day=1, hour=0, end_minute=0)),
     ],
 )
 def test_read_body_raw_dates(raw_outputs, interval, index, values):
@@ -277,13 +298,11 @@ def test_read_body_day_of_week(raw_outputs, interval, values):
     ],
 )
 def test_generate_peak_tables(raw_outputs, peak, interval, shape):
-    dates = raw_outputs.dates
-    cumulative_days = raw_outputs.cumulative_days
     header = raw_outputs.header
     raw_peak_outputs = raw_outputs.peak_outputs
-    logger = EsoFileProgressLogger("foo")
-    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
-    outputs = generate_peak_tables(raw_peak_outputs, header, dates, logger)
+    logger = GenericLogger("foo")
+    dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
+    outputs = RawEsoParser().cast_peak_to_df(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
 
 
@@ -299,13 +318,11 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     ],
 )
 def test_generate_df_tables(raw_outputs, interval, shape):
-    dates = raw_outputs.dates
-    cumulative_days = raw_outputs.cumulative_days
     header = raw_outputs.header
     outputs = raw_outputs.outputs
-    logger = EsoFileProgressLogger("foo")
-    dates, n_days = process_raw_date_data(dates, cumulative_days, 2002)
-    outputs = generate_df_tables(outputs, header, dates, logger)
+    logger = GenericLogger("foo")
+    dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
+    outputs = RawEsoParser().cast_to_df(outputs, header, dates, {}, logger)
     assert outputs[interval].shape == shape
 
 
@@ -327,31 +344,16 @@ def test_df_tables_numeric_type(eplusout_all_intervals, interval):
     assert set(dtypes) == {np.dtype("float64")}
 
 
-def test_remove_duplicates():
-    v1 = Variable("hourly", "a", "b", "c")
-    v2 = Variable("hourly", "d", "e", "f")
-    v3 = Variable("hourly", "g", "h", "i")
-    ids = {1: v1, 2: v2}
-    header_dct = {"hourly": {1: v1, 2: v2, 3: v3}}
-    outputs_dct = {"hourly": {1: v1, 3: v3}}
-    peak_outpus = None
-
-    remove_duplicates(ids, header_dct, outputs_dct, peak_outpus)
-
-    assert header_dct["hourly"] == {3: v3}
-    assert outputs_dct["hourly"] == {3: v3}
-
-
 def test_header_invalid_line():
     f = StringIO("this is wrong!")
-    with pytest.raises(AttributeError):
-        read_header(f, EsoFileProgressLogger("foo"))
+    with pytest.raises(InvalidLineSyntax):
+        read_header(f, GenericLogger("foo"))
 
 
 def test_body_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
-        read_body(f, 6, {"a": {}}, False, EsoFileProgressLogger("foo"))
+        read_body(f, 6, {"a": {}}, False, GenericLogger("foo"))
 
 
 def test_body_blank_line(header_content):
@@ -372,41 +374,45 @@ def test_body_blank_line(header_content):
 620,0.0"""
     )
     with pytest.raises(BlankLineError):
-        read_body(f, 6, header_content, False, EsoFileProgressLogger("foo"))
+        read_body(f, 6, header_content, False, GenericLogger("foo"))
 
 
 def test_file_blank_line():
     with pytest.raises(IncompleteFile):
-        EsoFile(
-            Path(TEST_FILES_PATH, "eplusout_incomplete.eso"), EsoFileProgressLogger("foo"),
+        EsoFile.from_path(
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_incomplete.eso"), GenericLogger("foo"),
         )
 
 
 def test_non_numeric_line():
     with pytest.raises(InvalidLineSyntax):
-        EsoFile(
-            Path(TEST_FILES_PATH, "eplusout_invalid_line.eso"), EsoFileProgressLogger("foo"),
+        EsoFile.from_path(
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_invalid_line.eso"), GenericLogger("foo"),
         )
 
 
 def test_logging_level_info():
-    EsoFile(
-        Path(TEST_FILES_PATH, "eplusout1.eso"),
-        progress_logger=EsoFileProgressLogger("foo", level=20),
+    EsoFile.from_path(
+        Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), logger=GenericLogger("foo", level=20),
     )
 
 
 def test_hourly_results_only():
-    eso_file = EsoFile(
-        Path(TEST_FILES_PATH, "eplusout_only_hourly.eso"), EsoFileProgressLogger("foo"),
+    eso_file = EsoFile.from_path(
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_only_hourly.eso"), GenericLogger("foo"),
     )
     assert eso_file.table_names == ["hourly"]
 
 
-@pytest.mark.parametrize("table, id_", [(M, 137), (RP, 138)])
-def test_remove_duplicate_variable(duplicate_variable_eso_file, table, id_):
-    with pytest.raises(KeyError):
-        _ = duplicate_variable_eso_file.tables.get_results_df(table, [id_])
+@pytest.mark.parametrize(
+    "variable, id_",
+    [
+        (Variable(M, "BLOCK1:ZONE1 (1)", "Zone Mean Radiant Temperature", "C"), 137),
+        (Variable(RP, "BLOCK1:ZONE1 (1)", "Zone Mean Radiant Temperature", "C"), 138),
+    ],
+)
+def test_duplicate_variable(duplicate_variable_file, variable, id_):
+    assert duplicate_variable_file.find_id(variable) == [id_]
 
 
 @pytest.mark.parametrize(
@@ -416,7 +422,31 @@ def test_remove_duplicate_variable(duplicate_variable_eso_file, table, id_):
         (Variable(RP, "BLOCK1:ZONE1", "Zone Mean Radiant Temperature", "C"), 136),
     ],
 )
-def test_remove_duplicate_variable_from_tree(
-    duplicate_variable_eso_file, variable, expected_id
-):
-    assert duplicate_variable_eso_file.find_id(variable) == [expected_id]
+def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, expected_id):
+    assert duplicate_variable_file.find_id(variable) == [expected_id]
+
+
+def test_drop_sizing_intervals(multienv_file):
+    sizing_tables = [TS, H, D]
+    all_tables = [TS, H, D, M, A, RP]
+    for i, ef in enumerate(multienv_file):
+        # first env on test file is normal, remaining ones report 'Sizing' day
+        expected_tables = sizing_tables if i > 0 else all_tables
+        assert ef.table_names == expected_tables
+
+
+def test_file_names(multienv_file):
+    test_names = [
+        "multiple_environments",
+        "multiple_environments - WINTER DESIGN DAY IN UNTITLED (01-01:31-12)",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) SEP",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) AUG",
+        "multiple_environments - SUMMER DESIGN DAY IN UNTITLED (01-01:31-12) JUL",
+    ]
+    names = [ef.file_name for ef in multienv_file]
+    assert names == test_names
+
+
+def test_multienv_file_required():
+    with pytest.raises(MultiEnvFileRequired):
+        EsoFile.from_path(Path(EPLUS_TEST_FILES_PATH, "multiple_environments.eso"), year=None)

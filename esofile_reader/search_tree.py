@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from copy import copy
-from typing import Union, Optional, Dict, List, Iterator
+from typing import Union, Optional, Dict, List, Iterator, Tuple
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import DuplicateVariable
@@ -38,13 +38,13 @@ class Node:
         self.key = key
         self.children = {}
 
-    def __copy__(self):
-        new_node = Node(parent=self.parent, key=self.key)
+    def copy(self, new_parent=None):
+        new_node = Node(parent=new_parent, key=self.key)
         if isinstance(self.children, LeafNode):
-            new_node.children = copy(self.children)
+            new_node.children = LeafNode(new_node, self.children.key)
         else:
-            for node_key, node in self.children.items():
-                new_node.children[node_key] = copy(node)
+            for child_key, child_node in self.children.items():
+                new_node.children[child_key] = child_node.copy(new_node)
         return new_node
 
 
@@ -71,9 +71,6 @@ class LeafNode:
         self.parent = parent
         self.key = key
 
-    def __copy__(self):
-        return LeafNode(parent=self.parent, key=self.key)
-
 
 class Tree:
     """
@@ -99,7 +96,7 @@ class Tree:
         self.root = Node(None, "groot")
 
     def __repr__(self):
-        def create_string_items(node: Node, lst: list, level: int = -1) -> None:
+        def create_string_items(node: Union[Node, LeafNode], lst: list, level: int = -1):
             """ Create a string representation of a tree. """
             level += 1
             tabs = level * "\t"
@@ -117,7 +114,7 @@ class Tree:
 
     def __copy__(self):
         new_tree = Tree()
-        new_tree.root = copy(self.root)
+        new_tree.root = self.root.copy(None)
         return new_tree
 
     @classmethod
@@ -135,6 +132,19 @@ class Tree:
                 f"Header contains duplicates: {duplicates}", tree, duplicates
             )
         return tree
+
+    @classmethod
+    def cleaned_from_header_dict(
+        cls, header_dct: Dict[str, Dict[int, VariableType]]
+    ) -> Tuple["Tree", Optional[Dict[int, Variable]]]:
+        """ Create a search tree instance from header dictionary with no duplicates. """
+        try:
+            tree = Tree.from_header_dict(header_dct)
+            duplicates = None
+        except DuplicateVariable as e:
+            tree = e.clean_tree
+            duplicates = e.duplicates
+        return tree, duplicates
 
     def create_variable_iterator(self, variable: VariableType) -> Iterator:
         """ Pass reordered variable. """
@@ -260,12 +270,9 @@ class Tree:
         except StopIteration:
             remove_recursively(node)
 
-    def remove_variable(self, variable: Union[SimpleVariable, Variable]) -> None:
-        tree_variable = self.create_variable_iterator(variable)
-        self.loop_remove(self.root, tree_variable)
-
     def remove_variables(self, variables: Union[Variable, List[Variable]]):
         """ Remove variable from the tree. """
         variables = variables if isinstance(variables, list) else [variables]
         for variable in variables:
-            self.remove_variable(variable)
+            tree_variable = self.create_variable_iterator(variable)
+            self.loop_remove(self.root, tree_variable)
