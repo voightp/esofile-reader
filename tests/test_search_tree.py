@@ -232,25 +232,35 @@ def test_add_duplicate_branch(test_tree, id_, variable):
     assert id_ == duplicate_id
 
 
+DUPLICITE_HEADER = {
+    "daily": {
+        1: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+        2: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+        3: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+    },
+    "monthly": {
+        11: Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
+        12: Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
+    },
+}
+
+
 def test_tree_from_dict_with_duplicates():
-    header = {
-        "daily": {
-            1: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
-            2: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
-            3: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
-        },
-        "monthly": {
-            11: Variable("monthly", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
-            12: Variable("monthly", "Meter", "BLOCK1:ZONE2#LIGHTS", "J"),
-        },
-    }
     try:
-        _ = Tree.from_header_dict(header)
+        _ = Tree.from_header_dict(DUPLICITE_HEADER)
     except DuplicateVariable as e:
         v = Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C")
         assert {2: v, 3: v} == e.duplicates
     else:
         pytest.fail("DuplicateVariable exception not raised!")
+
+
+def test_cleaned_tree_from_dict_with_duplicates():
+    tree, duplicates = Tree.cleaned_from_header_dict(DUPLICITE_HEADER)
+    assert duplicates == {
+        2: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+        3: Variable("daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+    }
 
 
 @pytest.mark.parametrize(
