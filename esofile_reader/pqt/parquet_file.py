@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.mini_classes import ResultsFileType, PathLike
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.pqt.parquet_tables import ParquetTables, get_unique_workdir
 
@@ -108,7 +108,7 @@ class ParquetFile(BaseFile):
         id_: int,
         results_file: ResultsFileType,
         pardir: str = "",
-        progress_logger: GenericLogger = None,
+        progress_logger: BaseLogger = None,
     ) -> "ParquetFile":
         workdir = Path(pardir, f"file-{id_}")
         workdir.mkdir()

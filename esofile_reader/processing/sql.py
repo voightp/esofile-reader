@@ -19,7 +19,7 @@ from sqlalchemy.engine.base import Connection, Engine
 from esofile_reader.constants import *
 from esofile_reader.exceptions import NoResults
 from esofile_reader.mini_classes import PathLike, Variable
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.processing.raw_data import RawSqlData
 from esofile_reader.processing.sql_time import (
     get_dates,
@@ -154,7 +154,7 @@ def process_environment_data(
     env_index: int,
     env_name: str,
     header: Dict[str, Dict[int, Variable]],
-    logger: GenericLogger,
+    logger: BaseLogger,
 ) -> RawSqlData:
     dates = {}
     days_of_week = {}
@@ -187,9 +187,7 @@ def process_environment_data(
     )
 
 
-def read_sql_file(
-    engine: Engine, metadata: MetaData, logger: GenericLogger
-) -> List[RawSqlData]:
+def read_sql_file(engine: Engine, metadata: MetaData, logger: BaseLogger) -> List[RawSqlData]:
     # reflect database object, this could be done using 'autoload=True' but
     # better to define tables explicitly to have a useful reference
     time_table = create_time_table(metadata)
@@ -214,9 +212,7 @@ def validate_sql_file(engine, required):
     return all(map(lambda x: x in table_names, required))
 
 
-def process_sql_file(
-    file_path: PathLike, logger: GenericLogger, echo=False,
-) -> List[RawSqlData]:
+def process_sql_file(file_path: PathLike, logger: BaseLogger, echo=False,) -> List[RawSqlData]:
     engine = create_engine(f"sqlite:///{file_path}", echo=echo)
     metadata = MetaData(bind=engine)
     required = ["Time", "ReportData", "ReportDataDictionary"]

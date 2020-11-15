@@ -14,7 +14,7 @@ from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import FormatNotSupported
 from esofile_reader.mini_classes import Variable
 from esofile_reader.processing.esofile_time import convert_raw_date_data
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.processing.raw_data import RawData
 from esofile_reader.processing.sql import process_sql_file
 from esofile_reader.processing.sql_time import convert_raw_sql_date_data
@@ -132,7 +132,7 @@ def _cast_to_df(
     header: Dict[str, Dict[int, Variable]],
     dates: Dict[str, List[datetime]],
     special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-    progress_logger: GenericLogger,
+    progress_logger: BaseLogger,
 ) -> DFTables:
     """ Create pd.DataFrame tables from plain data structures. """
     tables = DFTables()
@@ -152,7 +152,7 @@ def _cast_to_df(
 class Parser(ABC):
     @staticmethod
     @abstractmethod
-    def process_file(file_path: Path, progress_logger: GenericLogger, ignore_peaks: bool):
+    def process_file(file_path: Path, progress_logger: BaseLogger, ignore_peaks: bool):
         pass
 
     @staticmethod
@@ -167,7 +167,7 @@ class Parser(ABC):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ) -> DFTables:
         pass
 
@@ -177,7 +177,7 @@ class Parser(ABC):
         peak_outputs: Dict[str, Any],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ):
         pass
 
@@ -203,7 +203,7 @@ class RawEsoParser(Parser):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ) -> DFTables:
         return _cast_to_df(
             create_df_from_columns, outputs, header, dates, special_columns, progress_logger
@@ -214,7 +214,7 @@ class RawEsoParser(Parser):
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ):
         min_peaks = DFTables()
         max_peaks = DFTables()
@@ -254,7 +254,7 @@ class RawSqlParser(Parser):
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
         special_columns: Dict[str, Dict[str, List[Union[str, int]]]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ) -> DFTables:
         return _cast_to_df(
             create_df_from_rows, outputs, header, dates, special_columns, progress_logger
@@ -265,7 +265,7 @@ class RawSqlParser(Parser):
         peak_outputs: Dict[str, Dict[int, List[float]]],
         header: Dict[str, Dict[int, Variable]],
         dates: Dict[str, List[datetime]],
-        progress_logger: GenericLogger,
+        progress_logger: BaseLogger,
     ):
         # sql outputs do not support peaks
         return None

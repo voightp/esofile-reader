@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from esofile_reader.exceptions import FormatNotSupported
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 from tests.session_fixtures import *
 
 
@@ -49,7 +49,7 @@ def test_from_multienv_sql_file():
 )
 def test_from_path(path, mock):
     with patch(f"esofile_reader.generic_file.GenericFile.{mock}") as mocked_function:
-        logger = GenericLogger("logger")
+        logger = BaseLogger("logger")
         _ = GenericFile.from_path(path, logger=logger)
         mocked_function.assert_called_with(path, logger=logger)
 

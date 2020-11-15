@@ -9,7 +9,7 @@ from esofile_reader.exceptions import FormatNotSupported, NoResults
 from esofile_reader.mini_classes import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 
@@ -62,13 +62,13 @@ class GenericFile(BaseFile):
         file_path: PathLike,
         sheet_names: List[str] = None,
         force_index: bool = False,
-        logger: GenericLogger = None,
+        logger: BaseLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from excel spreadsheet. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not logger:
-            logger = GenericLogger(file_path.name)
+            logger = BaseLogger(file_path.name)
         with logger.log_task("Processing xlsx file."):
             tables = process_excel(
                 file_path,
@@ -92,13 +92,13 @@ class GenericFile(BaseFile):
         cls,
         file_path: PathLike,
         force_index: bool = False,
-        logger: GenericLogger = None,
+        logger: BaseLogger = None,
         header_limit=10,
     ) -> "GenericFile":
         """ Generate 'GenericFile' from csv file. """
         file_path, file_name, file_created = get_file_information(file_path)
         if not logger:
-            logger = GenericLogger(file_path.name)
+            logger = BaseLogger(file_path.name)
         with logger.log_task("Process csv file!"):
             tables = process_csv(
                 file_path, logger, force_index=force_index, header_limit=header_limit,
@@ -114,7 +114,7 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_eplus_file(
-        cls, file_path: PathLike, logger: GenericLogger = None, year: Optional[int] = None,
+        cls, file_path: PathLike, logger: BaseLogger = None, year: Optional[int] = None,
     ) -> "GenericFile":
         """ Generate 'ResultsFile' from EnergyPlus .eso or .sql file. """
         eso_file = EsoFile.from_path(file_path, logger, ignore_peaks=True, year=year)
@@ -129,7 +129,7 @@ class GenericFile(BaseFile):
 
     @classmethod
     def from_eplus_multienv_file(
-        cls, file_path: PathLike, logger: GenericLogger = None, year: Optional[int] = None,
+        cls, file_path: PathLike, logger: BaseLogger = None, year: Optional[int] = None,
     ) -> List["GenericFile"]:
         """ Generate 'ResultsFile' from EnergyPlus .eso file. """
         # peaks are only allowed on explicit EsoFile
@@ -147,7 +147,7 @@ class GenericFile(BaseFile):
         ]
 
     @classmethod
-    def from_path(cls, path: PathLike, logger: GenericLogger = None, **kwargs) -> "GenericFile":
+    def from_path(cls, path: PathLike, logger: BaseLogger = None, **kwargs) -> "GenericFile":
         """ Generate 'Results file' from generic path. """
         switch = {
             BaseFile.SQL: cls.from_eplus_file,
