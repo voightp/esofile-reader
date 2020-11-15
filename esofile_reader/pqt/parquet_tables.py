@@ -14,12 +14,12 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.id_generator import get_str_identifier
 from esofile_reader.mini_classes import PathLike
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import BaseLogger
 
 
 @contextlib.contextmanager
 def parquet_frame_factory(
-    df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: GenericLogger = None,
+    df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: BaseLogger = None,
 ):
     pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
     try:
@@ -168,7 +168,7 @@ class ParquetFrame:
         df: pd.DataFrame,
         name: str,
         pardir: PathLike = "",
-        progress_logger: GenericLogger = None,
+        progress_logger: BaseLogger = None,
     ) -> "ParquetFrame":
         workdir = Path(pardir, f"table-{name}").absolute()
         workdir.mkdir()
@@ -320,6 +320,12 @@ class ParquetFrame:
             items[pos] = new
         return pd.MultiIndex.from_tuples(items, names=mi.names)
 
+    @staticmethod
+    def _write_table(df: pd.DataFrame, path: Path) -> None:
+        """ Write given parquet table into given path. """
+        with open(path, "bw") as f:
+            pq.write_table(pa.Table.from_pandas(df), f)
+
     def save_index_parquets(self):
         """ Save columns, index and chunk data as parquets. """
         paths = [
@@ -332,15 +338,15 @@ class ParquetFrame:
                 path.unlink()
 
         index_df = self._index.to_frame(index=False)
-        pq.write_table(pa.Table.from_pandas(index_df), paths[0])
+        self._write_table(index_df, paths[0])
 
         columns = self.stringify_mi_level(self._columns, ID_LEVEL)
         columns_df = columns.to_frame(index=False)
-        pq.write_table(pa.Table.from_pandas(columns_df), paths[1])
+        self._write_table(columns_df, paths[1])
 
         chunks = self._chunks_table.copy()
         chunks.index = self.stringify_mi_level(chunks.index, ID_LEVEL)
-        pq.write_table(pa.Table.from_pandas(chunks), paths[2])
+        self._write_table(chunks, paths[2])
 
     def load_index_parquets(self):
         """ Load index, columns and chunk parquets from fs. """
@@ -374,8 +380,7 @@ class ParquetFrame:
         with contextlib.suppress(FileNotFoundError):
             path.unlink()
         df.columns = self.stringify_mi_level(df.columns, ID_LEVEL)
-        table = pa.Table.from_pandas(df)
-        pq.write_table(table, path)
+        self._write_table(df, path)
 
     def get_df_from_parquet(self, chunk_name: str, items: List[tuple] = None) -> pd.DataFrame:
         """ Get DataFrame from given chunk. ."""
@@ -418,7 +423,7 @@ class ParquetFrame:
 
         return df.loc[:, items]
 
-    def store_df(self, df: pd.DataFrame, progress_logger: GenericLogger = None) -> None:
+    def store_df(self, df: pd.DataFrame, progress_logger: BaseLogger = None) -> None:
         """ Save DataFrame as a set of parquet files. """
         # avoid potential frame mutation
         df = df.copy()
@@ -547,7 +552,7 @@ class ParquetTables(DFTables):
 
     @classmethod
     def from_dftables(
-        cls, dftables: DFTables, pardir: Path, progress_logger: GenericLogger = None
+        cls, dftables: DFTables, pardir: Path, progress_logger: BaseLogger = None
     ) -> "ParquetTables":
         """ Create parquet data from DataFrame like class. """
         pqt = ParquetTables()
@@ -556,7 +561,7 @@ class ParquetTables(DFTables):
         return pqt
 
     @classmethod
-    def from_fs(cls, pardir: Path, progress_logger: GenericLogger = None):
+    def from_fs(cls, pardir: Path, progress_logger: BaseLogger = None):
         """ Create parquet data from filesystem directory. """
         pqt = ParquetTables()
         for p in [p for p in Path(pardir).iterdir() if p.is_dir()]:

@@ -355,6 +355,8 @@ def test_create_new_header_variable_invalid(file, table, new_key, new_type, new_
     indirect=["copied_file"],
 )
 def test_rename_variable(copied_file, variable, new_key, new_type, test_variable, test_id):
+    if isinstance(copied_file, ParquetFile):
+        print(copied_file.workdir.exists())
     id_, new_variable = copied_file.rename_variable(
         variable, new_key=new_key, new_type=new_type
     )

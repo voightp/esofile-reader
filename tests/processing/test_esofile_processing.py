@@ -21,7 +21,7 @@ from esofile_reader.processing.extensions.esofile import (
     process_monthly_plus_interval_line,
     read_body,
 )
-from esofile_reader.processing.progress_logger import GenericLogger
+from esofile_reader.processing.progress_logger import TimeLogger, BaseLogger
 from esofile_reader.processing.raw_data_parser import RawEsoParser
 from tests.session_fixtures import *
 
@@ -32,13 +32,13 @@ BODY_PATH = Path(EPLUS_TEST_FILES_PATH, "body.txt")
 @pytest.fixture(scope="module")
 def header_content():
     with open(HEADER_PATH, "r") as f:
-        return read_header(f, GenericLogger("foo"))
+        return read_header(f, BaseLogger("foo"))
 
 
 @pytest.fixture(scope="function")
 def all_raw_outputs(header_content):
     with open(BODY_PATH, "r") as f:
-        return read_body(f, 6, header_content, False, GenericLogger("dummy"))
+        return read_body(f, 6, header_content, False, BaseLogger("dummy"))
 
 
 @pytest.fixture(scope="function")
@@ -49,7 +49,7 @@ def raw_outputs(all_raw_outputs):
 @pytest.fixture(scope="function")
 def duplicate_variable_file():
     return EsoFile.from_path(
-        Path(EPLUS_TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), GenericLogger("foo"),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_duplicate_variable.eso"), BaseLogger("foo"),
     )
 
 
@@ -109,7 +109,7 @@ def test_read_header():
         "3676,11,Some meter [ach] !RunPeriod [Value,Min,Month,Day,Hour,Minute,Max,Month,Day,Hour,Minute]\n"
         "End of Data Dictionary\n"
     )
-    header_dct = read_header(file, GenericLogger("foo"))
+    header_dct = read_header(file, BaseLogger("foo"))
     test_header = {
         "hourly": {7: Variable("hourly", "Environment", "Air Temperature", "C")},
         "runperiod": {3676: Variable("runperiod", "Meter", "Some meter", "ach")},
@@ -126,7 +126,7 @@ def test_read_header_blank_line():
     file = StringIO(s)
 
     with pytest.raises(BlankLineError):
-        read_header(file, GenericLogger("foo"))
+        read_header(file, BaseLogger("foo"))
 
 
 @pytest.mark.parametrize(
@@ -300,7 +300,7 @@ def test_read_body_day_of_week(raw_outputs, interval, values):
 def test_generate_peak_tables(raw_outputs, peak, interval, shape):
     header = raw_outputs.header
     raw_peak_outputs = raw_outputs.peak_outputs
-    logger = GenericLogger("foo")
+    logger = BaseLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = RawEsoParser().cast_peak_to_df(raw_peak_outputs, header, dates, logger)
     assert outputs[peak][interval].shape == shape
@@ -320,7 +320,7 @@ def test_generate_peak_tables(raw_outputs, peak, interval, shape):
 def test_generate_df_tables(raw_outputs, interval, shape):
     header = raw_outputs.header
     outputs = raw_outputs.outputs
-    logger = GenericLogger("foo")
+    logger = BaseLogger("foo")
     dates = convert_raw_date_data(raw_outputs.dates, raw_outputs.days_of_week, 2002)
     outputs = RawEsoParser().cast_to_df(outputs, header, dates, {}, logger)
     assert outputs[interval].shape == shape
@@ -347,13 +347,13 @@ def test_df_tables_numeric_type(eplusout_all_intervals, interval):
 def test_header_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
-        read_header(f, GenericLogger("foo"))
+        read_header(f, BaseLogger("foo"))
 
 
 def test_body_invalid_line():
     f = StringIO("this is wrong!")
     with pytest.raises(InvalidLineSyntax):
-        read_body(f, 6, {"a": {}}, False, GenericLogger("foo"))
+        read_body(f, 6, {"a": {}}, False, BaseLogger("foo"))
 
 
 def test_body_blank_line(header_content):
@@ -374,32 +374,38 @@ def test_body_blank_line(header_content):
 620,0.0"""
     )
     with pytest.raises(BlankLineError):
-        read_body(f, 6, header_content, False, GenericLogger("foo"))
+        read_body(f, 6, header_content, False, BaseLogger("foo"))
 
 
 def test_file_blank_line():
     with pytest.raises(IncompleteFile):
         EsoFile.from_path(
-            Path(EPLUS_TEST_FILES_PATH, "eplusout_incomplete.eso"), GenericLogger("foo"),
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_incomplete.eso"), BaseLogger("foo"),
         )
 
 
 def test_non_numeric_line():
     with pytest.raises(InvalidLineSyntax):
         EsoFile.from_path(
-            Path(EPLUS_TEST_FILES_PATH, "eplusout_invalid_line.eso"), GenericLogger("foo"),
+            Path(EPLUS_TEST_FILES_PATH, "eplusout_invalid_line.eso"), BaseLogger("foo"),
         )
 
 
-def test_logging_level_info():
+def test_time_logger_level_info():
     EsoFile.from_path(
-        Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), logger=GenericLogger("foo", level=20),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), logger=TimeLogger("foo", level=20),
+    )
+
+
+def test_base_logger_level_info():
+    EsoFile.from_path(
+        Path(EPLUS_TEST_FILES_PATH, "eplusout1.eso"), logger=BaseLogger("foo", level=20),
     )
 
 
 def test_hourly_results_only():
     eso_file = EsoFile.from_path(
-        Path(EPLUS_TEST_FILES_PATH, "eplusout_only_hourly.eso"), GenericLogger("foo"),
+        Path(EPLUS_TEST_FILES_PATH, "eplusout_only_hourly.eso"), BaseLogger("foo"),
     )
     assert eso_file.table_names == ["hourly"]
 
