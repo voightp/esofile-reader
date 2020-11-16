@@ -4,6 +4,7 @@ from esofile_reader.constants import ID_LEVEL
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.processing.progress_logger import BaseLogger
 
 
 def can_subtract_table(table: str, file: ResultsFileType, other_file: ResultsFileType) -> bool:
@@ -37,8 +38,12 @@ def get_shared_special_table(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFra
     return df1.loc[:, same_columns]
 
 
-def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables:
+def process_diff(
+    file: ResultsFileType, other_file: ResultsFileType, logger: BaseLogger
+) -> DFTables:
     """ Create diff outputs. """
+    logger.log_section("generating file difference")
+    logger.set_maximum_progress(len(file.table_names) + 1)
     tables = DFTables()
     id_gen = incremental_id_gen()
     for table in file.table_names:
@@ -60,4 +65,5 @@ def process_diff(file: ResultsFileType, other_file: ResultsFileType) -> DFTables
                 special_df = get_shared_special_table(special_df1, special_df2)
 
                 tables[table] = pd.concat([special_df, df], axis=1, sort=False)
+        logger.increment_progress()
     return tables

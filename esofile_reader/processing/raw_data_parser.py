@@ -40,10 +40,6 @@ def create_header_multiindex(
     for id_, variable in header.items():
         if id_ in outputs_ids:
             tuples.append((id_, *variable))
-        else:
-            import logging
-
-            logging.error(f"Variable: '{id_}' - {variable} is not included in outputs!")
     return pd.MultiIndex.from_tuples(tuples, names=names)
 
 
@@ -86,7 +82,7 @@ def choose_parser(file_path: Path) -> Union["RawEsoParser", "RawSqlParser"]:
 
 
 def find_duplicate_variables(variables: Dict[int, Variable]) -> Dict[int, Variable]:
-    """ Get dupicate id : variable pairs (original is not returned). """
+    """ Get duplicate id : variable pairs (original is not returned). """
     rev_dict = defaultdict(list)
     for id_, variable in variables.items():
         rev_dict[variable].append(id_)

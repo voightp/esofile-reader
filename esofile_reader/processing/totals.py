@@ -4,7 +4,7 @@ from typing import Dict, Generator, Optional, Tuple
 
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-
+from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.constants import *
 from esofile_reader.id_generator import incremental_id_gen
 from esofile_reader.mini_classes import ResultsFileType
@@ -178,8 +178,10 @@ def process_totals_table(
         return totals_table
 
 
-def process_totals(file: ResultsFileType) -> DFTables:
+def process_totals(file: ResultsFileType, logger: BaseLogger) -> DFTables:
     """ Generate 'totals' outputs. """
+    logger.log_section("generating tables")
+    logger.set_maximum_progress(len(file.table_names) + 1)
     df_tables = DFTables()
     id_gen = incremental_id_gen(start=1)
     for table_name in file.table_names:
@@ -190,4 +192,5 @@ def process_totals(file: ResultsFileType) -> DFTables:
             totals_table = process_totals_table(numeric_table, id_gen)
             if totals_table is not None:
                 df_tables[table_name] = pd.concat([special_table, totals_table], axis=1)
+        logger.increment_progress()
     return df_tables

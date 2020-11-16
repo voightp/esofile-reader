@@ -11,9 +11,9 @@ from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.mini_classes import ResultsFileType, PathLike
+from esofile_reader.pqt.parquet_tables import ParquetTables, get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.pqt.parquet_tables import ParquetTables, get_unique_workdir
 
 
 class ParquetFile(BaseFile):
@@ -217,23 +217,17 @@ class ParquetFile(BaseFile):
 
         return file_info
 
-    def write_zip(self, device: Union[Path, io.BytesIO]):
+    def write_to_zip(self, zf, relative_to):
         """ Write content into given device. """
         file_info = self.save_meta()
-        with ZipFile(device, "w") as zf:
-            zf.write(file_info, arcname=file_info.name)
-            for dir_ in [d for d in self.workdir.iterdir() if d.is_dir()]:
-                for file in [f for f in dir_.iterdir() if f.suffix == ".parquet"]:
-                    zf.write(file, arcname=file.relative_to(self.workdir))
+        zf.write(file_info, arcname=relative_to)
+        for dir_ in [d for d in self.workdir.iterdir() if d.is_dir()]:
+            for file in [f for f in dir_.iterdir() if f.suffix == ".parquet"]:
+                zf.write(file, arcname=relative_to)
 
     def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """
         device = Path(dir_, f"{name}{self.EXT}")
-        self.write_zip(device)
-        return device
-
-    def save_into_buffer(self):
-        """ Save parquet storage into buffer. """
-        device = io.BytesIO()
-        self.write_zip(device)
+        with ZipFile(device) as zf:
+            self.write_to_zip(zf, self.workdir)
         return device

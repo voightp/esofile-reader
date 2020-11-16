@@ -39,7 +39,11 @@ class RawData:
             )
 
     def get_n_tables(self) -> int:
-        return len(self.outputs) + 0 if self.peak_outputs is None else len(self.peak_outputs)
+        return (
+            len(self.outputs)
+            if self.peak_outputs is None
+            else len(self.peak_outputs) + len(self.outputs)
+        )
 
     def remove_interval_data(self, intervals: Union[str, List[str]]) -> None:
         for interval in intervals if isinstance(intervals, list) else [intervals]:

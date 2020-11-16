@@ -220,7 +220,7 @@ def process_sheet(
     df: pd.DataFrame,
     name: str,
     names: List[str],
-    progress_logger,
+    logger,
     start_id: int,
     header_limit: int,
     force_index: bool,
@@ -232,13 +232,13 @@ def process_sheet(
     end_id = start_id
     if not df.empty:
         # process header data
-        progress_logger.log_section("processing data dictionary!")
+        logger.log_section("processing data dictionary")
         header_mi, skiprows, index_column = parse_header(
             df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
-        progress_logger.log_section("processing data!")
+        logger.log_section("processing data")
         df = df.iloc[skiprows:, :]
         if index_column:
             df.set_index(keys=df.columns[0], inplace=True)
@@ -247,7 +247,7 @@ def process_sheet(
 
         df.columns = header_mi
 
-        progress_logger.log_section("processing tables!")
+        logger.log_section("processing tables")
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
@@ -269,7 +269,7 @@ def process_sheet(
 
 def process_workbook(
     wb: Workbook,
-    progress_logger: BaseLogger,
+    logger: BaseLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -279,8 +279,8 @@ def process_workbook(
 
     # each table represents a single step + add one for tree generation
     n_steps = len(sheet_names) + 1
-    progress_logger.log_section("processing sheets!")
-    progress_logger.set_maximum_progress(n_steps)
+    logger.log_section("processing sheets")
+    logger.set_maximum_progress(n_steps)
 
     start_id = 1
     df_tables = DFTables()
@@ -290,19 +290,21 @@ def process_workbook(
             df=pd.DataFrame(ws.values),
             name=name,
             names=list(df_tables.keys()),
-            progress_logger=progress_logger,
+            logger=logger,
             start_id=start_id,
             header_limit=header_limit,
             force_index=force_index,
         )
         start_id = end_id
         df_tables.extend(frames)
+        logger.increment_progress()
+
     return df_tables
 
 
 def process_excel(
     file_path: Path,
-    progress_logger: BaseLogger,
+    logger: BaseLogger,
     sheet_names: List[str] = None,
     force_index: bool = False,
     header_limit: int = 10,
@@ -311,24 +313,24 @@ def process_excel(
     with open(file_path, "rb") as f:
         in_memory_file = io.BytesIO(f.read())
     wb = load_workbook(filename=in_memory_file, read_only=True)
-    return process_workbook(wb, progress_logger, sheet_names, force_index, header_limit)
+    return process_workbook(wb, logger, sheet_names, force_index, header_limit)
 
 
 def process_csv_table(
     df: pd.DataFrame,
     name: str,
-    progress_logger: BaseLogger,
+    logger: BaseLogger,
     force_index: bool = False,
     header_limit: int = 10,
 ) -> DFTables:
     """ Process csv sheet. """
-    progress_logger.log_section("processing csv!")
+    logger.log_section("processing csv")
     df_tables = DFTables()
     frames, _ = process_sheet(
         df=df,
         name=name,
         names=list(df_tables.keys()),
-        progress_logger=progress_logger,
+        logger=logger,
         start_id=1,
         header_limit=header_limit,
         force_index=force_index,
@@ -339,7 +341,7 @@ def process_csv_table(
 
 def process_csv(
     file_path: Path,
-    progress_logger: BaseLogger,
+    logger: BaseLogger,
     force_index: bool = False,
     header_limit: int = 10,
     separator: Optional[str] = None,
@@ -350,4 +352,4 @@ def process_csv(
         name = file_path.stem
     except csv.Error:
         raise NoResults(f"Cannot read {file_path}. {traceback.format_exc()}")
-    return process_csv_table(csv_df, name, progress_logger, force_index, header_limit)
+    return process_csv_table(csv_df, name, logger, force_index, header_limit)

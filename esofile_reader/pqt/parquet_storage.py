@@ -3,12 +3,12 @@ import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 
+from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.id_generator import incremental_id_gen, get_str_identifier
 from esofile_reader.mini_classes import ResultsFileType, PathLike
-from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.df.df_storage import DFStorage
-from esofile_reader.pqt.parquet_tables import ParquetFrame
 from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.pqt.parquet_tables import ParquetFrame
+from esofile_reader.processing.progress_logger import BaseLogger
 
 
 class ParquetStorage(DFStorage):
@@ -41,24 +41,27 @@ class ParquetStorage(DFStorage):
 
         return pqs
 
-    def store_file(
-        self, results_file: ResultsFileType, progress_logger: BaseLogger = None
-    ) -> int:
-        """ Store results file as 'ParquetFile'. """
-        if not progress_logger:
-            progress_logger = BaseLogger(results_file.file_path)
-        with progress_logger.log_task("Store file!"):
-            n = sum([ParquetFrame.get_n_chunks(df) for df in results_file.tables.values()])
-            progress_logger.log_section("writing parquets!")
-            progress_logger.set_maximum_progress(n)
+    @staticmethod
+    def predict_number_of_parquets(results_file: ResultsFileType) -> int:
+        """ Calculate future number of parquets for given Results file. """
+        n = 0
+        for df in results_file.tables.values():
+            n += ParquetFrame.get_n_chunks(df)
+        return n
+
+    def store_file(self, results_file: ResultsFileType, logger: BaseLogger = None) -> int:
+        """ Store results file as persistent 'ParquetFile'. """
+        if not logger:
+            logger = BaseLogger(results_file.file_path.name)
+        with logger.log_task("Store file"):
+            n = self.predict_number_of_parquets(results_file)
+            logger.log_section("writing parquets")
+            logger.set_maximum_progress(n)
 
             id_gen = incremental_id_gen(checklist=list(self.files.keys()))
             id_ = next(id_gen)
             file = ParquetFile.from_results_file(
-                id_=id_,
-                results_file=results_file,
-                pardir=self.workdir,
-                progress_logger=progress_logger,
+                id_=id_, results_file=results_file, pardir=self.workdir, progress_logger=logger,
             )
             self.files[id_] = file
         return id_

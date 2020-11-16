@@ -40,23 +40,8 @@ def loaded_parquet_file(saved_parquet_file_path):
             parquet_file.clean_up()
 
 
-@pytest.fixture(scope="module")
-def loaded_parquet_file_from_buffer(parquet_file):
-    buffer = parquet_file.save_into_buffer()
-    with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        parquet_file = ParquetFile.from_buffer(buffer, temp_dir)
-        try:
-            yield parquet_file
-        finally:
-            parquet_file.clean_up()
-
-
 @pytest.fixture(
-    params=[
-        pytest.lazy_fixture("parquet_file"),
-        pytest.lazy_fixture("loaded_parquet_file"),
-        pytest.lazy_fixture("loaded_parquet_file_from_buffer"),
-    ]
+    params=[pytest.lazy_fixture("parquet_file"), pytest.lazy_fixture("loaded_parquet_file"),]
 )
 def file(request):
     return request.param

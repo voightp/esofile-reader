@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import List, Optional
 
 from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.df.df_tables import DFTables
@@ -57,6 +57,21 @@ class GenericFile(BaseFile):
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     @classmethod
+    def _populate_file(
+        cls,
+        tables: DFTables,
+        file_path: Path,
+        file_name: str,
+        file_type: str,
+        file_created: datetime,
+        logger: BaseLogger,
+    ) -> "GenericFile":
+        logger.log_section("generating search tree")
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
+        logger.increment_progress()
+        return GenericFile(file_path, file_name, file_created, tables, tree, file_type)
+
+    @classmethod
     def from_excel(
         cls,
         file_path: PathLike,
@@ -79,13 +94,14 @@ class GenericFile(BaseFile):
             )
             if tables.empty:
                 raise NoResults(f"There aren't any numeric outputs in file {file_path}.")
-            else:
-                logger.log_section("generating search tree!")
-                tree = Tree.from_header_dict(tables.get_all_variables_dct())
-            results_file = GenericFile(
-                file_path, file_name, file_created, tables, tree, file_type=BaseFile.XLSX
+            return cls._populate_file(
+                tables=tables,
+                file_path=file_path,
+                file_name=file_name,
+                file_created=file_created,
+                file_type=BaseFile.XLSX,
+                logger=logger,
             )
-        return results_file
 
     @classmethod
     def from_csv(
@@ -99,18 +115,22 @@ class GenericFile(BaseFile):
         file_path, file_name, file_created = get_file_information(file_path)
         if not logger:
             logger = BaseLogger(file_path.name)
-        with logger.log_task("Process csv file!"):
+        with logger.log_task("Process csv file"):
+            logger.set_maximum_progress(2)
             tables = process_csv(
                 file_path, logger, force_index=force_index, header_limit=header_limit,
             )
+            logger.increment_progress()
             if tables.empty:
                 raise NoResults(f"There aren't any numeric outputs in file {logger.name}.")
-            logger.log_section("generating search tree!")
-            tree = Tree.from_header_dict(tables.get_all_variables_dct())
-            results_file = GenericFile(
-                file_path, file_name, file_created, tables, tree, file_type=BaseFile.CSV
+            return cls._populate_file(
+                tables=tables,
+                file_path=file_path,
+                file_name=file_name,
+                file_created=file_created,
+                file_type=BaseFile.CSV,
+                logger=logger,
             )
-        return results_file
 
     @classmethod
     def from_eplus_file(
@@ -165,33 +185,49 @@ class GenericFile(BaseFile):
         return results_file
 
     @classmethod
-    def from_totals(cls, results_file: ResultsFileType) -> "GenericFile":
+    def from_totals(
+        cls, results_file: ResultsFileType, logger: BaseLogger = None
+    ) -> "GenericFile":
         """ Generate totals 'ResultsFile' from another file. """
         file_path = results_file.file_path
-        file_name = f"{results_file.file_name} - totals"
-        file_created = results_file.file_created  # use base file timestamp
-        tables = process_totals(results_file)
-        if tables.empty:
-            raise NoResults(f"Cannot generate totals for file '{file_path}'.")
-        tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = GenericFile(
-            file_path, file_name, file_created, tables, tree, file_type=BaseFile.TOTALS
-        )
-        return results_file
+        if not logger:
+            logger = BaseLogger(file_path.name)
+        with logger.log_task("Generate totals"):
+            file_name = f"{results_file.file_name} - totals"
+            file_created = results_file.file_created  # use base file timestamp
+            tables = process_totals(results_file, logger)
+            if tables.empty:
+                raise NoResults(f"Cannot generate totals for file '{file_path}'.")
+            return cls._populate_file(
+                tables=tables,
+                file_path=file_path,
+                file_name=file_name,
+                file_created=file_created,
+                file_type=BaseFile.TOTALS,
+                logger=logger,
+            )
 
     @classmethod
-    def from_diff(cls, file: ResultsFileType, other_file: ResultsFileType) -> "GenericFile":
+    def from_diff(
+        cls, file: ResultsFileType, other_file: ResultsFileType, logger: BaseLogger = None
+    ) -> "GenericFile":
         """ Generate 'Resultsfile' as a difference between two files. """
-        file_path = ""
+        file_path = file.file_path
         file_name = f"{file.file_name} - {other_file.file_name} - diff"
         file_created = datetime.utcnow()
-        tables = process_diff(file, other_file)
-        if tables.empty:
-            raise NoResults(
-                "Cannot generate 'difference' file, there aren't any shared variables!"
+        if not logger:
+            logger = BaseLogger(file_name)
+        with logger.log_task("Generate difference"):
+            tables = process_diff(file, other_file, logger)
+            if tables.empty:
+                raise NoResults(
+                    "Cannot generate 'difference' file, there aren't any shared variables!"
+                )
+            return cls._populate_file(
+                tables=tables,
+                file_path=file_path,
+                file_name=file_name,
+                file_created=file_created,
+                file_type=BaseFile.DIFF,
+                logger=logger,
             )
-        tree = Tree.from_header_dict(tables.get_all_variables_dct())
-        results_file = GenericFile(
-            file_path, file_name, file_created, tables, tree, file_type=BaseFile.DIFF
-        )
-        return results_file

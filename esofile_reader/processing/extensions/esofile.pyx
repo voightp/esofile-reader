@@ -379,11 +379,11 @@ cpdef read_file(object file, object logger, object ignore_peaks = True):
 
     # Read header to obtain a header dictionary of EnergyPlus
     # outputs and initialize dictionary for output values
-    logger.log_section("processing data dictionary!")
+    logger.log_section("processing data dictionary")
     header = read_header(file, logger)
 
     # Read body to obtain outputs and environment dictionaries
-    logger.log_section("processing data!")
+    logger.log_section("processing data")
     return read_body(file, last_standard_item_id, header, ignore_peaks, logger)
 
 
@@ -407,7 +407,7 @@ def preprocess_file(
     file_path: Union[str, Path], logger: EsoFileProgressLogger
 ) -> None:
     """ Set maximum progress for eso file processing. """
-    logger.log_section("pre-processing!")
+    logger.log_section("pre-processing")
     n_lines = count_lines(file_path)
     maximum = n_lines // logger.CHUNK_SIZE
     logger.n_lines = n_lines
