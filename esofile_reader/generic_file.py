@@ -190,10 +190,10 @@ class GenericFile(BaseFile):
     ) -> "GenericFile":
         """ Generate totals 'ResultsFile' from another file. """
         file_path = results_file.file_path
+        file_name = f"{results_file.file_name} - totals"
         if not logger:
-            logger = BaseLogger(file_path.name)
+            logger = BaseLogger(results_file.file_name)
         with logger.log_task("Generate totals"):
-            file_name = f"{results_file.file_name} - totals"
             file_created = results_file.file_created  # use base file timestamp
             tables = process_totals(results_file, logger)
             if tables.empty:

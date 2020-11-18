@@ -13,7 +13,7 @@ from openpyxl import load_workbook, Workbook
 from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
-from esofile_reader.id_generator import get_str_identifier
+from esofile_reader.id_generator import get_unique_name
 from esofile_reader.processing.progress_logger import BaseLogger
 
 
@@ -232,13 +232,13 @@ def process_sheet(
     end_id = start_id
     if not df.empty:
         # process header data
-        logger.log_section("processing data dictionary")
+        logger.log_section(f"sheet {name} - processing data dictionary")
         header_mi, skiprows, index_column = parse_header(
             df.iloc[:header_limit, :], force_index=force_index
         )
 
         # process numeric data
-        logger.log_section("processing data")
+        logger.log_section(f"sheet {name} - processing data")
         df = df.iloc[skiprows:, :]
         if index_column:
             df.set_index(keys=df.columns[0], inplace=True)
@@ -247,11 +247,11 @@ def process_sheet(
 
         df.columns = header_mi
 
-        logger.log_section("processing tables")
+        logger.log_section(f"sheet {name} - processing tables")
         if TABLE_LEVEL in df.columns.names:
             table_level = df.columns.get_level_values(TABLE_LEVEL)
             for key in table_level.unique():
-                table_name = get_str_identifier(key, names, start_i=1)
+                table_name = get_unique_name(key, names, start_i=1)
                 dfi, end_id = build_df_table(
                     df.loc[:, table_level == key], table_name=table_name, start_id=start_id,
                 )
@@ -260,7 +260,7 @@ def process_sheet(
                 if not dfi.loc[:, dfi.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
                     frames[table_name] = dfi
         else:
-            table_name = get_str_identifier(name, names, start_i=1)
+            table_name = get_unique_name(name, names, start_i=1)
             df, end_id = build_df_table(df, table_name=table_name, start_id=start_id)
             if not df.loc[:, df.columns.get_level_values(ID_LEVEL) != SPECIAL].empty:
                 frames[table_name] = df

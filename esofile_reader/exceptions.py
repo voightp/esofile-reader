@@ -89,3 +89,9 @@ class StartDayMismatch(Exception):
     """ Exception raised when start day for given year does not match real calendar. """
 
     pass
+
+
+class CorruptedData(Exception):
+    """ Exception raised when loading parquet tables with missing data. """
+
+    pass

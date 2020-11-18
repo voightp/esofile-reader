@@ -1,8 +1,8 @@
-from typing import List, Generator
+from typing import List, Generator, Set
 
 
 def incremental_id_gen(
-    start: int = 0, checklist: List[int] = None
+    start: int = 0, checklist: Set[int] = None
 ) -> Generator[int, None, None]:
     """ Incremental id generator. """
     checklist = checklist if checklist else []
@@ -14,7 +14,7 @@ def incremental_id_gen(
         yield i
 
 
-def get_str_identifier(
+def get_unique_name(
     base_name: str,
     check_list: List[str],
     delimiter=" ",

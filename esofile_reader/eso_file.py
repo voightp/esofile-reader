@@ -66,9 +66,9 @@ class EsoFile(BaseFile):
         cls, raw_data: RawData, parser: Parser, logger: BaseLogger, year: int
     ) -> Tuple[Tree, DFTables, Optional[Dict[str, DFTables]]]:
         """ Process an environment raw data into final classes. """
-        logger.set_maximum_progress(raw_data.get_n_tables() + 1)
         logger.log_section("sanitizing data")
         parser.sanitize(raw_data)
+        logger.set_maximum_progress(raw_data.get_n_tables() + 1)
 
         logger.log_section("generating search tree")
         tree = Tree.from_header_dict(raw_data.header)
@@ -142,4 +142,4 @@ class EsoFile(BaseFile):
                     file_type=file_path.suffix,
                 )
                 eso_files.append(ef)
-            return eso_files
+        return eso_files

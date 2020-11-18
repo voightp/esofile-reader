@@ -98,7 +98,7 @@ def totals_file(test_file):
 
 @pytest.fixture
 def totals_tables(test_file):
-    return process_totals(test_file)
+    return GenericFile.from_totals(test_file).tables
 
 
 def test_file_name(totals_file):

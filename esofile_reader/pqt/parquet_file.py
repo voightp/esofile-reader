@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.mini_classes import ResultsFileType, PathLike
-from esofile_reader.pqt.parquet_tables import ParquetTables, get_unique_workdir
+from esofile_reader.pqt.parquet_tables import ParquetFrame, ParquetTables, get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
 
@@ -101,6 +101,14 @@ class ParquetFile(BaseFile):
     @property
     def name(self) -> str:
         return self.workdir.name
+
+    @classmethod
+    def predict_number_of_parquets(cls, results_file: ResultsFileType) -> int:
+        """ Calculate future number of parquets for given Results file. """
+        n = 0
+        for df in results_file.tables.values():
+            n += ParquetFrame.get_n_chunks(df)
+        return n
 
     @classmethod
     def from_results_file(
