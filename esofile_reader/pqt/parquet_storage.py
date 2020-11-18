@@ -24,21 +24,25 @@ class ParquetStorage(DFStorage):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
     @classmethod
-    def load_storage(cls, path: PathLike):
+    def load_storage(cls, path: PathLike, logger: BaseLogger = None) -> "ParquetStorage":
         """ Load ParquetStorage from filesystem. """
-        path = path if isinstance(path, Path) else Path(path)
-        if path.suffix != cls.EXT:
-            raise IOError(f"Invalid file type loaded. Only '{cls.EXT}' files are allowed")
+        if not logger:
+            logger = BaseLogger("")
+        with logger.log_task("Load storage"):
+            path = path if isinstance(path, Path) else Path(path)
+            if path.suffix != cls.EXT:
+                raise IOError(f"Invalid file type loaded. Only '{cls.EXT}' files are allowed")
+            pqs = ParquetStorage()
+            pqs.path = path
 
-        pqs = ParquetStorage()
-        pqs.path = path
-        with ZipFile(path, "r") as zf:
-            zf.extractall(pqs.workdir)
+            logger.log_section("unzipping files")
+            with ZipFile(path, "r") as zf:
+                zf.extractall(pqs.workdir)
 
-        for dir_ in [d for d in pqs.workdir.iterdir() if d.is_dir()]:
-            pqf = ParquetFile.from_file_system(dir_)
-            pqs.files[pqf.id_] = pqf
-
+            logger.log_section("unzipping files")
+            for dir_ in [d for d in pqs.workdir.iterdir() if d.is_dir()]:
+                pqf = ParquetFile.from_file_system(dir_)
+                pqs.files[pqf.id_] = pqf
         return pqs
 
     @staticmethod
@@ -61,7 +65,7 @@ class ParquetStorage(DFStorage):
             id_gen = incremental_id_gen(checklist=list(self.files.keys()))
             id_ = next(id_gen)
             file = ParquetFile.from_results_file(
-                id_=id_, results_file=results_file, pardir=self.workdir, progress_logger=logger,
+                id_=id_, results_file=results_file, pardir=self.workdir, logger=logger,
             )
             self.files[id_] = file
         return id_
@@ -74,15 +78,10 @@ class ParquetStorage(DFStorage):
     def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """
         path = Path(dir_, f"{name}{self.EXT}")
+        with ZipFile(path, mode="w") as zf:
+            for pqf in self.files.values():
+                pqf.save_file_to_zip(zf, self.workdir)
         self.path = path
-        with ZipFile(self.path, "w") as zf:
-            for f in self.files.values():
-                info = f.save_meta()
-                zf.write(info, arcname=info.relative_to(self.workdir))
-            for file_dir in [d for d in self.workdir.iterdir() if d.is_dir()]:
-                for pqt_dir in [d for d in file_dir.iterdir() if d.is_dir()]:
-                    for file in [f for f in pqt_dir.iterdir() if f.suffix == ".parquet"]:
-                        zf.write(file, arcname=file.relative_to(self.workdir))
         return path
 
     def save(self) -> Path:

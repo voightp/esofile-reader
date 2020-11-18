@@ -4,6 +4,7 @@ from copy import copy
 
 from esofile_reader.pqt.parquet_storage import ParquetFile
 from esofile_reader.pqt.parquet_tables import ParquetFrame
+from esofile_reader.search_tree import Tree
 from tests.session_fixtures import *
 
 
@@ -57,6 +58,7 @@ def test_parquet_file_attributes(file, eplusout_all_intervals):
     assert eplusout_all_intervals.file_created == file.file_created
     assert ".eso" == file.file_type
     assert str(eplusout_all_intervals.file_path) == str(file.file_path)
+    assert isinstance(file.search_tree, Tree)
 
 
 def test_parquet_file_tables(file, eplusout_all_intervals):

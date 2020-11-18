@@ -8,7 +8,7 @@ import pyarrow.parquet as pq
 import pytest
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from esofile_reader.pqt.parquet_tables import ParquetFrame, parquet_frame_factory
+from esofile_reader.pqt.parquet_tables import ParquetFrame, parquet_frame_factory, CorruptedData
 from tests.session_fixtures import ROOT_PATH
 
 
@@ -330,33 +330,26 @@ def test_drop_all(parquet_frame, test_df):
     assert_frame_equal(test_df, parquet_frame.get_df(), check_column_type=False)
 
 
-def test_save_index_parquets(parquet_frame):
-    parquet_frame.save_index_parquets()
-    assert Path(parquet_frame.workdir, ParquetFrame.INDEX_PARQUET).exists()
-    assert Path(parquet_frame.workdir, ParquetFrame.COLUMNS_PARQUET).exists()
-    assert Path(parquet_frame.workdir, ParquetFrame.CHUNKS_PARQUET).exists()
+def test_temporary_indexing_parquets(parquet_frame):
+    with parquet_frame.temporary_indexing_parquets():
+        assert all(map(lambda x: x.exists(), parquet_frame.indexing_paths))
+    assert all(map(lambda x: not x.exists(), parquet_frame.indexing_paths))
 
 
-def test_load_index_parquets(parquet_frame, test_df):
-    parquet_frame.save_index_parquets()
-    test_chunks = parquet_frame._chunks_table.copy()
-    parquet_frame._index = None
-    parquet_frame._columns = None
-    parquet_frame._chunks_table = None
-
-    parquet_frame.load_index_parquets()
-    assert_index_equal(test_df.index, parquet_frame.index)
-    assert_index_equal(test_df.columns, parquet_frame.columns)
-    assert_frame_equal(test_chunks, parquet_frame._chunks_table)
+def test_read_missing_parquets(parquet_frame):
+    parquet_frame.save_indexing_parquets()
+    parquet_frame.index_parquet_path.unlink()
+    with pytest.raises(CorruptedData):
+        ParquetFrame.from_fs(parquet_frame.workdir)
 
 
-def test_load_missing_parquets(parquet_frame):
-    parquet_frame.save_index_parquets()
-    index_path = Path(parquet_frame.workdir, parquet_frame.INDEX_PARQUET)
-    index_path.unlink()
-
-    with pytest.raises(FileNotFoundError):
-        parquet_frame.load_index_parquets()
+def test_read_indexing_parquets(parquet_frame, test_df):
+    with parquet_frame.temporary_indexing_parquets():
+        test_pqf = ParquetFrame(workdir=parquet_frame.workdir)
+        test_pqf.read_indexing_parquets()
+        assert_index_equal(test_df.index, test_pqf.index)
+        assert_index_equal(test_df.columns, test_pqf.columns)
+        assert_frame_equal(parquet_frame._chunks_table, test_pqf._chunks_table)
 
 
 def test_parquet_frame_context_maneger(parquet_frame, test_df):
