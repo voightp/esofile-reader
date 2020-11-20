@@ -121,13 +121,8 @@ def test_columns_setter(parquet_frame, test_df):
     assert_frame_equal(parquet_frame[6], test_df[[6]])
 
 
-def test_columns_setter_invalid_class(parquet_frame):
-    with pytest.raises(ValueError):
-        parquet_frame.columns = list("abcdefghijklmn")
-
-
 def test_columns_setter_invalid_count(parquet_frame):
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         parquet_frame.columns = pd.Index(list("abcdefghijklm"))
 
 
@@ -318,7 +313,7 @@ def test_drop(parquet_frame, test_df):
 
 
 def test_drop_invalid_level(parquet_frame):
-    with pytest.raises(IndexError):
+    with pytest.raises(KeyError):
         parquet_frame.drop(columns=[1, 2, 3], level="foo")
 
 

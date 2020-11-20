@@ -2,7 +2,7 @@ import contextlib
 import math
 import shutil
 from pathlib import Path
-from typing import List, Dict, Tuple, Sequence, Union, Any
+from typing import List, Dict, Tuple, Sequence, Union, Any, Optional
 from uuid import uuid1
 from zipfile import ZipFile
 
@@ -59,6 +59,17 @@ class _ParquetIndexer:
         items = [items] if isinstance(items, (tuple, str, int)) else items
         return self.frame._lookup_table.loc[items, :].index
 
+    def _split_missing(self, items) -> Tuple[pd.Index, pd.Index]:
+        items = [items] if isinstance(items, (tuple, str, int)) else items
+        try:
+            existing = self.frame._lookup_table.loc[items, :].index
+            missing = pd.Index([])
+        except KeyError:
+            index = pd.Index(items)
+            missing = index.difference(self.frame.columns)
+            existing = index.difference(missing)
+        return existing, missing
+
     def __getitem__(self, item):
         if isinstance(item, tuple):
             rows, col = item
@@ -77,16 +88,17 @@ class _ParquetIndexer:
             )
         if isinstance(key, tuple):
             rows, column_items = key
-            items, new = self.get_column_items(column_items)
-            if new:
-                for item in new:
+            existing, missing = self._split_missing(column_items)
+            if not missing.empty:
+                for item in missing:
                     self.frame._insert_column(item, value)
         else:
             rows = key
-            column_items = self.frame.columns.tolist()
+            existing = self.frame.columns
         # only update columns if existing data changes
-        if items:
-            self.frame.update_columns(items, value, rows=rows)
+        if not existing.empty:
+            print(existing)
+            self.frame.update_columns(existing, value, rows)
 
 
 class ParquetFrame:
@@ -237,43 +249,32 @@ class ParquetFrame:
         return pd.MultiIndex.from_frame(mi_df, names=mi.names)
 
     @staticmethod
-    def create_chunk(index: pd.MultiIndex, pqt_ids: np.ndarray) -> Tuple[str, pd.DataFrame]:
+    def create_chunk(index: pd.MultiIndex, pqt_ids: List[int]) -> Tuple[str, pd.DataFrame]:
         """ Create unique chunk name and a piece of reference table. """
         chunk_name = f"{str(uuid1())}.parquet"
         chunk_df = pd.DataFrame({PQT_ID: pqt_ids}, index=index)
         chunk_df["chunk"] = chunk_name
         return chunk_name, chunk_df
 
-    @staticmethod
-    def insert_mi_column_item(
-        mi: pd.MultiIndex, new_item: tuple, pos: int = None
-    ) -> pd.MultiIndex:
-        """ Insert or append new item into column MultiIndex. """
-        if pos is None or pos == len(mi):
-            mi = mi.append(pd.MultiIndex.from_tuples([new_item]))
-        elif pos < 0 or pos > len(mi):
-            raise IndexError(
-                f"Invalid column position '{pos}'! "
-                f"Position must be between 0 and {len(mi)}."
-            )
+    def insert_to_lookup_table(self, pos: int, pqt_id: int, pqt_name: str, mi: pd.MultiIndex):
+        length = len(self._lookup_table.index)
+        if pos == length or pos is None:
+            self._lookup_table = self.append_to_lookup_table(pqt_id, pqt_name, mi)
+        elif 0 <= pos < length:
+            frames = [
+                self._lookup_table.iloc[0:pos],
+                pd.DataFrame({PQT_ID: pqt_id, "chunk": pqt_name}, index=mi),
+                self._lookup_table.iloc[pos:],
+            ]
+            self._lookup_table = pd.concat(frames)
         else:
-            df = mi.to_frame(index=False)
-            frames = [df.iloc[0:pos], pd.DataFrame([new_item], columns=mi.names), df.iloc[pos:]]
-            mi = pd.MultiIndex.from_frame(
-                pd.concat(frames, sort=False, ignore_index=True), names=mi.names
+            raise IndexError(
+                f"Invalid column position '{pos}'! " f"Position must be between 0 and {length}."
             )
-        return mi
 
-    @staticmethod
-    def replace_mi_items(
-        mi: pd.MultiIndex, old_new_tuple: Tuple[tuple, tuple]
-    ) -> pd.MultiIndex:
-        """ Insert or append new item into column MultiIndex. """
-        items = mi.tolist()
-        for old, new in old_new_tuple:
-            pos = items.index(old)
-            items[pos] = new
-        return pd.MultiIndex.from_tuples(items, names=mi.names)
+    def append_to_lookup_table(self, pqt_id: int, pqt_name: str, mi: pd.MultiIndex):
+        df = pd.DataFrame({PQT_ID: pqt_id, "chunk": pqt_name}, index=mi)
+        return self._lookup_table.append(df)
 
     @staticmethod
     def _write_table(df: pd.DataFrame, path: Path) -> None:
@@ -292,11 +293,12 @@ class ParquetFrame:
         self._write_table(df, path)
 
     def read_df_from_parquet(self, pqt_name: str, columns: List[int] = None) -> pd.DataFrame:
-        """ Get DataFrame from given chunk. ."""
+        """ Get DataFrame from given parquet. ."""
+        columns = list(map(str, columns)) if columns else None
         table = pq.read_pandas(Path(self.workdir, pqt_name), columns=columns, memory_map=True)
         return table.to_pandas()
 
-    def create_multiindex(self, pqt_ids: np.ndarray) -> pd.MultiIndex:
+    def _assign_multiindex(self, pqt_ids: np.ndarray) -> pd.MultiIndex:
         """ Reconstruct columns multiindex. """
         df = self._lookup_table.loc[self._lookup_table[PQT_ID].isin(pqt_ids), :]
         sort_index = dict(zip(pqt_ids, range(len(pqt_ids))))
@@ -313,16 +315,19 @@ class ParquetFrame:
         try:
             df = pd.concat(frames, axis=1, sort=False)
             df.index = self.index.copy()
-            df.columns = self.create_multiindex(df.columns.to_numpy())
+            df.columns = self._assign_multiindex(df.columns.to_numpy())
         except ValueError:
+            import traceback
+
             # DataFrame is empty, create an empty dummy
-            df = pd.DataFrame()
+            print("WRONG!!!" + traceback.format_exc())
+            df = pd.DataFrame(index=self.index)
         return df
 
     def _get_whole_df(self):
         frames = []
         for pqt_name in self.chunk_names:
-            frames.append(self.read_df_from_parquet(pqt_name, columns=None))
+            frames.append(self.read_df_from_parquet(pqt_name))
         df = self._join_frames(frames)
         return df.loc[:, self.columns]
 
@@ -345,11 +350,11 @@ class ParquetFrame:
             end = start + self.CHUNK_SIZE
             dfi = df.iloc[:, start:end]
 
-            # use id as the only identifier, parquets store indexes using string values
-            pqt_columns = pd.RangeIndex(start=start, stop=start + len(dfi.columns)).map(str)
+            # use id as the only identifier
+            pqt_columns = pd.RangeIndex(start=start, stop=start + len(dfi.columns))
 
             # create chunk reference series
-            chunk_name, chunk_df = self.create_chunk(dfi.columns, pqt_columns.to_numpy())
+            chunk_name, chunk_df = self.create_chunk(dfi.columns, pqt_columns.tolist())
             frames.append(chunk_df)
 
             # index and columns data are stored separately
@@ -365,47 +370,42 @@ class ParquetFrame:
         self._lookup_table = pd.concat(frames)
         self._index = df.index.copy()
 
+    def _get_unique_pqt_id(self):
+        pqt_ids = self._lookup_table.loc[:, PQT_ID]
+        max_ = pqt_ids.max()
+        return 0 if np.isnan(max_) else max_ + 1
+
+    def _add_new_parquet(self, counted):
+        return counted.empty or counted.min == self.CHUNK_SIZE
+
+    def update_columns(self, existing, value, rows):
+        pairs = self.get_chunk_id_pairs(existing)
+        for pqt_name, pqt_ids in pairs.items():
+            df = self.read_df_from_parquet(pqt_name)
+            df.index = self._index
+            for pqt_id in pqt_ids:
+                df.loc[rows, pqt_id] = value
+            df.reset_index(drop=True, inplace=True)
+            self.save_df_to_parquet(pqt_name, df)
+
     def _insert_column(
-        self, item: Union[tuple, str, int], array: Sequence, pos: int = None
+        self, item: Union[Tuple[Any, ...], str, int], array: Sequence, pos: Optional[int] = None
     ) -> None:
         """ Insert new column into frame with lowest number of columns. """
         if isinstance(item, (str, int)):
             item = (item, *[""] * (len(self.columns.names) - 1))
-
+        mi = pd.MultiIndex.from_tuples([item], names=self.columns.names)
+        pqt_id = self._get_unique_pqt_id()
         counted = self._lookup_table["chunk"].value_counts()
-        if counted.empty:
-            min_count = self.CHUNK_SIZE
-            chunk_name = ""
+        if self._add_new_parquet(counted):
+            pqt_name = f"{str(uuid1())}.parquet"
+            df = pd.DataFrame({pqt_id: array})
         else:
-            min_count = counted.min()
-            chunk_name = counted.idxmin()
-
-        mi = pd.Index([item[0]], name=ID_LEVEL)
-        if min_count == self.CHUNK_SIZE:
-            # frame is either empty or all chunks are full, create new parquet
-            df = pd.DataFrame({"dummy": array}, index=self.index)
-            df.columns = mi
-            chunk_name, chunk_df = self.create_chunk([item[0]], ID_LEVEL)
-        else:
-            df = self.read_df_from_parquet(chunk_name)
-            df[item] = array
-            chunk_df = pd.DataFrame({"chunk": [chunk_name]}, index=mi)
-
-        # update column indexer and look up table
-        self._columns = self.insert_mi_column_item(self.columns, item, pos=pos)
-        self._lookup_table = self._lookup_table.append(chunk_df)
-
-        # save updated dataframe to parquet
-        self.save_df_to_parquet(chunk_name, df)
-
-    def get_all_chunk_id_pairs(self) -> Dict[str, None]:
-        """ Get a hash of all chunk name: item  pairs. """
-        pairs = {}
-        groups = self._lookup_table.groupby(["chunk"], sort=False)
-        for chunk_name, chunk_df in groups:
-            # item passed as 'None' will get a whole table
-            pairs[chunk_name] = None
-        return pairs
+            pqt_name = counted.idxmin()
+            df = self.read_df_from_parquet(pqt_name)
+            df[pqt_id] = array
+        self.insert_to_lookup_table(pos, pqt_id, pqt_name, mi)
+        self.save_df_to_parquet(pqt_name, df)
 
     def get_chunk_id_pairs(self, items: List[Tuple[Any, ...]]) -> Dict[str, List[int]]:
         """ Get a hash of chunk name: ids pairs for given ids. """
@@ -423,32 +423,22 @@ class ParquetFrame:
     def drop(self, columns: List[Union[int, tuple]], level: str = None, **kwargs) -> None:
         """ Drop columns with given ids from frame. """
         if level:
-            if level not in self.columns.names:
-                raise IndexError(
-                    f"Cannot drop items: [{columns}]. Invalid level '{level}' specified."
-                    f"\nAvailable levels are: [{self.columns.names}]."
-                )
-            arr = self._columns.get_level_values(level).isin(columns)
-        else:
             columns = columns if isinstance(columns, list) else [columns]
-            arr = self._columns.isin(columns)
-        drop_items = self._columns[arr].tolist()
-        items = self._columns[~arr].tolist()
-
-        # recreate multiindex from remaining items
-        self._columns = pd.MultiIndex.from_tuples(items, names=self._columns.names)
+            arr = self._lookup_table.index.get_level_values(level).isin(columns)
+            drop_index = self._lookup_table.loc[arr, PQT_ID].index
+        else:
+            drop_index = self._lookup_table.loc[columns, PQT_ID].index
 
         # update parquet files
-        for chunk_name, chunk_items in self.get_chunk_id_pairs(items=drop_items).items():
-            df = self.read_df_from_parquet(chunk_name)
-            df.drop(columns=chunk_items, inplace=True, axis=1)
+        for pqt_name, ids in self.get_chunk_id_pairs(items=drop_index).items():
+            df = self.read_df_from_parquet(pqt_name)
+            df.drop(columns=ids, inplace=True, axis=1)
             if df.empty:
-                Path(self.workdir, chunk_name).unlink()
+                Path(self.workdir, pqt_name).unlink()
             else:
-                self.save_df_to_parquet(chunk_name, df)
-
+                self.save_df_to_parquet(pqt_name, df)
         # update chunks reference
-        self._lookup_table.drop(drop_items, axis=0, inplace=True)
+        self._lookup_table.drop(drop_index, axis=0, inplace=True)
 
     def find_missing_chunk_parquets(self) -> List[Path]:
         """ Check if parquets referenced in chunks table exist. """
@@ -471,10 +461,6 @@ class ParquetFrame:
             self._index = pd.DatetimeIndex(index, name=TIMESTAMP_COLUMN)
         else:
             self._index = pd.Index(index, name=index.name)
-
-        columns = pq.read_pandas(self.columns_parquet_path).to_pandas()
-        self._columns = self.int_mi_level(pd.MultiIndex.from_frame(columns), ID_LEVEL)
-
         chunks_table = pq.read_pandas(self.lookup_parquet_path).to_pandas()
         chunks_table.index = self.int_mi_level(chunks_table.index, ID_LEVEL)
         self._lookup_table = chunks_table
@@ -482,11 +468,9 @@ class ParquetFrame:
     def save_indexing_parquets(self):
         """ Save index, columns and chunks parquets to filesystem. """
         index_df = self._index.to_frame(index=False)
-        columns = self.stringify_mi_level(self._columns, ID_LEVEL)
-        columns_df = columns.to_frame(index=False)
         chunks = self._lookup_table.copy()
         chunks.index = self.stringify_mi_level(chunks.index, ID_LEVEL)
-        for df, path in zip([index_df, columns_df, chunks], self.indexing_paths):
+        for df, path in zip([index_df, chunks], self.indexing_paths):
             self._write_table(df, path)
 
     @contextlib.contextmanager
