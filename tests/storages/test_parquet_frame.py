@@ -14,7 +14,7 @@ from tests.session_fixtures import ROOT_PATH
 @pytest.fixture
 def test_df():
     test_variables = [
-        (1, "daily", "BLOCK1:ZONE1", "Zone Temperature", "C"),
+        ("SPECIAL", "daily", "n days", "", ""),
         (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
         (3, "daily", "BLOCK1:ZONE3", "Zone Temperature", "C"),
         (4, "daily", "BLOCK1:ZONE1", "Heating Load", "W"),
@@ -126,15 +126,15 @@ def test_columns_setter_invalid_count(parquet_frame):
         parquet_frame.columns = pd.Index(list("abcdefghijklm"))
 
 
-def test_column_indexing_df(parquet_frame, test_df):
+def test_column_reference_df(parquet_frame, test_df):
     assert_frame_equal(test_df[[2]], parquet_frame[[2]])
 
 
-def test_column_indexing_multiple(parquet_frame, test_df):
+def test_column_reference_multiple(parquet_frame, test_df):
     assert_frame_equal(test_df[[2, 5, 8]], parquet_frame[[2, 5, 8]])
 
 
-def test_column_indexing_mi_list(parquet_frame, test_df):
+def test_column_reference_mi_list(parquet_frame, test_df):
     cols = [
         (11, "daily", "Meter", "BLOCK1:ZONE1#LIGHTS", "J"),
         (9, "daily", "BLOCK1:ZONE1_WALL_5_0_0", "Wall Gain", "W"),
@@ -144,7 +144,7 @@ def test_column_indexing_mi_list(parquet_frame, test_df):
     assert_frame_equal(test_df[cols], parquet_frame[cols])
 
 
-def test_column_indexing_missing(parquet_frame):
+def test_column_reference_missing(parquet_frame):
     cols = [
         (2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"),
         (1000, "some", "invalid", "variable", ""),
@@ -153,24 +153,24 @@ def test_column_indexing_missing(parquet_frame):
         _ = parquet_frame[cols]
 
 
-def test_column_indexing_mi(parquet_frame, test_df):
+def test_column_reference_mi(parquet_frame, test_df):
     assert_frame_equal(
         test_df[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")]],
         parquet_frame[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C")],
     )
 
 
-def test_column_indexing_missing_string(parquet_frame):
+def test_column_reference_missing_string(parquet_frame):
     with pytest.raises(KeyError):
         _ = parquet_frame["invalid"]
 
 
-def test_column_indexing_invalid_tuple(parquet_frame):
+def test_column_reference_invalid_tuple(parquet_frame):
     with pytest.raises(ValueError):
         _ = parquet_frame[("invalid",)]
 
 
-def test_column_indexing_invalid_mixed_type(parquet_frame):
+def test_column_reference_invalid_mixed_type(parquet_frame):
     with pytest.raises(TypeError):
         _ = (parquet_frame[[(2, "daily", "BLOCK1:ZONE2", "Zone Temperature", "C"), 6]],)
 
@@ -259,7 +259,7 @@ def test_loc_both_slices(parquet_frame, test_df):
 
 def test_update_parquet(parquet_frame):
     df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
-    parquet_frame.save_df_to_parquet("test_parquet.parquet", df)
+    parquet_frame._save_df_to_parquet("test_parquet.parquet", df)
     assert Path(parquet_frame.workdir, "test_parquet.parquet").exists()
 
 
@@ -338,35 +338,33 @@ def test_drop_all(parquet_frame, test_df):
     cols = test_df.columns.tolist()
     test_df.drop(columns=cols, inplace=True, axis=1)
     parquet_frame.drop(columns=cols, inplace=True)
-    assert parquet_frame.as_df().empty
     assert_frame_equal(test_df, parquet_frame.as_df(), check_column_type=False)
 
 
-def test_temporary_indexing_parquets(parquet_frame):
-    with parquet_frame.temporary_indexing_parquets():
-        assert all(map(lambda x: x.exists(), parquet_frame.indexing_paths))
-    assert all(map(lambda x: not x.exists(), parquet_frame.indexing_paths))
+def test_temporary_reference_parquets(parquet_frame):
+    with parquet_frame.temporary_reference_parquets():
+        assert all(map(lambda x: x.exists(), parquet_frame.reference_paths))
+    assert all(map(lambda x: not x.exists(), parquet_frame.reference_paths))
 
 
 def test_read_missing_parquets(parquet_frame):
-    parquet_frame.save_indexing_parquets()
+    parquet_frame.save_reference_parquets()
     parquet_frame.index_parquet_path.unlink()
     with pytest.raises(CorruptedData):
         ParquetFrame.from_fs(parquet_frame.workdir)
 
 
-def test_read_indexing_parquets(parquet_frame, test_df):
-    with parquet_frame.temporary_indexing_parquets():
-        test_pqf = ParquetFrame(workdir=parquet_frame.workdir)
-        test_pqf.read_indexing_parquets()
-        assert_index_equal(test_df.index, test_pqf.index)
-        assert_index_equal(test_df.columns, test_pqf.columns)
-        assert_frame_equal(parquet_frame._lookup_table, test_pqf._lookup_table)
+def test_read_reference_parquets(parquet_frame, test_df):
+    with parquet_frame.temporary_reference_parquets():
+        loaded_pqf = ParquetFrame(workdir=parquet_frame.workdir)
+        loaded_pqf.read_reference_parquets()
+        assert_index_equal(test_df.index, loaded_pqf.index)
+        assert_frame_equal(parquet_frame._reference_df, loaded_pqf._reference_df)
 
 
 def test_parquet_frame_context_maneger(parquet_frame, test_df):
     with parquet_frame_factory(df=test_df, name="test") as pqf:
-        assert_frame_equal(test_df, pqf.as_df())
+        assert_frame_equal(test_df, pqf.as_df(), check_index_type=False)
     assert not pqf.workdir.exists()
 
 
