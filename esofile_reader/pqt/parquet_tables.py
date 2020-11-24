@@ -1,5 +1,4 @@
 import contextlib
-import math
 import shutil
 from pathlib import Path
 from typing import List, Dict, Tuple, Sequence, Union, Any, Optional
@@ -97,109 +96,17 @@ class _ParquetIndexer:
 
 
 class ParquetFrame:
-    CHUNK_SIZE = 100
+    PARQUET_SIZE = 1024
     INDEX_PARQUET = "index.parquet"
-    CHUNKS_PARQUET = "chunks.parquet"
+    PQT_REF_PARQUET = "reference.parquet"
 
     def __init__(self, workdir: Path):
         self.workdir = workdir.absolute()
         self._indexer = _ParquetIndexer(self)
         self._index = pd.Index([])
         self._reference_df = pd.DataFrame(
-            {
-                PARQUET_ID: pd.Series([], dtype=np.int64),
-                PARQUET_NAME: pd.Series([], dtype=np.str),
-            }
+            {PARQUET_ID: pd.Series([], dtype=int), PARQUET_NAME: pd.Series([], dtype=str),}
         )
-
-    def __getitem__(self, item):
-        return self._indexer[:, item]
-
-    def __setitem__(self, key, value):
-        self._indexer[:, key] = value
-
-    def __copy__(self):
-        new_workdir = get_unique_workdir(self.workdir)
-        return self._copy(new_workdir)
-
-    def _copy(self, new_workdir: Path):
-        shutil.copytree(self.workdir, new_workdir)
-        parquet_frame = ParquetFrame(new_workdir)
-        parquet_frame.workdir = new_workdir
-        parquet_frame._reference_df = self._reference_df.copy()
-        parquet_frame._index = self._index.copy()
-        return parquet_frame
-
-    def copy_to(self, new_pardir: Path):
-        return self._copy(Path(new_pardir, self.name))
-
-    @classmethod
-    def from_df(
-        cls, df: pd.DataFrame, name: str, pardir: PathLike = "", logger: BaseLogger = None,
-    ) -> "ParquetFrame":
-        """ Store pandas.DataFrame as a parquet frame. """
-        workdir = Path(pardir, f"table-{name}").absolute()
-        workdir.mkdir()
-        pqf = ParquetFrame(workdir)
-        pqf._store_df(df, logger=logger)
-        return pqf
-
-    def find_missing_ref_parquets(self) -> List[Path]:
-        """ Check if parquets referenced in chunks table exist. """
-        return [p for p in self.parquet_paths if not p.exists()]
-
-    def clear_reference_parquets(self):
-        """ Delete previously stored reference parquets."""
-        for path in self.reference_paths:
-            with contextlib.suppress(FileNotFoundError):
-                path.unlink()
-
-    def find_missing_reference_parquets(self):
-        """ Check if there are all requited index parquets. """
-        return [p for p in self.reference_paths if not p.exists()]
-
-    def read_reference_parquets(self):
-        """ Load reference parquets from filesystem. """
-        index = pq.read_pandas(self.index_parquet_path).to_pandas().iloc[:, 0]
-        if index.name == TIMESTAMP_COLUMN:
-            self._index = pd.DatetimeIndex(index, name=TIMESTAMP_COLUMN)
-        else:
-            self._index = pd.Index(index, name=index.name)
-        ref_df = pq.read_pandas(self.lookup_parquet_path).to_pandas()
-        ref_df.index = self.cast_mi_level_items_to_int(ref_df.index, ID_LEVEL)
-        self._reference_df = ref_df
-
-    @classmethod
-    def _read_from_fs(cls, pqf: "ParquetFrame") -> "ParquetFrame":
-        missing = pqf.find_missing_reference_parquets()
-        if missing:
-            raise CorruptedData(
-                f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
-            )
-        pqf.read_reference_parquets()
-        missing = pqf.find_missing_ref_parquets()
-        if missing:
-            raise CorruptedData(
-                f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
-            )
-        pqf.clear_reference_parquets()
-        return pqf
-
-    @classmethod
-    def from_fs(cls, workdir: Path) -> "ParquetFrame":
-        """ Read already existing parquet frame from filesystem. """
-        pqf = ParquetFrame(workdir)
-        try:
-            cls._read_from_fs(pqf)
-        except Exception as e:
-            pqf.clean_up()
-            raise e
-        return pqf
-
-    @classmethod
-    def get_n_chunks(cls, df: pd.DataFrame) -> int:
-        """ Predict number of parquets required to store DataFrame. """
-        return math.ceil(df.shape[1] / cls.CHUNK_SIZE)
 
     @property
     def name(self):
@@ -233,12 +140,12 @@ class ParquetFrame:
         return Path(self.workdir, self.INDEX_PARQUET)
 
     @property
-    def lookup_parquet_path(self) -> Path:
-        return Path(self.workdir, self.CHUNKS_PARQUET)
+    def reference_parquet_path(self) -> Path:
+        return Path(self.workdir, self.PQT_REF_PARQUET)
 
     @property
     def reference_paths(self) -> List[Path]:
-        return [self.index_parquet_path, self.lookup_parquet_path]
+        return [self.index_parquet_path, self.reference_parquet_path]
 
     @index.setter
     def index(self, val: pd.Index) -> None:
@@ -258,29 +165,54 @@ class ParquetFrame:
     def empty(self):
         return self._reference_df.empty
 
-    @staticmethod
-    def cast_mi_level_to_str(mi: pd.MultiIndex, level: str) -> pd.MultiIndex:
-        """ Convert MultiIndex level to str type. """
-        mi_df = mi.to_frame(index=False)
-        mi_df[level] = mi_df[level].astype(str)
-        return pd.MultiIndex.from_frame(mi_df, names=mi.names)
+    def __getitem__(self, item):
+        return self._indexer[:, item]
+
+    def __setitem__(self, key, value):
+        self._indexer[:, key] = value
+
+    def __copy__(self):
+        new_workdir = get_unique_workdir(self.workdir)
+        return self._copy(new_workdir)
+
+    def _copy(self, new_workdir: Path):
+        shutil.copytree(self.workdir, new_workdir)
+        parquet_frame = ParquetFrame(new_workdir)
+        parquet_frame.workdir = new_workdir
+        parquet_frame._reference_df = self._reference_df.copy()
+        parquet_frame._index = self._index.copy()
+        return parquet_frame
+
+    def copy_to(self, new_pardir: Path):
+        return self._copy(Path(new_pardir, self.name))
+
+    @classmethod
+    def _get_columns_per_parquet(cls, df: pd.DataFrame) -> List[int]:
+        """ Calculate number of columns per parquet for given DataFrame.  """
+        sizes = df.memory_usage(index=False)
+        n_columns = []
+        size_counter = 0
+        running_size = 0
+        for size in sizes:
+            running_size += size
+            size_counter += 1
+            if running_size >= cls.PARQUET_SIZE << 10:
+                n_columns.append(size_counter)
+                size_counter = 0
+                running_size = 0
+        if size_counter != 0:
+            n_columns.append(size_counter)
+        return n_columns
+
+    @classmethod
+    def predict_n_parquets(cls, df: pd.DataFrame) -> int:
+        """ Predict number of parquets required to store DataFrame. """
+        return len(cls._get_columns_per_parquet(df))
 
     @staticmethod
-    def cast_mi_level_items_to_int(mi: pd.MultiIndex, level: str) -> pd.MultiIndex:
-        """ Convert MultiIndex level to int type. """
-
-        def to_int(val):
-            try:
-                return int(val)
-            except ValueError:
-                return val
-
-        mi_df = mi.to_frame(index=False)
-        mi_df[level] = mi_df[level].apply(to_int)
-        return pd.MultiIndex.from_frame(mi_df, names=mi.names)
-
-    def clean_up(self):
-        shutil.rmtree(self.workdir, ignore_errors=True)
+    def _create_unique_parquet_name():
+        """ Create a unique filesystem name using uuid. """
+        return f"{str(uuid1())}.parquet"
 
     def _append_reference(self, pqt_ids: List[int], pqt_name: str, mi: pd.MultiIndex):
         """ Append new items into reference DataFrame. """
@@ -322,6 +254,119 @@ class ParquetFrame:
         df.reset_index(drop=True, inplace=True)
         self._write_table(df, path, preserve_index=False)
 
+    def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
+        """ Save DataFrame into multiple parquet files. """
+        df = df.copy()  # avoid potential frame mutation
+        self._index = df.index.copy()
+        self._reference_df.index = pd.MultiIndex.from_tuples([], names=df.columns.names)
+        n_columns = self._get_columns_per_parquet(df)
+        start = 0
+        for n in n_columns:
+            end = start + n
+            dfi = df.iloc[:, start:end]
+
+            # use parquet id as the only identifier
+            pqt_columns = pd.RangeIndex(start=start, stop=start + len(dfi.columns))
+            pqt_name = self._create_unique_parquet_name()
+            self._append_reference(pqt_columns.tolist(), pqt_name, dfi.columns)
+
+            # index and columns data are stored separately
+            # index is not saved in parquet files
+            dfi.columns = pqt_columns
+
+            self._save_df_to_parquet(pqt_name, dfi)
+            start = end
+
+            if logger:
+                logger.increment_progress()
+
+    @classmethod
+    def from_df(
+        cls, df: pd.DataFrame, name: str, pardir: PathLike = "", logger: BaseLogger = None,
+    ) -> "ParquetFrame":
+        """ Store pandas.DataFrame as a parquet frame. """
+        workdir = Path(pardir, f"table-{name}").absolute()
+        workdir.mkdir()
+        pqf = ParquetFrame(workdir)
+        pqf._store_df(df, logger=logger)
+        return pqf
+
+    def find_missing_ref_parquets(self) -> List[Path]:
+        """ Check if parquets referenced in chunks table exist. """
+        return [p for p in self.parquet_paths if not p.exists()]
+
+    def clear_reference_parquets(self):
+        """ Delete previously stored reference parquets."""
+        for path in self.reference_paths:
+            with contextlib.suppress(FileNotFoundError):
+                path.unlink()
+
+    def find_missing_reference_parquets(self):
+        """ Check if there are all requited index parquets. """
+        return [p for p in self.reference_paths if not p.exists()]
+
+    def read_reference_parquets(self):
+        """ Load reference parquets from filesystem. """
+        index = pq.read_pandas(self.index_parquet_path).to_pandas().iloc[:, 0]
+        if index.name == TIMESTAMP_COLUMN:
+            self._index = pd.DatetimeIndex(index, name=TIMESTAMP_COLUMN)
+        else:
+            self._index = pd.Index(index, name=index.name)
+        ref_df = pq.read_pandas(self.reference_parquet_path).to_pandas()
+        ref_df.index = self.cast_mi_level_items_to_int(ref_df.index, ID_LEVEL)
+        self._reference_df = ref_df
+
+    @classmethod
+    def _read_from_fs(cls, pqf: "ParquetFrame") -> "ParquetFrame":
+        missing = pqf.find_missing_reference_parquets()
+        if missing:
+            raise CorruptedData(
+                f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
+            )
+        pqf.read_reference_parquets()
+        missing = pqf.find_missing_ref_parquets()
+        if missing:
+            raise CorruptedData(
+                f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
+            )
+        pqf.clear_reference_parquets()
+        return pqf
+
+    @classmethod
+    def from_fs(cls, workdir: Path) -> "ParquetFrame":
+        """ Read already existing parquet frame from filesystem. """
+        pqf = ParquetFrame(workdir)
+        try:
+            cls._read_from_fs(pqf)
+        except Exception as e:
+            pqf.clean_up()
+            raise e
+        return pqf
+
+    @staticmethod
+    def cast_mi_level_to_str(mi: pd.MultiIndex, level: str) -> pd.MultiIndex:
+        """ Convert MultiIndex level to str type. """
+        mi_df = mi.to_frame(index=False)
+        mi_df[level] = mi_df[level].astype(str)
+        return pd.MultiIndex.from_frame(mi_df, names=mi.names)
+
+    @staticmethod
+    def cast_mi_level_items_to_int(mi: pd.MultiIndex, level: str) -> pd.MultiIndex:
+        """ Convert MultiIndex level to int type. """
+
+        def to_int(val):
+            try:
+                return int(val)
+            except ValueError:
+                return val
+
+        mi_df = mi.to_frame(index=False)
+        mi_df[level] = mi_df[level].apply(to_int)
+        return pd.MultiIndex.from_frame(mi_df, names=mi.names)
+
+    def clean_up(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
     def _read_df_from_parquet(self, pqt_name: str, columns: List[int] = None) -> pd.DataFrame:
         """ Read DataFrame from given parquet. """
         columns = list(map(str, columns)) if columns else None
@@ -332,11 +377,12 @@ class ParquetFrame:
 
     def _get_columns(self, pqt_ids: List[int]) -> pd.MultiIndex:
         """ Reconstruct columns multiindex. """
+
+        def sorter(sr: pd.Series) -> pd.Series:
+            return sr.apply(lambda x: pqt_ids.index(x))
+
         df = self._reference_df.loc[self._reference_df[PARQUET_ID].isin(pqt_ids), :]
-        sort_index = dict(zip(pqt_ids, range(len(pqt_ids))))
-        df["sort"] = df[PARQUET_ID].map(sort_index)
-        df = df.sort_values(by="sort", ascending=True)
-        df.drop("sort", axis=1, inplace=True)
+        df = df.sort_values(by=PARQUET_ID, key=sorter)
         return df.index
 
     def _assign_indexes(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -379,46 +425,25 @@ class ParquetFrame:
             df = pd.DataFrame(index=self.index, columns=self.columns)
         return df
 
-    @staticmethod
-    def _create_unique_parquet_name():
-        """ Create a unique filesystem name using uuid. """
-        return f"{str(uuid1())}.parquet"
-
-    def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
-        """ Save DataFrame into multiple parquet files. """
-        df = df.copy()  # avoid potential frame mutation
-        self._index = df.index.copy()
-        self._reference_df.index = pd.MultiIndex.from_tuples([], names=df.columns.names)
-        n = self.get_n_chunks(df)
-        start = 0
-        for i in range(n):
-            end = start + self.CHUNK_SIZE
-            dfi = df.iloc[:, start:end]
-
-            # use parquet id as the only identifier
-            pqt_columns = pd.RangeIndex(start=start, stop=start + len(dfi.columns))
-            pqt_name = self._create_unique_parquet_name()
-            self._append_reference(pqt_columns.tolist(), pqt_name, dfi.columns)
-
-            # index and columns data are stored separately
-            # index is not saved in parquet files
-            dfi.columns = pqt_columns
-
-            self._save_df_to_parquet(pqt_name, dfi)
-            start += self.CHUNK_SIZE
-
-            if logger:
-                logger.increment_progress()
-
     def _get_unique_pqt_id(self):
         """ Create unique parquet id. """
         pqt_ids = self._reference_df.loc[:, PARQUET_ID]
         max_ = pqt_ids.max()
         return 0 if np.isnan(max_) else max_ + 1
 
-    def _is_new_parquet_required(self, counted):
+    def _find_smallest_parquet(self) -> str:
+        """ Find parquet with smallest size. """
+        sizes = pd.Series({p.name: p.stat().st_size for p in self.parquet_paths})
+        return sizes.idxmin()
+
+    def _is_new_parquet_required(self):
         """ Check if all parquets are filled to max size. """
-        return counted.empty or counted.min == self.CHUNK_SIZE
+        if self._reference_df.empty:
+            required = True
+        else:
+            sizes = [p.stat().st_size for p in self.parquet_paths]
+            required = all(map(lambda x: x > self.PARQUET_SIZE << 10, sizes))
+        return required
 
     def _insert_column(
         self, item: Union[Tuple[Any, ...], str, int], array: Sequence, pos: Optional[int] = None
@@ -428,12 +453,11 @@ class ParquetFrame:
             item = (item, *[""] * (len(self.columns.names) - 1))
         mi = pd.MultiIndex.from_tuples([item], names=self.columns.names)
         pqt_id = self._get_unique_pqt_id()
-        counted = self._reference_df[PARQUET_NAME].value_counts()
-        if self._is_new_parquet_required(counted):
+        if self._is_new_parquet_required():
             pqt_name = self._create_unique_parquet_name()
             df = pd.DataFrame({pqt_id: array})
         else:
-            pqt_name = counted.idxmin()
+            pqt_name = self._find_smallest_parquet()
             df = self._read_df_from_parquet(pqt_name)
             df.index = self._index
             df[pqt_id] = array

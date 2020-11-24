@@ -107,7 +107,7 @@ class ParquetFile(BaseFile):
         """ Calculate future number of parquets for given Results file. """
         n = 0
         for df in results_file.tables.values():
-            n += ParquetFrame.get_n_chunks(df)
+            n += ParquetFrame.predict_n_parquets(df)
         return n
 
     @classmethod

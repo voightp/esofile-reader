@@ -3,6 +3,7 @@ from copy import copy
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal, assert_index_equal
@@ -51,11 +52,12 @@ def test_df():
 @pytest.fixture
 def parquet_frame(test_df):
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        ParquetFrame.CHUNK_SIZE = 3
+        ParquetFrame.PARQUET_SIZE = 1
         parquet_frame = ParquetFrame.from_df(test_df, f"test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
+            ParquetFrame.PARQUET_SIZE = 1024
             parquet_frame.clean_up()
 
 
@@ -184,8 +186,8 @@ def test_loc_slice_rows(parquet_frame, test_df):
 
 def test_loc(parquet_frame, test_df):
     assert_frame_equal(
-        test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
-        parquet_frame.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2]],
+        test_df.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2, 6, 5]],
+        parquet_frame.loc[datetime(2002, 1, 1) : datetime(2002, 1, 2), [2, 6, 5]],
     )
 
 
@@ -264,13 +266,6 @@ def test_update_parquet(parquet_frame):
 
 
 def test_get_full_df(parquet_frame, test_df):
-    assert_frame_equal(test_df, parquet_frame.as_df())
-
-
-def test_store_df_minimum_chunk_size(test_df, tmpdir):
-    ParquetFrame.CHUNK_SIZE = 1  # save each column as an independent parquet
-    parquet_frame = ParquetFrame.from_df(test_df, "some_name", pardir=tmpdir)
-    assert len(list(parquet_frame.workdir.iterdir())) == 14
     assert_frame_equal(test_df, parquet_frame.as_df())
 
 
@@ -362,7 +357,7 @@ def test_read_reference_parquets(parquet_frame, test_df):
         assert_frame_equal(parquet_frame._reference_df, loaded_pqf._reference_df)
 
 
-def test_parquet_frame_context_maneger(parquet_frame, test_df):
+def test_parquet_frame_context_manager(parquet_frame, test_df):
     with parquet_frame_factory(df=test_df, name="test") as pqf:
         assert_frame_equal(test_df, pqf.as_df(), check_index_type=False)
     assert not pqf.workdir.exists()
@@ -377,3 +372,25 @@ def test_copy_to(parquet_frame, test_df):
 def test_copy(parquet_frame, test_df):
     copied_frame = copy(parquet_frame)
     assert_frame_equal(test_df, copied_frame.as_df())
+
+
+@pytest.mark.parametrize(
+    "shape, n_parquets", [([100, 10000], 8), ([10000, 100], 8), ([2, 10], 1), ([10000, 1], 1),]
+)
+def test_predict_n_parquets(shape, n_parquets):
+    df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
+    assert ParquetFrame.predict_n_parquets(df) == n_parquets
+
+
+@pytest.mark.parametrize(
+    "shape, n_columns",
+    [
+        ([100, 10000], [1311, 1311, 1311, 1311, 1311, 1311, 1311, 823]),
+        ([10000, 100], [14, 14, 14, 14, 14, 14, 14, 2]),
+        ([2, 10], [10]),
+        ([10000, 1], [1]),
+    ],
+)
+def test_predict_n_columns_in_parquet(shape, n_columns):
+    df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
+    assert ParquetFrame._get_columns_per_parquet(df) == n_columns
