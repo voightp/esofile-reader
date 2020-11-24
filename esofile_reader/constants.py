@@ -25,6 +25,8 @@ PEAK_COLUMN_LEVELS = ("id", "table", "key", "type", "units", "data")
 SPECIAL = "special"
 REFERENCE_YEAR = 2020
 
+DEFAULT_PARQUET_SIZE = 1024
+
 AVERAGED_UNITS = [
     "W",
     "W/m2",

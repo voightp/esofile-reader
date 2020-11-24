@@ -15,7 +15,7 @@ from tests.session_fixtures import *
 
 @pytest.fixture(scope="module")
 def same_file_diff(eplusout1):
-    return process_diff(eplusout1, eplusout1)
+    return GenericFile.from_diff(eplusout1, eplusout1).tables
 
 
 @pytest.mark.parametrize(

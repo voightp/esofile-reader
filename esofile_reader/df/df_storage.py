@@ -10,7 +10,7 @@ class DFStorage(BaseStorage):
         self.files = {}
 
     def store_file(self, results_file: ResultsFileType) -> int:
-        id_gen = incremental_id_gen(checklist=list(self.files.keys()))
+        id_gen = incremental_id_gen(checklist=set(self.files.keys()))
         id_ = next(id_gen)
         self.files[id_] = DFFile(id_, results_file)
         return id_

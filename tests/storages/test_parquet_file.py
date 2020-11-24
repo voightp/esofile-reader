@@ -4,17 +4,18 @@ from copy import copy
 
 from esofile_reader.pqt.parquet_storage import ParquetFile
 from esofile_reader.pqt.parquet_tables import ParquetFrame
+from esofile_reader.search_tree import Tree
 from tests.session_fixtures import *
 
 
 @pytest.fixture(scope="module")
 def parquet_file(eplusout_all_intervals):
-    ParquetFrame.CHUNK_SIZE = 10
+    ParquetFrame.PARQUET_SIZE = 10
     parquet_file = ParquetFile.from_results_file(0, eplusout_all_intervals)
     try:
         yield parquet_file
     finally:
-        ParquetFrame.CHUNK_SIZE = 100
+        ParquetFrame.PARQUET_SIZE = 100
         parquet_file.clean_up()
 
 
@@ -40,23 +41,8 @@ def loaded_parquet_file(saved_parquet_file_path):
             parquet_file.clean_up()
 
 
-@pytest.fixture(scope="module")
-def loaded_parquet_file_from_buffer(parquet_file):
-    buffer = parquet_file.save_into_buffer()
-    with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        parquet_file = ParquetFile.from_buffer(buffer, temp_dir)
-        try:
-            yield parquet_file
-        finally:
-            parquet_file.clean_up()
-
-
 @pytest.fixture(
-    params=[
-        pytest.lazy_fixture("parquet_file"),
-        pytest.lazy_fixture("loaded_parquet_file"),
-        pytest.lazy_fixture("loaded_parquet_file_from_buffer"),
-    ]
+    params=[pytest.lazy_fixture("parquet_file"), pytest.lazy_fixture("loaded_parquet_file"),]
 )
 def file(request):
     return request.param
@@ -72,6 +58,7 @@ def test_parquet_file_attributes(file, eplusout_all_intervals):
     assert eplusout_all_intervals.file_created == file.file_created
     assert ".eso" == file.file_type
     assert str(eplusout_all_intervals.file_path) == str(file.file_path)
+    assert isinstance(file.search_tree, Tree)
 
 
 def test_parquet_file_tables(file, eplusout_all_intervals):

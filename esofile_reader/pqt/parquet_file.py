@@ -11,9 +11,9 @@ from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.mini_classes import ResultsFileType, PathLike
+from esofile_reader.pqt.parquet_tables import ParquetFrame, ParquetTables, get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
-from esofile_reader.pqt.parquet_tables import ParquetTables, get_unique_workdir
 
 
 class ParquetFile(BaseFile):
@@ -69,7 +69,7 @@ class ParquetFile(BaseFile):
         search_tree: Tree,
     ):
         self.id_ = id_
-        self.workdir = workdir
+        self.workdir = workdir.absolute()
         self.tables = tables
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
@@ -103,16 +103,24 @@ class ParquetFile(BaseFile):
         return self.workdir.name
 
     @classmethod
+    def predict_number_of_parquets(cls, results_file: ResultsFileType) -> int:
+        """ Calculate future number of parquets for given Results file. """
+        n = 0
+        for df in results_file.tables.values():
+            n += ParquetFrame.predict_n_parquets(df)
+        return n
+
+    @classmethod
     def from_results_file(
         cls,
         id_: int,
         results_file: ResultsFileType,
         pardir: str = "",
-        progress_logger: BaseLogger = None,
+        logger: BaseLogger = None,
     ) -> "ParquetFile":
         workdir = Path(pardir, f"file-{id_}")
         workdir.mkdir()
-        tables = ParquetTables.from_dftables(results_file.tables, workdir, progress_logger)
+        tables = ParquetTables.from_dftables(results_file.tables, workdir, logger)
         pqf = ParquetFile(
             id_=id_,
             file_path=results_file.file_path,
@@ -126,38 +134,44 @@ class ParquetFile(BaseFile):
         return pqf
 
     @classmethod
-    def unzip_source_file(
-        cls, source: Union[Path, io.BytesIO], dest_dir: PathLike
-    ) -> Tuple[Path, Dict[str, Any]]:
-        # extract content in temp folder
-        with ZipFile(source, "r") as zf:
-            # extract info to find out dir name
-            tempdir = tempfile.mkdtemp()
+    def _read_json_from_zip(cls, zf: ZipFile) -> Dict[str, Any]:
+        """ Get content of info json from given zip. """
+        with tempfile.TemporaryDirectory() as tempdir:
             tempson = zf.extract(cls.INFO_JSON, path=tempdir)
             with open(Path(tempson), "r") as f:
-                info = json.load(f)
-            shutil.rmtree(tempdir, ignore_errors=True)
+                content = json.load(f)
+        return content
 
-            # extract all the content
+    @classmethod
+    def _unzip_source_file(
+        cls, source: Union[Path, io.BytesIO], dest_dir: PathLike
+    ) -> Tuple[Path, Dict[str, Any]]:
+        """ Extract content of given zip into destination. """
+        with ZipFile(source, "r") as zf:
+            # extract info to find out dir name
+            info = cls._read_json_from_zip(zf)
             file_dir = Path(dest_dir, f"{info['name']}")
             file_dir.mkdir()
             zf.extractall(file_dir)
         return file_dir, info
 
     @classmethod
-    def from_file_system(cls, source: PathLike, dest_dir: PathLike = "") -> "ParquetFile":
-        """ Load parquet file into given location. """
+    def from_file_system(
+        cls, source: PathLike, dest_dir: PathLike = "", logger: BaseLogger = None
+    ) -> "ParquetFile":
+        """ Create parquet file instance from filesystem files. """
         source = Path(source)
         if source.suffix == cls.EXT:
-            workdir, info = cls.unzip_source_file(source, dest_dir)
+            workdir, info = cls._unzip_source_file(source, dest_dir)
         elif source.is_dir():
             with open(Path(source, cls.INFO_JSON), "r") as f:
                 info = json.load(f)
                 workdir = source
         else:
-            raise IOError(f"Invalid file type_ loaded. Only '{cls.EXT}' files are allowed")
+            raise IOError(f"Invalid file type. Only '{cls.EXT}' files are allowed")
 
         tables = ParquetTables.from_fs(workdir)
+        tree = Tree.from_header_dict(tables.get_all_variables_dct())
         pqf = ParquetFile(
             id_=info["id"],
             file_path=Path(info["file_path"]),
@@ -166,42 +180,21 @@ class ParquetFile(BaseFile):
             tables=tables,
             file_type=info["file_type"],
             workdir=workdir,
-            search_tree=tables.get_all_variables_dct(),
+            search_tree=tree,
         )
+        pqf.info_json_path.unlink()
         return pqf
 
-    @classmethod
-    def from_buffer(cls, source: io.BytesIO, dest_dir: PathLike) -> "ParquetFile":
-        """ Load parquet file from buffer into given location. """
-        workdir, info = cls.unzip_source_file(source, dest_dir)
-        tables = ParquetTables.from_fs(workdir)
-        pqf = ParquetFile(
-            id_=info["id"],
-            file_path=Path(info["file_path"]),
-            file_name=info["file_name"],
-            file_created=datetime.fromtimestamp(info["file_created"]),
-            tables=tables,
-            file_type=info["file_type"],
-            workdir=workdir,
-            search_tree=tables.get_all_variables_dct(),
-        )
-        return pqf
+    @property
+    def info_json_path(self) -> Path:
+        return Path(self.workdir, self.INFO_JSON)
 
-    def clean_up(self):
+    def clean_up(self) -> None:
         shutil.rmtree(self.workdir, ignore_errors=True)
 
-    def save_meta(self) -> Path:
-        """ Save index parquets and json info. """
-        # store column, index and chunk table parquets
-        for tbl in self.tables.values():
-            tbl.save_index_parquets()
-
-        # store attributes as json
-        file_info = Path(self.workdir, self.INFO_JSON)
-        with contextlib.suppress(FileNotFoundError):
-            file_info.unlink()
-
-        with open(str(file_info), "w") as f:
+    @contextlib.contextmanager
+    def temporary_attribute_json(self) -> Path:
+        with open(str(self.info_json_path), "w") as f:
             json.dump(
                 {
                     "id": self.id_,
@@ -214,26 +207,20 @@ class ParquetFile(BaseFile):
                 f,
                 indent=4,
             )
+        try:
+            yield self.info_json_path
+        finally:
+            self.info_json_path.unlink()
 
-        return file_info
-
-    def write_zip(self, device: Union[Path, io.BytesIO]):
-        """ Write content into given device. """
-        file_info = self.save_meta()
-        with ZipFile(device, "w") as zf:
-            zf.write(file_info, arcname=file_info.name)
-            for dir_ in [d for d in self.workdir.iterdir() if d.is_dir()]:
-                for file in [f for f in dir_.iterdir() if f.suffix == ".parquet"]:
-                    zf.write(file, arcname=file.relative_to(self.workdir))
+    def save_file_to_zip(self, zf: ZipFile, relative_to: Path):
+        with self.temporary_attribute_json() as f:
+            zf.write(f, arcname=f.relative_to(relative_to))
+        for pqt_frame in self.tables.values():
+            pqt_frame.save_frame_to_zip(zf, relative_to)
 
     def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """
         device = Path(dir_, f"{name}{self.EXT}")
-        self.write_zip(device)
-        return device
-
-    def save_into_buffer(self):
-        """ Save parquet storage into buffer. """
-        device = io.BytesIO()
-        self.write_zip(device)
+        with ZipFile(device, mode="w") as zf:
+            self.save_file_to_zip(zf, self.workdir)
         return device

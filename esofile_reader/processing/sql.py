@@ -198,7 +198,7 @@ def read_sql_file(engine: Engine, metadata: MetaData, logger: BaseLogger) -> Lis
         header = process_sql_header(conn, data_dict_table)
         all_raw_data = []
         for env_index, env_name in get_environment_details(conn, environments_table):
-            logger.log_section(f"Processing environment '{env_name}'!")
+            logger.log_section(f"Processing environment '{env_name}'")
             raw_sql_data = process_environment_data(
                 conn, time_table, data_table, env_index, env_name, deepcopy(header), logger
             )
@@ -212,7 +212,7 @@ def validate_sql_file(engine, required):
     return all(map(lambda x: x in table_names, required))
 
 
-def process_sql_file(file_path: PathLike, logger: BaseLogger, echo=False,) -> List[RawSqlData]:
+def process_sql_file(file_path: PathLike, logger: BaseLogger, echo=False) -> List[RawSqlData]:
     engine = create_engine(f"sqlite:///{file_path}", echo=echo)
     metadata = MetaData(bind=engine)
     required = ["Time", "ReportData", "ReportDataDictionary"]

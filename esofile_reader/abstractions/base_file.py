@@ -21,7 +21,7 @@ from esofile_reader.results_processing.process_results import get_processed_resu
 from esofile_reader.search_tree import Tree
 
 
-def get_file_information(file_path: str) -> Tuple[Path, str, datetime]:
+def get_file_information(file_path: PathLike) -> Tuple[Path, str, datetime]:
     path = Path(file_path)
     file_name = path.stem
     file_created = datetime.utcfromtimestamp(os.path.getctime(file_path))

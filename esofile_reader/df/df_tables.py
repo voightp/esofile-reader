@@ -222,7 +222,7 @@ class DFTables(BaseTables):
         self, variable: Union[SimpleVariable, Variable], array: Sequence
     ) -> Optional[int]:
         if self._validate(variable.table, variable, array):
-            all_ids = self.get_all_variable_ids()
+            all_ids = set(self.get_all_variable_ids())
             # skip some ids as usually there's always few variables
             id_gen = incremental_id_gen(checklist=all_ids, start=100)
             id_ = next(id_gen)
