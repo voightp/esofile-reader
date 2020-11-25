@@ -1,18 +1,9 @@
 name: Tests
 
 on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
-  push:
-    branches:
-      - master
-    path-ignore:
-      - 'scripts/**'
   pull_request:
     branches:
       - master
-    path-ignore:
-      - 'scripts/**'
 
 defaults:
   run:
