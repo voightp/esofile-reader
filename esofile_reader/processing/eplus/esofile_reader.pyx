@@ -9,7 +9,8 @@ from typing import Tuple
 import cython
 
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import EsoTimestamp, Variable
+from esofile_reader.typehints import Variable
+from esofile_reader.processing.eplus.esofile_time import EsoTimestamp
 from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 from esofile_reader.processing.eplus.raw_data import RawEsoData
 

@@ -22,7 +22,7 @@ from esofile_reader.df.level_names import (
     SPECIAL,
 )
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
+from esofile_reader.typehints import SimpleVariable, Variable, VariableType
 
 
 class DFTables(BaseTables):

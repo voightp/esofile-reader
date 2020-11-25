@@ -1,6 +1,6 @@
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.df.df_tables import DFTables
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.typehints import ResultsFileType
 
 
 class DFFile(BaseFile):

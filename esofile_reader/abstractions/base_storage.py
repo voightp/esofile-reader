@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.typehints import ResultsFileType
 
 
 class BaseStorage(ABC):

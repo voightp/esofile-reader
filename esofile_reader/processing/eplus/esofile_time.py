@@ -1,10 +1,10 @@
 import calendar
 import logging
+from collections import namedtuple
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 from esofile_reader.exceptions import LeapYearMismatch, StartDayMismatch
-from esofile_reader.mini_classes import EsoTimestamp
 from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 
 
@@ -80,6 +80,9 @@ def find_num_of_days_annual(ann_num_of_days: List[int], rp_num_of_days: List[int
     """ Use runperiod data to calculate number of days for each annual period. """
     days = rp_num_of_days[0] // len(ann_num_of_days)
     return [days for _ in ann_num_of_days]
+
+
+EsoTimestamp = namedtuple("EsoTimestamp", "month day hour end_minute")
 
 
 def check_year_increment(

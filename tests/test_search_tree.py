@@ -3,7 +3,7 @@ from copy import copy
 import pytest
 
 from esofile_reader.exceptions import DuplicateVariable
-from esofile_reader.mini_classes import Variable, SimpleVariable
+from esofile_reader.typehints import Variable, SimpleVariable
 from esofile_reader.search_tree import Tree, Node
 
 

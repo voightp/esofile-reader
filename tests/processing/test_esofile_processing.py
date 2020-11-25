@@ -10,9 +10,9 @@ from esofile_reader.exceptions import (
     IncompleteFile,
     MultiEnvFileRequired,
 )
-from esofile_reader.mini_classes import Variable, EsoTimestamp
+from esofile_reader.typehints import Variable
 from esofile_reader.processing.eplus import TS, H, D, M, A, RP
-from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data
+from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data, EsoTimestamp
 from esofile_reader.processing.eplus.esofile_reader import (
     process_statement_line,
     process_header_line,

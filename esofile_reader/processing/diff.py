@@ -3,7 +3,7 @@ import pandas as pd
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import ID_LEVEL
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.typehints import ResultsFileType
 from esofile_reader.processing.progress_logger import BaseLogger
 
 

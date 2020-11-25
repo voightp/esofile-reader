@@ -17,7 +17,7 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.engine.base import Connection, Engine
 
 from esofile_reader.exceptions import NoResults
-from esofile_reader.mini_classes import PathLike, Variable
+from esofile_reader.typehints import PathLike, Variable
 from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 from esofile_reader.processing.eplus.raw_data import RawSqlData
 from esofile_reader.processing.eplus.sql_time import (

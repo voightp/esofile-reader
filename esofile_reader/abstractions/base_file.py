@@ -15,7 +15,7 @@ from esofile_reader.convertor import (
 )
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import N_DAYS_COLUMN, ID_LEVEL, TABLE_LEVEL
-from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
+from esofile_reader.typehints import Variable, SimpleVariable, VariableType, PathLike
 from esofile_reader.results_processing.aggregate_results import aggregate_variables
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.search_tree import Tree

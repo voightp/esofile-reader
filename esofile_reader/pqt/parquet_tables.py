@@ -14,7 +14,7 @@ from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, ID_LEVEL
 from esofile_reader.exceptions import CorruptedData
 from esofile_reader.id_generator import get_unique_name
-from esofile_reader.mini_classes import PathLike
+from esofile_reader.typehints import PathLike
 from esofile_reader.processing.progress_logger import BaseLogger
 
 PARQUET_ID = "pqt_id"

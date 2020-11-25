@@ -7,7 +7,7 @@ from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import N_DAYS_COLUMN, DAY_COLUMN
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import PathLike
+from esofile_reader.typehints import PathLike
 from esofile_reader.processing.eplus.esofile_time import get_n_days_from_cumulative
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.processing.eplus.raw_data import RawData

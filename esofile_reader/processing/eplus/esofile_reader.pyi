@@ -2,7 +2,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, TextIO, Optional, Union
 
-from esofile_reader.mini_classes import Variable, EsoTimestamp
+from esofile_reader.typehints import Variable
+from esofile_reader.processing.eplus.esofile_time import EsoTimestamp
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.processing.eplus.raw_data import RawEsoData
 

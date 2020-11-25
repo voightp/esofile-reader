@@ -19,7 +19,7 @@ from esofile_reader.df.level_names import (
     PEAK_COLUMN_LEVELS,
     SPECIAL,
 )
-from esofile_reader.mini_classes import Variable, SimpleVariable
+from esofile_reader.typehints import Variable, SimpleVariable
 from esofile_reader.pqt.parquet_storage import ParquetFile
 from tests.session_fixtures import *
 

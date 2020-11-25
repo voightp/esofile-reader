@@ -12,7 +12,7 @@ from esofile_reader.df.df_functions import create_peak_min_outputs, create_peak_
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, VALUE_LEVEL, ID_LEVEL, COLUMN_LEVELS
 from esofile_reader.exceptions import FormatNotSupported
-from esofile_reader.mini_classes import Variable
+from esofile_reader.typehints import Variable
 from esofile_reader.processing.eplus import M, A, RP
 from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data
 from esofile_reader.processing.eplus.raw_data import RawData

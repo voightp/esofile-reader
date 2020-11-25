@@ -5,7 +5,7 @@ from typing import Union, Optional, Dict, List, Iterator, Tuple
 
 from esofile_reader.df.level_names import TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL
 from esofile_reader.exceptions import DuplicateVariable
-from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
+from esofile_reader.typehints import Variable, SimpleVariable, VariableType
 
 
 class Node:

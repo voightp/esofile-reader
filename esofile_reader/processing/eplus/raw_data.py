@@ -3,7 +3,7 @@ from collections import defaultdict
 from math import nan
 from typing import Tuple, Dict, List, Optional, Union
 
-from esofile_reader.mini_classes import Variable
+from esofile_reader.typehints import Variable
 from esofile_reader.processing.eplus import D, M, A, RP
 
 
