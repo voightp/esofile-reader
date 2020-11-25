@@ -1,12 +1,10 @@
 name: Build
 
 on:
-  push:
+  pull_request:
+    types: [ closed ]
     branches:
       - master
-  release:
-    types: [created]
-
 defaults:
   run:
     shell: bash
@@ -14,32 +12,33 @@ defaults:
 jobs:
   build:
     runs-on: windows-latest
-    steps:
+if: github.event.pull_request.merged
+  steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: '3.8'
+        - name: Set up Python
+          uses: actions/setup-python@v1
+          with:
+            python-version: '3.8'
 
-      - name: Set up Poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-          echo "::set-env name=PATH::$HOME/.poetry/bin:$PATH"
+        - name: Set up Poetry
+          run: |
+            curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+            echo "$HOME/.poetry/bin" >> $GITHUB_PATH
 
-      - name: Configure poetry
-        run: poetry config virtualenvs.in-project true
+        - name: Configure poetry
+          run: poetry config virtualenvs.in-project true
 
-      - name: Install dependencies
-        run: poetry install
+        - name: Install dependencies
+          run: poetry install
 
-      - name: Install extras
-        run: poetry install --extras "sql"
+        - name: Install extras
+          run: poetry install --extras "sql"
 
-      - name: Build
-        run: poetry build
+        - name: Build
+          run: poetry build
 
-      - name: Upload math result for job 1
-        uses: actions/upload-artifact@v1
-        with:
-          name: dist
-          path: dist
+        - name: Upload math result for job 1
+          uses: actions/upload-artifact@v1
+          with:
+            name: dist
+            path: dist
