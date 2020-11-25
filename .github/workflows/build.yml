@@ -1,10 +1,10 @@
 name: Build
 
 on:
-  pull_request:
-    types: [ closed ]
-    branches:
-      - master
+  push:
+    tags:
+      - *
+
 defaults:
   run:
     shell: bash
@@ -12,9 +12,9 @@ defaults:
 jobs:
   build:
     runs-on: windows-latest
-if: github.event.pull_request.merged
+
   steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
         - name: Set up Python
           uses: actions/setup-python@v1
           with:
@@ -37,7 +37,7 @@ if: github.event.pull_request.merged
         - name: Build
           run: poetry build
 
-        - name: Upload math result for job 1
+        - name: Upload artifacts for job 1
           uses: actions/upload-artifact@v1
           with:
             name: dist
