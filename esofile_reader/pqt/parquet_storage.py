@@ -5,7 +5,7 @@ from zipfile import ZipFile
 
 from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.id_generator import incremental_id_gen, get_unique_name
-from esofile_reader.mini_classes import ResultsFileType, PathLike
+from esofile_reader.typehints import ResultsFileType, PathLike
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.processing.progress_logger import BaseLogger
 

@@ -6,7 +6,7 @@ import pandas as pd
 
 from esofile_reader import GenericFile
 from esofile_reader.abstractions import base_file
-from esofile_reader.mini_classes import VariableType, ResultsFileType, PathLike
+from esofile_reader.typehints import VariableType, ResultsFileType, PathLike
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.results_processing.table_formatter import TableFormatter
 

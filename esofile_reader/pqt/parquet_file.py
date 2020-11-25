@@ -10,7 +10,7 @@ from typing import Union, Tuple, Dict, Any
 from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
-from esofile_reader.mini_classes import ResultsFileType, PathLike
+from esofile_reader.typehints import ResultsFileType, PathLike
 from esofile_reader.pqt.parquet_tables import ParquetFrame, ParquetTables, get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree

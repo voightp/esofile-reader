@@ -16,12 +16,11 @@ from sqlalchemy import (
 from sqlalchemy.engine import reflection
 from sqlalchemy.engine.base import Connection, Engine
 
-from esofile_reader.constants import *
 from esofile_reader.exceptions import NoResults
-from esofile_reader.mini_classes import PathLike, Variable
-from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.processing.raw_data import RawSqlData
-from esofile_reader.processing.sql_time import (
+from esofile_reader.typehints import PathLike, Variable
+from esofile_reader.processing.eplus import TS, H, D, M, A, RP
+from esofile_reader.processing.eplus.raw_data import RawSqlData
+from esofile_reader.processing.eplus.sql_time import (
     get_dates,
     get_days_of_week,
     get_cumulative_days,
@@ -31,6 +30,7 @@ from esofile_reader.processing.sql_time import (
     get_environment_details,
     INTERVAL_TYPE_MAP,
 )
+from esofile_reader.processing.progress_logger import BaseLogger
 
 DATA_DICT_MAP = {
     "Zone Timestep": TS,

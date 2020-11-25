@@ -1,7 +1,7 @@
 from esofile_reader.abstractions.base_storage import BaseStorage
 from esofile_reader.df.df_file import DFFile
 from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.typehints import ResultsFileType
 
 
 class DFStorage(BaseStorage):

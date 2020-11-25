@@ -4,11 +4,38 @@ from typing import Dict, Generator, Optional, Tuple
 
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.constants import *
-from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import ResultsFileType
+
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.df.level_names import (
+    ID_LEVEL,
+    TYPE_LEVEL,
+    UNITS_LEVEL,
+    COLUMN_LEVELS,
+    SPECIAL,
+)
+from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.typehints import ResultsFileType
+from esofile_reader.processing.progress_logger import BaseLogger
+
+AVERAGED_UNITS = [
+    "W",
+    "W/m2",
+    "C",
+    "deltaC",
+    "",
+    "W/m2-K",
+    "ppm",
+    "ach",
+    "hr",
+    "%",
+    "kgWater/kgDryAir",
+]
+SUMMED_UNITS = ["J", "J/m2"]
+IGNORED_UNITS = ["kg/s", "m3/s"]
+IGNORED_TYPES = {
+    "Performance Curve Input Variable",
+    "Performance Curve Output Value",
+}
 
 VARIABLE_GROUPS = {
     "AFN Zone",

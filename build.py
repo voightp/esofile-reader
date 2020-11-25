@@ -9,8 +9,8 @@ def build(setup_kwargs):
     extensions = cythonize(
         [
             Extension(
-                "esofile_reader.processing.extensions.esofile",
-                sources=["esofile_reader/processing/extensions/esofile.pyx"],
+                "esofile_reader.processing.eplus.esofile_reader",
+                sources=["esofile_reader/processing/eplus/esofile_reader.pyx"],
             ),
         ]
     )

@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from esofile_reader.constants import *
+from esofile_reader.df.level_names import DAY_COLUMN, TIMESTAMP_COLUMN, ID_LEVEL, TABLE_LEVEL
 
 
 class TableFormatter:

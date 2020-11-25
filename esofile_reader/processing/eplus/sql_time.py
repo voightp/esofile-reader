@@ -5,7 +5,7 @@ from sqlalchemy import select, and_, func, literal, Table, Column, Integer, Stri
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.sql.selectable import Select
 
-from esofile_reader.constants import *
+from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 
 INTERVAL_TYPE_MAP = {
     -1: TS,

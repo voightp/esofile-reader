@@ -6,7 +6,7 @@ from esofile_reader.abstractions.base_file import BaseFile, get_file_information
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.eso_file import EsoFile
 from esofile_reader.exceptions import FormatNotSupported, NoResults
-from esofile_reader.mini_classes import ResultsFileType, PathLike
+from esofile_reader.typehints import ResultsFileType, PathLike
 from esofile_reader.processing.diff import process_diff
 from esofile_reader.processing.excel import process_excel, process_csv
 from esofile_reader.processing.progress_logger import BaseLogger
@@ -14,12 +14,12 @@ from esofile_reader.processing.totals import process_totals
 from esofile_reader.search_tree import Tree
 
 try:
-    from esofile_reader.processing.extensions.esofile import process_eso_file
+    from esofile_reader.processing.eplus.esofile_reader import process_eso_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.extensions.esofile import process_eso_file
+    from esofile_reader.processing.eplus.esofile_reader import process_eso_file
 
 
 class GenericFile(BaseFile):

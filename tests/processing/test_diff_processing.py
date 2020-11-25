@@ -3,13 +3,12 @@ from copy import copy
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from esofile_reader.constants import *
 from esofile_reader.exceptions import NoResults
 from esofile_reader.processing.diff import (
     subtract_tables,
     get_shared_special_table,
-    process_diff,
 )
+from esofile_reader.processing.eplus import TS, H, D
 from tests.session_fixtures import *
 
 

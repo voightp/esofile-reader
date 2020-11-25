@@ -1,0 +1,17 @@
+RANGE = "range"
+INDEX = "index"
+N_DAYS_COLUMN = "n days"
+DAY_COLUMN = "day"
+TIMESTAMP_COLUMN = "timestamp"
+DATA_LEVEL = "data"
+VALUE_LEVEL = "value"
+ID_LEVEL = "id"
+TABLE_LEVEL = "table"
+KEY_LEVEL = "key"
+TYPE_LEVEL = "type"
+UNITS_LEVEL = "units"
+STR_VALUES = "str_values"
+COLUMN_LEVELS = ("id", "table", "key", "type", "units")
+SIMPLE_COLUMN_LEVELS = ("id", "table", "key", "units")
+PEAK_COLUMN_LEVELS = ("id", "table", "key", "type", "units", "data")
+SPECIAL = "special"

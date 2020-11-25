@@ -4,7 +4,7 @@ from typing import Sequence, List, Dict, Optional
 
 import pandas as pd
 
-from esofile_reader.mini_classes import Variable
+from esofile_reader.typehints import Variable
 
 
 class BaseTables(ABC):

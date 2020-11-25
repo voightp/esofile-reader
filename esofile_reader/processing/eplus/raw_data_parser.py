@@ -8,24 +8,25 @@ from typing import Dict, List, Optional, Any, Union, Tuple, Callable, Set
 
 import pandas as pd
 
-from esofile_reader.constants import *
 from esofile_reader.df.df_functions import create_peak_min_outputs, create_peak_max_outputs
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.df.level_names import TIMESTAMP_COLUMN, VALUE_LEVEL, ID_LEVEL, COLUMN_LEVELS
 from esofile_reader.exceptions import FormatNotSupported
-from esofile_reader.mini_classes import Variable
-from esofile_reader.processing.esofile_time import convert_raw_date_data
+from esofile_reader.typehints import Variable
+from esofile_reader.processing.eplus import M, A, RP
+from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data
+from esofile_reader.processing.eplus.raw_data import RawData
+from esofile_reader.processing.eplus.sql_reader import process_sql_file
+from esofile_reader.processing.eplus.sql_time import convert_raw_sql_date_data
 from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.processing.raw_data import RawData
-from esofile_reader.processing.sql import process_sql_file
-from esofile_reader.processing.sql_time import convert_raw_sql_date_data
 
 try:
-    from esofile_reader.processing.extensions.esofile import process_eso_file
+    from esofile_reader.processing.eplus.esofile_reader import process_eso_file
 except ModuleNotFoundError:
     import pyximport
 
     pyximport.install(pyximport=True, language_level=3)
-    from esofile_reader.processing.extensions.esofile import process_eso_file
+    from esofile_reader.processing.eplus.esofile_reader import process_eso_file
 
 
 def align_id_level(df: pd.DataFrame, id_level: pd.Index):
