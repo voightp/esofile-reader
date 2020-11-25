@@ -3,7 +3,7 @@ import logging
 from copy import copy
 from typing import Union, Optional, Dict, List, Iterator, Tuple
 
-from esofile_reader.constants import *
+from esofile_reader.df.level_names import TABLE_LEVEL, KEY_LEVEL, TYPE_LEVEL, UNITS_LEVEL
 from esofile_reader.exceptions import DuplicateVariable
 from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType
 

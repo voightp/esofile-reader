@@ -10,8 +10,21 @@ import numpy as np
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 
-from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.df.level_names import (
+    RANGE,
+    INDEX,
+    N_DAYS_COLUMN,
+    DAY_COLUMN,
+    TIMESTAMP_COLUMN,
+    ID_LEVEL,
+    TABLE_LEVEL,
+    KEY_LEVEL,
+    TYPE_LEVEL,
+    UNITS_LEVEL,
+    COLUMN_LEVELS,
+    SPECIAL,
+)
 from esofile_reader.exceptions import InsuficientHeaderInfo, NoResults
 from esofile_reader.id_generator import get_unique_name
 from esofile_reader.processing.progress_logger import BaseLogger

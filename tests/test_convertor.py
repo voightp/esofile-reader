@@ -2,6 +2,8 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 from esofile_reader.convertor import *
+from esofile_reader.processing.eplus import H, M
+from esofile_reader.df.level_names import TIMESTAMP_COLUMN
 
 
 def test_apply_conversion():

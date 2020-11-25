@@ -6,9 +6,10 @@ from pandas.testing import assert_frame_equal
 from pytest import lazy_fixture
 
 from esofile_reader import Variable, SimpleVariable
-from esofile_reader.constants import *
+from esofile_reader.df.level_names import SPECIAL, N_DAYS_COLUMN
 from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.processing.eplus import H, M
 from tests.session_fixtures import *
 
 

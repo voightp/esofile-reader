@@ -3,9 +3,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
-from esofile_reader.constants import *
 from esofile_reader.exceptions import LeapYearMismatch, StartDayMismatch
 from esofile_reader.mini_classes import EsoTimestamp
+from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 
 
 def parse_eso_timestamp(
@@ -251,3 +251,6 @@ def convert_raw_date_data(
         year = year if year else 2002
     dates = convert_raw_dates(raw_dates, year)
     return update_start_dates(dates)
+
+
+REFERENCE_YEAR = 2020

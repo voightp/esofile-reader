@@ -5,15 +5,24 @@ from typing import Sequence, List, Dict, Optional, Union
 
 import pandas as pd
 
-from esofile_reader.constants import *
-from esofile_reader.id_generator import incremental_id_gen
-from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
 from esofile_reader.abstractions.base_tables import BaseTables
 from esofile_reader.df.df_functions import (
     merge_peak_outputs,
     slice_df,
     slice_series_by_datetime_index,
 )
+from esofile_reader.df.level_names import (
+    DAY_COLUMN,
+    ID_LEVEL,
+    KEY_LEVEL,
+    TYPE_LEVEL,
+    COLUMN_LEVELS,
+    SIMPLE_COLUMN_LEVELS,
+    PEAK_COLUMN_LEVELS,
+    SPECIAL,
+)
+from esofile_reader.id_generator import incremental_id_gen
+from esofile_reader.mini_classes import SimpleVariable, Variable, VariableType
 
 
 class DFTables(BaseTables):

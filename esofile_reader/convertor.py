@@ -3,7 +3,6 @@ from typing import List, Union, Tuple, Any
 import numpy as np
 import pandas as pd
 
-from esofile_reader.constants import *
 from esofile_reader.conversion_tables import (
     energy_table,
     rate_table,
@@ -11,6 +10,7 @@ from esofile_reader.conversion_tables import (
     energy_table_per_area,
     rate_table_per_area,
 )
+from esofile_reader.df.level_names import DATA_LEVEL, VALUE_LEVEL, UNITS_LEVEL
 
 
 def apply_conversion(

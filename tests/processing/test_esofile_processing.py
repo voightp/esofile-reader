@@ -4,7 +4,6 @@ from math import nan
 
 import numpy as np
 
-from esofile_reader.constants import *
 from esofile_reader.exceptions import (
     InvalidLineSyntax,
     BlankLineError,
@@ -12,6 +11,7 @@ from esofile_reader.exceptions import (
     MultiEnvFileRequired,
 )
 from esofile_reader.mini_classes import Variable, EsoTimestamp
+from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data
 from esofile_reader.processing.eplus.esofile_reader import (
     process_statement_line,

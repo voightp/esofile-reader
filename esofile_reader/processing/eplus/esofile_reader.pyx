@@ -8,9 +8,9 @@ from typing import Tuple
 
 import cython
 
-from esofile_reader.constants import *
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import EsoTimestamp, Variable
+from esofile_reader.processing.eplus import TS, H, D, M, A, RP
 from esofile_reader.processing.eplus.raw_data import RawEsoData
 
 ENVIRONMENT_LINE = 1

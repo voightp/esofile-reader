@@ -8,13 +8,13 @@ from typing import Dict, Sequence, Optional, Union, List, Tuple
 
 import pandas as pd
 
-from esofile_reader.constants import *
 from esofile_reader.convertor import (
     is_daily,
     is_hourly,
     is_timestep,
 )
 from esofile_reader.df.df_tables import DFTables
+from esofile_reader.df.level_names import N_DAYS_COLUMN, ID_LEVEL, TABLE_LEVEL
 from esofile_reader.mini_classes import Variable, SimpleVariable, VariableType, PathLike
 from esofile_reader.results_processing.aggregate_results import aggregate_variables
 from esofile_reader.results_processing.process_results import get_processed_results

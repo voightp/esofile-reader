@@ -2,7 +2,7 @@ from typing import Union, List, Callable, Optional, Tuple
 
 import pandas as pd
 
-from esofile_reader.constants import UNITS_LEVEL, TYPE_LEVEL
+from esofile_reader.df.level_names import TYPE_LEVEL, UNITS_LEVEL
 from esofile_reader.convertor import all_rate_or_energy, convert_rate_to_energy
 from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.mini_classes import ResultsFileType, VariableType

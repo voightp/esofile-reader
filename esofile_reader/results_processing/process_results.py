@@ -4,8 +4,8 @@ from typing import Optional, Union, List
 
 import pandas as pd
 
-from esofile_reader.constants import *
 from esofile_reader.convertor import convert_units, convert_rate_to_energy
+from esofile_reader.df.level_names import N_DAYS_COLUMN
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import ResultsFileType, VariableType
 from esofile_reader.results_processing.table_formatter import TableFormatter
