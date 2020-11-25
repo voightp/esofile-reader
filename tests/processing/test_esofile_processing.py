@@ -12,8 +12,8 @@ from esofile_reader.exceptions import (
     MultiEnvFileRequired,
 )
 from esofile_reader.mini_classes import Variable, EsoTimestamp
-from esofile_reader.processing.esofile_time import convert_raw_date_data
-from esofile_reader.processing.extensions.esofile import (
+from esofile_reader.processing.eplus.esofile_time import convert_raw_date_data
+from esofile_reader.processing.eplus.esofile_reader import (
     process_statement_line,
     process_header_line,
     read_header,
@@ -22,7 +22,7 @@ from esofile_reader.processing.extensions.esofile import (
     read_body,
 )
 from esofile_reader.processing.progress_logger import TimeLogger, BaseLogger
-from esofile_reader.processing.raw_data_parser import RawEsoParser
+from esofile_reader.processing.eplus.raw_data_parser import RawEsoParser
 from tests.session_fixtures import *
 
 HEADER_PATH = Path(EPLUS_TEST_FILES_PATH, "header.txt")

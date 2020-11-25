@@ -1,5 +1,5 @@
-from esofile_reader.processing.esofile_time import *
-from esofile_reader.processing.extensions.esofile import read_file
+from esofile_reader.processing.eplus.esofile_time import *
+from esofile_reader.processing.eplus.esofile_reader import read_file
 from esofile_reader.processing.progress_logger import BaseLogger
 from tests.session_fixtures import *
 

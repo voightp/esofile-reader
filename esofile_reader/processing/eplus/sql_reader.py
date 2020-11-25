@@ -20,8 +20,8 @@ from esofile_reader.constants import *
 from esofile_reader.exceptions import NoResults
 from esofile_reader.mini_classes import PathLike, Variable
 from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.processing.raw_data import RawSqlData
-from esofile_reader.processing.sql_time import (
+from esofile_reader.processing.eplus.raw_data import RawSqlData
+from esofile_reader.processing.eplus.sql_time import (
     get_dates,
     get_days_of_week,
     get_cumulative_days,

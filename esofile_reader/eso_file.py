@@ -8,10 +8,10 @@ from esofile_reader.constants import *
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.exceptions import *
 from esofile_reader.mini_classes import PathLike
-from esofile_reader.processing.esofile_time import get_n_days_from_cumulative
+from esofile_reader.processing.eplus.esofile_time import get_n_days_from_cumulative
 from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.processing.raw_data import RawData
-from esofile_reader.processing.raw_data_parser import choose_parser, Parser
+from esofile_reader.processing.eplus.raw_data import RawData
+from esofile_reader.processing.eplus.raw_data_parser import choose_parser, Parser
 from esofile_reader.search_tree import Tree
 
 

@@ -2,19 +2,16 @@ import re
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from functools import partial
-from pathlib import Path
-from typing import Dict, List, Tuple, TextIO, Optional, Union
+from typing import Tuple
+
 import cython
 
 from esofile_reader.constants import *
 from esofile_reader.exceptions import *
-from esofile_reader.mini_classes import Variable, EsoTimestamp
-from esofile_reader.processing.progress_logger import BaseLogger
-from esofile_reader.processing.raw_data import RawEsoData
-from esofile_reader.search_tree import Tree
-from esofile_reader.df.df_tables import DFTables
-from decimal import Decimal, ROUND_HALF_UP
+from esofile_reader.mini_classes import EsoTimestamp, Variable
+from esofile_reader.processing.eplus.raw_data import RawEsoData
 
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
@@ -24,20 +21,20 @@ RUNPERIOD_LINE = 5
 ANNUAL_LINE = 6
 
 
-cpdef int get_eso_file_version(str raw_version):
+def get_eso_file_version(raw_version: str) -> int:
     """ Return eso file version as an integer (i.e.: 860, 890). """
     version = raw_version.strip()
     start = version.index(" ")
     return int(version[(start + 1): (start + 6)].replace(".", ""))
 
 
-cpdef object get_eso_file_timestamp(str timestamp):
+def get_eso_file_timestamp(timestamp: str) -> datetime:
     """ Return date and time of the eso file generation as a Datetime. """
     timestamp = timestamp.split("=")[1].strip()
     return datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
-cpdef tuple process_statement_line(str line):
+def process_statement_line(line: str) -> Tuple[int, datetime]:
     """ Extract the version and time of the file generation. """
     _, _, raw_version, timestamp = line.split(",")
     version = get_eso_file_version(raw_version)
@@ -45,7 +42,7 @@ cpdef tuple process_statement_line(str line):
     return version, timestamp
 
 
-cpdef tuple process_header_line(str line):
+def process_header_line(line: str) -> Tuple[int, str, str, str, str]:
     """
     Process E+ dictionary line and populate period header dictionaries.
 
@@ -149,7 +146,7 @@ cpdef object read_header(object eso_file, object logger):
 
 def process_sub_monthly_interval_line(
     line_id: int, data: List[str]
-) -> Tuple[str, IntervalTuple, str]:
+) -> Tuple[str, EsoTimestamp, str]:
     """
     Process sub-hourly, hourly and daily interval line.
 
@@ -199,7 +196,7 @@ def process_sub_monthly_interval_line(
 
 def process_monthly_plus_interval_line(
     line_id: int, data: List[str]
-) -> Tuple[str, IntervalTuple, Optional[int]]:
+) -> Tuple[str, EsoTimestamp, Optional[int]]:
     """
     Process sub-hourly, hourly and daily interval line.
 
@@ -361,7 +358,9 @@ cpdef list read_body(
     return all_raw_data
 
 
-cpdef read_file(object file, object logger, object ignore_peaks = True):
+def read_file(
+    file: TextIO, logger: BaseLogger, ignore_peaks: bool = True
+) -> List[RawEsoData]:
     """ Read raw EnergyPlus output file. """
     # //@formatter:off
     cdef int last_standard_item_id
@@ -391,7 +390,7 @@ cpdef read_file(object file, object logger, object ignore_peaks = True):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.binding(True)
-cpdef count_lines(object file_path):
+cdef int count_lines(object file_path):
     # //@formatter:off
     cdef int i
     # //@formatter:on
@@ -403,9 +402,7 @@ cpdef count_lines(object file_path):
     return i
 
 
-def preprocess_file(
-    file_path: Union[str, Path], logger: EsoFileProgressLogger
-) -> None:
+def preprocess_file(file_path: Union[str, Path], logger: BaseLogger) -> None:
     """ Set maximum progress for eso file processing. """
     logger.log_section("pre-processing")
     n_lines = count_lines(file_path)
@@ -415,10 +412,7 @@ def preprocess_file(
 
 
 def process_eso_file(
-    file_path: Union[str, Path],
-    logger: EsoFileProgressLogger,
-    ignore_peaks: bool = True,
-    year: int = None
+    file_path: Union[str, Path], logger: BaseLogger, ignore_peaks: bool = True,
 ) -> List[RawEsoData]:
     """ Open the eso file and trigger file processing. """
     preprocess_file(file_path, logger)
