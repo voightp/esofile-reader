@@ -1,5 +1,4 @@
 import contextlib
-import logging
 from copy import copy
 from typing import Union, Optional, Dict, List, Iterator, Tuple
 
@@ -237,13 +236,16 @@ class Tree:
         return sorted(ids)
 
     def find_ids(
-        self, variable: Union[SimpleVariable, Variable], part_match: bool = False,
+        self, variables: Union[SimpleVariable, Variable], part_match: bool = False,
     ) -> List[int]:
         """ Find variable ids for given arguments. """
-        ids = self._search(variable, part_match)
-        if not ids:
-            logging.warning(f"'{variable}' not found in tree!")
-        return ids
+        variables = variables if isinstance(variables, list) else [variables]
+        all_ids = []
+        for variable in variables:
+            ids = self._search(variable, part_match)
+            if ids:
+                all_ids.extend(ids)
+        return all_ids
 
     def variable_exists(self, variable: Union[SimpleVariable, Variable]) -> bool:
         """ Check if variable exists. """

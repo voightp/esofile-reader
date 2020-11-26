@@ -80,23 +80,6 @@ def test_table_names(file, table_names):
 
 
 @pytest.mark.parametrize(
-    "file,table,can_convert",
-    [
-        (pytest.lazy_fixture("eso_file"), "timestep", True),
-        (pytest.lazy_fixture("eso_file"), "hourly", True),
-        (pytest.lazy_fixture("eso_file"), "daily", True),
-        (pytest.lazy_fixture("eso_file"), "monthly", True),
-        (pytest.lazy_fixture("eso_file"), "runperiod", True),
-        (pytest.lazy_fixture("eso_file"), "annual", True),
-        (pytest.lazy_fixture("simple_file"), "monthly-simple", True),
-        (pytest.lazy_fixture("simple_file"), "simple-no-template-no-index", False),
-    ],
-)
-def test_can_convert_rate_to_energy(file, table, can_convert):
-    assert can_convert == file.can_convert_rate_to_energy(table)
-
-
-@pytest.mark.parametrize(
     "file,n_ids",
     [(pytest.lazy_fixture("eso_file"), 114), (pytest.lazy_fixture("simple_file"), 14),],
 )
@@ -213,7 +196,7 @@ def test_rename(copied_file):
     ],
 )
 def test_find_ids(file, variable, part_match, test_ids):
-    ids = file.find_id(variable, part_match=part_match)
+    ids = file.search_tree.find_ids(variable, part_match=part_match)
     assert ids == test_ids
 
 
@@ -495,7 +478,7 @@ def test_add_two_identical_outputs(
 )
 def test_add_output_test_tree(copied_file, table, new_key, new_type, new_units, array):
     id_, var = copied_file.insert_variable(table, new_key, new_units, array, type_=new_type)
-    tree_id = copied_file.find_id(var)
+    tree_id = copied_file.search_tree.find_ids(var)
     assert [id_] == tree_id
 
 
@@ -645,7 +628,7 @@ def test_as_df_invalid_table(eso_file):
 def test_remove_variables(copied_file):
     variable = Variable("monthly", "CHILLER", "Chiller Electric Power", "W")
     copied_file.remove_variables(variable)
-    assert not copied_file.find_id(variable)
+    assert not copied_file.search_tree.find_ids(variable)
     assert variable not in copied_file.tables[M].columns
 
 

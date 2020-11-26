@@ -4,7 +4,11 @@ from typing import Optional, Union, List
 
 import pandas as pd
 
-from esofile_reader.convertor import convert_units, convert_rate_to_energy
+from esofile_reader.convertor import (
+    convert_units,
+    convert_rate_to_energy,
+    can_convert_rate_to_energy,
+)
 from esofile_reader.df.level_names import N_DAYS_COLUMN
 from esofile_reader.exceptions import *
 from esofile_reader.typehints import ResultsFileType, VariableType
@@ -137,7 +141,7 @@ def get_processed_results(
         if (
             output_type == "standard"
             and rate_to_energy
-            and results_file.can_convert_rate_to_energy(table)
+            and can_convert_rate_to_energy(results_file.get_special_table(table))
         ):
             n_days = get_n_days(results_file, table, start_date, end_date)
             df = convert_rate_to_energy(df, n_days)

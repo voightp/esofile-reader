@@ -124,7 +124,7 @@ def test_totals_tables(totals_tables):
 
 
 def test_search_tree(totals_file):
-    ids = totals_file.find_id(
+    ids = totals_file.search_tree.find_ids(
         [
             Variable("daily", "Zone", "Zone Temperature", "C"),
             Variable("daily", "Meter", "LIGHTS", "J"),

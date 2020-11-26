@@ -3,7 +3,11 @@ from typing import Union, List, Callable, Optional, Tuple
 import pandas as pd
 
 from esofile_reader.df.level_names import TYPE_LEVEL, UNITS_LEVEL
-from esofile_reader.convertor import all_rate_or_energy, convert_rate_to_energy
+from esofile_reader.convertor import (
+    all_rate_or_energy,
+    convert_rate_to_energy,
+    can_convert_rate_to_energy,
+)
 from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.typehints import ResultsFileType, VariableType
 from esofile_reader.results_processing.process_results import get_n_days
@@ -79,13 +83,13 @@ def aggregate_variables(
 
 
 def get_table_for_aggregation(
-    results_file: ResultsFileType, table: [str], ids: List[int]
+    results_file: ResultsFileType, table: str, ids: List[int]
 ) -> pd.DataFrame:
     """ Get results table with unified rate and energy units. """
     df = results_file.tables.get_results_df(table, ids)
     units = df.columns.get_level_values(UNITS_LEVEL)
     is_rate_and_energy = all_rate_or_energy(units) and len(units) > 1
-    if is_rate_and_energy and results_file.can_convert_rate_to_energy(table):
+    if is_rate_and_energy and can_convert_rate_to_energy(results_file.get_special_table(table)):
         n_days = get_n_days(results_file, table)
         df = convert_rate_to_energy(df, n_days)
     return df

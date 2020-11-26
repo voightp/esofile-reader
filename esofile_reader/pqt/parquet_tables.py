@@ -14,8 +14,8 @@ from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, ID_LEVEL
 from esofile_reader.exceptions import CorruptedData
 from esofile_reader.id_generator import get_unique_name
-from esofile_reader.typehints import PathLike
 from esofile_reader.processing.progress_logger import BaseLogger
+from esofile_reader.typehints import PathLike
 
 PARQUET_ID = "pqt_id"
 PARQUET_NAME = "pqt_name"
@@ -400,6 +400,15 @@ class ParquetFrame:
             pairs[chunk_name] = chunk_df[PARQUET_ID].tolist()
         return pairs
 
+    def _build_df(self, frames: List[pd.DataFrame]) -> pd.DataFrame:
+        """ Join frames extracted from parquets and assign indexes.. """
+        try:
+            df = pd.concat(frames, axis=1, sort=False)
+        except ValueError:
+            df = pd.DataFrame([], index=self.index)
+        df = self._assign_indexes(df)
+        return df
+
     def _get_df(self, items: Any) -> pd.DataFrame:
         """ Get a single DataFrame from multiple parquets. """
         items = [items] if isinstance(items, (tuple, str, int)) else items
@@ -408,22 +417,16 @@ class ParquetFrame:
         frames = []
         for pqt_name, pqt_ids in pairs.items():
             frames.append(self._read_df_from_parquet(pqt_name, columns=pqt_ids))
-        df = pd.concat(frames, axis=1, sort=False)
-        df = self._assign_indexes(df)
+        df = self._build_df(frames)
         return df.loc[:, items]
 
     def as_df(self) -> pd.DataFrame:
         """ Return parquet frame as a single DataFrame. """
-        if not self.empty:
-            frames = []
-            for pqt_name in self.parquet_names:
-                frames.append(self._read_df_from_parquet(pqt_name))
-            df = pd.concat(frames, axis=1, sort=False)
-            df = self._assign_indexes(df)
-            df = df.loc[:, self.columns]
-        else:
-            df = pd.DataFrame(index=self.index, columns=self.columns)
-        return df
+        frames = []
+        for pqt_name in self.parquet_names:
+            frames.append(self._read_df_from_parquet(pqt_name))
+        df = self._build_df(frames)
+        return df.loc[:, self.columns]
 
     def _get_unique_pqt_id(self):
         """ Create unique parquet id. """

@@ -418,7 +418,7 @@ def test_hourly_results_only():
     ],
 )
 def test_duplicate_variable(duplicate_variable_file, variable, id_):
-    assert duplicate_variable_file.find_id(variable) == [id_]
+    assert duplicate_variable_file.search_tree.find_ids(variable) == [id_]
 
 
 @pytest.mark.parametrize(
@@ -429,7 +429,7 @@ def test_duplicate_variable(duplicate_variable_file, variable, id_):
     ],
 )
 def test_remove_duplicate_variable_from_tree(duplicate_variable_file, variable, expected_id):
-    assert duplicate_variable_file.find_id(variable) == [expected_id]
+    assert duplicate_variable_file.search_tree.find_ids(variable) == [expected_id]
 
 
 def test_drop_sizing_intervals(multienv_file):

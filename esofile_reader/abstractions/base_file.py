@@ -8,17 +8,12 @@ from typing import Dict, Sequence, Optional, Union, List, Tuple
 
 import pandas as pd
 
-from esofile_reader.convertor import (
-    is_daily,
-    is_hourly,
-    is_timestep,
-)
 from esofile_reader.df.df_tables import DFTables
-from esofile_reader.df.level_names import N_DAYS_COLUMN, ID_LEVEL, TABLE_LEVEL
-from esofile_reader.typehints import Variable, SimpleVariable, VariableType, PathLike
+from esofile_reader.df.level_names import ID_LEVEL, TABLE_LEVEL
 from esofile_reader.results_processing.aggregate_results import aggregate_variables
 from esofile_reader.results_processing.process_results import get_processed_results
 from esofile_reader.search_tree import Tree
+from esofile_reader.typehints import Variable, SimpleVariable, VariableType, PathLike
 
 
 def get_file_information(file_path: PathLike) -> Tuple[Path, str, datetime]:
@@ -164,9 +159,7 @@ class BaseFile:
 
         if all(map(lambda x: isinstance(x, (Variable, SimpleVariable, int)), variables)):
             if all(map(lambda x: isinstance(x, (Variable, SimpleVariable)), variables)):
-                ids = []
-                for variable in variables:
-                    ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
+                ids = self.search_tree.find_ids(variables, part_match=part_match)
             else:
                 # all inputs are integers
                 ids = variables
@@ -184,30 +177,6 @@ class BaseFile:
                 "either integers or 'Variable' / 'SimpleVariable' named tuples."
             )
         return out
-
-    def find_id(
-        self, variables: Union[VariableType, List[VariableType]], part_match: bool = False
-    ) -> List[int]:
-        """ Find ids for a list of 'Variables'. """
-        variables = variables if isinstance(variables, list) else [variables]
-        ids = []
-        for variable in variables:
-            ids.extend(self.search_tree.find_ids(variable, part_match=part_match))
-        return ids
-
-    def can_convert_rate_to_energy(self, table: str) -> bool:
-        """ Check if it's possible to convert rate to energy. """
-        try:
-            # can convert as there's a 'N DAYS' column
-            self.tables.get_special_column(table, N_DAYS_COLUMN)
-            return True
-        except KeyError:
-            # only other option to covert rate to energy is when
-            # table reports daily, hourly or timestep results
-            index = self.tables.get_datetime_index(table)
-            if index is not None:
-                return is_daily(index) or is_hourly(index) or is_timestep(index)
-        return False
 
     def _validate_variable_type(
         self, table: str, key: str, units: str, type_: Optional[str] = None
@@ -261,7 +230,7 @@ class BaseFile:
             if type(variable) is Variable:
                 new_type = new_type if new_type is not None else variable.type
 
-            ids = self.find_id(variable)
+            ids = self.search_tree.find_ids(variable)
             if len(ids) == 1:
                 id_ = ids[0]
                 # create new variable and add it into tree

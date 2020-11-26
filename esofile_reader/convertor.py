@@ -10,7 +10,13 @@ from esofile_reader.conversion_tables import (
     energy_table_per_area,
     rate_table_per_area,
 )
-from esofile_reader.df.level_names import DATA_LEVEL, VALUE_LEVEL, UNITS_LEVEL
+from esofile_reader.df.level_names import (
+    N_DAYS_COLUMN,
+    DATA_LEVEL,
+    VALUE_LEVEL,
+    UNITS_LEVEL,
+    KEY_LEVEL,
+)
 
 
 def apply_conversion(
@@ -155,3 +161,13 @@ def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame
     # ratios are the same for standard and normalized units
     conversion_tuples = [("W", "J", ratio), ("W/m2", "J/m2", ratio)]
     return apply_conversion(df, conversion_tuples)
+
+
+def can_convert_rate_to_energy(df: pd.DataFrame) -> bool:
+    """ Check rate can be converted to energy on given table. """
+    n_days_available = N_DAYS_COLUMN in df.columns.get_level_values(KEY_LEVEL)
+    if not n_days_available:
+        if isinstance(df.index, pd.DatetimeIndex):
+            return is_daily(df.index) or is_hourly(df.index) or is_timestep(df.index)
+        return False
+    return n_days_available

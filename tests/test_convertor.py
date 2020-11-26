@@ -2,8 +2,8 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 from esofile_reader.convertor import *
+from esofile_reader.df.level_names import TIMESTAMP_COLUMN, COLUMN_LEVELS
 from esofile_reader.processing.eplus import H, M
-from esofile_reader.df.level_names import TIMESTAMP_COLUMN
 
 
 def test_apply_conversion():
@@ -283,3 +283,46 @@ def test_si_units_invalid():
         si_to_ip("FOO")
     except KeyError:
         pytest.fail("si_to_ip should pass KeyError silently!")
+
+
+MI = pd.MultiIndex.from_tuples([("special", "foo", "abc", "bar", "baz")], names=COLUMN_LEVELS)
+MI_EMPTY = pd.MultiIndex.from_tuples([], names=COLUMN_LEVELS)
+MI_N_DAYS = pd.MultiIndex.from_tuples(
+    [("special", "foo", N_DAYS_COLUMN, "bar", "baz")], names=COLUMN_LEVELS
+)
+
+
+@pytest.mark.parametrize(
+    "df, can_convert",
+    [
+        (pd.DataFrame([], columns=MI_EMPTY), False),
+        (
+            pd.DataFrame(
+                np.ndarray([3, 1]),
+                index=pd.date_range("2002/01/01", freq="D", periods=3),
+                columns=MI,
+            ),
+            True,
+        ),
+        (
+            pd.DataFrame(
+                np.ndarray([3, 1]),
+                index=pd.date_range("2002/01/01", freq="MS", periods=3),
+                columns=MI,
+            ),
+            False,
+        ),
+        (
+            pd.DataFrame(
+                np.ndarray([3, 1]),
+                index=pd.date_range("2002/01/01", freq="MS", periods=3),
+                columns=MI_N_DAYS,
+            ),
+            True,
+        ),
+        (pd.DataFrame(np.ndarray([3, 1]), index=pd.RangeIndex(3), columns=MI_N_DAYS), True),
+        (pd.DataFrame(np.ndarray([3, 1]), index=pd.RangeIndex(3), columns=MI), False),
+    ],
+)
+def test_can_convert_rate_to_energy(df, can_convert):
+    assert can_convert == can_convert_rate_to_energy(df)
