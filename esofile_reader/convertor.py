@@ -18,6 +18,7 @@ from esofile_reader.df.level_names import (
     UNITS_LEVEL,
     KEY_LEVEL,
 )
+from esofile_reader.typehints import ResultsFileType
 
 
 def apply_conversion(
@@ -143,8 +144,9 @@ def convert_rate_to_energy(
     return apply_conversion(df, {"W": ("J", factor), "W/m2": ("J/m2", factor)})
 
 
-def can_convert_rate_to_energy(df: pd.DataFrame) -> bool:
+def can_convert_rate_to_energy(results_file: ResultsFileType, table: str) -> bool:
     """ Check rate can be converted to energy on given table. """
+    df = results_file.get_special_table(table)
     n_days_available = N_DAYS_COLUMN in df.columns.get_level_values(KEY_LEVEL)
     if not n_days_available:
         if isinstance(df.index, pd.DatetimeIndex):

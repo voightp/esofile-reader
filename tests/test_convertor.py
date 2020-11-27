@@ -4,6 +4,7 @@ from pandas.testing import assert_frame_equal, assert_index_equal
 from esofile_reader.convertor import *
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, COLUMN_LEVELS
 from esofile_reader.processing.eplus import H
+from unittest import mock
 
 
 def test_apply_conversion():
@@ -300,4 +301,6 @@ MI_N_DAYS = pd.MultiIndex.from_tuples(
     ],
 )
 def test_can_convert_rate_to_energy(df, can_convert):
-    assert can_convert == can_convert_rate_to_energy(df)
+    rf = mock.Mock()
+    rf.get_special_table.return_value = df
+    assert can_convert == can_convert_rate_to_energy(rf, "foo")

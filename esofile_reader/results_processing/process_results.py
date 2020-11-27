@@ -141,7 +141,7 @@ def get_processed_results(
         if (
             output_type == "standard"
             and rate_to_energy
-            and can_convert_rate_to_energy(results_file.get_special_table(table))
+            and can_convert_rate_to_energy(results_file, table)
         ):
             n_days = get_n_days(results_file, table, start_date, end_date)
             df = convert_rate_to_energy(df, n_days)

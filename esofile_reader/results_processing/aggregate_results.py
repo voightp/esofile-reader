@@ -89,7 +89,7 @@ def get_table_for_aggregation(
     df = results_file.tables.get_results_df(table, ids)
     units = df.columns.get_level_values(UNITS_LEVEL)
     is_rate_and_energy = all_rate_or_energy(units) and len(units) > 1
-    if is_rate_and_energy and can_convert_rate_to_energy(results_file.get_special_table(table)):
+    if is_rate_and_energy and can_convert_rate_to_energy(results_file, table):
         n_days = get_n_days(results_file, table)
         df = convert_rate_to_energy(df, n_days)
     return df
