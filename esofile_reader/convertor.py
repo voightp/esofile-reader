@@ -1,14 +1,15 @@
-from typing import List, Union, Tuple, Any
+import contextlib
+from typing import List, Union, Tuple, Dict, Callable, Optional
 
 import numpy as np
 import pandas as pd
 
 from esofile_reader.conversion_tables import (
-    energy_table,
-    rate_table,
-    si_to_ip,
-    energy_table_per_area,
-    rate_table_per_area,
+    ENERGY_TABLE,
+    ENERGY_TABLE_PER_AREA,
+    RATE_TABLE,
+    RATE_TABLE_PER_AREA,
+    SI_TO_IP,
 )
 from esofile_reader.df.level_names import (
     N_DAYS_COLUMN,
@@ -20,105 +21,83 @@ from esofile_reader.df.level_names import (
 
 
 def apply_conversion(
-    df: pd.DataFrame, conversion_tuples: List[Tuple[str, str, Any]],
+    df: pd.DataFrame, conversion_dict: Dict[str, Tuple[str, Union[Callable, float, int]]],
 ) -> pd.DataFrame:
     """ Convert values for columns using specified units. """
-    for old, new, ratio in conversion_tuples:
-        cnd = df.columns.get_level_values(UNITS_LEVEL) == old
-        if all(map(lambda x: not x, cnd)):
-            # no applicable units
-            continue
-
+    for old, (new, factor) in conversion_dict.items():
+        convert_arr = df.columns.get_level_values(UNITS_LEVEL) == old
         if DATA_LEVEL in df.columns.names:
-            cnd = cnd & (df.columns.get_level_values(DATA_LEVEL) == VALUE_LEVEL)
+            convert_arr = convert_arr & (df.columns.get_level_values(DATA_LEVEL) == VALUE_LEVEL)
 
-        if isinstance(ratio, (float, int)):
-            df.loc[:, cnd] = df.loc[:, cnd] / ratio
-        elif callable(ratio):
-            df.loc[:, cnd] = df.loc[:, cnd].applymap(ratio)
-        elif isinstance(ratio, pd.Series):
-            df.loc[:, cnd] = df.loc[:, cnd].div(ratio.values, axis=0)
+        if isinstance(factor, (float, int)):
+            df.loc[:, convert_arr] = df.loc[:, convert_arr] * factor
+        elif callable(factor):
+            df.loc[:, convert_arr] = df.loc[:, convert_arr].applymap(factor)
+        elif isinstance(factor, pd.Series):
+            df.loc[:, convert_arr] = df.loc[:, convert_arr].mul(factor.values, axis=0)
         else:
-            df.loc[:, cnd] = df.loc[:, cnd].div(ratio, axis=0)
-    orig_units, new_units, _ = zip(*conversion_tuples)
-    update_multiindex(df, UNITS_LEVEL, orig_units, new_units)
+            df.loc[:, convert_arr] = df.loc[:, convert_arr].mul(factor, axis=0)
+
+    units_lookup = {k: v[0] for k, v in conversion_dict.items()}
+    df.columns = update_units_level(df.columns, units_lookup)
     return df
 
 
-def create_conversion_tuples(
+def create_conversion_dict(
     source_units: Union[pd.Series, pd.Index],
     units_system: str,
     rate_units: str,
     energy_units: str,
-) -> List[Tuple[str, str, Any]]:
-    """ Get relevant converted units and conversion ratios. """
-    conversion_tuples = []
+) -> Dict[str, Tuple[str, Union[Callable, float, int]]]:
+    """ Get relevant converted units and conversion factors. """
+    conversion_dict = {}
     for units in source_units.unique():
         if units == "J" and energy_units != "J":
-            inp = energy_table(energy_units)
+            conversion_dict[units] = ENERGY_TABLE[energy_units]
         elif units == "J/m2" and energy_units != "J":
-            inp = energy_table_per_area(energy_units)
+            conversion_dict[units] = ENERGY_TABLE_PER_AREA[energy_units]
         elif units == "W" and rate_units != "W":
-            inp = rate_table(rate_units)
+            conversion_dict[units] = RATE_TABLE[rate_units]
         elif units == "W/m2" and rate_units != "W":
-            inp = rate_table_per_area(rate_units)
+            conversion_dict[units] = RATE_TABLE_PER_AREA[rate_units]
         elif units_system == "IP":
-            inp = si_to_ip(units)
-        else:
-            inp = None
-        if inp:
-            conversion_tuples.append(inp)
-    return conversion_tuples
+            with contextlib.suppress(KeyError):
+                conversion_dict[units] = SI_TO_IP[units]
+    return conversion_dict
 
 
 def convert_units(
     df: pd.DataFrame, units_system: str, rate_units: str, energy_units
 ) -> pd.DataFrame:
     """ Convert raw E+ results to use requested units. """
-    conversion_tuples = create_conversion_tuples(
+    conversion_dict = create_conversion_dict(
         df.columns.get_level_values(UNITS_LEVEL),
         units_system=units_system,
         rate_units=rate_units,
         energy_units=energy_units,
     )
-    if conversion_tuples:
+    if conversion_dict:
         # there's nothing to convert
-        return apply_conversion(df, conversion_tuples)
+        return apply_conversion(df, conversion_dict)
     else:
         return df
 
 
-def update_multiindex(
-    df: pd.DataFrame,
-    level: Union[str, int],
-    old_vals: List[str],
-    new_vals: List[str],
-    axis: int = 1,
-) -> None:
-    """ Replace multiindex values on a specific level inplace. """
+def update_units_level(mi: pd.MultiIndex, units_dict: Dict[str, str],) -> pd.MultiIndex:
+    """ Replace given units with converted ones. """
 
     def replace(val):
-        if val in old_vals:
-            return new_vals[old_vals.index(val)]
-        else:
-            return val
+        try:
+            updated = units_dict[val]
+        except KeyError:
+            updated = val
+        return updated
 
-    mi = df.columns if axis == 1 else df.index
-
-    if isinstance(level, str):
-        # let 'Value Error' be raised when invalid
-        level = mi.names.index(level)
-
-    levels = [mi.get_level_values(i) for i in range(mi.nlevels)]
-
-    new_level = [replace(val) for val in levels[level]]
-    levels[level] = new_level
-    new_mi = pd.MultiIndex.from_arrays(levels, names=mi.names)
-
-    if axis == 1:
-        df.columns = new_mi
-    else:
-        df.index = new_mi
+    all_levels = [mi.get_level_values(i) for i in range(mi.nlevels)]
+    units_level_index = mi.names.index(UNITS_LEVEL)
+    updated_units_level = [replace(units) for units in all_levels[units_level_index]]
+    all_levels[units_level_index] = updated_units_level
+    return pd.MultiIndex.from_arrays(all_levels, names=mi.names)
 
 
 def all_rate_or_energy(units: List[str]) -> bool:
@@ -149,18 +128,19 @@ def get_n_steps(dt_index: pd.DatetimeIndex) -> float:
     return 3600 / (dt_index[1] - dt_index[0]).seconds
 
 
-def convert_rate_to_energy(df: pd.DataFrame, n_days: int = None) -> pd.DataFrame:
+def convert_rate_to_energy(
+    df: pd.DataFrame, n_days: Optional[pd.Series] = None
+) -> pd.DataFrame:
     """ Convert 'rate' outputs to 'energy'. """
     if is_hourly(df.index) or is_timestep(df.index):
         n_steps = get_n_steps(df.index)
-        ratio = n_steps / 3600
+        factor = 3600 / n_steps
     elif is_daily(df.index):
-        ratio = 1 / (24 * 3600)
+        factor = 24 * 3600
     else:
-        ratio = 1 / (n_days * 24 * 3600)
+        factor = n_days * 24 * 3600
     # ratios are the same for standard and normalized units
-    conversion_tuples = [("W", "J", ratio), ("W/m2", "J/m2", ratio)]
-    return apply_conversion(df, conversion_tuples)
+    return apply_conversion(df, {"W": ("J", factor), "W/m2": ("J/m2", factor)})
 
 
 def can_convert_rate_to_energy(df: pd.DataFrame) -> bool:

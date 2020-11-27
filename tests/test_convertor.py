@@ -1,18 +1,18 @@
 import pytest
-from pandas.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal, assert_index_equal
 
 from esofile_reader.convertor import *
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, COLUMN_LEVELS
-from esofile_reader.processing.eplus import H, M
+from esofile_reader.processing.eplus import H
 
 
 def test_apply_conversion():
     columns = pd.MultiIndex.from_tuples([(1, "bar"), (2, "baz")], names=["id", "units"])
     df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-    out = apply_conversion(df, [("bar", "foo", 2)])
+    out = apply_conversion(df, {"bar": ("foo", 2)})
 
     test_mi = pd.MultiIndex.from_tuples([(1, "foo"), (2, "baz")], names=["id", "units"])
-    test_df = pd.DataFrame([[0.5, 1], [1, 2]], columns=test_mi)
+    test_df = pd.DataFrame([[2, 1], [4, 2]], columns=test_mi)
     assert_frame_equal(out, test_df)
 
 
@@ -21,12 +21,12 @@ def test_apply_conversion_peak():
         [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
     )
     df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-    out = apply_conversion(df, [("bar", "foo", 2)])
+    out = apply_conversion(df, {"bar": ("foo", 2)})
 
     test_mi = pd.MultiIndex.from_tuples(
         [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
     )
-    test_df = pd.DataFrame([[0.5, 1], [1, 2]], columns=test_mi)
+    test_df = pd.DataFrame([[2, 1], [4, 2]], columns=test_mi)
     assert_frame_equal(out, test_df)
 
 
@@ -35,7 +35,7 @@ def test_apply_conversion_callable():
         [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
     )
     df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-    out = apply_conversion(df, [("bar", "foo", lambda x: 2 * x)])
+    out = apply_conversion(df, {"bar": ("foo", lambda x: 2 * x)})
 
     test_mi = pd.MultiIndex.from_tuples(
         [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
@@ -49,12 +49,12 @@ def test_apply_conversion_array():
         [(1, "bar", "value"), (2, "bar", "ts")], names=["id", "units", "data"]
     )
     df = pd.DataFrame([[1, 1], [2, 2]], columns=columns)
-    out = apply_conversion(df, [("bar", "foo", [2, 4])])
+    out = apply_conversion(df, {"bar": ("foo", [2, 4])})
 
     test_mi = pd.MultiIndex.from_tuples(
         [(1, "foo", "value"), (2, "foo", "ts")], names=["id", "units", "data"]
     )
-    test_df = pd.DataFrame([[0.5, 1], [0.5, 2]], columns=test_mi)
+    test_df = pd.DataFrame([[2, 1], [8, 2]], columns=test_mi)
     assert_frame_equal(out, test_df)
 
 
@@ -109,7 +109,8 @@ def test_convert_units_si_to_ip():
         [(1, "ft"), (2, "W/sqf"), (3, "deltaF")], names=["id", "units"]
     )
     test_df = pd.DataFrame(
-        [[1 / 0.3048, 1 / 10.76, 1.8], [2 / 0.3048, 2 / 10.76, 3.6]], columns=test_mi
+        [[1 * 3.280839895, 1 / 10.76391, 1.8], [2 * 3.280839895, 2 / 10.76391, 3.6]],
+        columns=test_mi,
     )
     assert_frame_equal(out, test_df)
 
@@ -142,22 +143,11 @@ def test_convert_units_no_valid():
     assert_frame_equal(df, out)
 
 
-def test_update_multiindex_axis0():
-    columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
-    index = pd.Index(["a", "b"], name="dt")
-    df = pd.DataFrame([[1, 1], [2, 2]], index=index, columns=columns)
-
-    update_multiindex(df, "dt", ["a"], ["c"], axis=0)
-
-    assert df.index.tolist() == [("c",), ("b",)]
-
-
-def test_update_multiindex_axis1():
-    columns = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
-    index = pd.Index(["a", "b"], name="dt")
-    df = pd.DataFrame([[1, 1], [2, 2]], index=index, columns=columns)
-    update_multiindex(df, "units", ["m"], ["ft"], axis=1)
-    assert df.columns.tolist() == [(1, "ft"), (2, "W/m2")]
+def test_update_multiindex():
+    mi = pd.MultiIndex.from_tuples([(1, "m"), (2, "W/m2")], names=["id", "units"])
+    updated_mi = update_units_level(mi, {"m": "ft"})
+    expected = pd.MultiIndex.from_tuples([(1, "ft"), (2, "W/m2")], names=["id", "units"])
+    assert_index_equal(updated_mi, expected)
 
 
 def test_rate_and_energy_units():
@@ -267,22 +257,7 @@ def test_rate_to_energy_missing_ndays():
     )
     df = pd.DataFrame([[1, 1], [2, None], [3, 3]], index=index, columns=columns)
     with pytest.raises(TypeError):
-        _ = convert_rate_to_energy(df, M)
-
-
-@pytest.mark.parametrize(
-    "table", [rate_table, rate_table_per_area, energy_table, energy_table_per_area]
-)
-def test_energy_rate_units_invalid(table):
-    with pytest.raises(KeyError):
-        _ = table("FOO")
-
-
-def test_si_units_invalid():
-    try:
-        si_to_ip("FOO")
-    except KeyError:
-        pytest.fail("si_to_ip should pass KeyError silently!")
+        _ = convert_rate_to_energy(df, None)
 
 
 MI = pd.MultiIndex.from_tuples([("special", "foo", "abc", "bar", "baz")], names=COLUMN_LEVELS)
