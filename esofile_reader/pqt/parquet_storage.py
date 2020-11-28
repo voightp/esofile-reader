@@ -13,11 +13,11 @@ from esofile_reader.processing.progress_logger import BaseLogger
 class ParquetStorage(DFStorage):
     EXT = ".cfs"
 
-    def __init__(self):
+    def __init__(self, parent: PathLike = None):
         super().__init__()
         self.files = {}
         self.path = None
-        self.workdir = Path(tempfile.mkdtemp(prefix="storage-"))
+        self.workdir = Path(tempfile.mkdtemp(prefix="storage-", dir=parent))
 
     def __del__(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
