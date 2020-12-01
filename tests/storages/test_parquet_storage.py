@@ -117,3 +117,10 @@ def test_merge_storages(storage, loaded_storage):
         "eplusout2 (1)",
         "test_excel_results (1)",
     ]
+
+
+def test_storage_in_path(tmpdir):
+    path = Path(tmpdir, "foo")
+    pqs = ParquetStorage(path)
+    assert pqs.workdir == path
+    assert path.exists()
