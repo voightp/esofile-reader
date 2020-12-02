@@ -24,7 +24,7 @@ class ParquetStorage(DFStorage):
             self.workdir = Path(tempfile.mkdtemp(prefix="pqs-"))
 
     def __del__(self):
-        shutil.rmtree(self.workdir, ignore_errors=True)
+        shutil.rmtree(self.workdir)
 
     @classmethod
     def _load_storage(cls, path: Path, logger: BaseLogger) -> "ParquetStorage":

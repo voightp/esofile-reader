@@ -1,4 +1,5 @@
 import contextlib
+import shutil
 
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 from esofile_reader.pqt.parquet_tables import ParquetFrame
@@ -20,6 +21,7 @@ def storage(eplusout1, eplusout2, excel_file):
         for f in files:
             with contextlib.suppress(FileNotFoundError):
                 f.unlink()
+        shutil.rmtree(storage.workdir)
 
 
 @pytest.fixture(scope="module")
@@ -30,9 +32,13 @@ def loaded_storage(storage):
         yield loaded_storage
     finally:
         path.unlink()
+        shutil.rmtree(loaded_storage.workdir)
 
 
-@pytest.fixture(params=[pytest.lazy_fixture("storage"), pytest.lazy_fixture("loaded_storage")])
+@pytest.fixture(
+    params=[pytest.lazy_fixture("storage"), pytest.lazy_fixture("loaded_storage")],
+    scope="module",
+)
 def parametrized_storage(request):
     return request.param
 
