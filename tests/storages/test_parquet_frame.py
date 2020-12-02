@@ -52,17 +52,21 @@ def test_df():
 @pytest.fixture
 def parquet_frame(test_df):
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        ParquetFrame.PARQUET_SIZE = 1
+        ParquetFrame.MAX_N_COLUMNS = 5
         parquet_frame = ParquetFrame.from_df(test_df, f"test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
-            ParquetFrame.PARQUET_SIZE = 1024
+            ParquetFrame.MAX_N_COLUMNS = 100
             parquet_frame.clean_up()
 
 
 def test_name(parquet_frame):
     assert parquet_frame.name == "table-test"
+
+
+def test_n_parquets(parquet_frame):
+    assert len(list(parquet_frame.workdir.iterdir())) == 3
 
 
 def test_index(parquet_frame, test_df):
@@ -375,7 +379,8 @@ def test_copy(parquet_frame, test_df):
 
 
 @pytest.mark.parametrize(
-    "shape, n_parquets", [([100, 10000], 8), ([10000, 100], 8), ([2, 10], 1), ([10000, 1], 1),]
+    "shape, n_parquets",
+    [([100, 10000], 100), ([10000, 100], 8), ([2, 10], 1), ([10000, 1], 1),],
 )
 def test_predict_n_parquets(shape, n_parquets):
     df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
@@ -385,7 +390,7 @@ def test_predict_n_parquets(shape, n_parquets):
 @pytest.mark.parametrize(
     "shape, n_columns",
     [
-        ([100, 10000], [1311, 1311, 1311, 1311, 1311, 1311, 1311, 823]),
+        ([100, 10000], [100] * 100),
         ([10000, 100], [14, 14, 14, 14, 14, 14, 14, 2]),
         ([2, 10], [10]),
         ([10000, 1], [1]),

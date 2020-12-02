@@ -8,7 +8,7 @@ from tests.session_fixtures import *
 
 @pytest.fixture(scope="module")
 def storage(eplusout1, eplusout2, excel_file):
-    ParquetFrame.PARQUET_SIZE = 10
+    ParquetFrame.MAX_SIZE = 10
     storage = ParquetStorage()
     storage.store_file(eplusout1)
     storage.store_file(eplusout2)
@@ -17,7 +17,7 @@ def storage(eplusout1, eplusout2, excel_file):
         yield storage
     finally:
         files = [Path("pqs" + ParquetStorage.EXT), Path("file-0")]
-        ParquetFrame.PARQUET_SIZE = 100
+        ParquetFrame.MAX_SIZE = 100
         for f in files:
             with contextlib.suppress(FileNotFoundError):
                 f.unlink()

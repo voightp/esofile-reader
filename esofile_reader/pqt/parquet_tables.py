@@ -96,7 +96,8 @@ class _ParquetIndexer:
 
 
 class ParquetFrame:
-    PARQUET_SIZE = 1024
+    MAX_SIZE = 1024
+    MAX_N_COLUMNS = 100
     INDEX_PARQUET = "index.parquet"
     PQT_REF_PARQUET = "reference.parquet"
 
@@ -191,17 +192,17 @@ class ParquetFrame:
         """ Calculate number of columns per parquet for given DataFrame.  """
         sizes = df.memory_usage(index=False)
         n_columns = []
-        size_counter = 0
+        column_counter = 0
         running_size = 0
         for size in sizes:
             running_size += size
-            size_counter += 1
-            if running_size >= cls.PARQUET_SIZE << 10:
-                n_columns.append(size_counter)
-                size_counter = 0
+            column_counter += 1
+            if running_size >= cls.MAX_SIZE << 10 or column_counter == cls.MAX_N_COLUMNS:
+                n_columns.append(column_counter)
+                column_counter = 0
                 running_size = 0
-        if size_counter != 0:
-            n_columns.append(size_counter)
+        if column_counter != 0:
+            n_columns.append(column_counter)
         return n_columns
 
     @classmethod
@@ -445,7 +446,7 @@ class ParquetFrame:
             required = True
         else:
             sizes = [p.stat().st_size for p in self.parquet_paths]
-            required = all(map(lambda x: x > self.PARQUET_SIZE << 10, sizes))
+            required = all(map(lambda x: x > self.MAX_SIZE << 10, sizes))
         return required
 
     def _insert_column(
