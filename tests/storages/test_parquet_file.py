@@ -10,12 +10,12 @@ from tests.session_fixtures import *
 
 @pytest.fixture(scope="module")
 def parquet_file(eplusout_all_intervals):
-    ParquetFrame.PARQUET_SIZE = 10
+    ParquetFrame.MAX_N_COLUMNS = 3
     parquet_file = ParquetFile.from_results_file(0, eplusout_all_intervals)
     try:
         yield parquet_file
     finally:
-        ParquetFrame.PARQUET_SIZE = 100
+        ParquetFrame.MAX_N_COLUMNS = 100
         parquet_file.clean_up()
 
 

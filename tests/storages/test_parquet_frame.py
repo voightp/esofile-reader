@@ -52,17 +52,21 @@ def test_df():
 @pytest.fixture
 def parquet_frame(test_df):
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        ParquetFrame.PARQUET_SIZE = 1
+        ParquetFrame.MAX_N_COLUMNS = 5
         parquet_frame = ParquetFrame.from_df(test_df, f"test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
-            ParquetFrame.PARQUET_SIZE = 1024
+            ParquetFrame.MAX_N_COLUMNS = 100
             parquet_frame.clean_up()
 
 
 def test_name(parquet_frame):
     assert parquet_frame.name == "table-test"
+
+
+def test_n_parquets(parquet_frame):
+    assert len(list(parquet_frame.workdir.iterdir())) == 3
 
 
 def test_index(parquet_frame, test_df):
