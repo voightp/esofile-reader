@@ -55,10 +55,13 @@ class ParquetStorage(DFStorage):
         """ Store results file as persistent 'ParquetFile'. """
         logger = logger if logger else BaseLogger(self.workdir.name)
         with logger.log_task(f"Store file {results_file.file_name}"):
+            logger.log_section("calculating number of parquets")
             n = ParquetFile.predict_number_of_parquets(results_file)
             logger.set_maximum_progress(n)
             id_gen = incremental_id_gen(checklist=set(self.files.keys()))
             id_ = next(id_gen)
+
+            logger.log_section("writing parquets")
             file = ParquetFile.from_results_file(
                 id_=id_, results_file=results_file, pardir=self.workdir, logger=logger,
             )
