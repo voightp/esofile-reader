@@ -234,7 +234,9 @@ class BaseFile:
             if len(ids) == 1:
                 id_ = ids[0]
                 is_simple = type(variable) is SimpleVariable
-                if variable.key == new_key and (variable.type if not is_simple else True):
+                if variable.key == new_key and (
+                    variable.type == new_type if not is_simple else True
+                ):
                     new_variable = variable
                 else:
                     # create new variable and add it into tree

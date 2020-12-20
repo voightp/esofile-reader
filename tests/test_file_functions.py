@@ -328,6 +328,16 @@ def test_create_new_header_variable_invalid(file, table, new_key, new_type, new_
             18,
         ),
         (
+            pytest.lazy_fixture("eso_file"),
+            Variable(
+                table="annual", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
+            ),
+            "BLOCK1:ZONE1",
+            "VARIABLE",
+            Variable(table="annual", key="BLOCK1:ZONE1", type="VARIABLE", units=""),
+            18,
+        ),
+        (
             pytest.lazy_fixture("simple_file"),
             SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units=""),
             "NEW3",
