@@ -339,8 +339,6 @@ def test_create_new_header_variable_invalid(file, table, new_key, new_type, new_
     indirect=["copied_file"],
 )
 def test_rename_variable(copied_file, variable, new_key, new_type, test_variable, test_id):
-    if isinstance(copied_file, ParquetFile):
-        print(copied_file.workdir.exists())
     id_, new_variable = copied_file.rename_variable(
         variable, new_key=new_key, new_type=new_type
     )
@@ -375,6 +373,36 @@ def test_rename_variable(copied_file, variable, new_key, new_type, test_variable
 def test_rename_variable_invalid(copied_file, variable, new_key, new_type):
     with pytest.raises(KeyError):
         copied_file.rename_variable(variable, new_key=new_key, new_type=new_type)
+
+
+@pytest.mark.parametrize(
+    "copied_file, variable, new_key, new_type, test_id",
+    [
+        (
+            pytest.lazy_fixture("eso_file"),
+            Variable(
+                table="annual", key="BLOCK1:ZONE1", type="Zone People Occupant Count", units="",
+            ),
+            "BLOCK1:ZONE1",
+            "Zone People Occupant Count",
+            18,
+        ),
+        (
+            pytest.lazy_fixture("simple_file"),
+            SimpleVariable(table="monthly-simple", key="BLOCK1:ZONE1", units=""),
+            "BLOCK1:ZONE1",
+            None,
+            2,
+        ),
+    ],
+    indirect=["copied_file"],
+)
+def test_rename_variable_identical_text(copied_file, variable, new_key, new_type, test_id):
+    id_, new_variable = copied_file.rename_variable(
+        variable, new_key=new_key, new_type=new_type
+    )
+    assert id_ == test_id
+    assert new_variable == variable
 
 
 def test_rename_variable_missing_args(eplusout_all_intervals):

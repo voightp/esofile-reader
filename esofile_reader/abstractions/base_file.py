@@ -233,22 +233,26 @@ class BaseFile:
             ids = self.search_tree.find_ids(variable)
             if len(ids) == 1:
                 id_ = ids[0]
-                # create new variable and add it into tree
-                new_variable = self._create_header_variable(
-                    table, new_key, units, type_=new_type
-                )
-
-                # remove current item to avoid item duplicity
-                self.search_tree.remove_variables(variable)
-                self.search_tree.add_variable(id_, new_variable)
-
-                # rename variable in data set
-                if type(variable) is Variable:
-                    self.tables.update_variable_name(
-                        table, id_, new_variable.key, new_variable.type
-                    )
+                is_simple = type(variable) is SimpleVariable
+                if variable.key == new_key and (variable.type if not is_simple else True):
+                    new_variable = variable
                 else:
-                    self.tables.update_variable_name(table, id_, new_variable.key)
+                    # create new variable and add it into tree
+                    new_variable = self._create_header_variable(
+                        table, new_key, units, type_=new_type
+                    )
+
+                    # remove current item to avoid item duplicity
+                    self.search_tree.remove_variables(variable)
+                    self.search_tree.add_variable(id_, new_variable)
+
+                    # rename variable in data set
+                    if is_simple:
+                        self.tables.update_variable_name(table, id_, new_variable.key)
+                    else:
+                        self.tables.update_variable_name(
+                            table, id_, new_variable.key, new_variable.type
+                        )
                 return id_, new_variable
             elif len(ids) > 1:
                 raise KeyError(
