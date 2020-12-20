@@ -115,7 +115,7 @@ class ParquetFile(BaseFile):
         cls,
         id_: int,
         results_file: ResultsFileType,
-        pardir: str = "",
+        pardir: PathLike = "",
         logger: BaseLogger = None,
     ) -> "ParquetFile":
         workdir = Path(pardir, f"file-{id_}")

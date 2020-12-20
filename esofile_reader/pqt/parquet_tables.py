@@ -191,13 +191,14 @@ class ParquetFrame:
     def _get_columns_per_parquet(cls, df: pd.DataFrame) -> List[int]:
         """ Calculate number of columns per parquet for given DataFrame.  """
         sizes = df.memory_usage(index=False)
+        max_size_in_bytes = cls.MAX_SIZE << 10
         n_columns = []
         column_counter = 0
         running_size = 0
         for size in sizes:
             running_size += size
             column_counter += 1
-            if running_size >= cls.MAX_SIZE << 10 or column_counter == cls.MAX_N_COLUMNS:
+            if column_counter == cls.MAX_N_COLUMNS or running_size >= max_size_in_bytes:
                 n_columns.append(column_counter)
                 column_counter = 0
                 running_size = 0
@@ -280,6 +281,7 @@ class ParquetFrame:
 
             if logger:
                 logger.increment_progress()
+                logger.log_section(f"writing parquet {logger.progress}/{logger.max_progress}")
 
     @classmethod
     def from_df(
