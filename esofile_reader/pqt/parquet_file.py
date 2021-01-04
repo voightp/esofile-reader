@@ -10,10 +10,10 @@ from typing import Union, Tuple, Dict, Any
 from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
-from esofile_reader.typehints import ResultsFileType, PathLike
 from esofile_reader.pqt.parquet_tables import ParquetFrame, ParquetTables, get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
+from esofile_reader.typehints import ResultsFileType, PathLike
 
 
 class ParquetFile(BaseFile):
@@ -212,11 +212,15 @@ class ParquetFile(BaseFile):
         finally:
             self.info_json_path.unlink()
 
-    def save_file_to_zip(self, zf: ZipFile, relative_to: Path):
+    def count_parquets(self):
+        """ Count all child parquets. """
+        return sum(pqf.parquet_count for pqf in self.tables.values())
+
+    def save_file_to_zip(self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None):
         with self.temporary_attribute_json() as f:
             zf.write(f, arcname=f.relative_to(relative_to))
         for pqt_frame in self.tables.values():
-            pqt_frame.save_frame_to_zip(zf, relative_to)
+            pqt_frame.save_frame_to_zip(zf, relative_to, logger)
 
     def save_as(self, dir_: PathLike, name: str) -> Path:
         """ Save parquet storage into given location. """

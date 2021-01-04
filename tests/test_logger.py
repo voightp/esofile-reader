@@ -22,8 +22,11 @@ def logger():
 
 
 @pytest.fixture(scope="module")
-def pqs():
+def pqs(eplusout1, eplusout2, eplusout_all_intervals):
     pqs = ParquetStorage()
+    pqs.store_file(eplusout1)
+    pqs.store_file(eplusout2)
+    pqs.store_file(eplusout_all_intervals)
     pqs.path = Path("test_logger" + ParquetStorage.EXT)
     try:
         yield pqs

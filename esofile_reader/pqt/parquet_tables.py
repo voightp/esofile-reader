@@ -148,6 +148,10 @@ class ParquetFrame:
     def reference_paths(self) -> List[Path]:
         return [self.index_parquet_path, self.reference_parquet_path]
 
+    @property
+    def parquet_count(self) -> int:
+        return len(self.parquet_paths) + len(self.reference_paths)
+
     @index.setter
     def index(self, val: pd.Index) -> None:
         if not issubclass(type(val), pd.Index):
@@ -520,12 +524,16 @@ class ParquetFrame:
         finally:
             self.clear_reference_parquets()
 
-    def save_frame_to_zip(self, zf: ZipFile, relative_to: Path) -> None:
+    def save_frame_to_zip(
+        self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None
+    ) -> None:
         """ Write parquets to given zip file. """
         with self.temporary_reference_parquets():
             all_paths = self.parquet_paths + self.reference_paths
             for path in all_paths:
                 zf.write(path, arcname=path.relative_to(relative_to))
+                if logger:
+                    logger.increment_progress()
 
 
 class ParquetTables(DFTables):

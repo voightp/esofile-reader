@@ -130,3 +130,7 @@ def test_storage_in_path(tmpdir):
     pqs = ParquetStorage(path)
     assert pqs.workdir == path
     assert path.exists()
+
+
+def test_count_parquets(storage):
+    assert storage.count_parquets() == 233
