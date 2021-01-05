@@ -1,5 +1,6 @@
 import contextlib
 import shutil
+from copy import copy
 
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 from esofile_reader.pqt.parquet_tables import ParquetFrame
@@ -8,7 +9,7 @@ from tests.session_fixtures import *
 
 @pytest.fixture(scope="module")
 def storage(eplusout1, eplusout2, excel_file):
-    ParquetFrame.MAX_SIZE = 10
+    ParquetFrame.MAX_N_COLUMNS = 10
     storage = ParquetStorage()
     storage.store_file(eplusout1)
     storage.store_file(eplusout2)
@@ -17,7 +18,7 @@ def storage(eplusout1, eplusout2, excel_file):
         yield storage
     finally:
         files = [Path("pqs" + ParquetStorage.EXT), Path("file-0")]
-        ParquetFrame.MAX_SIZE = 100
+        ParquetFrame.MAX_N_COLUMNS = 100
         for f in files:
             with contextlib.suppress(FileNotFoundError):
                 f.unlink()
@@ -113,7 +114,12 @@ def test_save(loaded_storage):
     assert loaded_storage.save() == Path("pqs.cfs")
 
 
+def test_count_parquets(storage):
+    assert storage.count_parquets() == 111
+
+
 def test_merge_storages(storage, loaded_storage):
+    storage = copy(storage)
     storage.merge_with(loaded_storage.path)
     assert storage.get_all_file_names() == [
         "eplusout1",
@@ -130,7 +136,3 @@ def test_storage_in_path(tmpdir):
     pqs = ParquetStorage(path)
     assert pqs.workdir == path
     assert path.exists()
-
-
-def test_count_parquets(storage):
-    assert storage.count_parquets() == 233

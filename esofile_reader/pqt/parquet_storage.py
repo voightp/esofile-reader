@@ -6,6 +6,7 @@ from zipfile import ZipFile
 from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.id_generator import incremental_id_gen, get_unique_name
 from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.pqt.parquet_tables import get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.typehints import ResultsFileType, PathLike
 
@@ -13,18 +14,28 @@ from esofile_reader.typehints import ResultsFileType, PathLike
 class ParquetStorage(DFStorage):
     EXT = ".cfs"
 
-    def __init__(self, path: PathLike = None):
+    def __init__(self, workdir: PathLike = None):
         super().__init__()
         self.files = {}
         self.path = None
-        if path:
-            self.workdir = Path(path)
+        if workdir:
+            self.workdir = Path(workdir)
             self.workdir.mkdir()
         else:
             self.workdir = Path(tempfile.mkdtemp(prefix="pqs-"))
 
     def __del__(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def __copy__(self):
+        return self.copy_to(get_unique_workdir(self.workdir))
+
+    def copy_to(self, new_workdir: Path):
+        pqs = ParquetStorage(new_workdir)
+        for id_, file in self.files.items():
+            new_file = file.copy_to(new_workdir)
+            pqs.files[id_] = new_file
+        return pqs
 
     @classmethod
     def _load_storage(cls, path: Path, logger: BaseLogger) -> "ParquetStorage":
