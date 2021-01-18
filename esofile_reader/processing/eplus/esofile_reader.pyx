@@ -174,7 +174,7 @@ def process_sub_monthly_interval_line(
 
     def parse_timestep_or_hourly_interval():
         """ Process TS or H interval entry and return interval identifier. """
-        end_minute = Decimal(data[6]).to_integral(rounding=ROUND_HALF_UP)
+        end_minute = int(Decimal(data[6]).to_integral(rounding=ROUND_HALF_UP))
         interval = EsoTimestamp(
             int(data[1]), int(data[2]), int(data[4]), end_minute
         )
