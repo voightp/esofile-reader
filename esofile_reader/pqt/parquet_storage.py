@@ -5,26 +5,37 @@ from zipfile import ZipFile
 
 from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.id_generator import incremental_id_gen, get_unique_name
-from esofile_reader.typehints import ResultsFileType, PathLike
 from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.pqt.parquet_tables import get_unique_workdir
 from esofile_reader.processing.progress_logger import BaseLogger
+from esofile_reader.typehints import ResultsFileType, PathLike
 
 
 class ParquetStorage(DFStorage):
     EXT = ".cfs"
 
-    def __init__(self, path: PathLike = None):
+    def __init__(self, workdir: PathLike = None):
         super().__init__()
         self.files = {}
         self.path = None
-        if path:
-            self.workdir = Path(path)
+        if workdir:
+            self.workdir = Path(workdir)
             self.workdir.mkdir()
         else:
             self.workdir = Path(tempfile.mkdtemp(prefix="pqs-"))
 
     def __del__(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def __copy__(self):
+        return self.copy_to(get_unique_workdir(self.workdir))
+
+    def copy_to(self, new_workdir: Path):
+        pqs = ParquetStorage(new_workdir)
+        for id_, file in self.files.items():
+            new_file = file.copy_to(new_workdir)
+            pqs.files[id_] = new_file
+        return pqs
 
     @classmethod
     def _load_storage(cls, path: Path, logger: BaseLogger) -> "ParquetStorage":
@@ -75,14 +86,19 @@ class ParquetStorage(DFStorage):
             shutil.rmtree(self.files[id_].workdir, ignore_errors=True)
             del self.files[id_]
 
+    def count_parquets(self):
+        """ Count all child parquets. """
+        return sum(pqf.count_parquets() for pqf in self.files.values())
+
     def save_as(self, dir_: PathLike, name: str, logger: BaseLogger = None) -> Path:
         """ Save parquet storage into given location. """
         logger = logger if logger else BaseLogger(self.workdir.name)
         with logger.log_task("save storage"):
+            logger.set_maximum_progress(self.count_parquets())
             path = Path(dir_, f"{name}{self.EXT}")
             with ZipFile(path, mode="w") as zf:
                 for pqf in self.files.values():
-                    pqf.save_file_to_zip(zf, self.workdir)
+                    pqf.save_file_to_zip(zf, self.workdir, logger)
             self.path = path
         return path
 
