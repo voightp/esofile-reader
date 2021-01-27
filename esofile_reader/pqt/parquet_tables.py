@@ -1,5 +1,7 @@
 import contextlib
+import math
 import shutil
+import sys
 from pathlib import Path
 from typing import List, Dict, Tuple, Sequence, Union, Any, Optional
 from uuid import uuid1
@@ -192,28 +194,23 @@ class ParquetFrame:
         return self._copy(Path(new_pardir, self.name))
 
     @classmethod
-    def _get_columns_per_parquet(cls, df: pd.DataFrame) -> List[int]:
-        """ Calculate number of columns per parquet for given DataFrame.  """
-        sizes = df.memory_usage(index=False)
-        max_size_in_bytes = cls.MAX_SIZE << 10
-        n_columns = []
-        column_counter = 0
-        running_size = 0
-        for size in sizes:
-            running_size += size
-            column_counter += 1
-            if column_counter == cls.MAX_N_COLUMNS or running_size >= max_size_in_bytes:
-                n_columns.append(column_counter)
-                column_counter = 0
-                running_size = 0
-        if column_counter != 0:
-            n_columns.append(column_counter)
-        return n_columns
+    def calculate_n_columns_per_parquet(cls, df: pd.DataFrame) -> int:
+        """ Calculate number of columns per parquet for given DataFrame. """
+        size = sys.getsizeof(df) - sys.getsizeof(df.index)
+        mean_size = size / df.shape[1]
+        columns_per_parquet = math.ceil((cls.MAX_SIZE << 10) / mean_size)
+
+        if columns_per_parquet > cls.MAX_N_COLUMNS:
+            columns_per_parquet = cls.MAX_N_COLUMNS
+
+        return columns_per_parquet
 
     @classmethod
     def predict_n_parquets(cls, df: pd.DataFrame) -> int:
         """ Predict number of parquets required to store DataFrame. """
-        return len(cls._get_columns_per_parquet(df))
+        columns_per_parquet = cls.calculate_n_columns_per_parquet(df)
+        n_columns = df.shape[1]
+        return math.ceil(n_columns / columns_per_parquet)
 
     @staticmethod
     def _create_unique_parquet_name():
@@ -265,10 +262,11 @@ class ParquetFrame:
         df = df.copy()  # avoid potential frame mutation
         self._index = df.index.copy()
         self._reference_df.index = pd.MultiIndex.from_tuples([], names=df.columns.names)
-        n_columns = self._get_columns_per_parquet(df)
+        n_columns = self.calculate_n_columns_per_parquet(df)
+        n_parquets = self.predict_n_parquets(df)
         start = 0
-        for n in n_columns:
-            end = start + n
+        for _ in range(n_parquets):
+            end = start + n_columns
             dfi = df.iloc[:, start:end]
 
             # use parquet id as the only identifier
