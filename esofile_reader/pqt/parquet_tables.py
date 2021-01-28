@@ -194,9 +194,14 @@ class ParquetFrame:
         return self._copy(Path(new_pardir, self.name))
 
     @classmethod
+    def guess_size(cls, n_rows: int, n_columns: int):
+        """ Guess size based on number of rows and columns, presuming float type. """
+        return n_rows * n_columns * 8
+
+    @classmethod
     def calculate_n_columns_per_parquet(cls, df: pd.DataFrame) -> int:
         """ Calculate number of columns per parquet for given DataFrame. """
-        size = sys.getsizeof(df) - sys.getsizeof(df.index)
+        size = cls.guess_size(*df.shape)  # getting size from sys can be expensive
         mean_size = size / df.shape[1]
         columns_per_parquet = math.ceil((cls.MAX_SIZE << 10) / mean_size)
 

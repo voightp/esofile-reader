@@ -395,7 +395,7 @@ def test_predict_n_parquets(shape, n_parquets):
         ([2, 205], 100),
         ([10000, 200], 14),
         ([10, 100], 100),
-        ([1, 1], 1),
+        ([1, 1], 100),
     ],
 )
 def test_predict_n_columns_in_parquet(shape, n_columns):
