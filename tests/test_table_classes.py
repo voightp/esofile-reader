@@ -21,6 +21,7 @@ from esofile_reader.df.level_names import (
 )
 from esofile_reader.typehints import Variable, SimpleVariable
 from esofile_reader.pqt.parquet_storage import ParquetFile
+from esofile_reader.pqt.parquet_tables import VirtualParquetTables
 from tests.session_fixtures import *
 
 
@@ -46,8 +47,24 @@ def parquet_tables(eplusout_all_intervals):
         pqf.clean_up()
 
 
+@pytest.fixture(scope="module")
+def virtual_parquet_tables(eplusout_all_intervals):
+    pqf = ParquetFile.from_results_file(
+        1, eplusout_all_intervals, tables_class=VirtualParquetTables
+    )
+    try:
+        yield pqf.tables
+    finally:
+        pqf.clean_up()
+
+
 @pytest.fixture(
-    scope="module", params=[lazy_fixture("df_tables"), lazy_fixture("parquet_tables")]
+    scope="module",
+    params=[
+        lazy_fixture("df_tables"),
+        lazy_fixture("parquet_tables"),
+        lazy_fixture("virtual_parquet_tables"),
+    ],
 )
 def tables(request):
     return request.param
@@ -60,7 +77,16 @@ def simple_df_tables(simple_file):
 
 @pytest.fixture(scope="module")
 def simple_parquet_tables(simple_file):
-    pqf = ParquetFile.from_results_file(1, simple_file)
+    pqf = ParquetFile.from_results_file(2, simple_file)
+    try:
+        yield pqf.tables
+    finally:
+        pqf.clean_up()
+
+
+@pytest.fixture(scope="module")
+def virtual_simple_parquet_tables(simple_file):
+    pqf = ParquetFile.from_results_file(3, simple_file, tables_class=VirtualParquetTables)
     try:
         yield pqf.tables
     finally:
@@ -69,7 +95,11 @@ def simple_parquet_tables(simple_file):
 
 @pytest.fixture(
     scope="module",
-    params=[lazy_fixture("simple_df_tables"), lazy_fixture("simple_parquet_tables")],
+    params=[
+        lazy_fixture("simple_df_tables"),
+        lazy_fixture("simple_parquet_tables"),
+        lazy_fixture("virtual_simple_parquet_tables"),
+    ],
 )
 def simple_tables(request):
     return request.param

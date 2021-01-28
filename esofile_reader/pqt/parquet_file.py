@@ -6,12 +6,12 @@ import tempfile
 from copy import copy
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Tuple, Any, Dict
+from typing import Union, Tuple, Any, Dict, Type
 from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
 from esofile_reader.pqt.parquet_frame import ParquetFrame, get_unique_workdir
-from esofile_reader.pqt.parquet_tables import ParquetTables
+from esofile_reader.pqt.parquet_tables import ParquetTables, VirtualParquetTables
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.typehints import ResultsFileType, PathLike
@@ -35,14 +35,14 @@ class ParquetFile(BaseFile):
         A file path of the reference file.
     file_name: str
         File name of the reference file.
-    tables: ParquetTables
+    file_type: str
+        The original results file type.
+    tables: {ParquetTables, VirtualParquetTables}
         Original tables.
     file_created: datetime
         A creation datetime of the reference file.
     search_tree: Tree
         Search tree instance.
-    file_type: str
-        The original results file type.
 
     Notes
     -----
@@ -60,9 +60,9 @@ class ParquetFile(BaseFile):
         id_: int,
         file_path: str,
         file_name: str,
-        tables: ParquetTables,
         file_created: datetime,
         file_type: str,
+        tables: Union[ParquetTables, VirtualParquetTables],
         workdir: Path,
         search_tree: Tree,
     ):
@@ -80,9 +80,9 @@ class ParquetFile(BaseFile):
             id_=new_id if new_id else self.id_,
             file_path=self.file_path,
             file_name=self.file_name,
-            tables=new_tables,
             file_created=self.file_created,
             file_type=self.file_type,
+            tables=new_tables,
             workdir=new_workdir,
             search_tree=copy(self.search_tree),
         )
@@ -114,10 +114,11 @@ class ParquetFile(BaseFile):
         results_file: ResultsFileType,
         pardir: PathLike = "",
         logger: BaseLogger = None,
+        tables_class: Type[ParquetTables] = ParquetTables,
     ) -> "ParquetFile":
         workdir = Path(pardir, f"file-{id_}")
         workdir.mkdir()
-        tables = ParquetTables.from_dftables(results_file.tables, workdir, logger)
+        tables = tables_class.from_dftables(results_file.tables, workdir, logger)
         pqf = ParquetFile(
             id_=id_,
             file_path=results_file.file_path,
@@ -154,7 +155,11 @@ class ParquetFile(BaseFile):
 
     @classmethod
     def from_file_system(
-        cls, source: PathLike, dest_dir: PathLike = "", logger: BaseLogger = None
+        cls,
+        source: PathLike,
+        dest_dir: PathLike = "",
+        logger: BaseLogger = None,
+        tables_class: Type[ParquetTables] = ParquetTables,
     ) -> "ParquetFile":
         """ Create parquet file instance from filesystem files. """
         source = Path(source)
@@ -167,7 +172,7 @@ class ParquetFile(BaseFile):
         else:
             raise IOError(f"Invalid file type. Only '{cls.EXT}' files are allowed")
 
-        tables = ParquetTables.from_fs(workdir)
+        tables = tables_class.from_fs(workdir)
         tree = Tree.from_header_dict(tables.get_all_variables_dct())
         pqf = ParquetFile(
             id_=info["id"],

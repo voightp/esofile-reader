@@ -20,6 +20,7 @@ def eso_file(eplusout1):
 
 @pytest.fixture(scope="module")
 def virtual_parquet_file(eplusout1):
+    # TODO use VIRTUAL storage
     pytest.fail()
     pqs = ParquetStorage()
     id_ = pqs.store_file(eplusout1)
