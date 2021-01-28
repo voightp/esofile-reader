@@ -7,15 +7,17 @@ from esofile_reader.abstractions.base_storage import BaseStorage
 from esofile_reader.id_generator import incremental_id_gen, get_unique_name
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_frame import get_unique_workdir
+from esofile_reader.pqt.parquet_tables import VirtualParquetTables, ParquetTables
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.typehints import ResultsFileType, PathLike
 
 
 class ParquetStorage(BaseStorage):
-    def __init__(self, workdir: PathLike = None):
+    def __init__(self, workdir: PathLike = None, in_memory: bool = False):
         super().__init__()
         self.files = {}
         self.path = None
+        self.in_memory = in_memory
         if workdir:
             self.workdir = Path(workdir)
             self.workdir.mkdir()
@@ -36,10 +38,10 @@ class ParquetStorage(BaseStorage):
         return pqs
 
     @classmethod
-    def _load_storage(cls, path: Path, logger: BaseLogger) -> "ParquetStorage":
+    def _load_storage(cls, path: Path, in_memory: bool, logger: BaseLogger) -> "ParquetStorage":
         if path.suffix != cls.EXT:
             raise IOError(f"Invalid file type loaded. Only '{cls.EXT}' files are allowed")
-        pqs = ParquetStorage()
+        pqs = ParquetStorage(in_memory=in_memory)
         pqs.path = path
 
         logger.log_section("unzipping files")
@@ -48,16 +50,20 @@ class ParquetStorage(BaseStorage):
 
         logger.log_section("creating parquet instances")
         for dir_ in [d for d in pqs.workdir.iterdir() if d.is_dir()]:
-            pqf = ParquetFile.from_file_system(dir_)
+            pqf = ParquetFile.from_file_system(
+                dir_, tables_class=VirtualParquetTables if in_memory else ParquetTables
+            )
             pqs.files[pqf.id_] = pqf
         return pqs
 
     @classmethod
-    def load_storage(cls, path: PathLike, logger: BaseLogger = None) -> "ParquetStorage":
+    def load_storage(
+        cls, path: PathLike, in_memory: bool = False, logger: BaseLogger = None
+    ) -> "ParquetStorage":
         path = path if isinstance(path, Path) else Path(path)
         logger = logger if logger else BaseLogger(path.name)
         with logger.log_task("Load storage"):
-            return cls._load_storage(path, logger)
+            return cls._load_storage(path, in_memory, logger)
 
     def count_parquets(self):
         """ Count all child parquets. """
@@ -88,7 +94,9 @@ class ParquetStorage(BaseStorage):
             logger = BaseLogger(storage_path.name)
         with logger.log_task(f"merge storage with {storage_path.name}"):
             id_gen = incremental_id_gen(start=1, checklist=set(self.files.keys()))
-            temporary_storage = ParquetStorage._load_storage(storage_path, logger)
+            temporary_storage = ParquetStorage._load_storage(
+                storage_path, self.in_memory, logger
+            )
             for id_, file in dict(sorted(temporary_storage.files.items())).items():
                 # create new identifiers in case that id already exists
                 new_id = next(id_gen) if id_ in self.files.keys() else id_
@@ -109,7 +117,11 @@ class ParquetStorage(BaseStorage):
 
             logger.log_section("writing parquets")
             file = ParquetFile.from_results_file(
-                id_=id_, results_file=results_file, pardir=self.workdir, logger=logger,
+                id_=id_,
+                results_file=results_file,
+                pardir=self.workdir,
+                logger=logger,
+                tables_class=VirtualParquetTables if self.in_memory else ParquetTables,
             )
             self.files[id_] = file
         return id_

@@ -20,9 +20,7 @@ def eso_file(eplusout1):
 
 @pytest.fixture(scope="module")
 def virtual_parquet_file(eplusout1):
-    # TODO use VIRTUAL storage
-    pytest.fail()
-    pqs = ParquetStorage()
+    pqs = ParquetStorage(in_memory=True)
     id_ = pqs.store_file(eplusout1)
     try:
         yield pqs.files[id_]
@@ -61,9 +59,7 @@ def simple_excel_file():
 
 @pytest.fixture(scope="module")
 def simple_virtual_parquet_file(simple_excel_file):
-    # TODO use VIRTUAL storage
-    pytest.fail()
-    pqs = ParquetStorage()
+    pqs = ParquetStorage(in_memory=True)
     id_ = pqs.store_file(simple_excel_file)
     try:
         yield pqs.files[id_]
