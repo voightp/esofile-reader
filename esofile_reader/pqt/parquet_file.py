@@ -6,11 +6,12 @@ import tempfile
 from copy import copy
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple, Any, Dict
 from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
-from esofile_reader.pqt.parquet_tables import ParquetFrame, ParquetTables, get_unique_workdir
+from esofile_reader.pqt.parquet_frame import ParquetFrame, get_unique_workdir
+from esofile_reader.pqt.parquet_tables import ParquetTables
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.typehints import ResultsFileType, PathLike
@@ -28,11 +29,13 @@ class ParquetFile(BaseFile):
     ----------
     id_ : int
         Unique id identifier.
+    workdir : Path
+        A path to file directory.
     file_path: str
         A file path of the reference file.
     file_name: str
         File name of the reference file.
-    tables: {DFTables, path like}
+    tables: ParquetTables
         Original tables.
     file_created: datetime
         A creation datetime of the reference file.
@@ -45,12 +48,7 @@ class ParquetFile(BaseFile):
     -----
     Reference file must be complete!
 
-    Workdir needs to be cleaned up. This can be done
-    either by calling 'clean_up()' or working with file
-    with context manager:
-
-    with ParquetFile.from_results_file(*args, **kwargs) as pqs:
-        ...
+    Stored content needs to be deleted by calling 'clean_up()'.
 
     """
 
@@ -70,7 +68,6 @@ class ParquetFile(BaseFile):
     ):
         self.id_ = id_
         self.workdir = workdir.absolute()
-        self.tables = tables
         super().__init__(file_path, file_name, file_created, tables, search_tree, file_type)
 
     def __copy__(self):
@@ -91,7 +88,7 @@ class ParquetFile(BaseFile):
         )
         return new_file
 
-    def copy_to(self, new_pardir: Path, new_id: int = None):
+    def copy_to(self, new_pardir: Path, new_id: int = None) -> "ParquetFile":
         """ Copy all data to another directory. """
         new_name = f"file-{new_id}" if new_id else self.name
         new_workdir = Path(new_pardir, new_name)

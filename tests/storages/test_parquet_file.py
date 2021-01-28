@@ -3,7 +3,7 @@ import tempfile
 from copy import copy
 
 from esofile_reader.pqt.parquet_storage import ParquetFile
-from esofile_reader.pqt.parquet_tables import ParquetFrame
+from esofile_reader.pqt.parquet_frame import ParquetFrame
 from esofile_reader.search_tree import Tree
 from tests.session_fixtures import *
 

@@ -8,6 +8,7 @@ from typing import Dict, Sequence, Optional, Union, List, Tuple
 
 import pandas as pd
 
+from esofile_reader.abstractions.base_tables import BaseTables
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.df.level_names import ID_LEVEL, TABLE_LEVEL
 from esofile_reader.results_processing.aggregate_results import aggregate_variables
@@ -59,7 +60,7 @@ class BaseFile:
         file_path: PathLike,
         file_name: str,
         file_created: datetime,
-        tables: DFTables,
+        tables: BaseTables,
         search_tree: Tree,
         file_type: str,
     ):

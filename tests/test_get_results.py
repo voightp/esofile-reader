@@ -3,13 +3,12 @@ from datetime import datetime
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pytest import lazy_fixture
-
+import pytest
 from esofile_reader import get_results
 from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.exceptions import InvalidOutputType, InvalidUnitsSystem
 from esofile_reader.typehints import Variable, SimpleVariable
 from esofile_reader.results_processing.table_formatter import TableFormatter
-from esofile_reader.df.df_storage import DFStorage
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 from tests.session_fixtures import *
 
@@ -20,10 +19,14 @@ def eso_file(eplusout1):
 
 
 @pytest.fixture(scope="module")
-def df_file(eplusout1):
-    dfs = DFStorage()
-    id_ = dfs.store_file(eplusout1)
-    return dfs.files[id_]
+def virtual_parquet_file(eplusout1):
+    pytest.fail()
+    pqs = ParquetStorage()
+    id_ = pqs.store_file(eplusout1)
+    try:
+        yield pqs.files[id_]
+    finally:
+        del pqs
 
 
 @pytest.fixture(scope="module")
@@ -38,7 +41,11 @@ def parquet_file(eplusout1):
 
 @pytest.fixture(
     scope="module",
-    params=[lazy_fixture("eso_file"), lazy_fixture("df_file"), lazy_fixture("parquet_file"),],
+    params=[
+        lazy_fixture("eso_file"),
+        lazy_fixture("virtual_parquet_file"),
+        lazy_fixture("parquet_file"),
+    ],
 )
 def file(request):
     return request.param
@@ -52,10 +59,15 @@ def simple_excel_file():
 
 
 @pytest.fixture(scope="module")
-def simple_df_file(simple_excel_file):
-    dfs = DFStorage()
-    id_ = dfs.store_file(simple_excel_file)
-    return dfs.files[id_]
+def simple_virtual_parquet_file(simple_excel_file):
+    # TODO use VIRTUAL storage
+    pytest.fail()
+    pqs = ParquetStorage()
+    id_ = pqs.store_file(simple_excel_file)
+    try:
+        yield pqs.files[id_]
+    finally:
+        del pqs
 
 
 @pytest.fixture(scope="module")
@@ -72,7 +84,7 @@ def simple_parquet_file(simple_excel_file):
     scope="module",
     params=[
         lazy_fixture("simple_excel_file"),
-        lazy_fixture("simple_df_file"),
+        lazy_fixture("simple_virtual_parquet_file"),
         lazy_fixture("simple_parquet_file"),
     ],
 )

@@ -3,11 +3,11 @@ import shutil
 from copy import copy
 
 from esofile_reader.pqt.parquet_storage import ParquetStorage
-from esofile_reader.pqt.parquet_tables import ParquetFrame
+from esofile_reader.pqt.parquet_frame import ParquetFrame
 from tests.session_fixtures import *
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def storage(eplusout1, eplusout2, excel_file):
     ParquetFrame.MAX_N_COLUMNS = 10
     storage = ParquetStorage()
@@ -25,7 +25,7 @@ def storage(eplusout1, eplusout2, excel_file):
         shutil.rmtree(storage.workdir)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def loaded_storage(storage):
     path = storage.save_as("", "pqs")
     loaded_storage = ParquetStorage.load_storage(path)

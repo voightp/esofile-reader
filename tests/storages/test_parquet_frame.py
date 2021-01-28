@@ -8,7 +8,12 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal, assert_index_equal
 
-from esofile_reader.pqt.parquet_tables import ParquetFrame, parquet_frame_factory, CorruptedData
+from esofile_reader.pqt.parquet_frame import (
+    ParquetFrame,
+    parquet_frame_factory,
+    CorruptedData,
+    VirtualParquetFrame,
+)
 from tests.session_fixtures import ROOT_PATH
 
 
@@ -49,15 +54,16 @@ def test_df():
     return test_df
 
 
-@pytest.fixture
-def parquet_frame(test_df):
+@pytest.fixture(params=[ParquetFrame, VirtualParquetFrame])
+def parquet_frame(request, test_df):
+    Frame = request.param
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
-        ParquetFrame.MAX_N_COLUMNS = 5
-        parquet_frame = ParquetFrame.from_df(test_df, "test", pardir=temp_dir)
+        Frame.MAX_N_COLUMNS = 5
+        parquet_frame = Frame.from_df(test_df, "test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
-            ParquetFrame.MAX_N_COLUMNS = 100
+            Frame.MAX_N_COLUMNS = 100
             parquet_frame.clean_up()
 
 
@@ -66,7 +72,8 @@ def test_name(parquet_frame):
 
 
 def test_n_parquets(parquet_frame):
-    assert len(list(parquet_frame.workdir.iterdir())) == 3
+    n = 0 if isinstance(parquet_frame, VirtualParquetFrame) else 3
+    assert len(list(parquet_frame.workdir.iterdir())) == n
 
 
 def test_index(parquet_frame, test_df):
@@ -266,7 +273,8 @@ def test_loc_both_slices(parquet_frame, test_df):
 def test_update_parquet(parquet_frame):
     df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
     parquet_frame._save_df_to_parquet("test_parquet.parquet", df)
-    assert Path(parquet_frame.workdir, "test_parquet.parquet").exists()
+    exists = type(parquet_frame) is ParquetFrame
+    assert Path(parquet_frame.workdir, "test_parquet.parquet").exists() is exists
 
 
 def test_get_full_df(parquet_frame, test_df):
