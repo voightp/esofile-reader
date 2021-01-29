@@ -13,9 +13,9 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from esofile_reader.abstractions.base_frame import BaseParquetFrame
 from esofile_reader.df.level_names import TIMESTAMP_COLUMN, ID_LEVEL
 from esofile_reader.exceptions import CorruptedData
-from esofile_reader.id_generator import get_unique_name
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.typehints import PathLike
 
@@ -27,19 +27,11 @@ PARQUET_NAME = "pqt_name"
 def parquet_frame_factory(
     df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: BaseLogger = None,
 ):
-    pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
+    pqf = ParquetFrame.from_frame(df, name, pardir, progress_logger)
     try:
         yield pqf
     finally:
         pqf.clean_up()
-
-
-def get_unique_workdir(workdir: Path) -> Path:
-    old_name = workdir.name
-    pardir = workdir.parent
-    all_names = [p.name for p in pardir.iterdir()]
-    new_name = get_unique_name(old_name, all_names)
-    return Path(pardir, new_name)
 
 
 class _ParquetIndexer:
@@ -97,23 +89,17 @@ class _ParquetIndexer:
             self.frame._update_columns(existing, value, rows)
 
 
-class ParquetFrame:
+class ParquetFrame(BaseParquetFrame):
     MAX_SIZE = 1024
     MAX_N_COLUMNS = 100
-    INDEX_PARQUET = "index.parquet"
-    PQT_REF_PARQUET = "reference.parquet"
 
     def __init__(self, workdir: Path):
-        self.workdir = workdir.absolute()
+        super().__init__(workdir)
         self._indexer = _ParquetIndexer(self)
         self._index = pd.Index([])
         self._reference_df = pd.DataFrame(
             {PARQUET_ID: pd.Series([], dtype=int), PARQUET_NAME: pd.Series([], dtype=str),}
         )
-
-    @property
-    def name(self):
-        return self.workdir.name
 
     @property
     def parquet_names(self) -> List[str]:
@@ -178,10 +164,6 @@ class ParquetFrame:
     def __setitem__(self, key, value):
         self._indexer[:, key] = value
 
-    def __copy__(self):
-        new_workdir = get_unique_workdir(self.workdir)
-        return self._copy(new_workdir)
-
     def _copy(self, new_workdir: Path):
         shutil.copytree(self.workdir, new_workdir)
         parquet_frame = type(self)(new_workdir)
@@ -189,9 +171,6 @@ class ParquetFrame:
         parquet_frame._reference_df = self._reference_df.copy()
         parquet_frame._index = self._index.copy()
         return parquet_frame
-
-    def copy_to(self, new_pardir: Path):
-        return self._copy(Path(new_pardir, self.name))
 
     @classmethod
     def guess_size(cls, n_rows: int, n_columns: int):
@@ -292,17 +271,6 @@ class ParquetFrame:
                 logger.increment_progress()
                 logger.log_section(f"writing parquet {logger.progress}/{logger.max_progress}")
 
-    @classmethod
-    def from_df(
-        cls, df: pd.DataFrame, name: str, pardir: PathLike = "", logger: BaseLogger = None,
-    ) -> "ParquetFrame":
-        """ Store pandas.DataFrame as a parquet frame. """
-        workdir = Path(pardir, f"table-{name}").absolute()
-        workdir.mkdir()
-        pqf = cls(workdir)
-        pqf._store_df(df, logger=logger)
-        return pqf
-
     def find_missing_ref_parquets(self) -> List[Path]:
         """ Check if parquets referenced in chunks table exist. """
         return [p for p in self.parquet_paths if not p.exists()]
@@ -342,17 +310,6 @@ class ParquetFrame:
                 f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
             )
         pqf.clear_reference_parquets()
-        return pqf
-
-    @classmethod
-    def from_fs(cls, workdir: Path) -> "ParquetFrame":
-        """ Read already existing parquet frame from filesystem. """
-        pqf = ParquetFrame(workdir)
-        try:
-            cls._read_from_fs(pqf)
-        except Exception as e:
-            pqf.clean_up()
-            raise e
         return pqf
 
     @staticmethod
@@ -588,3 +545,80 @@ class VirtualParquetFrame(ParquetFrame):
         df = table.to_pandas()
         df.columns = df.columns.astype(np.int32)
         return df
+
+
+class DfParquetFrame(BaseParquetFrame):
+    def __init__(self, workdir: Path):
+        super().__init__(workdir)
+        self._df = pd.DataFrame()
+
+    @property
+    def name(self):
+        return self.workdir.name
+
+    @property
+    def index(self) -> pd.Index:
+        return self._df.index
+
+    @property
+    def columns(self) -> pd.Index:
+        return self._df.columns
+
+    @property
+    def loc(self) -> pd.core.indexing._LocIndexer:
+        return self._df.loc
+
+    @index.setter
+    def index(self, val: pd.Index) -> None:
+        self._df.index = val
+
+    @columns.setter
+    def columns(self, val: pd.MultiIndex) -> None:
+        self._df.columns = val
+
+    @property
+    def empty(self):
+        return self._df.empty
+
+    def __getitem__(self, item):
+        if isinstance(item, list):
+            return self._df[item]
+        return self._df[[item]]
+
+    def __setitem__(self, key, value):
+        self._df.loc[:, key] = value
+
+    def _copy(self, new_workdir: Path):
+        dff = type(self)(new_workdir)
+        dff.workdir = new_workdir
+        dff._df = self._df.copy(deep=True)
+        return dff
+
+    def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
+        self._df = df.copy()
+
+    @classmethod
+    def _read_from_fs(cls, pqf: "DfParquetFrame") -> "DfParquetFrame":
+        """ Read already existing parquet frame from filesystem. """
+        temp_pqf = VirtualParquetFrame._read_from_fs(pqf.workdir)
+        temp_pqf._df = pqf.as_df()
+        return pqf
+
+    def as_df(self) -> pd.DataFrame:
+        """ Return parquet frame as a single DataFrame. """
+        return self._df
+
+    def insert(self, pos: int, item: Tuple[Any, ...], array: Sequence):
+        """ Insert column at given position. """
+        self._df.insert(pos, item, array)
+
+    def drop(self, columns: Any, level: str = None, **kwargs) -> None:
+        """ Drop given columns from frame. """
+        self._df.drop(columns=columns, level=level, **kwargs)
+
+    def save_frame_to_zip(
+        self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None
+    ) -> None:
+        """ Write parquets to given zip file. """
+        pqf = VirtualParquetFrame.from_frame(self._df, self.name, self.workdir.parent, logger)
+        pqf.save_frame_to_zip(zf, relative_to, logger)

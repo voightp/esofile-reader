@@ -9,7 +9,7 @@ from esofile_reader import Variable, SimpleVariable
 from esofile_reader.df.level_names import SPECIAL, N_DAYS_COLUMN
 from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.pqt.parquet_file import ParquetFile
-from esofile_reader.pqt.parquet_tables import VirtualParquetTables
+from esofile_reader.pqt.parquet_tables import VirtualParquetTables, DfParquetTables
 from esofile_reader.processing.eplus import H, M
 from tests.session_fixtures import *
 
@@ -34,12 +34,22 @@ def virtual_parquet_eso_file(eplusout_all_intervals):
         pqf.clean_up()
 
 
+@pytest.fixture(scope="module")
+def df_parquet_eso_file(eplusout_all_intervals):
+    pqf = ParquetFile.from_results_file(2, eplusout_all_intervals, tables_class=DfParquetTables)
+    try:
+        yield pqf
+    finally:
+        pqf.clean_up()
+
+
 @pytest.fixture(
     scope="module",
     params=[
         lazy_fixture("eplusout_all_intervals"),
         lazy_fixture("parquet_eso_file"),
         lazy_fixture("virtual_parquet_eso_file"),
+        lazy_fixture("df_parquet_eso_file"),
     ],
 )
 def eso_file(request):
@@ -56,7 +66,7 @@ def simple_excel_file():
 
 @pytest.fixture(scope="module")
 def simple_parquet_file(simple_excel_file):
-    pqf = ParquetFile.from_results_file(2, simple_excel_file)
+    pqf = ParquetFile.from_results_file(3, simple_excel_file)
     try:
         yield pqf
     finally:
@@ -65,7 +75,16 @@ def simple_parquet_file(simple_excel_file):
 
 @pytest.fixture(scope="module")
 def virtual_simple_parquet_file(simple_excel_file):
-    pqf = ParquetFile.from_results_file(3, simple_excel_file, tables_class=VirtualParquetTables)
+    pqf = ParquetFile.from_results_file(4, simple_excel_file, tables_class=VirtualParquetTables)
+    try:
+        yield pqf
+    finally:
+        pqf.clean_up()
+
+
+@pytest.fixture(scope="module")
+def df_simple_parquet_file(simple_excel_file):
+    pqf = ParquetFile.from_results_file(5, simple_excel_file, tables_class=DfParquetTables)
     try:
         yield pqf
     finally:
@@ -78,6 +97,7 @@ def virtual_simple_parquet_file(simple_excel_file):
         lazy_fixture("simple_excel_file"),
         lazy_fixture("simple_parquet_file"),
         lazy_fixture("virtual_simple_parquet_file"),
+        lazy_fixture("df_simple_parquet_file"),
     ],
 )
 def simple_file(request):

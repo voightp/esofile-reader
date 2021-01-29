@@ -13,6 +13,7 @@ from esofile_reader.pqt.parquet_frame import (
     parquet_frame_factory,
     CorruptedData,
     VirtualParquetFrame,
+    DfParquetFrame,
 )
 from tests.session_fixtures import ROOT_PATH
 
@@ -54,12 +55,12 @@ def test_df():
     return test_df
 
 
-@pytest.fixture(params=[ParquetFrame, VirtualParquetFrame])
+@pytest.fixture(params=[ParquetFrame, VirtualParquetFrame, DfParquetFrame])
 def parquet_frame(request, test_df):
     Frame = request.param
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
         Frame.MAX_N_COLUMNS = 5
-        parquet_frame = Frame.from_df(test_df, "test", pardir=temp_dir)
+        parquet_frame = Frame.from_frame(test_df, "test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
@@ -72,7 +73,7 @@ def test_name(parquet_frame):
 
 
 def test_n_parquets(parquet_frame):
-    n = 0 if isinstance(parquet_frame, VirtualParquetFrame) else 3
+    n = 3 if type(parquet_frame) is ParquetFrame else 0
     assert len(list(parquet_frame.workdir.iterdir())) == n
 
 
@@ -231,14 +232,6 @@ def test_loc_setter(parquet_frame, test_df):
     assert_frame_equal(test_df, parquet_frame.as_df())
 
 
-def test_loc_setter_id(parquet_frame, test_df):
-    new_col = [2, 3, 4]
-    var = (14, "daily", "Some Curve", "Performance Curve Input Variable 1", "kg/s")
-    test_df.loc[:, var] = new_col
-    parquet_frame.loc[:, var[0]] = new_col
-    assert_frame_equal(test_df, parquet_frame.as_df())
-
-
 def test_loc_setter_all(parquet_frame, test_df):
     test_df.loc[:] = 1
     parquet_frame.loc[:] = 1
@@ -268,13 +261,6 @@ def test_loc_invalid_setter(parquet_frame):
 
 def test_loc_both_slices(parquet_frame, test_df):
     assert_frame_equal(test_df, parquet_frame.loc[:, :])
-
-
-def test_update_parquet(parquet_frame):
-    df = pd.DataFrame([[1], [2], [3]], columns=pd.Index(["a"], name="id"))
-    parquet_frame._save_df_to_parquet("test_parquet.parquet", df)
-    exists = type(parquet_frame) is ParquetFrame
-    assert Path(parquet_frame.workdir, "test_parquet.parquet").exists() is exists
 
 
 def test_get_full_df(parquet_frame, test_df):
@@ -349,24 +335,27 @@ def test_drop_all(parquet_frame, test_df):
 
 
 def test_temporary_reference_parquets(parquet_frame):
-    with parquet_frame.temporary_reference_parquets():
-        assert all(map(lambda x: x.exists(), parquet_frame.reference_paths))
-    assert all(map(lambda x: not x.exists(), parquet_frame.reference_paths))
+    if type(parquet_frame) is not DfParquetFrame:
+        with parquet_frame.temporary_reference_parquets():
+            assert all(map(lambda x: x.exists(), parquet_frame.reference_paths))
+        assert all(map(lambda x: not x.exists(), parquet_frame.reference_paths))
 
 
 def test_read_missing_parquets(parquet_frame):
-    parquet_frame.save_reference_parquets()
-    parquet_frame.index_parquet_path.unlink()
-    with pytest.raises(CorruptedData):
-        ParquetFrame.from_fs(parquet_frame.workdir)
+    if type(parquet_frame) is not DfParquetFrame:
+        parquet_frame.save_reference_parquets()
+        parquet_frame.index_parquet_path.unlink()
+        with pytest.raises(CorruptedData):
+            ParquetFrame.from_fs(parquet_frame.workdir)
 
 
 def test_read_reference_parquets(parquet_frame, test_df):
-    with parquet_frame.temporary_reference_parquets():
-        loaded_pqf = ParquetFrame(workdir=parquet_frame.workdir)
-        loaded_pqf.read_reference_parquets()
-        assert_index_equal(test_df.index, loaded_pqf.index)
-        assert_frame_equal(parquet_frame._reference_df, loaded_pqf._reference_df)
+    if type(parquet_frame) is not DfParquetFrame:
+        with parquet_frame.temporary_reference_parquets():
+            loaded_pqf = ParquetFrame(workdir=parquet_frame.workdir)
+            loaded_pqf.read_reference_parquets()
+            assert_index_equal(test_df.index, loaded_pqf.index)
+            assert_frame_equal(parquet_frame._reference_df, loaded_pqf._reference_df)
 
 
 def test_parquet_frame_context_manager(parquet_frame, test_df):
@@ -407,6 +396,5 @@ def test_predict_n_parquets(shape, n_parquets):
     ],
 )
 def test_predict_n_columns_in_parquet(shape, n_columns):
-    print(ParquetFrame.MAX_N_COLUMNS)
     df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
     assert ParquetFrame.calculate_n_columns_per_parquet(df) == n_columns
