@@ -1,7 +1,8 @@
 import shutil
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Tuple, Sequence, Union
+from typing import Any, Tuple, Sequence, Union, Optional
+from uuid import uuid1
 from zipfile import ZipFile
 
 import pandas as pd
@@ -22,6 +23,8 @@ def get_unique_workdir(workdir: Path) -> Path:
 class BaseParquetFrame:
     INDEX_PARQUET = "index.parquet"
     PQT_REF_PARQUET = "reference.parquet"
+    MAX_SIZE = 1024
+    MAX_N_COLUMNS = 100
 
     def __init__(self, workdir: Path):
         self.workdir = workdir.absolute()
@@ -61,27 +64,53 @@ class BaseParquetFrame:
 
     @property
     @abstractmethod
-    def empty(self):
+    def empty(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def n_steps_for_saving(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def n_chunks(self) -> int:
         pass
 
     @abstractmethod
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> pd.DataFrame:
         pass
 
     @abstractmethod
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         pass
 
     @abstractmethod
-    def _copy(self, new_workdir: Path):
+    def _copy(self, new_workdir: Path) -> "BaseParquetFrame":
         pass
 
     @abstractmethod
-    def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None):
+    def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
         pass
 
     @classmethod
-    def from_frame(
+    def guess_size(cls, n_rows: int, n_columns: int) -> int:
+        """ Guess size based on number of rows and columns, presuming float type. """
+        return n_rows * n_columns * 8
+
+    @classmethod
+    @abstractmethod
+    def predict_n_chunks(cls, n_rows: int, n_columns: int) -> int:
+        """ Predict number of parquets required to store DataFrame. """
+        pass
+
+    @staticmethod
+    def _create_unique_parquet_name():
+        """ Create a unique filesystem name using uuid. """
+        return f"{str(uuid1())}.parquet"
+
+    @classmethod
+    def from_df(
         cls,
         df: Union[pd.DataFrame, "BaseParquetFrame"],
         name: str,
@@ -92,9 +121,7 @@ class BaseParquetFrame:
         workdir = Path(pardir, f"table-{name}").absolute()
         workdir.mkdir()
         frame = cls(workdir)
-        if isinstance(df, BaseParquetFrame):
-            df = df.as_df()
-        frame._store_df(df, logger=logger)
+        frame._store_df(df.copy(), logger=logger)
         return frame
 
     @classmethod
@@ -114,7 +141,7 @@ class BaseParquetFrame:
         return pqf
 
     @abstractmethod
-    def as_df(self) -> pd.DataFrame:
+    def as_df(self, logger: Optional[BaseLogger] = None) -> pd.DataFrame:
         """ Return parquet frame as a single DataFrame. """
         pass
 

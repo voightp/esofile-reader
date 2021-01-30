@@ -115,7 +115,7 @@ def test_save(loaded_storage):
 
 
 def test_count_parquets(storage):
-    assert storage.count_parquets() == 111
+    assert storage.calculate_n_steps_saving() == 111
 
 
 def test_merge_storages(storage, loaded_storage):

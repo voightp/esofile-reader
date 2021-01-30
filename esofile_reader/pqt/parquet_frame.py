@@ -5,7 +5,6 @@ import sys
 from copy import copy
 from pathlib import Path
 from typing import List, Dict, Tuple, Sequence, Union, Any, Optional
-from uuid import uuid1
 from zipfile import ZipFile
 
 import numpy as np
@@ -27,7 +26,7 @@ PARQUET_NAME = "pqt_name"
 def parquet_frame_factory(
     df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: BaseLogger = None,
 ):
-    pqf = ParquetFrame.from_frame(df, name, pardir, progress_logger)
+    pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
     try:
         yield pqf
     finally:
@@ -90,9 +89,6 @@ class _ParquetIndexer:
 
 
 class ParquetFrame(BaseParquetFrame):
-    MAX_SIZE = 1024
-    MAX_N_COLUMNS = 100
-
     def __init__(self, workdir: Path):
         super().__init__(workdir)
         self._indexer = _ParquetIndexer(self)
@@ -137,7 +133,11 @@ class ParquetFrame(BaseParquetFrame):
         return [self.index_parquet_path, self.reference_parquet_path]
 
     @property
-    def parquet_count(self) -> int:
+    def n_chunks(self) -> int:
+        return len(self.parquet_paths)
+
+    @property
+    def n_steps_for_saving(self) -> int:
         return len(self.parquet_paths) + len(self.reference_paths)
 
     @index.setter
@@ -171,35 +171,6 @@ class ParquetFrame(BaseParquetFrame):
         parquet_frame._reference_df = self._reference_df.copy()
         parquet_frame._index = self._index.copy()
         return parquet_frame
-
-    @classmethod
-    def guess_size(cls, n_rows: int, n_columns: int):
-        """ Guess size based on number of rows and columns, presuming float type. """
-        return n_rows * n_columns * 8
-
-    @classmethod
-    def calculate_n_columns_per_parquet(cls, df: pd.DataFrame) -> int:
-        """ Calculate number of columns per parquet for given DataFrame. """
-        size = cls.guess_size(*df.shape)  # getting size from sys can be expensive
-        mean_size = size / df.shape[1]
-        columns_per_parquet = math.ceil((cls.MAX_SIZE << 10) / mean_size)
-
-        if columns_per_parquet > cls.MAX_N_COLUMNS:
-            columns_per_parquet = cls.MAX_N_COLUMNS
-
-        return columns_per_parquet
-
-    @classmethod
-    def predict_n_parquets(cls, df: pd.DataFrame) -> int:
-        """ Predict number of parquets required to store DataFrame. """
-        columns_per_parquet = cls.calculate_n_columns_per_parquet(df)
-        n_columns = df.shape[1]
-        return math.ceil(n_columns / columns_per_parquet)
-
-    @staticmethod
-    def _create_unique_parquet_name():
-        """ Create a unique filesystem name using uuid. """
-        return f"{str(uuid1())}.parquet"
 
     def _append_reference(self, pqt_ids: List[int], pqt_name: str, mi: pd.MultiIndex):
         """ Append new items into reference DataFrame. """
@@ -245,11 +216,10 @@ class ParquetFrame(BaseParquetFrame):
 
     def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
         """ Save DataFrame into multiple parquet files. """
-        df = df.copy()  # avoid potential frame mutation
         self._index = df.index.copy()
         self._reference_df.index = pd.MultiIndex.from_tuples([], names=df.columns.names)
-        n_columns = self.calculate_n_columns_per_parquet(df)
-        n_parquets = self.predict_n_parquets(df)
+        n_columns = self.calculate_n_columns_per_parquet(*df.shape)
+        n_parquets = self.predict_n_chunks(*df.shape)
         start = 0
         for _ in range(n_parquets):
             end = start + n_columns
@@ -270,6 +240,24 @@ class ParquetFrame(BaseParquetFrame):
             if logger:
                 logger.increment_progress()
                 logger.log_section(f"writing parquet {logger.progress}/{logger.max_progress}")
+
+    @classmethod
+    def calculate_n_columns_per_parquet(cls, n_rows: int, n_columns) -> int:
+        """ Calculate number of columns per parquet for given DataFrame. """
+        size = cls.guess_size(n_rows, n_columns)  # getting size from sys can be expensive
+        mean_size = size / n_columns
+        columns_per_parquet = math.ceil((cls.MAX_SIZE << 10) / mean_size)
+
+        if columns_per_parquet > cls.MAX_N_COLUMNS:
+            columns_per_parquet = cls.MAX_N_COLUMNS
+
+        return columns_per_parquet
+
+    @classmethod
+    def predict_n_chunks(cls, n_rows: int, n_columns: int) -> int:
+        """ Predict number of parquets required to store DataFrame. """
+        columns_per_parquet = cls.calculate_n_columns_per_parquet(n_rows, n_columns)
+        return math.ceil(n_columns / columns_per_parquet)
 
     def find_missing_ref_parquets(self) -> List[Path]:
         """ Check if parquets referenced in chunks table exist. """
@@ -389,11 +377,13 @@ class ParquetFrame(BaseParquetFrame):
         df = self._build_df(frames)
         return df.loc[:, items]
 
-    def as_df(self) -> pd.DataFrame:
+    def as_df(self, logger: Optional[BaseLogger] = None) -> pd.DataFrame:
         """ Return parquet frame as a single DataFrame. """
         frames = []
         for pqt_name in self.parquet_names:
             frames.append(self._read_df_from_parquet(pqt_name))
+            if logger:
+                logger.increment_progress()
         df = self._build_df(frames)
         return df.loc[:, self.columns]
 
@@ -580,6 +570,15 @@ class DfParquetFrame(BaseParquetFrame):
     def empty(self):
         return self._df.empty
 
+    @property
+    def n_chunks(self) -> int:
+        return 1
+
+    @property
+    def n_steps_for_saving(self) -> int:
+        n_parquets = VirtualParquetFrame.predict_n_chunks(*self._df.shape)
+        return n_parquets * 2 + 2  # df needs to be split into parquets + 2 for reference
+
     def __getitem__(self, item):
         if isinstance(item, list):
             return self._df[item]
@@ -595,30 +594,33 @@ class DfParquetFrame(BaseParquetFrame):
         return dff
 
     def _store_df(self, df: pd.DataFrame, logger: BaseLogger = None) -> None:
-        self._df = df.copy()
+        if logger:
+            logger.increment_progress()
+        self._df = df
+
+    @classmethod
+    def predict_n_chunks(cls, n_rows: int, n_columns) -> int:
+        return 1
 
     @classmethod
     def _read_from_fs(cls, pqf: "DfParquetFrame") -> "DfParquetFrame":
-        """ Read already existing parquet frame from filesystem. """
         temp_pqf = VirtualParquetFrame._read_from_fs(pqf.workdir)
         temp_pqf._df = pqf.as_df()
         return pqf
 
-    def as_df(self) -> pd.DataFrame:
-        """ Return parquet frame as a single DataFrame. """
+    def as_df(self, logger: Optional[BaseLogger] = None) -> pd.DataFrame:
+        if logger:
+            logger.increment_progress()
         return self._df
 
     def insert(self, pos: int, item: Tuple[Any, ...], array: Sequence):
-        """ Insert column at given position. """
         self._df.insert(pos, item, array)
 
     def drop(self, columns: Any, level: str = None, **kwargs) -> None:
-        """ Drop given columns from frame. """
         self._df.drop(columns=columns, level=level, **kwargs)
 
     def save_frame_to_zip(
         self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None
     ) -> None:
-        """ Write parquets to given zip file. """
-        pqf = VirtualParquetFrame.from_frame(self._df, self.name, self.workdir.parent, logger)
+        pqf = VirtualParquetFrame.from_df(self._df, self.name, self.workdir.parent, logger)
         pqf.save_frame_to_zip(zf, relative_to, logger)

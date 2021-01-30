@@ -10,11 +10,18 @@ from typing import Union, Tuple, Any, Dict, Type
 from zipfile import ZipFile
 
 from esofile_reader.abstractions.base_file import BaseFile
-from esofile_reader.pqt.parquet_frame import ParquetFrame, get_unique_workdir
-from esofile_reader.pqt.parquet_tables import ParquetTables, VirtualParquetTables
+from esofile_reader.abstractions.base_frame import get_unique_workdir
+from esofile_reader.pqt.parquet_frame import ParquetFrame
+from esofile_reader.pqt.parquet_tables import (
+    DfParquetTables,
+    ParquetTables,
+    VirtualParquetTables,
+)
 from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.search_tree import Tree
 from esofile_reader.typehints import ResultsFileType, PathLike
+
+Tables = Union[ParquetTables, VirtualParquetTables, DfParquetTables]
 
 
 class ParquetFile(BaseFile):
@@ -37,7 +44,7 @@ class ParquetFile(BaseFile):
         File name of the reference file.
     file_type: str
         The original results file type.
-    tables: {ParquetTables, VirtualParquetTables}
+    tables: {ParquetTables, VirtualParquetTables, DfParquetTables}
         Original tables.
     file_created: datetime
         A creation datetime of the reference file.
@@ -62,7 +69,7 @@ class ParquetFile(BaseFile):
         file_name: str,
         file_created: datetime,
         file_type: str,
-        tables: Union[ParquetTables, VirtualParquetTables],
+        tables: Tables,
         workdir: Path,
         search_tree: Tree,
     ):
@@ -99,12 +106,16 @@ class ParquetFile(BaseFile):
     def name(self) -> str:
         return self.workdir.name
 
+    @property
+    def info_json_path(self) -> Path:
+        return Path(self.workdir, self.INFO_JSON)
+
     @classmethod
     def predict_number_of_parquets(cls, results_file: ResultsFileType) -> int:
         """ Calculate future number of parquets for given Results file. """
         n = 0
         for df in results_file.tables.values():
-            n += ParquetFrame.predict_n_parquets(df)
+            n += ParquetFrame.predict_n_chunks(*df.shape)
         return n
 
     @classmethod
@@ -187,10 +198,6 @@ class ParquetFile(BaseFile):
         pqf.info_json_path.unlink()
         return pqf
 
-    @property
-    def info_json_path(self) -> Path:
-        return Path(self.workdir, self.INFO_JSON)
-
     def clean_up(self) -> None:
         shutil.rmtree(self.workdir, ignore_errors=True)
 
@@ -214,9 +221,9 @@ class ParquetFile(BaseFile):
         finally:
             self.info_json_path.unlink()
 
-    def count_parquets(self):
+    def calculate_n_steps_saving(self):
         """ Count all child parquets. """
-        return sum(pqf.parquet_count for pqf in self.tables.values())
+        return sum(pqf.n_steps_for_saving for pqf in self.tables.values())
 
     def save_file_to_zip(self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None):
         with self.temporary_attribute_json() as f:

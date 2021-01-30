@@ -60,7 +60,7 @@ def parquet_frame(request, test_df):
     Frame = request.param
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
         Frame.MAX_N_COLUMNS = 5
-        parquet_frame = Frame.from_frame(test_df, "test", pardir=temp_dir)
+        parquet_frame = Frame.from_df(test_df, "test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
@@ -381,7 +381,7 @@ def test_copy(parquet_frame, test_df):
 )
 def test_predict_n_parquets(shape, n_parquets):
     df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
-    assert ParquetFrame.predict_n_parquets(df) == n_parquets
+    assert ParquetFrame.predict_n_chunks(*df.shape) == n_parquets
 
 
 @pytest.mark.parametrize(
@@ -397,4 +397,4 @@ def test_predict_n_parquets(shape, n_parquets):
 )
 def test_predict_n_columns_in_parquet(shape, n_columns):
     df = pd.DataFrame(np.random.uniform(0, 10e6, shape))
-    assert ParquetFrame.calculate_n_columns_per_parquet(df) == n_columns
+    assert ParquetFrame.calculate_n_columns_per_parquet(*df.shape) == n_columns

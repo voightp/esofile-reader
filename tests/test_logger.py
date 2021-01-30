@@ -1,4 +1,11 @@
+import pytest
+
 from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.pqt.parquet_tables import (
+    DfParquetTables,
+    VirtualParquetTables,
+    ParquetTables,
+)
 from esofile_reader.processing.progress_logger import TimeLogger, INFO
 from tests.session_fixtures import *
 
@@ -21,9 +28,9 @@ def logger():
     return AssertLogger("TEST")
 
 
-@pytest.fixture(scope="module")
-def pqs(eplusout1, eplusout2, eplusout_all_intervals):
-    pqs = ParquetStorage()
+@pytest.fixture(scope="module", params=[DfParquetTables, VirtualParquetTables, ParquetTables])
+def pqs(eplusout1, eplusout2, eplusout_all_intervals, request):
+    pqs = ParquetStorage(tables_class=request.param)
     pqs.store_file(eplusout1)
     pqs.store_file(eplusout2)
     pqs.store_file(eplusout_all_intervals)
@@ -31,7 +38,7 @@ def pqs(eplusout1, eplusout2, eplusout_all_intervals):
     try:
         yield pqs
     finally:
-        pqs.path.unlink()
+        pqs.path.unlink(missing_ok=True)
 
 
 def test_increment_file(logger):
@@ -86,3 +93,20 @@ def test_increment_parquet_storage_load_storage(logger, pqs):
 
 def test_increment_parquet_storage_merge_storage(logger, pqs):
     pqs.merge_with(pqs.path)
+
+
+@pytest.mark.parametrize(
+    "tables_class, new_class",
+    [
+        (DfParquetTables, VirtualParquetTables),
+        (DfParquetTables, ParquetTables),
+        (ParquetTables, DfParquetTables),
+        (ParquetTables, VirtualParquetTables),
+        (VirtualParquetTables, ParquetTables),
+        (VirtualParquetTables, DfParquetTables),
+    ],
+)
+def test_increment_parquet_storage_change_tables(logger, tables_class, new_class, eplusout1):
+    pqs = ParquetStorage(tables_class=tables_class)
+    pqs.store_file(eplusout1)
+    pqs.change_tables_class(new_class, logger)
