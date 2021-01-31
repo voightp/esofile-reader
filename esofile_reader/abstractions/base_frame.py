@@ -118,7 +118,7 @@ class BaseParquetFrame:
         logger: BaseLogger = None,
     ) -> "BaseParquetFrame":
         """ Store pandas.DataFrame as a parquet frame. """
-        workdir = Path(pardir, f"table-{name}").absolute()
+        workdir = Path(pardir, name).absolute()
         workdir.mkdir()
         frame = cls(workdir)
         frame._store_df(df.copy(), logger=logger)

@@ -24,7 +24,7 @@ class ParquetTables(DFTables):
         pqt_tables = cls()
         for table_name, df in dftables.tables.items():
             pqt_tables.tables[table_name] = cls._Frame.from_df(
-                df, table_name, pardir, logger=logger
+                df, f"table-{table_name}", pardir, logger=logger
             )
         return pqt_tables
 
@@ -57,7 +57,8 @@ class VirtualParquetTables(ParquetTables):
     def from_fs(cls, pardir: Path):
         pqt = super().from_fs(pardir)
         for p in Path(pardir).iterdir():
-            shutil.rmtree(p)
+            if p.is_dir():
+                shutil.rmtree(p)
         return pqt
 
 

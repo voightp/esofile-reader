@@ -68,13 +68,13 @@ class ParquetStorage(BaseStorage):
     def load_storage(
         cls,
         path: PathLike,
-        tables: Type[ParquetTables] = ParquetTables,
+        tables_class: Type[ParquetTables] = ParquetTables,
         logger: BaseLogger = None,
     ) -> "ParquetStorage":
         path = path if isinstance(path, Path) else Path(path)
         logger = logger if logger else BaseLogger(path.name)
         with logger.log_task("Load storage"):
-            return cls._load_storage(path, tables, logger)
+            return cls._load_storage(path, tables_class, logger)
 
     def change_tables_class(
         self, tables_class: Type[ParquetTables], logger: BaseLogger
@@ -116,8 +116,8 @@ class ParquetStorage(BaseStorage):
             logger = BaseLogger(storage_path.name)
         with logger.log_task(f"merge storage with {storage_path.name}"):
             id_gen = incremental_id_gen(start=1, checklist=set(self.files.keys()))
-            temporary_storage = ParquetStorage._load_storage(
-                storage_path, VirtualParquetTables, logger
+            temporary_storage = ParquetStorage.load_storage(
+                storage_path, self._tables_class, logger
             )
             for id_, file in dict(sorted(temporary_storage.files.items())).items():
                 # create new identifiers in case that id already exists

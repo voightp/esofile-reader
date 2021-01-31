@@ -26,7 +26,7 @@ PARQUET_NAME = "pqt_name"
 def parquet_frame_factory(
     df: pd.DataFrame, name: str, pardir: PathLike = "", progress_logger: BaseLogger = None,
 ):
-    pqf = ParquetFrame.from_df(df, name, pardir, progress_logger)
+    pqf = ParquetFrame.from_df(df, f"table-{name}", pardir, progress_logger)
     try:
         yield pqf
     finally:
@@ -536,6 +536,20 @@ class VirtualParquetFrame(ParquetFrame):
         df.columns = df.columns.astype(np.int32)
         return df
 
+    def save_frame_to_zip(
+        self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None
+    ) -> None:
+        with self.temporary_reference_parquets():
+            for path in self.reference_paths:
+                zf.write(path, arcname=path.relative_to(relative_to))
+                if logger:
+                    logger.increment_progress()
+        for name, device in self._devices.items():
+            arcname = Path(self.workdir, name).relative_to(relative_to)
+            zf.writestr(str(arcname), device)
+            if logger:
+                logger.increment_progress()
+
 
 class DfParquetFrame(BaseParquetFrame):
     def __init__(self, workdir: Path):
@@ -604,7 +618,7 @@ class DfParquetFrame(BaseParquetFrame):
 
     @classmethod
     def _read_from_fs(cls, pqf: "DfParquetFrame") -> "DfParquetFrame":
-        temp_pqf = VirtualParquetFrame._read_from_fs(pqf.workdir)
+        temp_pqf = VirtualParquetFrame.from_fs(pqf.workdir)
         temp_pqf._df = pqf.as_df()
         return pqf
 
@@ -622,5 +636,6 @@ class DfParquetFrame(BaseParquetFrame):
     def save_frame_to_zip(
         self, zf: ZipFile, relative_to: Path, logger: BaseLogger = None
     ) -> None:
+        shutil.rmtree(self.workdir)
         pqf = VirtualParquetFrame.from_df(self._df, self.name, self.workdir.parent, logger)
         pqf.save_frame_to_zip(zf, relative_to, logger)
