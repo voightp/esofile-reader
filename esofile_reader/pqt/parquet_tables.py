@@ -1,6 +1,6 @@
-import shutil
 from pathlib import Path
 from typing import Type
+
 from esofile_reader.df.df_tables import DFTables
 from esofile_reader.pqt.parquet_frame import ParquetFrame, VirtualParquetFrame, DfParquetFrame
 from esofile_reader.processing.progress_logger import BaseLogger
@@ -52,14 +52,6 @@ class VirtualParquetTables(ParquetTables):
 
     def __init__(self):
         super().__init__()
-
-    @classmethod
-    def from_fs(cls, pardir: Path):
-        pqt = super().from_fs(pardir)
-        for p in Path(pardir).iterdir():
-            if p.is_dir():
-                shutil.rmtree(p)
-        return pqt
 
 
 class DfParquetTables(VirtualParquetTables):

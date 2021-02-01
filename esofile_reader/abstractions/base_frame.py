@@ -126,7 +126,7 @@ class BaseParquetFrame:
 
     @classmethod
     @abstractmethod
-    def _read_from_fs(cls, pqf: "BaseParquetFrame") -> "BaseParquetFrame":
+    def _read_from_fs(cls, pqf: "BaseParquetFrame") -> None:
         pass
 
     @classmethod

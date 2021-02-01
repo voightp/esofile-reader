@@ -259,7 +259,7 @@ class ParquetFrame(BaseParquetFrame):
         columns_per_parquet = cls.calculate_n_columns_per_parquet(n_rows, n_columns)
         return math.ceil(n_columns / columns_per_parquet)
 
-    def find_missing_ref_parquets(self) -> List[Path]:
+    def find_missing_parquets(self) -> List[Path]:
         """ Check if parquets referenced in chunks table exist. """
         return [p for p in self.parquet_paths if not p.exists()]
 
@@ -292,7 +292,7 @@ class ParquetFrame(BaseParquetFrame):
                 f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
             )
         pqf.read_reference_parquets()
-        missing = pqf.find_missing_ref_parquets()
+        missing = pqf.find_missing_parquets()
         if missing:
             raise CorruptedData(
                 f"Cannot find info tables: {missing}. File {pqf.workdir} cannot be loaded!"
@@ -494,6 +494,18 @@ class VirtualParquetFrame(ParquetFrame):
         super().__init__(workdir)
         self._devices = {}
 
+    @classmethod
+    def _read_from_fs(cls, pqf: "VirtualParquetFrame") -> None:
+        super()._read_from_fs(pqf)
+        for path in pqf.parquet_paths:
+            writer = pa.BufferOutputStream()
+            mmap = pa.memory_map(str(path))
+            mmap.download(writer)
+            mmap.close()
+            pqf._devices[path.name] = writer.getvalue()
+            writer.close()
+            path.unlink()
+
     def _copy(self, new_workdir: Path):
         parquet_frame = type(self)(new_workdir)
         parquet_frame.workdir = new_workdir
@@ -524,15 +536,12 @@ class VirtualParquetFrame(ParquetFrame):
     def _write_to_parquet(self, df: pd.DataFrame, name: str) -> None:
         writer = pa.BufferOutputStream()
         pq.write_table(pa.Table.from_pandas(df, preserve_index=False), writer)
-        buf = writer.getvalue()
-        self._devices[name] = buf
+        self._devices[name] = writer.getvalue()
         writer.close()
 
     def _read_df_from_parquet(self, name: str, columns: List[int] = None) -> pd.DataFrame:
         columns = list(map(str, columns)) if columns else None
-        mm = self._devices[name]
-        table = pq.read_pandas(mm, columns=columns, memory_map=True)
-        df = table.to_pandas()
+        df = pq.read_pandas(self._devices[name], columns=columns, memory_map=True).to_pandas()
         df.columns = df.columns.astype(np.int32)
         return df
 
@@ -618,8 +627,9 @@ class DfParquetFrame(BaseParquetFrame):
 
     @classmethod
     def _read_from_fs(cls, pqf: "DfParquetFrame") -> "DfParquetFrame":
-        temp_pqf = VirtualParquetFrame.from_fs(pqf.workdir)
-        temp_pqf._df = pqf.as_df()
+        temp_pqf = VirtualParquetFrame(pqf.workdir)
+        VirtualParquetFrame._read_from_fs(temp_pqf)
+        pqf._df = temp_pqf.as_df()
         return pqf
 
     def as_df(self, logger: Optional[BaseLogger] = None) -> pd.DataFrame:
