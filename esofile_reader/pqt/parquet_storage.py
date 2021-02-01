@@ -1,16 +1,18 @@
 import shutil
 import tempfile
+from enum import Enum
 from pathlib import Path
 from typing import Type
 from zipfile import ZipFile
 
-from esofile_reader.abstractions.base_frame import get_unique_workdir
+from esofile_reader.abstractions.base_frame import get_unique_workdir, BaseParquetFrame
 from esofile_reader.abstractions.base_storage import BaseStorage
 from esofile_reader.id_generator import incremental_id_gen, get_unique_name
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_tables import (
     VirtualParquetTables,
     ParquetTables,
+    DfParquetTables,
     get_conversion_n_steps,
     convert_tables,
 )
@@ -18,14 +20,20 @@ from esofile_reader.processing.progress_logger import BaseLogger
 from esofile_reader.typehints import ResultsFileType, PathLike
 
 
+class StorageType(Enum):
+    PARQUET = ParquetTables
+    VIRTUAL = VirtualParquetTables
+    DF = DfParquetTables
+
+
 class ParquetStorage(BaseStorage):
     def __init__(
-        self, workdir: PathLike = None, tables_class: Type[ParquetTables] = ParquetTables
+        self, workdir: PathLike = None, storage_type: StorageType = StorageType.PARQUET
     ):
         super().__init__()
         self.files = {}
         self.path = None
-        self._tables_class = tables_class
+        self._storage_type = storage_type
         if workdir:
             self.workdir = Path(workdir)
             self.workdir.mkdir()
@@ -38,6 +46,10 @@ class ParquetStorage(BaseStorage):
     def __copy__(self):
         return self.copy_to(get_unique_workdir(self.workdir))
 
+    @property
+    def _tables_class(self) -> Type[ParquetTables]:
+        return self._storage_type.value
+
     def copy_to(self, new_workdir: Path):
         pqs = ParquetStorage(new_workdir)
         for id_, file in self.files.items():
@@ -47,11 +59,11 @@ class ParquetStorage(BaseStorage):
 
     @classmethod
     def _load_storage(
-        cls, path: Path, tables_class: Type[ParquetTables], logger: BaseLogger
+        cls, path: Path, storage_type: StorageType, logger: BaseLogger
     ) -> "ParquetStorage":
         if path.suffix != cls.EXT:
             raise IOError(f"Invalid file type loaded. Only '{cls.EXT}' files are allowed")
-        pqs = ParquetStorage(tables_class=tables_class)
+        pqs = ParquetStorage(storage_type=storage_type)
         pqs.path = path
 
         logger.log_section("unzipping files")
@@ -60,7 +72,7 @@ class ParquetStorage(BaseStorage):
 
         logger.log_section("creating parquet instances")
         for dir_ in [d for d in pqs.workdir.iterdir() if d.is_dir()]:
-            pqf = ParquetFile.from_file_system(dir_, "", tables_class=tables_class)
+            pqf = ParquetFile.from_file_system(dir_, "", tables_class=storage_type.value)
             pqs.files[pqf.id_] = pqf
         return pqs
 
@@ -68,24 +80,24 @@ class ParquetStorage(BaseStorage):
     def load_storage(
         cls,
         path: PathLike,
-        tables_class: Type[ParquetTables] = ParquetTables,
+        storage_type: StorageType = StorageType.PARQUET,
         logger: BaseLogger = None,
     ) -> "ParquetStorage":
         path = path if isinstance(path, Path) else Path(path)
         logger = logger if logger else BaseLogger(path.name)
         with logger.log_task("Load storage"):
-            return cls._load_storage(path, tables_class, logger)
+            return cls._load_storage(path, storage_type, logger)
 
-    def change_tables_class(
-        self, tables_class: Type[ParquetTables], logger: BaseLogger
-    ) -> None:
+    def change_storage_type(self, storage_type: Type[StorageType], logger: BaseLogger) -> None:
         """ Update current tables class. """
         logger = logger if logger else BaseLogger(self.workdir.name)
-        n = sum([get_conversion_n_steps(f.tables, tables_class) for f in self.files.values()])
+        n = sum(
+            [get_conversion_n_steps(f.tables, storage_type.value) for f in self.files.values()]
+        )
         with logger.log_task("convert table type"):
             logger.set_maximum_progress(n)
             for file in self.files.values():
-                file.tables = convert_tables(file.tables, tables_class, logger)
+                file.tables = convert_tables(file.tables, storage_type.value, logger)
 
     def calculate_n_steps_saving(self) -> int:
         """ Count all child parquets. """
@@ -117,7 +129,7 @@ class ParquetStorage(BaseStorage):
         with logger.log_task(f"merge storage with {storage_path.name}"):
             id_gen = incremental_id_gen(start=1, checklist=set(self.files.keys()))
             temporary_storage = ParquetStorage.load_storage(
-                storage_path, self._tables_class, logger
+                storage_path, self._storage_type, logger
             )
             for id_, file in dict(sorted(temporary_storage.files.items())).items():
                 # create new identifiers in case that id already exists

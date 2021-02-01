@@ -1,4 +1,4 @@
-from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.pqt.parquet_storage import StorageType, ParquetStorage
 from esofile_reader.pqt.parquet_tables import (
     DfParquetTables,
     VirtualParquetTables,
@@ -26,9 +26,11 @@ def logger():
     return AssertLogger("TEST")
 
 
-@pytest.fixture(scope="function", params=[DfParquetTables, VirtualParquetTables, ParquetTables])
+@pytest.fixture(
+    scope="function", params=[StorageType.PARQUET, StorageType.VIRTUAL, StorageType.DF]
+)
 def pqs(eplusout1, eplusout2, eplusout_all_intervals, request):
-    pqs = ParquetStorage(tables_class=request.param)
+    pqs = ParquetStorage(storage_type=request.param)
     pqs.store_file(eplusout1)
     pqs.store_file(eplusout2)
     pqs.store_file(eplusout_all_intervals)
@@ -88,9 +90,7 @@ def test_increment_parquet_storage_save_file(logger, pqs, eplusout1):
 
 
 def test_increment_parquet_storage_load_storage(logger, saved_pqs):
-    _ = ParquetStorage.load_storage(
-        saved_pqs.path, tables_class=saved_pqs._tables_class, logger=logger
-    )
+    _ = ParquetStorage.load_storage(saved_pqs.path, saved_pqs._storage_type, logger=logger)
 
 
 def test_increment_parquet_storage_merge_storage(logger, pqs, saved_pqs):
@@ -98,17 +98,17 @@ def test_increment_parquet_storage_merge_storage(logger, pqs, saved_pqs):
 
 
 @pytest.mark.parametrize(
-    "tables_class, new_class",
+    "storage_type, new_type",
     [
-        (DfParquetTables, VirtualParquetTables),
-        (DfParquetTables, ParquetTables),
-        (ParquetTables, DfParquetTables),
-        (ParquetTables, VirtualParquetTables),
-        (VirtualParquetTables, ParquetTables),
-        (VirtualParquetTables, DfParquetTables),
+        (StorageType.DF, StorageType.VIRTUAL),
+        (StorageType.DF, StorageType.PARQUET),
+        (StorageType.PARQUET, StorageType.DF),
+        (StorageType.PARQUET, StorageType.VIRTUAL),
+        (StorageType.VIRTUAL, StorageType.PARQUET),
+        (StorageType.VIRTUAL, StorageType.DF),
     ],
 )
-def test_increment_parquet_storage_change_tables(logger, tables_class, new_class, eplusout1):
-    pqs = ParquetStorage(tables_class=tables_class)
+def test_increment_parquet_storage_change_tables(logger, storage_type, new_type, eplusout1):
+    pqs = ParquetStorage(storage_type=storage_type)
     pqs.store_file(eplusout1)
-    pqs.change_tables_class(new_class, logger)
+    pqs.change_storage_type(new_type, logger)

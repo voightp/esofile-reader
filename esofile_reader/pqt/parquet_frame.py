@@ -239,7 +239,6 @@ class ParquetFrame(BaseParquetFrame):
 
             if logger:
                 logger.increment_progress()
-                logger.log_section(f"writing parquet {logger.progress}/{logger.max_progress}")
 
     @classmethod
     def calculate_n_columns_per_parquet(cls, n_rows: int, n_columns) -> int:

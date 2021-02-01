@@ -3,13 +3,13 @@ from datetime import datetime
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pytest import lazy_fixture
-import pytest
+
 from esofile_reader import get_results
 from esofile_reader.eso_file import PeaksNotIncluded
 from esofile_reader.exceptions import InvalidOutputType, InvalidUnitsSystem
-from esofile_reader.typehints import Variable, SimpleVariable
+from esofile_reader.pqt.parquet_storage import ParquetStorage, StorageType
 from esofile_reader.results_processing.table_formatter import TableFormatter
-from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.typehints import Variable, SimpleVariable
 from tests.session_fixtures import *
 
 
@@ -18,36 +18,16 @@ def eso_file(eplusout1):
     return eplusout1
 
 
-@pytest.fixture(scope="module")
-def virtual_parquet_file(eplusout1):
-    pqs = ParquetStorage(in_memory=True)
-    id_ = pqs.store_file(eplusout1)
-    try:
-        yield pqs.files[id_]
-    finally:
-        del pqs
-
-
-@pytest.fixture(scope="module")
-def parquet_file(eplusout1):
-    pqs = ParquetStorage()
-    id_ = pqs.store_file(eplusout1)
-    try:
-        yield pqs.files[id_]
-    finally:
-        del pqs
-
-
 @pytest.fixture(
-    scope="module",
-    params=[
-        lazy_fixture("eso_file"),
-        lazy_fixture("virtual_parquet_file"),
-        lazy_fixture("parquet_file"),
-    ],
+    scope="module", params=[StorageType.PARQUET, StorageType.VIRTUAL, StorageType.DF]
 )
-def file(request):
-    return request.param
+def file(eplusout1, request):
+    pqs = ParquetStorage(storage_type=request.param)
+    id_ = pqs.store_file(eplusout1)
+    try:
+        yield pqs.files[id_]
+    finally:
+        del pqs
 
 
 @pytest.fixture(scope="module")
@@ -57,36 +37,16 @@ def simple_excel_file():
     return GenericFile.from_excel(pth, sheets)
 
 
-@pytest.fixture(scope="module")
-def simple_virtual_parquet_file(simple_excel_file):
-    pqs = ParquetStorage(in_memory=True)
-    id_ = pqs.store_file(simple_excel_file)
-    try:
-        yield pqs.files[id_]
-    finally:
-        del pqs
-
-
-@pytest.fixture(scope="module")
-def simple_parquet_file(simple_excel_file):
-    pqs = ParquetStorage()
-    id_ = pqs.store_file(simple_excel_file)
-    try:
-        yield pqs.files[id_]
-    finally:
-        del pqs
-
-
 @pytest.fixture(
-    scope="module",
-    params=[
-        lazy_fixture("simple_excel_file"),
-        lazy_fixture("simple_virtual_parquet_file"),
-        lazy_fixture("simple_parquet_file"),
-    ],
+    scope="module", params=[StorageType.PARQUET, StorageType.VIRTUAL, StorageType.DF]
 )
-def simple_file(request):
-    return request.param
+def simple_file(simple_excel_file, request):
+    pqs = ParquetStorage(storage_type=request.param)
+    id_ = pqs.store_file(simple_excel_file)
+    try:
+        yield pqs.files[id_]
+    finally:
+        del pqs
 
 
 TEST_DF = pd.DataFrame(

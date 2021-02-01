@@ -60,7 +60,7 @@ def parquet_frame(request, test_df):
     Frame = request.param
     with tempfile.TemporaryDirectory(dir=Path(ROOT_PATH, "storages")) as temp_dir:
         Frame.MAX_N_COLUMNS = 5
-        parquet_frame = Frame.from_df(test_df, "test", pardir=temp_dir)
+        parquet_frame = Frame.from_df(test_df, "table-test", pardir=temp_dir)
         try:
             yield parquet_frame
         finally:
